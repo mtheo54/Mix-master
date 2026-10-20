@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build (plug-in, outils, tests ; le validateur VST3 tourne après le plug-in)
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  sanitizers:
+    name: ASan + UBSan / TSan (moteur seul)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ASan + UBSan
+        run: |
+          cmake -S . -B build-asan -DOMNIS_BUILD_VST3=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all"
+          cmake --build build-asan --parallel
+          ctest --test-dir build-asan --output-on-failure
+
+      - name: TSan (primitives lock-free)
+        run: |
+          cmake -S . -B build-tsan -DOMNIS_BUILD_VST3=OFF -DOMNIS_BUILD_TOOLS=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread"
+          cmake --build build-tsan --parallel
+          ./build-tsan/omnis_tests spsc
+          ./build-tsan/omnis_tests triple

@@ -1,0 +1,20 @@
+# Builds
+/build*/
+/out/
+/cmake-build-*/
+CMakeUserPresets.json
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.xcodeproj/
+.DS_Store
+
+# Audio de test (fichiers utilisateur et kits générés : jamais dans le dépôt)
+/audio/
+/kit/
+*.wav
+*.aif
+*.aiff
+*.flac
