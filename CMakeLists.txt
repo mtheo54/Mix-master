@@ -59,6 +59,9 @@ add_library(omnis_core STATIC
     source/core/TripleBuffer.h
     source/dsp/Crossover.h
     source/dsp/Fft.cpp
+    source/dsp/FirKernelBank.h
+    source/dsp/LinearPhaseDesigner.cpp
+    source/dsp/LinearPhaseDesigner.h
     source/dsp/Halfband.cpp
     source/dsp/Halfband.h
     source/dsp/Oversampler.cpp
@@ -136,6 +139,10 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
     add_library(omnis_tools_common STATIC
         tools/common/AnalysisReport.cpp
         tools/common/AnalysisReport.h
+        tools/common/DistortionAnalysis.cpp
+        tools/common/DistortionAnalysis.h
+        tools/common/LoudnessTuner.cpp
+        tools/common/LoudnessTuner.h
         tools/common/TestSignals.cpp
         tools/common/TestSignals.h
         tools/common/WavFile.cpp
@@ -146,7 +153,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
-    foreach(tool testgen analyze render)
+    foreach(tool testgen analyze render compare tune)
         add_executable(omnis_${tool} tools/${tool}/main.cpp)
         target_link_libraries(omnis_${tool} PRIVATE omnis_tools_common omnis_compile_options)
     endforeach()

@@ -88,6 +88,7 @@ OMNIS_TEST("noyaux sub: réponse conforme à la cible, phase linéaire (symétri
     constexpr int kN = 16384, kB = 512;
     SubKernelDesigner designer;
     designer.prepare(fs, kN, kB);
+    static_assert(dsp::LinearPhaseDesigner::kKaiserBeta == 6.0);
     SubKernelRequest req; // défauts : low cut 16 Hz, mono 120 Hz LR4, 100 %
     StereoConvolver::Kernel k;
     k.allocate(kN / kB, kB);

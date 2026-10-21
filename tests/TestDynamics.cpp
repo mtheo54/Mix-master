@@ -129,43 +129,76 @@ OMNIS_TEST("clipper: repliement d'un écrêtage dur sévère selon le suréchant
     }
 }
 
-OMNIS_TEST("clipper: plafond respecté (dépassement < 0.2 dB) et DC retiré (Diode)") {
+OMNIS_TEST("clipper: plafond respecté (dépassement < 0.4 dB en deux bandes) et DC retiré (Diode)") {
     for (int mode : {0, 1, 2}) {
         ClipperStage st;
         st.setParameter(ParamId::ClipMode, mode, true);
         st.setParameter(ParamId::ClipDrive, 12.0, true);
         st.setParameter(ParamId::ClipCeiling, -3.0, true);
         st.prepare({kFs, 256, 2});
-        Stereo s = sine(100.0, 0.5, 3.0);
+        Stereo s = sine(40.0, 0.5, 3.0); // entièrement dans la bande basse
         run(st, s);
         const double peakDb = gainToDb(peakOf(s, 44100));
         std::printf("    mode %d : crête de sortie %.2f dBFS (plafond -3)\n", mode, peakDb);
-        // Hard : Gibbs du signal écrêté re-filtré (+0.05 dB mesuré). Diode : le
-        // retrait du DC de la forme asymétrique abaisse la crête positive (~-1 dB).
-        OMNIS_CHECK(peakDb < -3.0 + 0.2 && peakDb > -3.0 - (mode == 2 ? 1.5 : 0.2));
+        // Deux bandes : le petit résidu de 40 Hz laissé dans la bande haute
+        // (1 − LP_LR4 ≈ 1.2 %, × drive) s'ajoute à la bande basse écrêtée
+        // (+0.31 dB mesuré, rattrapé par le limiteur). Diode : le retrait du DC
+        // de la forme asymétrique abaisse la crête positive.
+        OMNIS_CHECK(peakDb < -3.0 + 0.4 && peakDb > -3.0 - (mode == 2 ? 1.5 : 0.2));
         double mean = 0.0;
         for (std::size_t i = 88200; i < s.l.size(); ++i) mean += s.l[i];
         mean /= static_cast<double>(s.l.size() - 88200);
         OMNIS_CHECK(std::fabs(mean) < 1e-3);
         if (mode == 2) {
             // Asymétrie -> 2e harmonique présente (couleur « diode »).
-            const double h2 = 2.0 * std::abs(dft(s.l, 200.0, 88200, 44100)) / 44100.0;
+            const double h2 = 2.0 * std::abs(dft(s.l, 80.0, 88200, 44100)) / 44100.0;
             OMNIS_CHECK(gainToDb(h2) > -40.0);
         }
     }
 }
 
-OMNIS_TEST("limiteur sample peak: aucun échantillon au-dessus du plafond (+12 dB sur la boucle)") {
+OMNIS_TEST("clipper deux bandes: la 808 écrêtée n'intermodule plus le haut du spectre") {
+    // 47 Hz très fort (808) + 1 kHz faible (voix) ; drive +12 dB : la 808 est
+    // écrêtée de ~6 dB. Un clipper large bande ferait apparaître des bandes
+    // latérales à 1 kHz ± 47/94 Hz (le 1 kHz « roule » sur la 808). 47 Hz et
+    // non 50 : les bandes latérales ne doivent pas coïncider avec les
+    // harmoniques de la 808 écrêtée (légitimes, elles).
+    // Le 1 kHz (0.05 × 4 = 0.2) reste sous le plafond : il n'est pas écrêté.
+    ClipperStage st;
+    st.setParameter(ParamId::ClipMode, 0.0, true);
+    st.setParameter(ParamId::ClipDrive, 12.0, true);
+    st.prepare({kFs, 256, 2});
+    Stereo s;
+    const int n = static_cast<int>(2.5 * kFs);
+    for (int i = 0; i < n; ++i) {
+        const double t = i / kFs;
+        const double v = 0.5 * std::sin(2.0 * std::numbers::pi * 47.0 * t) + 0.05 * std::sin(2.0 * std::numbers::pi * 1000.0 * t);
+        s.l.push_back(v);
+        s.r.push_back(v);
+    }
+    run(st, s);
+    const std::size_t start = static_cast<std::size_t>(kFs);
+    const double tone = std::abs(dft(s.l, 1000.0, start, 44100));
+    double worst = 0.0;
+    for (double f : {906.0, 953.0, 1047.0, 1094.0}) worst = std::max(worst, std::abs(dft(s.l, f, start, 44100)));
+    const double imdDb = 20.0 * std::log10(worst / tone);
+    std::printf("    bandes latérales d'intermodulation autour de 1 kHz : %.1f dB\n", imdDb);
+    OMNIS_CHECK(imdDb < -60.0);
+    // Le 1 kHz passe intact : +12 dB de drive, sans écrêtage.
+    OMNIS_CHECK_NEAR(20.0 * std::log10(2.0 * tone / 44100.0 / 0.05), 12.0, 0.1);
+}
+
+OMNIS_TEST("limiteur: aucun échantillon ni crête vraie au-dessus du plafond (+12 dB sur la boucle)") {
     LimiterStage st;
-    st.setParameter(ParamId::LimMode, 1.0, true);
     st.setParameter(ParamId::LimGain, 12.0, true);
     st.setParameter(ParamId::LimCeiling, -1.0, true);
     st.prepare({kFs, 256, 2});
     const auto drums = tools::signals::drumLoop(kFs, 4);
     Stereo s{drums.channels[0], drums.channels[1]};
     run(st, s, 199);
-    OMNIS_CHECK(gainToDb(peakOf(s)) <= -1.0 + 1e-9);
-    OMNIS_CHECK(gainToDb(peakOf(s)) > -1.5); // il limite vraiment jusqu'au plafond
+    OMNIS_CHECK(gainToDb(peakOf(s)) <= -1.0);
+    OMNIS_CHECK(gainToDb(truePeakOf(s)) <= -1.0 + 0.01);
+    OMNIS_CHECK(gainToDb(truePeakOf(s)) > -1.5); // il limite vraiment jusqu'au plafond
 }
 
 OMNIS_TEST("limiteur true peak: crête vraie de sortie sous le plafond (boucle, ISP, bruit, +12 dB)") {
@@ -195,14 +228,15 @@ OMNIS_TEST("limiteur: transparent sous le seuil (sortie = entrée retardée, bit
     for (std::size_t i = lat; i < s.l.size(); ++i)
         if (s.l[i] != ref.l[i - lat] || s.r[i] != ref.r[i - lat]) exact = false;
     OMNIS_CHECK(exact);
-    OMNIS_CHECK(lat == static_cast<std::size_t>(std::lround(0.005 * kFs)) + analysis::TruePeakMeter::kHalfLength);
+    OMNIS_CHECK(lat == static_cast<std::size_t>(std::lround(LimiterStage::kLookaheadMs * 1e-3 * kFs)) +
+                           analysis::TruePeakMeter::kHalfLength);
 }
 
 OMNIS_TEST("limiteur: relâchement exponentiel (63 % de remontée en ~release)") {
     LimiterStage st;
-    st.setParameter(ParamId::LimMode, 1.0, true);
     st.setParameter(ParamId::LimCeiling, -6.0, true);
     st.setParameter(ParamId::LimRelease, 100.0, true);
+    st.setParameter(ParamId::LimAutoRelease, 0.0, true); // release fixe pour la mesure
     st.prepare({kFs, 256, 2});
     // Impulsion de 0 dBFS puis signal constant faible : on suit le gain.
     Stereo s{std::vector<double>(44100, 0.01), std::vector<double>(44100, 0.01)};
@@ -212,6 +246,65 @@ OMNIS_TEST("limiteur: relâchement exponentiel (63 % de remontée en ~release)")
     const double g0 = s.l[1000 + lat] / 1.0;  // gain à la crête ≈ -6 dB
     const double g100 = s.l[1000 + lat + 4410] / 0.01; // 100 ms après
     OMNIS_CHECK(gainToDb(g0) <= -6.0 + 1e-9);
-    // Remontée de -6 dB vers 0 dB : après τ, gain ≈ 0.5 + 0.63·0.5 (linéaire).
-    OMNIS_CHECK_NEAR(g100, 0.501 + (1.0 - 0.501) * (1.0 - std::exp(-1.0)), 0.03);
+    // Remontée depuis g0 vers 0 dB : après τ, gain ≈ g0 + 0.63·(1 − g0).
+    OMNIS_CHECK_NEAR(g100, g0 + (1.0 - g0) * (1.0 - std::exp(-1.0)), 0.03);
+}
+
+OMNIS_TEST("limiteur: release adaptatif plus lent en limitation soutenue") {
+    // Sinus 25 Hz fort et continu (demi-période 20 ms > lookahead 10 ms : le
+    // minimum glissant ne couvre plus un cycle entier). Avec auto-release, le
+    // gain ondule moins à chaque cycle. Mesure : écart crête-à-crête du gain
+    // sur la 2e seconde. (À 50 Hz, le lookahead de 10 ms suffit déjà : 0 dB.)
+    double ripple[2];
+    for (int k = 0; k < 2; ++k) {
+        LimiterStage st;
+        st.setParameter(ParamId::LimGain, 12.0, true);
+        st.setParameter(ParamId::LimAutoRelease, k == 0 ? 0.0 : 100.0, true);
+        st.prepare({kFs, 256, 2});
+        Stereo s = sine(25.0, 0.5, 2.0);
+        const Stereo ref = s;
+        run(st, s);
+        const auto lat = static_cast<std::size_t>(st.latencySamples());
+        double gmin = 1e9, gmax = 0.0;
+        for (std::size_t i = 44100; i < s.l.size(); ++i) {
+            const double x = ref.l[i - lat];
+            if (std::fabs(x) < 0.2) continue; // gain mal défini près des zéros
+            const double g = s.l[i] / (x * dbToGain(12.0));
+            gmin = std::min(gmin, g);
+            gmax = std::max(gmax, g);
+        }
+        ripple[k] = 20.0 * std::log10(gmax / gmin);
+    }
+    std::printf("    ondulation du gain : release fixe %.2f dB, adaptatif %.2f dB\n", ripple[0], ripple[1]);
+    OMNIS_CHECK(ripple[1] < 0.5 * ripple[0]);
+}
+
+OMNIS_TEST("clipper: partage de marge — la somme tient le plafond, la bande haute n'est pas modulée") {
+    // 47 Hz au plafond + 3 kHz constant : la somme dépasse en permanence. Seule
+    // la bande sub doit céder la place ; le 3 kHz doit sortir intact et stable.
+    ClipperStage st;
+    st.setParameter(ParamId::ClipCeiling, -1.0, true);
+    st.prepare({kFs, 256, 2});
+    Stereo s;
+    const int n = static_cast<int>(3.0 * kFs);
+    const double c = dbToGain(-1.0);
+    for (int i = 0; i < n; ++i) {
+        const double t = i / kFs;
+        const double v = 0.85 * c * std::sin(2.0 * std::numbers::pi * 47.0 * t) + 0.3 * std::sin(2.0 * std::numbers::pi * 3000.0 * t);
+        s.l.push_back(v);
+        s.r.push_back(v);
+    }
+    run(st, s);
+    const std::size_t start = static_cast<std::size_t>(kFs);
+    OMNIS_CHECK(gainToDb(peakOf(s, start)) < -1.0 + 0.1);
+    // Amplitude du 3 kHz par fenêtres de 100 ms : stable à 0.05 dB près et à son niveau d'origine.
+    double lo = 1e9, hi = 0.0;
+    for (std::size_t w = start; w + 4410 <= s.l.size(); w += 4410) {
+        const double a = 2.0 * std::abs(dft(s.l, 3000.0, w, 4410)) / 4410.0;
+        lo = std::min(lo, a);
+        hi = std::max(hi, a);
+    }
+    std::printf("    3 kHz pendant le partage de marge : %.3f … %.3f dB\n", gainToDb(lo / 0.3), gainToDb(hi / 0.3));
+    OMNIS_CHECK(gainToDb(hi / lo) < 0.05);
+    OMNIS_CHECK_NEAR(gainToDb(hi / 0.3), 0.0, 0.05);
 }

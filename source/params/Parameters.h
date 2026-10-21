@@ -58,12 +58,15 @@ enum class ParamId : std::uint32_t {
     ClipCeiling = 502,
     ClipKnee = 503,
     ClipOversampling = 504,
+    ClipSplit = 505,
+    ClipSubDrive = 506,
+    ClipSubRoom = 507,
 
     // --- Lookahead Brickwall Limiter (600–699) --------------------------------
     LimGain = 600,
     LimCeiling = 601,
     LimRelease = 602,
-    LimMode = 603,
+    LimAutoRelease = 603,
 
     // --- Mesures (lecture seule) ---------------------------------------------
     MeterMomentary = 1000,
@@ -95,9 +98,6 @@ enum class MonoSlope : int { LR4 = 0, LR8 = 1 };
 
 /// Phase du Sub Control : FIR à phase linéaire (défaut) ou IIR « analogique ».
 enum class PhaseMode : int { Linear = 0, Analog = 1 };
-
-/// Mode de détection du limiteur : livraison sûre (true peak) ou club (sample peak).
-enum class LimiterMode : int { TruePeak = 0, SamplePeak = 1 };
 
 struct ParamSpec {
     ParamId id;

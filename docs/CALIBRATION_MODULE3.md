@@ -85,3 +85,71 @@ les plateformes baisseront de toute façon le volume (−14 LUFS sur Spotify/You
 - Latence : **8957 échantillons à 44.1 kHz (203 ms)**, 8976 à 48 kHz, 17920 à 96 kHz.
 - CPU : 116 s rendues en 8.3 s par l'outil complet, soit ~7 % d'un cœur (contre 3.9 s pour le Sub
   Control seul au module 2 : le clipper 8x et le limiteur coûtent donc ~4.4 s sur 116 s).
+
+## 6. Retour d'écoute : « Safe très propre, Club trop distordu »
+
+Décision : **plus de mode figé Club / Safe**. La sonie visée et le plafond viennent de la demande de
+la personne ; l'algorithme doit rester le plus propre possible à n'importe quelle intensité. Le
+limiteur est désormais toujours en true peak (le paramètre de mode a été retiré).
+
+### 6.1 Une mesure objective de la distorsion (`omnis_compare`)
+
+TFCT en Mid/Side. Un filtre linéaire bin par bin, estimé sur tout le fichier, absorbe l'EQ, le
+retard, la phase et le Mono Maker. Un gain complexe par bande et par trame absorbe les variations de
+niveau lentes. Le résidu est la distorsion non linéaire, pondérée K. Validation : gain pur −172 dB,
+retard −50 dB, EQ −40 dB (plancher). Une première version, qui n'avait qu'un gain par bande, comptait
+à tort un retard de 8 échantillons comme −3.5 dB de « distorsion » dans les aigus. Elle a été
+corrigée avant toute conclusion.
+
+La mesure s'accorde avec l'écoute : Safe −20.8 dB, Club −14.2 dB (médium −11.2, aigu −7.4).
+
+### 6.2 Diagnostic
+
+| Expérience | Médium |
+|---|---|
+| Réglage Club, mix complet | −11.2 dB |
+| Même réglage, mix **sans sub** | −19.4 dB |
+| Clipper seul (drive 18) | −9.7 dB |
+| Limiteur seul (+22 dB) | −17.6 dB |
+
+**Cause n°1 : l'intermodulation par le sub.** La 808 (78 % de l'énergie) s'écrête, et la voix et les
+synthés qui « roulent » sur sa forme d'onde se font moduler (+8 dB de distorsion dans les médiums).
+Cause n°2 : le gain du limiteur suit les cycles du sub.
+
+### 6.3 Corrections
+
+1. **Clipper à deux bandes** (sub / reste, crossover Linkwitz-Riley 24 dB/oct à phase linéaire, somme
+   exacte). Intermodulation d'un 1 kHz par une 808 à 47 Hz écrêtée : **−82 dB**.
+2. **Partage de marge (« Sub Make-Room »)**. Deux bandes chacune au plafond peuvent sommer à +6 dB.
+   Sans correction, la cible −5.2 LUFS était hors d'atteinte (gain maximal de 48 dB → −5.65 LUFS).
+   La contrainte |g·sub + haut| ≤ plafond est désormais tenue en baissant **uniquement** le gain de
+   la bande sub (anticipation 5 ms, release 80 ms). Test : un 3 kHz reste stable à ±0.016 dB pendant
+   que la 808 cède la place.
+3. **Limiteur** : lookahead 10 ms (rampe d'attaque deux fois plus longue) et release adaptatif
+   (jusqu'à 5x plus lent en limitation soutenue). Ondulation du gain sur une sub de 25 Hz : 0.11 →
+   0.04 dB.
+4. **`omnis_tune`** : pour une sonie cible, cherche par dichotomie le gain qui l'atteint pour chaque
+   stratégie et mesure la distorsion. On compare ainsi à sonie égale. C'est le précurseur du
+   pilotage par l'IA.
+
+### 6.4 Résultat à sonie identique à l'ancien Club
+
+| | Sonie | True peak | Médium | Aigu | Bas-médium | Sub |
+|---|---|---|---|---|---|---|
+| pour_claude, ancien Club | −5.2 | +1.14 | −11.2 | −7.4 | −12.1 | −31.7 |
+| pour_claude, **nouveau** | −5.2 | **−0.35** | **−15.4** | **−12.1** | **−17.6** | −21.9 |
+| pour_claude_plugin, ancien Club | −5.1 | +1.53 | −11.2 | −6.7 | −12.6 | −29.3 |
+| pour_claude_plugin, **nouveau** | −5.1 | **−0.35** | **−16.7** | **−12.1** | **−17.7** | −22.1 |
+
+On gagne 4 à 5.5 dB de propreté là où l'oreille est sensible, avec un plafond true peak plus strict.
+La ligne « sub » se dégrade : c'est la 808 qui cède sa place aux transitoires (effet sidechain), et
+la mesure compte cette modulation comme de la distorsion.
+
+### 6.5 Limite restante (honnête)
+
+Pour atteindre −5 LUFS, ces mixes demandent encore ~23 dB de drive dans le clipper. Ils ont 15 dB
+de PLR, 12 LU de LRA et un sub +9 à +13 dB au-dessus des références. Aucun clipper ni limiteur ne
+fera disparaître 10 dB de dynamique sans trace. Le gain suivant viendra du **module 4** : Match EQ
+pour ramener le sub, et compression multibande lente pour réduire la dynamique des médiums avant
+l'écrêtage. Une simulation rapide (compresseurs ffmpeg) n'a pas suffi : il faut un vrai étage
+conçu pour ça.

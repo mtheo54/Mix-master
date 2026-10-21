@@ -32,7 +32,7 @@ LimiterStage::LimiterStage() {
     inputGain_.snapTo(dbToGain(defaultOf(ParamId::LimGain)));
     ceiling_.snapTo(dbToGain(defaultOf(ParamId::LimCeiling)));
     releaseMs_ = defaultOf(ParamId::LimRelease);
-    truePeak_ = static_cast<int>(defaultOf(ParamId::LimMode)) == static_cast<int>(params::LimiterMode::TruePeak);
+    autoRelease_ = defaultOf(ParamId::LimAutoRelease) * 0.01;
     const TruePeakMeter reference;
     tpCoefficients_ = reference.coefficients();
 }
@@ -44,13 +44,11 @@ void LimiterStage::prepare(const ProcessSpec& spec) {
     inputGain_.snapTo(inputGain_.target());
     ceiling_.snapTo(ceiling_.target());
     releaseCoefficient_ = 1.0 - std::exp(-1.0 / (releaseMs_ * 1e-3 * sampleRate_));
+    activityCoefficient_ = 1.0 - std::exp(-1.0 / (0.5 * sampleRate_));
 
     lookahead_ = std::max(1, static_cast<int>(std::lround(kLookaheadMs * 1e-3 * sampleRate_)));
     latency_ = lookahead_ + TruePeakMeter::kHalfLength;
-    const auto window = static_cast<std::size_t>(lookahead_ + 1);
-    minValues_.assign(window + 1, 1.0);
-    minIndices_.assign(window + 1, 0);
-    boxRing_.assign(window, 1.0);
+    gainSmoother_.prepare(lookahead_);
     for (auto& d : delay_) d.assign(static_cast<std::size_t>(latency_), 0.0);
     reset();
 }
@@ -58,13 +56,8 @@ void LimiterStage::prepare(const ProcessSpec& spec) {
 void LimiterStage::reset() noexcept {
     for (auto& h : tpHistory_) h.fill(0.0);
     tpPos_ = 0;
-    envelope_ = 1.0;
-    minHead_ = 0;
-    minCount_ = 0;
-    sampleIndex_ = 0;
-    std::fill(boxRing_.begin(), boxRing_.end(), 1.0);
-    boxSum_ = static_cast<double>(boxRing_.size());
-    boxPos_ = 0;
+    gainSmoother_.reset();
+    activity_ = 0.0;
     for (auto& d : delay_) std::fill(d.begin(), d.end(), 0.0);
     delayPos_ = 0;
     lastGainDb_ = 0.0;
@@ -78,11 +71,11 @@ void LimiterStage::setParameter(ParamId id, double plain, bool immediate) noexce
         case ParamId::LimCeiling:
             immediate ? ceiling_.snapTo(dbToGain(plain)) : ceiling_.setTarget(dbToGain(plain));
             break;
+        case ParamId::LimAutoRelease: autoRelease_ = plain * 0.01; break;
         case ParamId::LimRelease:
             releaseMs_ = plain;
             releaseCoefficient_ = 1.0 - std::exp(-1.0 / (releaseMs_ * 1e-3 * sampleRate_));
             break;
-        case ParamId::LimMode: truePeak_ = static_cast<int>(plain) == static_cast<int>(params::LimiterMode::TruePeak); break;
         default: break;
     }
 }
@@ -100,13 +93,11 @@ double LimiterStage::detect(double l, double r) noexcept {
         pos = (tpPos_ + 1) % kN;
         const double* w = hist.data() + pos;
         double p = std::fabs(w[kN - 1 - TruePeakMeter::kHalfLength]); // échantillon m − D
-        if (truePeak_) {
-            for (int phase = 1; phase < TruePeakMeter::kOversampling; ++phase) {
-                const auto& c = tpCoefficients_[static_cast<std::size_t>(phase)];
-                double acc = 0.0;
-                for (int k = 0; k < kN; ++k) acc += c[static_cast<std::size_t>(k)] * w[kN - 1 - k];
-                p = std::max(p, std::fabs(acc));
-            }
+        for (int phase = 1; phase < TruePeakMeter::kOversampling; ++phase) {
+            const auto& c = tpCoefficients_[static_cast<std::size_t>(phase)];
+            double acc = 0.0;
+            for (int k = 0; k < kN; ++k) acc += c[static_cast<std::size_t>(k)] * w[kN - 1 - k];
+            p = std::max(p, std::fabs(acc));
         }
         peak = std::max(peak, p);
     }
@@ -117,9 +108,7 @@ double LimiterStage::detect(double l, double r) noexcept {
 void LimiterStage::process(double* const* channels, int numSamples) noexcept {
     double* left = channels[0];
     double* right = channels[1];
-    const auto window = static_cast<long long>(lookahead_ + 1);
-    const int ringSize = static_cast<int>(minValues_.size());
-    const double marginGain = truePeak_ ? dbToGain(-kTruePeakMarginDb) : 1.0;
+    const double marginGain = dbToGain(-kTruePeakMarginDb);
 
     for (int i = 0; i < numSamples; ++i) {
         const double g = inputGain_.next();
@@ -130,37 +119,11 @@ void LimiterStage::process(double* const* channels, int numSamples) noexcept {
         // 1–3. Détection, gain requis, relâchement.
         const double peak = detect(l, r);
         const double required = peak > ceiling ? ceiling / peak : 1.0;
-        envelope_ = required < envelope_ ? required : envelope_ + releaseCoefficient_ * (required - envelope_);
-
-        // 4. Minimum glissant (file monotone : on retire les valeurs >= nouvelle).
-        while (minCount_ > 0) {
-            const int last = (minHead_ + minCount_ - 1) % ringSize;
-            if (minValues_[static_cast<std::size_t>(last)] < envelope_) break;
-            --minCount_;
-        }
-        {
-            const int slot = (minHead_ + minCount_) % ringSize;
-            minValues_[static_cast<std::size_t>(slot)] = envelope_;
-            minIndices_[static_cast<std::size_t>(slot)] = sampleIndex_;
-            ++minCount_;
-        }
-        while (minIndices_[static_cast<std::size_t>(minHead_)] <= sampleIndex_ - window) {
-            minHead_ = (minHead_ + 1) % ringSize;
-            --minCount_;
-        }
-        const double held = minValues_[static_cast<std::size_t>(minHead_)];
-        ++sampleIndex_;
-
-        // 5. Moyenne glissante (recalcul exact périodique contre la dérive).
-        boxSum_ += held - boxRing_[static_cast<std::size_t>(boxPos_)];
-        boxRing_[static_cast<std::size_t>(boxPos_)] = held;
-        if (++boxPos_ == static_cast<int>(boxRing_.size())) {
-            boxPos_ = 0;
-            double exact = 0.0;
-            for (double v : boxRing_) exact += v;
-            boxSum_ = exact;
-        }
-        const double gain = boxSum_ / static_cast<double>(boxRing_.size());
+        activity_ += activityCoefficient_ * ((required < 0.999 ? 1.0 : 0.0) - activity_);
+        // a ≈ 1/(τ·fs) : diviser le coefficient revient à multiplier τ.
+        const double release = releaseCoefficient_ / (1.0 + 4.0 * autoRelease_ * activity_);
+        // 4–5. Minimum glissant + moyenne glissante sur le lookahead.
+        const double gain = gainSmoother_.process(required, release);
 
         // 6. Gain appliqué au signal retardé de L + D.
         const auto dp = static_cast<std::size_t>(delayPos_);

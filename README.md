@@ -34,18 +34,21 @@ Coût : ~3 % d'un cœur.
 | Paramètre | Plage | Défaut | Rôle |
 |---|---|---|---|
 | Clip Mode | Hard / Soft Knee / Diode | Soft Knee | Courbe d'écrêtage (Diode : asymétrique, harmoniques paires) |
-| Clip Drive | 0–18 dB | 0 dB | Poussée dans le clipper |
+| Clip Drive | 0–24 dB | 0 dB | Poussée dans le clipper |
 | Clip Ceiling | −12–0 dBFS | 0 dBFS | Niveau d'écrêtage |
 | Clip Knee | 0–100 % | 50 % | Douceur du genou (Soft Knee) |
 | Clip Oversampling | 1x–16x | 8x | Suréchantillonnage (HIIR phase minimale) |
+| Clip Split | 60–300 Hz | 120 Hz | Séparation sub / reste (phase linéaire) : la 808 s'écrête sans intermoduler la voix |
+| Clip Sub Drive | −12…+12 dB | 0 dB | Poussée supplémentaire de la bande sub (« 808 ultra-clippée, sub propre ») |
 | Limiter Gain | 0–24 dB | 0 dB | Poussée dans le limiteur |
-| Limiter Ceiling | −6–0 dB | −1.0 dB | Plafond |
-| Limiter Release | 1–1000 ms | 60 ms | Relâchement |
-| Limiter Mode | True Peak (Safe) / Sample Peak (Club) | True Peak | Mode de livraison |
+| Limiter Ceiling | −6–0 dBTP | −1.0 dBTP | Plafond true peak (toujours) |
+| Limiter Release | 1–1000 ms | 60 ms | Relâchement de base |
+| Limiter Auto Release | 0–100 % | 100 % | Release adaptatif : jusqu'à 5x plus lent en limitation soutenue |
 
-Repliement d'un écrêtage dur de 6 dB à 5 kHz : −35 dB en 1x, **−94 dB en 8x**, −113 dB en 16x.
-Réglages calibrés sur les mixes fournis : **Club** (Soft Knee, drive 18, limiteur +4 dB en sample peak
-−0.3) → −5.2 LUFS ; **Safe** (drive 12, +4 dB, true peak −1) → −8.3 LUFS à −1.05 dBTP.
+Pas de mode figé « Club » / « Safe » : l'intensité (sonie visée, plafond) vient de la demande de la
+personne, et l'algorithme cherche la répartition la plus propre pour l'atteindre (`omnis_tune`,
+précurseur du pilotage par IA). Repliement d'un écrêtage dur de 6 dB à 5 kHz : −35 dB en 1x,
+**−94 dB en 8x** ; intermodulation d'une voix par une 808 écrêtée : **−85 dB** grâce aux deux bandes.
 
 ## Ce que contient le Module 1
 
@@ -98,6 +101,9 @@ $B/omnis_analyze mix.wav                    # LUFS I/M/S, LRA, TP, PLR, PSR, cre
 $B/omnis_analyze mix.wav --bands            # + énergie, corrélation (et pire fenêtre), S/M, crête par bande
 $B/omnis_analyze mix.wav --json
 
+$B/omnis_compare mix.wav master.wav         # distorsion non linéaire ajoutée (pondérée K, par région)
+$B/omnis_tune mix.wav --target -6 --full    # réglage le plus propre pour atteindre une sonie
+
 $B/omnis_render --params                    # clés de paramètres
 $B/omnis_render mix.wav out.wav --set input_gain=-3dB --set monitor=Side --report
 ```
@@ -127,7 +133,7 @@ docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md, CAL
 2. ✅ **Crossovers & filtres** : SVF TPT (Zavalishin/Simper), Linkwitz-Riley LR4/LR8 et réseau N bandes
    à somme passe-tout, FFT et convolution partitionnée UPOLS, Sub Control & Mono Maker M/S à phase linéaire
 3. ✅ **Oversampling & Clipper** : demi-bandes HIIR conçues à la volée (1x–16x), clipper ADAA
-   Hard / Soft Knee / Diode, limiteur brickwall lookahead true peak (modes Safe / Club)
+   Hard / Soft Knee / Diode à deux bandes, limiteur brickwall true peak à release adaptatif
 4. Match EQ & FFT — Blackman-Harris 8192, convolution partitionnée, profils de référence
 5. Moteur IA & embeddings — ONNX Runtime C++ / RTNeural, MLP 40–60 paramètres
 6. UI NanoVG — IPlugView OpenGL, oscilloscope phosphore, matrice LED, champ de prompt
