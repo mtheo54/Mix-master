@@ -57,6 +57,12 @@ add_library(omnis_core STATIC
     source/core/Platform.h
     source/core/SpscRingBuffer.h
     source/core/TripleBuffer.h
+    source/dsp/Crossover.h
+    source/dsp/Fft.cpp
+    source/dsp/Fft.h
+    source/dsp/StereoConvolver.cpp
+    source/dsp/StereoConvolver.h
+    source/dsp/SvfFilter.h
     source/analysis/KWeightingFilter.h
     source/analysis/LoudnessMeter.cpp
     source/analysis/LoudnessMeter.h
@@ -68,11 +74,18 @@ add_library(omnis_core STATIC
     source/params/Parameters.h
     source/engine/Engine.cpp
     source/engine/Engine.h
+    source/engine/MasteringChain.cpp
+    source/engine/MasteringChain.h
     source/engine/Stage.h
+    source/stages/SubControlStage.cpp
+    source/stages/SubKernelBank.cpp
+    source/stages/SubKernelBank.h
+    source/stages/SubControlStage.h
 )
 target_include_directories(omnis_core PUBLIC source)
 target_compile_features(omnis_core PUBLIC cxx_std_20)
-target_link_libraries(omnis_core PRIVATE omnis_compile_options)
+find_package(Threads REQUIRED)
+target_link_libraries(omnis_core PUBLIC Threads::Threads PRIVATE omnis_compile_options)
 
 # -----------------------------------------------------------------------------
 #  Plug-in VST3
@@ -139,6 +152,9 @@ if(OMNIS_BUILD_TESTS)
         tests/TestFramework.h
         tests/TestMain.cpp
         tests/TestCore.cpp
+        tests/TestFilters.cpp
+        tests/TestConvolution.cpp
+        tests/TestSubControl.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp

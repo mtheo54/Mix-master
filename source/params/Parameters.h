@@ -42,6 +42,16 @@ enum class ParamId : std::uint32_t {
     OutputGain = 2,
     Monitor = 3,
 
+    // --- Sub Control & Mono Maker (100–199) ----------------------------------
+    LowCutFreq = 100,
+    MonoFreq = 101,
+    MonoAmount = 102,
+    MonoSlope = 103,
+    SubGain = 104,
+    SubFreq = 105,
+    SubSynth = 106,
+    SubPhaseMode = 107,
+
     // --- Mesures (lecture seule) ---------------------------------------------
     MeterMomentary = 1000,
     MeterShortTerm = 1001,
@@ -58,8 +68,20 @@ enum class ParamKind : std::uint8_t {
     Meter,      ///< sortie lecture seule (non automatisable, non sauvegardée)
 };
 
+/// Correspondance normalisé <-> plain d'un paramètre continu.
+enum class ParamScale : std::uint8_t {
+    Linear,      ///< plain = min + n·(max − min)
+    Logarithmic, ///< plain = min·(max/min)^n — fréquences (min > 0)
+};
+
 /// Modes d'écoute (bouton chiclet « Side solo » de l'interface).
 enum class MonitorMode : int { Stereo = 0, Mid = 1, Side = 2 };
+
+/// Pente du Mono Maker.
+enum class MonoSlope : int { LR4 = 0, LR8 = 1 };
+
+/// Phase du Sub Control : FIR à phase linéaire (défaut) ou IIR « analogique ».
+enum class PhaseMode : int { Linear = 0, Analog = 1 };
 
 struct ParamSpec {
     ParamId id;
@@ -75,6 +97,7 @@ struct ParamSpec {
     std::span<const std::string_view> choices; ///< libellés (Choice uniquement)
     double smoothingMs;                      ///< temps de lissage à 99 % dans le DSP
     int displayDecimals;
+    ParamScale scale = ParamScale::Linear;
 };
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.

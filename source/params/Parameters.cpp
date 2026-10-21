@@ -18,14 +18,28 @@ namespace {
 
 constexpr std::array<std::string_view, 2> kToggleLabels{"Off", "On"};
 constexpr std::array<std::string_view, 3> kMonitorLabels{"Stereo", "Mid", "Side"};
+constexpr std::array<std::string_view, 2> kSlopeLabels{"24 dB/oct", "48 dB/oct"};
+constexpr std::array<std::string_view, 2> kPhaseLabels{"Linear", "Analog"};
+constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
-constexpr std::array<ParamSpec, 10> kParameters{{
+constexpr std::array<ParamSpec, 18> kParameters{{
     // id                         key              name                    short     unit    kind                  min     max    def    steps choices         smooth  dec
     {ParamId::Bypass,            "bypass",        "Bypass",               "Byp",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  20.0,   0},
     {ParamId::InputGain,         "input_gain",    "Input Gain",           "In",     "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::OutputGain,        "output_gain",   "Output Gain",          "Out",    "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::Monitor,           "monitor",       "Monitor",              "Mon",    "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kMonitorLabels, 15.0,   0},
+
+    // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence
+    // (voir docs/CALIBRATION_MODULE2.md).
+    {ParamId::LowCutFreq,        "low_cut",       "Low Cut",              "LoCut",  "Hz",   ParamKind::Continuous, 5.0,    60.0,  16.0,  0,    {},             50.0,   1, kLog},
+    {ParamId::MonoFreq,          "mono_freq",     "Mono Below",           "Mono",   "Hz",   ParamKind::Continuous, 20.0,   300.0, 120.0, 0,    {},             50.0,   0, kLog},
+    {ParamId::MonoAmount,        "mono_amount",   "Mono Amount",          "MonoAm", "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             30.0,   0},
+    {ParamId::MonoSlope,         "mono_slope",    "Mono Slope",           "Slope",  "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kSlopeLabels,   30.0,   0},
+    {ParamId::SubGain,           "sub_gain",      "Sub Gain",             "Sub",    "dB",   ParamKind::Continuous, -12.0,  6.0,   0.0,   0,    {},             30.0,   1},
+    {ParamId::SubFreq,           "sub_freq",      "Sub Freq",             "SubF",   "Hz",   ParamKind::Continuous, 30.0,   150.0, 70.0,  0,    {},             50.0,   0, kLog},
+    {ParamId::SubSynth,          "sub_synth",     "Sub Synth",            "Synth",  "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    {ParamId::SubPhaseMode,      "sub_phase",     "Sub Phase",            "Phase",  "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kPhaseLabels,   30.0,   0},
 
     {ParamId::MeterMomentary,    "meter_m",       "Momentary Loudness",   "M",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterShortTerm,    "meter_s",       "Short-Term Loudness",  "S",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
@@ -104,12 +118,17 @@ double toPlain(const ParamSpec& spec, double normalized) noexcept {
                                      std::floor(normalized * (spec.stepCount + 1)));
         return spec.minValue + step * (spec.maxValue - spec.minValue) / spec.stepCount;
     }
+    if (spec.scale == ParamScale::Logarithmic)
+        return spec.minValue * std::pow(spec.maxValue / spec.minValue, normalized);
     return spec.minValue + normalized * (spec.maxValue - spec.minValue);
 }
 
 double toNormalized(const ParamSpec& spec, double plain) noexcept {
     const double range = spec.maxValue - spec.minValue;
     if (range <= 0.0) return 0.0;
+    if (spec.scale == ParamScale::Logarithmic && spec.stepCount == 0)
+        return std::clamp(std::log(clampPlain(spec, plain) / spec.minValue) / std::log(spec.maxValue / spec.minValue),
+                          0.0, 1.0);
     return std::clamp((clampPlain(spec, plain) - spec.minValue) / range, 0.0, 1.0);
 }
 

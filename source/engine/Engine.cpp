@@ -41,6 +41,10 @@ void Engine::appendStage(std::unique_ptr<Stage> stage) {
     if (stage) stages_.push_back(std::move(stage));
 }
 
+void Engine::setRealtimeMode(bool realtime) noexcept {
+    for (auto& stage : stages_) stage->setRealtime(realtime);
+}
+
 void Engine::prepare(double sampleRate, int maxBlockSize) {
     assert(sampleRate > 0.0 && maxBlockSize > 0);
     spec_.sampleRate = sampleRate;
@@ -112,7 +116,9 @@ void Engine::setMonitorTargets(int mode, bool immediate) noexcept {
     }
 }
 
-void Engine::setParameter(ParamId id, double plainValue) noexcept {
+void Engine::setParameter(ParamId id, double plainValue) noexcept { applyParameter(id, plainValue, false); }
+
+void Engine::applyParameter(ParamId id, double plainValue, bool immediate) noexcept {
     const auto* spec = params::findParameter(id);
     if (spec) plainValue = params::clampPlain(*spec, plainValue);
     switch (id) {
@@ -121,13 +127,13 @@ void Engine::setParameter(ParamId id, double plainValue) noexcept {
         case ParamId::OutputGain: outputGain_.setTarget(dbToGain(plainValue)); break;
         case ParamId::Monitor: setMonitorTargets(static_cast<int>(plainValue), false); break;
         default:
-            for (auto& stage : stages_) stage->setParameter(id, plainValue);
+            for (auto& stage : stages_) stage->setParameter(id, plainValue, immediate);
             break;
     }
 }
 
 void Engine::setParameterImmediate(ParamId id, double plainValue) noexcept {
-    setParameter(id, plainValue);
+    applyParameter(id, plainValue, true);
     switch (id) {
         case ParamId::Bypass: mix_.snapTo(mix_.target()); break;
         case ParamId::InputGain: inputGain_.snapTo(inputGain_.target()); break;

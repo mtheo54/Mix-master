@@ -65,6 +65,10 @@ public:
     void appendStage(std::unique_ptr<Stage> stage);
     [[nodiscard]] int numStages() const noexcept { return static_cast<int>(stages_.size()); }
 
+    /// Non temps réel, avant prepare(). Défaut : false (rendu hors ligne
+    /// déterministe). Le plug-in passe à true hors mode kOffline de l'hôte.
+    void setRealtimeMode(bool realtime) noexcept;
+
     /// Non temps réel. Alloue tous les tampons. Les valeurs de paramètres déjà
     /// reçues sont conservées et appliquées sans lissage.
     void prepare(double sampleRate, int maxBlockSize);
@@ -98,6 +102,7 @@ public:
     [[nodiscard]] const analysis::LoudnessMeter& loudnessMeter() const noexcept { return loudness_; }
 
 private:
+    void applyParameter(params::ParamId id, double plainValue, bool immediate) noexcept;
     void processChunk(int numSamples) noexcept;
     static void applyGain(OnePoleSmoother& gain, double* const* channels, int numSamples) noexcept;
     void applyMonitorMatrix(int numSamples) noexcept;

@@ -7,6 +7,8 @@
 #include "OmnisIds.h"
 #include "OmnisState.h"
 
+#include "engine/MasteringChain.h"
+
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
@@ -43,6 +45,7 @@ double meterPlainValue(ParamId id, const MeterReadout& m) {
 
 OmnisProcessor::OmnisProcessor() {
     setControllerClass(FUID::fromTUID(kControllerUID));
+    buildMasteringChain(engine_);
     static_assert(kMeterIds.size() <= std::tuple_size_v<decltype(lastMeterValues_)>);
     const auto all = params::allParameters();
     for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i)
@@ -80,6 +83,8 @@ tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
 
     // Toutes les allocations ont lieu ici (thread non temps réel, composant
     // inactif). La latence est connue dès la sortie de cette fonction.
+    // Bounce hors ligne (kOffline) : calcul déterministe et synchrone des noyaux.
+    engine_.setRealtimeMode(setup.processMode != kOffline);
     engine_.prepare(setup.sampleRate, std::max<int32>(1, setup.maxSamplesPerBlock));
     const auto all = params::allParameters();
     for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i) {

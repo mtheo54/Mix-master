@@ -23,28 +23,31 @@ audio.
 
 Procédure type : `omnis_render signal.wav out.wav --set … --report`, puis `omnis_analyze`.
 
-## 2. Fichiers réels nécessaires pour le Module 2 (crossovers, Sub Control, Mono Maker)
+## 2. Fichiers réels — Module 2 (reçus, voir `CALIBRATION_MODULE2.md`)
 
-À fournir avant de calibrer les fréquences de coupure M/S et le synthétiseur de sous-harmoniques :
+Reçus : 2 mixes (exports FL Studio 21, 16 bits / 44.1 kHz) et la référence 2hollis « poster boy ».
+Ils ont fixé les défauts du Sub Control et conduit au choix de la phase linéaire.
 
-1. **3 mixes non masterisés** (WAV 24 bits ou 32 bits float, 44.1 ou 48 kHz, **sans limiteur
-   ni clipper sur le bus master**, crêtes vers −6 dBFS), idéalement :
-   - un titre **Digicore / Hyperpop** (type 2hollis / 55asky) ;
-   - un titre **trap à 808 longue et saturée** ;
-   - un titre **acoustique** (jazz, rock, pop organique) pour le mode Safe Audiophile.
-2. **Stems isolés** pour au moins un des titres trap : 808 / basse seule, kick seul, voix lead
-   seule. Ils servent à vérifier que le Mono Maker ne déphase pas le sub et que la coupure M/S
-   ne vide pas la largeur des voix.
-3. **Références masterisées** du même style (extraits de 30 à 60 s, sans perte : WAV / FLAC / AIFF,
-   pas de MP3 ni de stream réencodé) — utilisées plus tard pour le Match EQ (module 4) et les
-   profils de genre (module 5).
-4. Le **DAW et le système** utilisés (ex. Ableton 12 / macOS 14 ARM, FL Studio 2024 / Windows 11)
-   et la fréquence d'échantillonnage de travail habituelle.
+## 3. Fichiers nécessaires pour le Module 3 (oversampling, clipper, limiteur)
 
-Seulement des fichiers dont vous avez les droits d'usage ; ils restent hors du dépôt (`.gitignore`
-exclut `audio/`).
+Le clipper et le limiteur se calibrent sur la marge réelle du mix : un export qui écrête déjà
+(cas de `pour_claude.wav` : 3300 plateaux à 0 dBFS) ne permet pas de mesurer ce que fait le clipper.
 
-## 3. Critères d'acceptation (rappel)
+1. **Les 2 mêmes morceaux réexportés depuis FL Studio** :
+   - format **WAV 32 bits float** (Export → WAV → *32-bit float*), 44.1 kHz comme le projet ;
+   - **rien sur le master** (Fruity Limiter / Soft Clipper désactivés), et le volume du master
+     baissé jusqu'à des crêtes vers **−6 dBFS** (la crête exacte importe peu en 32 bits float) ;
+   - sans dither (inutile en 32 bits float).
+2. **Stems d'un des deux morceaux**, depuis ton propre projet FL (Export → *Split mixer tracks*) :
+   808 / basse, kick, voix lead, et le reste regroupé (instrus). Tes stems sont préférables à
+   des multipistes existants : ils correspondent au mix analysé et tu en détiens les droits.
+3. **Une 2ᵉ référence** 2hollis ou du même univers (lossless), idéalement un titre au sub plus
+   chargé que « poster boy » (morceau club / 808 dominante).
+
+Seulement des fichiers dont tu as les droits d'usage ; ils restent hors du dépôt (`.gitignore`
+exclut `audio/` et les formats audio).
+
+## 4. Critères d'acceptation (rappel)
 
 - Null-test bit-exact de la chaîne neutre (64 bits et 32 bits).
 - Somme des bandes d'un crossover : plate à ±0.01 dB (LR4 : somme passe-tout, phase vérifiée).

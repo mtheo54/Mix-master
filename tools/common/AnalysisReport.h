@@ -33,6 +33,16 @@ struct ChannelReport {
     int clippedRuns = 0;
 };
 
+/// Analyse par bande (réseau Linkwitz-Riley LR8 à somme passe-tout).
+struct BandReport {
+    double lowHz = 0.0, highHz = 0.0;
+    double energyPercent = 0.0;   ///< part de l'énergie totale (L² + R²)
+    double correlation = 0.0;     ///< corrélation L/R sur tout le fichier
+    double minCorrelation = 0.0;  ///< pire fenêtre de 200 ms (passages hors phase)
+    double sideToMidDb = 0.0;
+    double crestMidDb = 0.0;      ///< crête / RMS du Mid dans la bande
+};
+
 struct AnalysisReport {
     double sampleRate = 0.0;
     double durationSeconds = 0.0;
@@ -51,6 +61,7 @@ struct AnalysisReport {
     double sideToMidDb = 0.0;
 
     std::vector<ChannelReport> channels;
+    std::vector<BandReport> bands; ///< vide sauf analyse par bandes demandée
 
     [[nodiscard]] std::string toText(const std::string& title = {}) const;
     [[nodiscard]] std::string toJson() const;
@@ -58,6 +69,9 @@ struct AnalysisReport {
 
 /// Mono : sonie mesurée sur le canal unique (G = 1), métriques stéréo neutres.
 /// Plus de 2 canaux : seuls les deux premiers (L/R) sont analysés.
-AnalysisReport analyze(const AudioFile& file);
+AnalysisReport analyze(const AudioFile& file, bool withBands = false);
+
+/// Bornes des bandes d'analyse (Hz) : 60, 120, 250, 500, 2000, 6000.
+const std::vector<double>& analysisBandEdges();
 
 } // namespace omnis::tools

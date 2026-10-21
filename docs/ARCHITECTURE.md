@@ -58,6 +58,9 @@ Mesures en lecture seule : 1000–1099. Global : 0–99.
 
 ## 4. Latence (PDC)
 
+Latence actuelle de la chaîne : 8704 échantillons à 44.1 et 48 kHz (FIR 16384 taps du Sub Control :
+N/2 + une partition), 17408 à 96 kHz.
+
 - Latence totale = Σ latences des étages, **constante pour une fréquence d'échantillonnage donnée**.
 - Un étage dont le coût varie avec un réglage (FIR 4096 vs 16384 taps, oversampling 8x vs 16x)
   **annonce son pire cas** et complète par un retard. Motif : changer la latence en lecture
@@ -96,7 +99,9 @@ par paramètre). Les rafales au-delà de la capacité sont réduites au dernier 
 | Hôte → DSP (paramètres) | Files d'automation VST3, découpage échantillon-précis | ✅ Module 1 |
 | DSP → contrôleur (mesures) | Paramètres de sortie en lecture seule, ~30 Hz | ✅ Module 1 |
 | Thread audio → thread d'analyse / IA (snapshots audio) | `SpscRingBuffer<T>` (wait-free, perte plutôt qu'attente si plein) | primitive prête, câblage module 4–5 |
-| Thread IA → DSP (noyaux FIR, courbes cibles) | `TripleBuffer<T>` (publication par permutation d'index, zéro copie côté audio) | primitive prête, câblage module 4 |
+| Thread audio → thread de calcul (réglages du Sub Control) | `TripleBuffer<SubKernelRequest>` | ✅ Module 2 |
+| Thread de calcul → DSP (noyaux FIR du Sub Control) | Banque de 3 emplacements à état atomique (`Free → Writing → Ready → Active → Retiring`), fondu d'une trame | ✅ Module 2 |
+| Thread IA → DSP (noyaux du Match EQ, courbes cibles) | Même banque, généralisée | module 4 |
 | IA → paramètres utilisateur | `beginEdit / performEdit / endEdit` du contrôleur | module 5 |
 | DSP → UI (scope, spectre) | `IDataExchange` (SDK ≥ 3.7.9) | module 6 |
 
@@ -105,7 +110,18 @@ Décision importante : les **réglages** prédits par l'IA passent par le contr�
 le DAW. Le triple buffer est réservé aux données **qui ne sont pas des paramètres** (noyaux FIR de
 16384 taps, courbes de référence), trop volumineuses pour l'automation.
 
-## 8. Mesures
+## 8. Rendu temps réel et hors ligne
+
+`Engine::setRealtimeMode()` (appelé par le processeur selon `processMode`) choisit le mode avant
+`prepare()` :
+
+- **Temps réel** : les calculs lourds (noyaux FIR de 16384 taps, une FFT de 32768 points par
+  changement de réglage) tournent sur un thread de fond. Le thread audio ne fait que des
+  compare-exchange et applique le nouveau noyau à la frontière de trame suivante.
+- **Hors ligne** (`kOffline` de l'hôte, outils, tests) : calcul immédiat, rendu **déterministe**,
+  identique bit à bit quel que soit le découpage en blocs.
+
+## 9. Mesures
 
 - **Sonie** : pondération K recalculée par transformée bilinéaire pour toute fréquence
   d'échantillonnage ; sous-blocs de 100 ms ; momentary 400 ms, short-term 3 s ; intégrée par
@@ -117,7 +133,7 @@ le DAW. Le triple buffer est réservé aux données **qui ne sont pas des param�
 - Les mesures portent sur la sortie master **avant** le monitoring : écouter le Side seul ne fausse
   pas la lecture LUFS.
 
-## 9. Deux modes de livraison
+## 10. Deux modes de livraison
 
 Chaque fois qu'un étage expose un compromis entre couleur extrême et sécurité de diffusion,
 deux profils seront proposés :

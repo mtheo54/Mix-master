@@ -12,7 +12,8 @@
 //   process()  : temps réel. Traitement en place sur 2 canaux double précision,
 //                numSamples <= maxBlockSize. Ni allocation, ni verrou, ni I/O.
 //   setParameter() : temps réel. Reçoit la valeur « plain » d'un paramètre de
-//                la plage d'identifiants de l'étage ; l'étage lisse lui-même.
+//                la plage d'identifiants de l'étage ; l'étage lisse lui-même,
+//                sauf si `immediate` (chargement d'état, initialisation).
 //
 //  Latence : elle doit être CONSTANTE pour une fréquence d'échantillonnage
 //  donnée (indépendante des réglages). Un étage dont le coût en latence dépend
@@ -47,7 +48,12 @@ public:
 
     [[nodiscard]] virtual int latencySamples() const noexcept { return 0; }
 
-    virtual void setParameter(params::ParamId /*id*/, double /*plainValue*/) noexcept {}
+    virtual void setParameter(params::ParamId /*id*/, double /*plainValue*/, bool /*immediate*/) noexcept {}
+
+    /// Non temps réel, avant prepare(). true : lecture temps réel (calculs lourds
+    /// délégués à des threads de fond, résultats appliqués dès qu'ils sont prêts).
+    /// false : rendu hors ligne déterministe (tout est calculé immédiatement).
+    virtual void setRealtime(bool /*realtime*/) noexcept {}
 };
 
 } // namespace omnis

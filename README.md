@@ -5,8 +5,26 @@ SDK Steinberg + moteur DSP C++20 en double précision, piloté à terme par IA (
 prompts en langage naturel, profils de genres) et habillé d'une interface NanoVG / OpenGL
 rétro-futuriste.
 
-> **État : Module 1 / 6 terminé** — architecture, squelette VST3, moteur DSP, mesures normalisées,
-> banc de test. Les étages de traitement arrivent module par module (voir [Feuille de route](#feuille-de-route)).
+> **État : Modules 1 et 2 / 6 terminés** : architecture, squelette VST3, mesures normalisées, banc
+> de test, puis filtres TPT/SVF, crossovers Linkwitz-Riley et l'étage **Sub Control & Mono Maker**
+> à phase linéaire, calibré sur des mixes réels ([rapport](docs/CALIBRATION_MODULE2.md)).
+
+## Module 2 : Sub Control & Mono Maker
+
+| Paramètre | Plage | Défaut | Rôle |
+|---|---|---|---|
+| Low Cut | 5–60 Hz | 16 Hz | Passe-haut 24 dB/oct : DC et infra-graves |
+| Mono Below | 20–300 Hz | 120 Hz | Le Side est retiré sous cette fréquence (sub mono, compatible club / vinyle / téléphone) |
+| Mono Amount | 0–100 % | 100 % | Dosage du Mono Maker |
+| Mono Slope | 24 / 48 dB/oct | 24 | Pente Linkwitz-Riley (bascule sans clic) |
+| Sub Gain / Sub Freq | −12…+6 dB / 30–150 Hz | 0 dB / 70 Hz | Plateau grave sur le Mid |
+| Sub Synth | 0–100 % | 0 % | Octave basse synthétisée (diviseur type dbx 120) pour 808 maigres |
+| Sub Phase | Linear / Analog | Linear | FIR à phase linéaire (crêtes préservées) ou IIR « console » |
+
+Pourquoi la phase linéaire par défaut : sur la référence 2hollis, la version IIR classique fait
+monter le true peak de **+7.8 dB** (rotation de phase de la 808 écrêtée), la version FIR de
+**+0.6 dB** pour un sub aussi mono. Latence constante : 197 ms à 44.1 kHz, compensée par le DAW.
+Coût : ~3 % d'un cœur.
 
 ---
 
@@ -58,6 +76,7 @@ $B/omnis_testgen kit ./kit --sr 48000       # tout le kit + MANIFEST.txt
 $B/omnis_testgen drums -o drums.wav         # un signal
 
 $B/omnis_analyze mix.wav                    # LUFS I/M/S, LRA, TP, PLR, PSR, crest, kurtosis, corrélation…
+$B/omnis_analyze mix.wav --bands            # + énergie, corrélation (et pire fenêtre), S/M, crête par bande
 $B/omnis_analyze mix.wav --json
 
 $B/omnis_render --params                    # clés de paramètres
@@ -72,19 +91,22 @@ alignée échantillon par échantillon sur l'entrée (null-test possible dans n'
 ```
 source/
   core/       primitives temps réel (SPSC, triple buffer, lisseur, tampons alignés, FTZ/DAZ)
+  dsp/        SVF TPT, crossovers Linkwitz-Riley, FFT, convolution partitionnée stéréo
+  stages/     étages de la chaîne (Sub Control & Mono Maker + banque de noyaux FIR)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques
   params/     table unique des paramètres (DSP, VST3, outils, IA)
   engine/     Engine + interface Stage (chaîne, PDC, bypass, monitoring, mesures)
   plugin/vst3 processeur, contrôleur, état, factory
 tools/        testgen, analyze, render (+ WAV I/O, signaux, rapport)
 tests/        tests unitaires sans dépendance
-docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md
+docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md
 ```
 
 ## Feuille de route
 
 1. ✅ **Architecture & squelette VST3 / DSP**
-2. Crossovers & filtres — Linkwitz-Riley 4ᵉ ordre / phase linéaire, SVF TPT (Zavalishin), Sub Control & Mono Maker M/S
+2. ✅ **Crossovers & filtres** : SVF TPT (Zavalishin/Simper), Linkwitz-Riley LR4/LR8 et réseau N bandes
+   à somme passe-tout, FFT et convolution partitionnée UPOLS, Sub Control & Mono Maker M/S à phase linéaire
 3. Oversampling & Clipper — HIIR polyphase 8x/16x, Hard / Soft-Knee Cubic / Diode, limiteur lookahead True Peak
 4. Match EQ & FFT — Blackman-Harris 8192, convolution partitionnée, profils de référence
 5. Moteur IA & embeddings — ONNX Runtime C++ / RTNeural, MLP 40–60 paramètres

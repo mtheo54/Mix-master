@@ -18,6 +18,7 @@
 #include "WavFile.h"
 
 #include "engine/Engine.h"
+#include "engine/MasteringChain.h"
 #include "params/Parameters.h"
 
 #include <algorithm>
@@ -117,6 +118,7 @@ int main(int argc, char** argv) {
     if (input.numChannels() > 2) input.channels.resize(2);
 
     Engine engine;
+    buildMasteringChain(engine);
     engine.prepare(input.sampleRate, blockSize);
     for (const auto& [spec, value] : settings) engine.setParameterImmediate(spec->id, value);
 
@@ -156,9 +158,9 @@ int main(int argc, char** argv) {
                 latency);
 
     if (report) {
-        std::fputs(analyze(input).toText("ENTREE " + inPath).c_str(), stdout);
+        std::fputs(analyze(input, true).toText("ENTREE " + inPath).c_str(), stdout);
         std::puts("");
-        std::fputs(analyze(output).toText("SORTIE " + outPath).c_str(), stdout);
+        std::fputs(analyze(output, true).toText("SORTIE " + outPath).c_str(), stdout);
     }
     return 0;
 }

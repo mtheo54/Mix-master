@@ -8,6 +8,7 @@
 #include "analysis/SignalStatistics.h"
 #include "analysis/TruePeakMeter.h"
 #include "core/Decibels.h"
+#include "dsp/Crossover.h"
 
 #include <algorithm>
 #include <cmath>
@@ -32,9 +33,77 @@ std::string json(double v) {
     return buf;
 }
 
+std::vector<BandReport> analyzeBands(const AudioFile& file) {
+    const auto& edges = analysisBandEdges();
+    const int numBands = static_cast<int>(edges.size()) + 1;
+    dsp::CrossoverNetwork<2> network;
+    network.setup(file.sampleRate, edges.data(), numBands, dsp::CrossoverSlope::LR8);
+
+    struct Acc {
+        double ll = 0, rr = 0, lr = 0, midPeak = 0;
+        double wll = 0, wrr = 0, wlr = 0;
+        std::vector<double> windowCorr, windowEnergy;
+    };
+    std::vector<Acc> acc(static_cast<std::size_t>(numBands));
+    const int window = static_cast<int>(0.2 * file.sampleRate);
+    const auto& L = file.channels[0];
+    const auto& R = file.channels[file.numChannels() > 1 ? 1 : 0];
+    double bl[dsp::CrossoverNetwork<2>::kMaxBands], br[dsp::CrossoverNetwork<2>::kMaxBands];
+    for (int i = 0; i < file.numFrames(); ++i) {
+        network.process(0, L[static_cast<std::size_t>(i)], bl);
+        network.process(1, R[static_cast<std::size_t>(i)], br);
+        const bool endOfWindow = (i + 1) % window == 0;
+        for (int b = 0; b < numBands; ++b) {
+            auto& a = acc[static_cast<std::size_t>(b)];
+            const double l = bl[b], r = br[b];
+            a.ll += l * l; a.rr += r * r; a.lr += l * r;
+            a.wll += l * l; a.wrr += r * r; a.wlr += l * r;
+            a.midPeak = std::max(a.midPeak, std::fabs(0.5 * (l + r)));
+            if (endOfWindow) {
+                const double e = std::sqrt(a.wll * a.wrr);
+                a.windowCorr.push_back(e > 0.0 ? a.wlr / e : 0.0);
+                a.windowEnergy.push_back(a.wll + a.wrr);
+                a.wll = a.wrr = a.wlr = 0.0;
+            }
+        }
+    }
+    double total = 0.0;
+    for (const auto& a : acc) total += a.ll + a.rr;
+
+    std::vector<BandReport> out;
+    for (int b = 0; b < numBands; ++b) {
+        const auto& a = acc[static_cast<std::size_t>(b)];
+        BandReport r;
+        r.lowHz = b == 0 ? 0.0 : edges[static_cast<std::size_t>(b - 1)];
+        r.highHz = b == numBands - 1 ? file.sampleRate / 2 : edges[static_cast<std::size_t>(b)];
+        r.energyPercent = total > 0.0 ? 100.0 * (a.ll + a.rr) / total : 0.0;
+        const double e = std::sqrt(a.ll * a.rr);
+        r.correlation = e > 0.0 ? a.lr / e : 0.0;
+        const double mid = 0.25 * (a.ll + 2.0 * a.lr + a.rr);
+        const double side = std::max(0.0, 0.25 * (a.ll - 2.0 * a.lr + a.rr));
+        r.sideToMidDb = mid > 0.0 ? powerToDb(side / mid) : kMinusInfinityDb;
+        const double midRms = std::sqrt(mid / std::max(1, file.numFrames()));
+        r.crestMidDb = midRms > 0.0 ? gainToDb(a.midPeak / midRms) : 0.0;
+        // Pire fenêtre parmi celles qui portent un minimum d'énergie (> -30 dB
+        // sous la fenêtre la plus forte de la bande) : on ignore les silences.
+        double maxE = 0.0;
+        for (double w : a.windowEnergy) maxE = std::max(maxE, w);
+        r.minCorrelation = 1.0;
+        for (std::size_t k = 0; k < a.windowCorr.size(); ++k)
+            if (a.windowEnergy[k] > maxE * 1e-3) r.minCorrelation = std::min(r.minCorrelation, a.windowCorr[k]);
+        out.push_back(r);
+    }
+    return out;
+}
+
 } // namespace
 
-AnalysisReport analyze(const AudioFile& file) {
+const std::vector<double>& analysisBandEdges() {
+    static const std::vector<double> edges{60.0, 120.0, 250.0, 500.0, 2000.0, 6000.0};
+    return edges;
+}
+
+AnalysisReport analyze(const AudioFile& file, bool withBands) {
     AnalysisReport r;
     r.sampleRate = file.sampleRate;
     r.durationSeconds = file.durationSeconds();
@@ -117,6 +186,7 @@ AnalysisReport analyze(const AudioFile& file) {
         }
         r.channels.push_back(c);
     }
+    if (withBands) r.bands = analyzeBands(file);
     return r;
 }
 
@@ -145,6 +215,15 @@ std::string AnalysisReport::toText(const std::string& title) const {
           << " ppm | skew " << fmt(c.skewness, 3) << " | kurt " << fmt(c.excessKurtosis, 2) << " | clip runs "
           << c.clippedRuns << "\n";
     }
+    if (!bands.empty()) {
+        o << "Bandes (LR8)    :      Hz  energie   corr  corr min  S/M dB  crete Mid\n";
+        for (const auto& b : bands) {
+            char line[160];
+            std::snprintf(line, sizeof(line), "                 %5.0f-%-5.0f %6.1f %%  %5.2f  %8.2f  %6.1f  %6.1f dB\n", b.lowHz,
+                          b.highHz, b.energyPercent, b.correlation, b.minCorrelation, b.sideToMidDb, b.crestMidDb);
+            o << line;
+        }
+    }
     return o.str();
 }
 
@@ -172,6 +251,14 @@ std::string AnalysisReport::toJson() const {
           << ", \"dc\": " << json(c.dcOffset) << ", \"skewness\": " << json(c.skewness)
           << ", \"excess_kurtosis\": " << json(c.excessKurtosis) << ", \"clipped_runs\": " << c.clippedRuns << "}"
           << (ch + 1 < channels.size() ? "," : "") << "\n";
+    }
+    o << "  ],\n  \"bands\": [\n";
+    for (std::size_t b = 0; b < bands.size(); ++b) {
+        const auto& x = bands[b];
+        o << "    {\"low_hz\": " << json(x.lowHz) << ", \"high_hz\": " << json(x.highHz)
+          << ", \"energy_percent\": " << json(x.energyPercent) << ", \"correlation\": " << json(x.correlation)
+          << ", \"min_correlation\": " << json(x.minCorrelation) << ", \"side_to_mid_db\": " << json(x.sideToMidDb)
+          << ", \"crest_mid_db\": " << json(x.crestMidDb) << "}" << (b + 1 < bands.size() ? "," : "") << "\n";
     }
     o << "  ]\n}\n";
     return o.str();

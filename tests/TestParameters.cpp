@@ -6,6 +6,7 @@
 
 #include "params/Parameters.h"
 
+#include <cmath>
 #include <locale>
 #include <set>
 #include <string>
@@ -20,6 +21,7 @@ OMNIS_TEST("params: identifiants et clés uniques, défauts dans les bornes") {
         OMNIS_CHECK(keys.insert(std::string(p.key)).second);
         OMNIS_CHECK(p.defaultValue >= p.minValue && p.defaultValue <= p.maxValue);
         OMNIS_CHECK(p.maxValue > p.minValue);
+        if (p.scale == ParamScale::Logarithmic) OMNIS_CHECK(p.minValue > 0.0 && p.stepCount == 0);
         if (p.kind == ParamKind::Choice || p.kind == ParamKind::Toggle)
             OMNIS_CHECK(static_cast<int>(p.choices.size()) == p.stepCount + 1);
     }
@@ -73,4 +75,13 @@ OMNIS_TEST("params: indépendant de la locale de l'hôte (virgule décimale)") {
     OMNIS_CHECK(formatValue(*gain, -3.5) == "-3.5");
     OMNIS_CHECK(parseValue(*gain, "-3.5").value_or(99) == -3.5);
     std::locale::global(previous);
+}
+
+OMNIS_TEST("params: échelle logarithmique des fréquences") {
+    const auto* mono = findParameter(ParamId::MonoFreq);
+    OMNIS_CHECK(mono && mono->scale == ParamScale::Logarithmic);
+    OMNIS_CHECK_NEAR(toPlain(*mono, 0.0), 20.0, 1e-9);
+    OMNIS_CHECK_NEAR(toPlain(*mono, 1.0), 300.0, 1e-9);
+    OMNIS_CHECK_NEAR(toPlain(*mono, 0.5), std::sqrt(20.0 * 300.0), 1e-9); // milieu = moyenne géométrique
+    OMNIS_CHECK_NEAR(toNormalized(*mono, 120.0), std::log(6.0) / std::log(15.0), 1e-12);
 }
