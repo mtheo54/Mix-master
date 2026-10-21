@@ -5,9 +5,10 @@ SDK Steinberg + moteur DSP C++20 en double précision, piloté à terme par IA (
 prompts en langage naturel, profils de genres) et habillé d'une interface NanoVG / OpenGL
 rétro-futuriste.
 
-> **État : Modules 1 et 2 / 6 terminés** : architecture, squelette VST3, mesures normalisées, banc
-> de test, puis filtres TPT/SVF, crossovers Linkwitz-Riley et l'étage **Sub Control & Mono Maker**
-> à phase linéaire, calibré sur des mixes réels ([rapport](docs/CALIBRATION_MODULE2.md)).
+> **État : Modules 1, 2 et 3 / 6 terminés** : architecture, squelette VST3, mesures normalisées,
+> banc de test, filtres TPT/SVF et crossovers, **Sub Control & Mono Maker** à phase linéaire
+> ([calibration](docs/CALIBRATION_MODULE2.md)), puis **oversampling HIIR, clipper ADAA et limiteur
+> true peak** ([calibration](docs/CALIBRATION_MODULE3.md)).
 
 ## Module 2 : Sub Control & Mono Maker
 
@@ -23,10 +24,28 @@ rétro-futuriste.
 
 Pourquoi la phase linéaire par défaut : sur la référence 2hollis, la version IIR classique fait
 monter le true peak de **+7.8 dB** (rotation de phase de la 808 écrêtée), la version FIR de
-**+0.6 dB** pour un sub aussi mono. Latence constante : 197 ms à 44.1 kHz, compensée par le DAW.
+**+0.6 dB** pour un sub aussi mono. Latence constante de l'étage : 197 ms à 44.1 kHz (chaîne complète : 203 ms), compensée par le DAW.
 Coût : ~3 % d'un cœur.
 
 ---
+
+## Module 3 : Clipper & Limiteur
+
+| Paramètre | Plage | Défaut | Rôle |
+|---|---|---|---|
+| Clip Mode | Hard / Soft Knee / Diode | Soft Knee | Courbe d'écrêtage (Diode : asymétrique, harmoniques paires) |
+| Clip Drive | 0–18 dB | 0 dB | Poussée dans le clipper |
+| Clip Ceiling | −12–0 dBFS | 0 dBFS | Niveau d'écrêtage |
+| Clip Knee | 0–100 % | 50 % | Douceur du genou (Soft Knee) |
+| Clip Oversampling | 1x–16x | 8x | Suréchantillonnage (HIIR phase minimale) |
+| Limiter Gain | 0–24 dB | 0 dB | Poussée dans le limiteur |
+| Limiter Ceiling | −6–0 dB | −1.0 dB | Plafond |
+| Limiter Release | 1–1000 ms | 60 ms | Relâchement |
+| Limiter Mode | True Peak (Safe) / Sample Peak (Club) | True Peak | Mode de livraison |
+
+Repliement d'un écrêtage dur de 6 dB à 5 kHz : −35 dB en 1x, **−94 dB en 8x**, −113 dB en 16x.
+Réglages calibrés sur les mixes fournis : **Club** (Soft Knee, drive 18, limiteur +4 dB en sample peak
+−0.3) → −5.2 LUFS ; **Safe** (drive 12, +4 dB, true peak −1) → −8.3 LUFS à −1.05 dBTP.
 
 ## Ce que contient le Module 1
 
@@ -99,7 +118,7 @@ source/
   plugin/vst3 processeur, contrôleur, état, factory
 tools/        testgen, analyze, render (+ WAV I/O, signaux, rapport)
 tests/        tests unitaires sans dépendance
-docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md
+docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md, CALIBRATION_MODULE3.md
 ```
 
 ## Feuille de route
@@ -107,7 +126,8 @@ docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md
 1. ✅ **Architecture & squelette VST3 / DSP**
 2. ✅ **Crossovers & filtres** : SVF TPT (Zavalishin/Simper), Linkwitz-Riley LR4/LR8 et réseau N bandes
    à somme passe-tout, FFT et convolution partitionnée UPOLS, Sub Control & Mono Maker M/S à phase linéaire
-3. Oversampling & Clipper — HIIR polyphase 8x/16x, Hard / Soft-Knee Cubic / Diode, limiteur lookahead True Peak
+3. ✅ **Oversampling & Clipper** : demi-bandes HIIR conçues à la volée (1x–16x), clipper ADAA
+   Hard / Soft Knee / Diode, limiteur brickwall lookahead true peak (modes Safe / Club)
 4. Match EQ & FFT — Blackman-Harris 8192, convolution partitionnée, profils de référence
 5. Moteur IA & embeddings — ONNX Runtime C++ / RTNeural, MLP 40–60 paramètres
 6. UI NanoVG — IPlugView OpenGL, oscilloscope phosphore, matrice LED, champ de prompt

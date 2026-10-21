@@ -59,6 +59,11 @@ add_library(omnis_core STATIC
     source/core/TripleBuffer.h
     source/dsp/Crossover.h
     source/dsp/Fft.cpp
+    source/dsp/Halfband.cpp
+    source/dsp/Halfband.h
+    source/dsp/Oversampler.cpp
+    source/dsp/Oversampler.h
+    source/dsp/Waveshaper.h
     source/dsp/Fft.h
     source/dsp/StereoConvolver.cpp
     source/dsp/StereoConvolver.h
@@ -77,6 +82,10 @@ add_library(omnis_core STATIC
     source/engine/MasteringChain.cpp
     source/engine/MasteringChain.h
     source/engine/Stage.h
+    source/stages/ClipperStage.cpp
+    source/stages/ClipperStage.h
+    source/stages/LimiterStage.cpp
+    source/stages/LimiterStage.h
     source/stages/SubControlStage.cpp
     source/stages/SubKernelBank.cpp
     source/stages/SubKernelBank.h
@@ -154,6 +163,8 @@ if(OMNIS_BUILD_TESTS)
         tests/TestCore.cpp
         tests/TestFilters.cpp
         tests/TestConvolution.cpp
+        tests/TestOversampling.cpp
+        tests/TestDynamics.cpp
         tests/TestSubControl.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp

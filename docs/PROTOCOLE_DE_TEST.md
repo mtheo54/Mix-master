@@ -28,7 +28,12 @@ Procédure type : `omnis_render signal.wav out.wav --set … --report`, puis `om
 Reçus : 2 mixes (exports FL Studio 21, 16 bits / 44.1 kHz) et la référence 2hollis « poster boy ».
 Ils ont fixé les défauts du Sub Control et conduit au choix de la phase linéaire.
 
-## 3. Fichiers nécessaires pour le Module 3 (oversampling, clipper, limiteur)
+## 3. Fichiers — Module 3 (reçus, voir `CALIBRATION_MODULE3.md`)
+
+Reçus : les 2 mixes réexportés sans traitement de master (16 bits, crêtes −4 / −7 dBFS) et la
+référence Sloppy Joe « SLAYR ». Pour le module 4 (Match EQ, multibande), les stems restent utiles.
+
+### Rappel de la demande initiale
 
 Le clipper et le limiteur se calibrent sur la marge réelle du mix : un export qui écrête déjà
 (cas de `pour_claude.wav` : 3300 plateaux à 0 dBFS) ne permet pas de mesurer ce que fait le clipper.

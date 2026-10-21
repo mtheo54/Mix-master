@@ -58,8 +58,9 @@ Mesures en lecture seule : 1000–1099. Global : 0–99.
 
 ## 4. Latence (PDC)
 
-Latence actuelle de la chaîne : 8704 échantillons à 44.1 et 48 kHz (FIR 16384 taps du Sub Control :
-N/2 + une partition), 17408 à 96 kHz.
+Latence actuelle de la chaîne : 8957 échantillons à 44.1 kHz (203 ms), 8976 à 48 kHz, 17920 à
+96 kHz. Elle se décompose ainsi : Sub Control (FIR 16384 taps : N/2 + une partition = 8704), clipper
+(retard de phase 16x arrondi, 8) et limiteur (lookahead 5 ms + détecteur true peak 24).
 
 - Latence totale = Σ latences des étages, **constante pour une fréquence d'échantillonnage donnée**.
 - Un étage dont le coût varie avec un réglage (FIR 4096 vs 16384 taps, oversampling 8x vs 16x)
