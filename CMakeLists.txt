@@ -143,6 +143,8 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/DistortionAnalysis.h
         tools/common/LoudnessTuner.cpp
         tools/common/LoudnessTuner.h
+        tools/common/TonalBalance.cpp
+        tools/common/TonalBalance.h
         tools/common/TestSignals.cpp
         tools/common/TestSignals.h
         tools/common/WavFile.cpp

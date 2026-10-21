@@ -11,7 +11,9 @@
 //       maximale) : c'est là que la distorsion se décide ;
 //    2. cherche par dichotomie le gain total qui donne la sonie intégrée cible
 //       (±0.05 LU) — sonie croissante avec le gain ;
-//    3. mesure la distorsion non linéaire (DistortionAnalysis) à cette sonie.
+//    3. mesure la distorsion non linéaire (DistortionAnalysis) à cette sonie ;
+//    4. vérifie que l'équilibre tonal de la prod est respecté (TonalBalance) :
+//       une stratégie propre qui vide le sub est rejetée.
 //  Comparer à sonie égale est indispensable : plus fort paraît toujours mieux,
 //  et moins fort distord toujours moins.
 //
@@ -21,6 +23,7 @@
 #pragma once
 
 #include "DistortionAnalysis.h"
+#include "TonalBalance.h"
 #include "WavFile.h"
 
 #include <string>
@@ -44,6 +47,8 @@ struct TuningResult {
     double truePeakDb = 0.0;
     bool reached = false;
     DistortionReport distortion;
+    TonalReport tonal;
+    bool tonalOk = true; ///< équilibre tonal de la prod respecté
 };
 
 struct TuningOptions {
@@ -51,6 +56,9 @@ struct TuningOptions {
     double excerptSeconds = 30.0;
     double maxGainDb = 48.0;
     double toleranceLu = 0.05;
+    /// Écart d'équilibre tonal maximal admis (dB par octave) : au-delà, la
+    /// stratégie « détruit la prod » et est écartée quel que soit son score.
+    double maxTonalDeviationDb = 1.5;
 };
 
 /// Passage le plus fort (fenêtre glissante de `seconds` sur la sonie short-term).
@@ -60,6 +68,11 @@ AudioFile loudestExcerpt(const AudioFile& input, double seconds);
 AudioFile renderWithSettings(const AudioFile& input, const std::vector<std::pair<std::string, double>>& settings);
 
 TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strategy, const TuningOptions& options);
+
+/// Sonie maximale atteignable par une stratégie sans dépasser
+/// `maxTonalDeviationDb` : « le plus fort possible sans détruire la prod ».
+/// `reached` indique si cette sonie atteint `targetLufs`.
+TuningResult loudestClean(const AudioFile& excerpt, const TuningStrategy& strategy, const TuningOptions& options);
 
 /// Paramètres finaux (fixes + parts de gain) d'un résultat.
 std::vector<std::pair<std::string, double>> settingsOf(const TuningResult& result);

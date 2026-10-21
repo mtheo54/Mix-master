@@ -262,8 +262,11 @@ void ClipperStage::process(double* const* channels, int numSamples) noexcept {
             const double g = lo > 0.0 ? (c - hi) / lo : (-c - hi) / lo;
             required = std::min(required, std::clamp(g, 0.0, 1.0));
         }
+        // Profondeur bornée : à 100 %, la 808 ne cède jamais plus de 6 dB. Sans
+        // borne, elle cédait en permanence et le sub perdait 14 dB (mesuré).
         const double amount = roomAmount_.next();
-        const double gain = room_.process(1.0 - amount * (1.0 - required), roomRelease_);
+        const double floor = dbToGain(-kRoomMaxDepthDb * amount);
+        const double gain = room_.process(std::max(required, floor), roomRelease_);
         const auto dp = static_cast<std::size_t>(roomDelayPos_);
         for (int ch = 0; ch < 2; ++ch) {
             const auto c2 = static_cast<std::size_t>(ch);

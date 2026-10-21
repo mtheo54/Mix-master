@@ -3,15 +3,19 @@
 //  tools/tune — Recherche du réglage le plus propre pour une sonie cible.
 //
 //  Usage : omnis_tune mix.wav --target -6 [--ceiling -1] [--excerpt 30]
-//                    [--render meilleur.wav]
+//                    [--max-clean] [--max-tonal 1.5] [--render meilleur.wav]
 //  Compare plusieurs stratégies de répartition du gain à sonie intégrée égale
 //  (passage le plus fort du morceau) et les classe par distorsion pondérée K.
+//  --max-clean : cherche au contraire la sonie la plus forte que chaque
+//  stratégie atteint sans s'écarter de plus de --max-tonal dB (par octave) de
+//  l'équilibre tonal de la prod ; --target devient un plafond.
 // =============================================================================
 #include "AnalysisReport.h"
 #include "LoudnessTuner.h"
 #include "WavFile.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -29,10 +33,10 @@ std::vector<TuningStrategy> strategies(double ceiling) {
         return v;
     };
     return {
+        {"limiteur seul", with({}), {{"lim_gain", 1.0}}},
         {"clip 70/30", with({}), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}},
         {"clip 50/50", with({}), {{"clip_drive", 0.5}, {"lim_gain", 0.5}}},
-        {"clip 70/30, sub drive -6", with({{"clip_sub_drive", -6.0}}), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}},
-        {"clip 70/30, sub drive +6", with({{"clip_sub_drive", 6.0}}), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}},
+        {"clip 70/30, marge sub 50 %", with({{"clip_sub_room", 50.0}}), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}},
     };
 }
 
@@ -40,13 +44,14 @@ std::vector<TuningStrategy> strategies(double ceiling) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::puts("Abrasion Labs // OMNIS — sonie cible\n  omnis_tune mix.wav --target -6 [--ceiling -1] [--excerpt 30 | --full] [--render out.wav]");
+        std::puts("Abrasion Labs // OMNIS — sonie cible\n  omnis_tune mix.wav --target -6 [--ceiling -1] [--excerpt 30 | --full] [--max-clean] [--max-tonal 1.5] [--render out.wav]");
         return 1;
     }
     TuningOptions options;
     double ceiling = -1.0;
     std::string renderPath;
     int only = -1; // index d'une seule stratégie (exécutions parallèles)
+    bool maxClean = false;
     for (int i = 2; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--target" && i + 1 < argc) options.targetLufs = std::atof(argv[++i]);
@@ -55,6 +60,8 @@ int main(int argc, char** argv) {
         else if (a == "--full") options.excerptSeconds = 1e9; // morceau entier
         else if (a == "--only" && i + 1 < argc) only = std::atoi(argv[++i]);
         else if (a == "--render" && i + 1 < argc) renderPath = argv[++i];
+        else if (a == "--max-clean") maxClean = true;
+        else if (a == "--max-tonal" && i + 1 < argc) options.maxTonalDeviationDb = std::atof(argv[++i]);
     }
     AudioFile input;
     std::string error;
@@ -71,15 +78,21 @@ int main(int argc, char** argv) {
     for (int idx = 0; idx < static_cast<int>(all.size()); ++idx) {
         if (only >= 0 && idx != only) continue;
         const auto& s = all[static_cast<std::size_t>(idx)];
-        results.push_back(tuneStrategy(excerpt, s, options));
+        results.push_back(maxClean ? loudestClean(excerpt, s, options) : tuneStrategy(excerpt, s, options));
         const auto& r = results.back();
-        std::printf("  %-30s gain %5.1f dB  I=%6.2f  TP=%6.2f  distorsion %6.1f dB (sub %6.1f | bas-méd %6.1f | médium %6.1f | aigu %6.1f)%s\n",
+        std::printf("  %-30s gain %5.1f dB  I=%6.2f  TP=%6.2f  distorsion %6.1f dB (sub %6.1f | bas-méd %6.1f | médium %6.1f | aigu %6.1f)  tonal max %.1f dB%s%s\n",
                     s.name.c_str(), r.totalGainDb, r.integratedLufs, r.truePeakDb, r.distortion.weightedDb, r.distortion.subDb,
-                    r.distortion.lowMidDb, r.distortion.midDb, r.distortion.highDb, r.reached ? "" : "  [cible non atteinte]");
+                    r.distortion.lowMidDb, r.distortion.midDb, r.distortion.highDb, r.tonal.maxDeviationDb,
+                    r.reached ? "" : "  [cible non atteinte]", r.tonalOk ? "" : "  [ÉQUILIBRE TONAL DÉTRUIT]");
+        std::printf("    %s", r.tonal.toText().c_str());
         std::fflush(stdout);
     }
-    const auto best = std::min_element(results.begin(), results.end(), [](const TuningResult& a, const TuningResult& b) {
+    const auto best = std::min_element(results.begin(), results.end(), [maxClean](const TuningResult& a, const TuningResult& b) {
+        // Respect de la prod d'abord, puis cible atteinte, puis propreté.
+        if (a.tonalOk != b.tonalOk) return a.tonalOk;
         if (a.reached != b.reached) return a.reached;
+        // --max-clean : la plus forte des sonies qui respectent la prod.
+        if (maxClean && !a.reached && std::fabs(a.integratedLufs - b.integratedLufs) > 0.1) return a.integratedLufs > b.integratedLufs;
         return a.distortion.weightedDb < b.distortion.weightedDb;
     });
     std::printf("Le plus propre : %s\n", best->strategy.name.c_str());

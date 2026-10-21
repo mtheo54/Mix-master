@@ -136,6 +136,8 @@ TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strate
         result.integratedLufs = lufs;
         result.truePeakDb = tp;
         result.distortion = measureDistortion(excerpt, out);
+        result.tonal = compareTonalBalance(excerpt, out);
+        result.tonalOk = result.tonal.maxDeviationDb <= options.maxTonalDeviationDb;
         return result;
     }
     (void)tpHi;
@@ -155,6 +157,42 @@ TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strate
     result.truePeakDb = tp;
     result.reached = std::fabs(lufs - options.targetLufs) <= 0.15;
     result.distortion = measureDistortion(excerpt, out);
+    result.tonal = compareTonalBalance(excerpt, out);
+    result.tonalOk = result.tonal.maxDeviationDb <= options.maxTonalDeviationDb;
+    return result;
+}
+
+TuningResult loudestClean(const AudioFile& excerpt, const TuningStrategy& strategy, const TuningOptions& options) {
+    TuningResult result;
+    result.strategy = strategy;
+
+    const auto evaluate = [&](double gainDb, AudioFile& out) {
+        result.totalGainDb = gainDb;
+        out = renderWithSettings(excerpt, settingsOf(result));
+        // La cible reste un plafond : jamais plus fort que demandé.
+        return compareTonalBalance(excerpt, out).maxDeviationDb <= options.maxTonalDeviationDb &&
+               analyze(out).integratedLufs <= options.targetLufs + options.toleranceLu;
+    };
+
+    // Dichotomie sur le gain : l'écart tonal croît avec la poussée. lo respecte
+    // toujours la prod (gain nul), hi la détruit ou dépasse la cible.
+    double lo = 0.0, hi = options.maxGainDb;
+    AudioFile out;
+    if (!evaluate(hi, out))
+        for (int iteration = 0; iteration < 10; ++iteration) {
+            const double mid = 0.5 * (lo + hi);
+            (evaluate(mid, out) ? lo : hi) = mid;
+        }
+    else
+        lo = hi;
+    evaluate(lo, out);
+    const auto report = analyze(out);
+    result.integratedLufs = report.integratedLufs;
+    result.truePeakDb = report.truePeakDb;
+    result.reached = report.integratedLufs >= options.targetLufs - 0.15;
+    result.distortion = measureDistortion(excerpt, out);
+    result.tonal = compareTonalBalance(excerpt, out);
+    result.tonalOk = true;
     return result;
 }
 

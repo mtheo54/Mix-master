@@ -8,6 +8,7 @@
 // =============================================================================
 #include "AnalysisReport.h"
 #include "DistortionAnalysis.h"
+#include "TonalBalance.h"
 #include "WavFile.h"
 
 #include <cstdio>
@@ -37,6 +38,7 @@ int main(int argc, char** argv) {
         const auto loud = analyze(processed);
         std::printf("%-48s I=%6.1f LUFS TP=%6.2f  ", argv[i], loud.integratedLufs, loud.truePeakDb);
         std::fputs(measureDistortion(reference, processed).toText().c_str(), stdout);
+        std::fputs(("    " + compareTonalBalance(reference, processed).toText()).c_str(), stdout);
     }
     return status;
 }

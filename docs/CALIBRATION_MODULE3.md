@@ -153,3 +153,63 @@ fera disparaître 10 dB de dynamique sans trace. Le gain suivant viendra du **mo
 pour ramener le sub, et compression multibande lente pour réduire la dynamique des médiums avant
 l'écrêtage. Une simulation rapide (compresseurs ffmpeg) n'a pas suffi : il faut un vrai étage
 conçu pour ça.
+
+## 7. Retour d'écoute : « catastrophique, le son n'a plus de sub »
+
+### 7.1 Ce qui s'est passé
+
+Le tableau 6.4 était juste, mais il ne mesurait que la distorsion. Le partage de marge faisait céder
+la 808 **en permanence** (à −5.2 LUFS, la somme des bandes dépasse le plafond presque à chaque
+cycle). La sortie était propre, mais **vide de sub**. Aucune mesure ne regardait l'équilibre tonal,
+donc rien ne l'a signalé.
+
+| Version | Part du sub 0–60 Hz | Écart tonal 32 / 63 Hz | Écart max |
+|---|---|---|---|
+| Prod d'origine | 78.6 % | — | — |
+| Ancien Club | 72.2 % | −0.5 / −0.5 dB | 4.2 dB (médiums, distorsion) |
+| v2 (partage de marge) | **13.2 %** | **−7.7 / −8.2 dB** | **10.8 dB** |
+| **v3 (ci-dessous)** | ≈ 78 % | **−0.2 / −0.1 dB** | 2.1 dB |
+
+### 7.2 Corrections
+
+1. **Garde-fou d'équilibre tonal** (`TonalBalance`, affiché par `omnis_compare` et `omnis_tune`).
+   Spectre moyen Mid + Side par octave (31.5 Hz – 16 kHz), écart relatif sortie / prod. Un simple
+   changement de volume ne compte donc pas. Le tuner classe désormais les stratégies d'abord par
+   respect de la prod (≤ 1.5 dB par octave), puis par cible atteinte, puis par propreté.
+2. **Partage de marge désactivé par défaut** (`Clip Sub Room` = 0 %). Sa profondeur est bornée :
+   même à 100 %, la 808 ne cède jamais plus de 6 dB.
+3. **`omnis_tune --max-clean`** : cherche la sonie **la plus forte qui respecte la prod**. La cible
+   demandée devient un plafond.
+
+### 7.3 Ce que la physique permet sur ces mixes
+
+Balayage de la sonie (passage le plus fort, plafond −0.3 dBTP) :
+
+| Sonie visée | Limiteur seul | Clip 70/30 |
+|---|---|---|
+| −9 | 1.2 dB | 1.1 dB |
+| −8 | 4.3 dB | 3.5 dB |
+| −7 | inatteignable (−7.7 max) | 5.7 dB |
+| −6 | inatteignable | 7.0 dB |
+
+(écart tonal maximal, en dB par octave)
+
+Au-delà de −9 LUFS, ce n'est jamais le sub qui disparaît, ce sont les **médiums qui gonflent de 3 à
+7 dB**. Les crêtes sont celles de la 808. Pousser au-delà revient à la façonner cycle par cycle,
+et ses harmoniques (80–500 Hz) remplissent les médiums. Les variantes « 808 saturée » (sub drive
++6 / +12) et « sub −6 » ne font que déplacer le problème : elles changent l'équilibre de ±5 dB.
+
+Masters v3 (`--max-clean`, clip 70/30) :
+
+| | Sonie intégrée | True peak | Distorsion pondérée | Écart tonal max |
+|---|---|---|---|---|
+| pour_claude | −9.8 LUFS | −0.35 dBTP | −28.7 dB | 2.1 dB |
+| pour_claude_plugin | −9.5 LUFS | −0.35 dBTP | −28.2 dB | 2.1 dB |
+
+Ce qui est instructif : comparée à la prod, la référence SLAYR a exactement ce profil. Ses
+médiums sont 6 à 10 dB plus présents et son sub 2 à 4 dB plus discret. Pour qu'une prod sonne
+« comme » la référence à −6 LUFS, il faut donc déplacer son équilibre **délibérément et en
+partie**, avec un EQ à phase linéaire placé avant la dynamique. Le faire par distorsion ne marche
+pas. La garde tonale se mesurera alors par rapport à cette **intention**, plutôt que par rapport à
+la prod brute. C'est l'objet de l'étape suivante : signature de la référence, puis adaptation
+bornée.

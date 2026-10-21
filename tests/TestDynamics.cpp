@@ -284,6 +284,7 @@ OMNIS_TEST("clipper: partage de marge — la somme tient le plafond, la bande ha
     // la bande sub doit céder la place ; le 3 kHz doit sortir intact et stable.
     ClipperStage st;
     st.setParameter(ParamId::ClipCeiling, -1.0, true);
+    st.setParameter(ParamId::ClipSubRoom, 100.0, true);
     st.prepare({kFs, 256, 2});
     Stereo s;
     const int n = static_cast<int>(3.0 * kFs);
@@ -307,4 +308,7 @@ OMNIS_TEST("clipper: partage de marge — la somme tient le plafond, la bande ha
     std::printf("    3 kHz pendant le partage de marge : %.3f … %.3f dB\n", gainToDb(lo / 0.3), gainToDb(hi / 0.3));
     OMNIS_CHECK(gainToDb(hi / lo) < 0.05);
     OMNIS_CHECK_NEAR(gainToDb(hi / 0.3), 0.0, 0.05);
+    // Le sub (47 Hz) cède au plus 6 dB : il ne disparaît jamais.
+    const double sub = 2.0 * std::abs(dft(s.l, 47.0, start, 44100)) / 44100.0;
+    OMNIS_CHECK(gainToDb(sub / (0.85 * c)) > -6.0 - 0.1);
 }

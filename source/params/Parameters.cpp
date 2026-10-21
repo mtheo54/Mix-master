@@ -51,7 +51,7 @@ constexpr std::array<ParamSpec, 30> kParameters{{
     {ParamId::ClipOversampling,  "clip_os",       "Clip Oversampling",    "OS",     "",     ParamKind::Choice,     0.0,    4.0,   3.0,   4,    kOversamplingLabels, 0.0, 0},
     {ParamId::ClipSplit,         "clip_split",    "Clip Split",           "Split",  "Hz",   ParamKind::Continuous, 60.0,   300.0, 120.0, 0,    {},             50.0,   0, kLog},
     {ParamId::ClipSubDrive,      "clip_sub_drive","Clip Sub Drive",       "SubDrv", "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             30.0,   1},
-    {ParamId::ClipSubRoom,       "clip_sub_room", "Clip Sub Make-Room",   "Room",   "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             30.0,   0},
+    {ParamId::ClipSubRoom,       "clip_sub_room", "Clip Sub Make-Room",   "Room",   "%",    ParamKind::Continuous, 0.0,    100.0, 0.0, 0,    {},             30.0,   0},
 
     // Limiteur.
     {ParamId::LimGain,           "lim_gain",      "Limiter Gain",         "LGain",  "dB",   ParamKind::Continuous, 0.0,    24.0,  0.0,   0,    {},             30.0,   1},

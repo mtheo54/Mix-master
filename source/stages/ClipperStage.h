@@ -29,6 +29,9 @@
 //        g_requis = min(1, (±C − haut) / bas)   (borne la plus haute admissible)
 //  La 808 cède la place aux transitoires (l'effet « sidechain » du genre) et la
 //  bande haute — voix, caisse claire — n'est jamais modulée par le sub.
+//  DÉSACTIVÉ PAR DÉFAUT et borné à −6 dB : sans borne, à forte poussée, la 808
+//  cédait en permanence et le sub perdait 14 dB (retour d'écoute : « plus de
+//  sub »). Le garde-fou d'équilibre tonal de omnis_tune vérifie désormais tout réglage.
 //
 //  Latence constante : N/2 + B du crossover + retard de phase 16x arrondi
 //  + anticipation du partage de marge.
@@ -136,6 +139,7 @@ private:
     // Partage de marge.
     static constexpr double kRoomLookaheadMs = 5.0;
     static constexpr double kRoomReleaseMs = 80.0;
+    static constexpr double kRoomMaxDepthDb = 6.0; ///< baisse maximale de la 808 à 100 %
     dsp::LookaheadGain room_;
     OnePoleSmoother roomAmount_; ///< 0..1
     double roomRelease_ = 0.0;
