@@ -53,6 +53,7 @@ include(cmake/OmnisEmbedData.cmake)
 omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     lexicon=${CMAKE_SOURCE_DIR}/data/lexique_fr.txt
     references=${CMAKE_SOURCE_DIR}/data/references.txt
+    catalogue=${CMAKE_SOURCE_DIR}/data/catalogue.txt
 )
 
 add_library(omnis_core STATIC

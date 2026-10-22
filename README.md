@@ -111,6 +111,7 @@ $B/omnis_ask "ça manque de crispy, genre slayer" [--log retours.tsv --correctio
 $B/omnis_refdb add titre.flac --artiste "2hollis" --titre "poster boy" --genres "rage" --db refs.txt
 $B/omnis_refdb scan mes_refs/ --genres "rage" --db refs.txt      # « Artiste - Titre.mp3|flac|wav »
 $B/omnis_refdb noms artistes.txt --db refs.txt                    # « Artiste ; genre, genre ; alias »
+$B/omnis_refdb csv playlists.csv --classes data/genres_classement.txt --db refs.txt   # export de playlists
 $B/omnis_learn local retours.tsv --lexique lexique_utilisateur.txt
 ```
 
@@ -186,7 +187,8 @@ source/
   stages/     étages de la chaîne (Sub Control, Match EQ, Multibande, Clipper, Limiteur + noyaux FIR)
   ai/         compréhension de la demande (fautes, lexique), base de références, intention
               d'adaptation, apprentissage (précurseur du module 5)
-data/         lexique_fr.txt, references.txt (compilés dans le plug-in, éditables)
+data/         lexique_fr.txt, references.txt, catalogue.txt (compilés dans le plug-in, éditables),
+              genres_classement.txt (familles de playlists -> mots de genre)
 third_party/  dr_libs (décodeurs MP3 / FLAC, domaine public)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
   params/     table unique des paramètres (DSP, VST3, outils, IA)

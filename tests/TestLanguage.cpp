@@ -232,3 +232,28 @@ OMNIS_TEST("références: un nom de la base n'est jamais lu comme un mot (« ken
     OMNIS_CHECK(!namesMatch("trop", "trap"));
     OMNIS_CHECK(namesMatch("slayer", "slayr"));
 }
+
+OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, réponses honnêtes") {
+    const auto& lib = ReferenceLibrary::builtin();
+    OMNIS_CHECK(lib.entries().size() > 3000);
+    const auto ask = [&](const char* t) { return understandRequest(t, Lexicon::builtin(), lib, false); };
+
+    // « la feve » est l'artiste, pas un de ses titres.
+    const auto a = ask("garde ma 808 comme la feve");
+    OMNIS_CHECK(a.question.has_value() && a.question->find("La Fève") != std::string::npos);
+    OMNIS_CHECK(a.request.protectedRegions[0]);
+    // « fein de travis scott » -> le titre FE!N.
+    OMNIS_CHECK(ask("un son comme fein de travis scott").question->find("FE!N") != std::string::npos);
+    // « ken carsonn » : l'artiste (pas « carton », pas « Ken Carson - Pots »).
+    const auto k = ask("genre ken carsonn mais propre");
+    OMNIS_CHECK(hitOf(k.interpretation, "carton") == nullptr);
+    OMNIS_CHECK(k.question->find("Ken Carson de nom") != std::string::npos);
+    // Un mot courant qui est aussi un titre ne devient pas une référence.
+    const auto i = ask("intro un peu plus large");
+    OMNIS_CHECK(!i.hasReference() && !i.question.has_value());
+    // Genre sans aucun son écouté : on le dit ; genre écouté : on y va.
+    OMNIS_CHECK(ask("trop brillant, genre rap fr").question->find("aucun son rap fr") != std::string::npos);
+    const auto h = ask("un son hyperpop crispy");
+    OMNIS_CHECK(!h.question.has_value());
+    OMNIS_CHECK(h.referenceEntries.size() == 2); // 2hollis et SLAYR (classé hyperpop par l'utilisateur)
+}

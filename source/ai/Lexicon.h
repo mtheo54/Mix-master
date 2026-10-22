@@ -121,4 +121,7 @@ inline constexpr const char* kReferenceMarker = "omnisrefmark";
 
 Interpretation interpret(std::string_view text, const Lexicon& lexicon);
 
+/// Mot outil (« je », « de », « mix »…) ou mot de la grammaire (« trop », « plus »).
+bool isCommonWord(const std::string& normalizedToken);
+
 } // namespace omnis::ai

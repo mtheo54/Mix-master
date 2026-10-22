@@ -105,6 +105,22 @@ la solution de repli. Toute correction de la personne nourrit les deux.
   comprises) sont repérés avant la lecture du lexique. Sans ça, « ken carsonn » devenait
   « carton » (mesuré). Les noms de moins de 5 caractères se comparent exactement : « trop » n'est
   pas le genre « trap ».
+- **Catalogue de l'utilisateur** (`data/catalogue.txt`, embarqué) : 1911 titres et 1247 artistes de
+  ses playlists, importés par `omnis_refdb csv` avec sa propre classification en 8 familles
+  (`data/genres_classement.txt` : « Rap Français & New Wave » → rap fr, new wave, rap…). Seuls les
+  noms, les titres et ce classement sont gardés. Les colonnes calculées par Spotify (genres,
+  sonie, energy, danceability…) sont **ignorées**, conformément à sa politique.
+  - Garde-fous pour 3000 noms : un mot du lexique ou un mot outil n'est jamais un nom. Un nom avec
+    faute ne commence ni ne finit par un mot outil (« comme la » n'était plus « CALME »). Un titre
+    d'un seul mot (« Intro ») n'est reconnu qu'après « comme », « genre », « titre »… Avec faute,
+    l'artiste passe avant « artiste + titre » (« ken carsonn » n'est pas « Ken Carson - Pots »).
+  - « fein de travis scott » : un titre est cherché plus largement parmi ceux de l'artiste reconnu
+    (FE!N).
+  - Un titre mesuré hérite des genres de son artiste (SLAYR, classé hyperpop par l'utilisateur).
+  - Réponses honnêtes : « Je n'ai encore écouté aucun son rap fr » plutôt qu'un profil
+    approximatif. La question ne cite que les artistes **réellement écoutés**.
+  - Recherche par clés précalculées : 60 à 90 ms par demande, chargement de la base compris
+    (4 s avant l'optimisation).
 - **Formats** : WAV, MP3, FLAC (décodeurs dr_mp3 / dr_flac, domaine public, `third_party/`), tout
   en local. `omnis_refdb scan dossier/` mesure tout un dossier de fichiers nommés
   « Artiste - Titre.ext ».

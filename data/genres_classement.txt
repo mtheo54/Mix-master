@@ -1,0 +1,15 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Familles des playlists de l'utilisateur -> mots de genre
+#
+#  Une ligne : « Famille telle qu'écrite dans l'export => mot, mot ».
+#  Les mots sont ceux qu'on tape dans une demande (« un son rap fr propre »).
+#  Une famille sans mots (« => ») ne donne aucun genre.
+# =============================================================================
+Rap & Hip-Hop International (US/UK) => rap us, rap, hip-hop, rap international
+Rap Français & New Wave             => rap fr, rap francais, new wave, rap
+Électro, House & Dance               => electro, house, dance, electronique
+Rock & Metal                         => rock, metal
+Hyperpop & Expérimental              => hyperpop, experimental
+Pop, R&B & Indie                     => pop, rnb, indie
+B.O., Anime & Jeux Vidéo             => bo, ost, anime, jeux video, bande originale
+Autres / Découvertes                 =>

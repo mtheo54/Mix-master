@@ -145,12 +145,45 @@ MatchRequest requestFromInterpretation(const Interpretation& in) {
 
 MatchRequest parseRequest(std::string_view text) { return requestFromInterpretation(interpret(text, Lexicon::builtin())); }
 
+namespace {
+
+/// « a, b, c » ; au-delà de `max` noms : « a, b, c et 12 autres ».
+std::string listNames(const std::vector<std::string>& names, std::size_t max = 3) {
+    std::string out;
+    for (std::size_t i = 0; i < names.size() && i < max; ++i) out += (i ? ", " : "") + names[i];
+    if (names.size() > max) out += " et " + std::to_string(names.size() - max) + " autres";
+    return out;
+}
+
+} // namespace
+
 Understanding understandRequest(std::string_view text, const Lexicon& lexicon, const ReferenceLibrary& library, bool audioReferenceProvided) {
     Understanding u;
-    // Les noms de la base (artiste, alias, titre ; fautes comprises) sont repérés
-    // AVANT la lecture des mots : « ken carsonn » ne doit pas devenir « carton ».
+    using Kind = ReferenceMatch::Kind;
+
+    // ---- 1. Les noms de la base, repérés AVANT la lecture des mots ----------
+    // (« ken carsonn » ne doit pas devenir « carton »). Garde-fous, la base
+    // pouvant compter des milliers de titres :
+    //  - un mot du lexique ou un mot outil seul n'est jamais un nom ;
+    //  - un nom reconnu avec une faute ne commence ni ne finit par un mot outil
+    //    (« comme la » n'est pas « CALME ») ;
+    //  - un titre d'un seul mot (« Intro », « Love ») n'est reconnu qu'après
+    //    « comme », « genre », « titre »… ; les genres passent par la lecture.
     std::vector<std::string> tokens = tokenize(text);
     std::vector<ReferenceMatch> named;
+    const auto lexiconWord = [&](const std::string& t) {
+        for (const auto& c : lexicon.concepts())
+            for (const auto& e : c.tokenized)
+                if (e.size() == 1 && e[0] == t) return true;
+        return isCommonWord(t);
+    };
+    const auto afterTrigger = [&](std::size_t i) {
+        static const char* kTriggers[] = {"comme", "genre", "style", "facon", "type", "titre", "son", "morceau", "track", "sur", "like"};
+        if (i == 0) return false;
+        for (const char* w : kTriggers)
+            if (tokens[i - 1] == w) return true;
+        return false;
+    };
     for (std::size_t i = 0; i < tokens.size();) {
         bool found = false;
         for (std::size_t len = std::min<std::size_t>(5, tokens.size() - i); len >= 1 && !found; --len) {
@@ -160,10 +193,11 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
                 words = words && isWord(tokens[k]);
                 window += (window.empty() ? "" : " ") + tokens[k];
             }
-            if (!words) continue;
+            if (!words || (len == 1 && lexiconWord(tokens[i]))) continue;
             const auto m = library.find(window);
-            // Les genres passent par la lecture normale (mots courts, ambigus).
-            if (!m.found() || m.how.rfind("genre", 0) == 0) continue;
+            if (!m.found() || m.kind == Kind::Genre) continue;
+            if (!m.exact && (isCommonWord(tokens[i]) || isCommonWord(tokens[i + len - 1]))) continue;
+            if (m.kind == Kind::Title && len == 1 && !afterTrigger(i)) continue;
             named.push_back(m);
             for (std::size_t k = i; k < i + len; ++k) tokens[k] = kReferenceMarker;
             i += len;
@@ -176,87 +210,121 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
     u.interpretation = interpret(named.empty() ? text : std::string_view(masked), lexicon);
     auto& in = u.interpretation;
 
-    const auto addEntries = [&](const ReferenceMatch& m) {
-        for (const auto* e : m.entries)
-            if (std::find(u.referenceEntries.begin(), u.referenceEntries.end(), e) == u.referenceEntries.end()) u.referenceEntries.push_back(e);
-        u.referenceName += (u.referenceName.empty() ? "" : " + ") + m.how;
-    };
-    for (const auto& m : named) addEntries(m);
+    // ---- 2. Mentions après « comme », « genre »… et mots isolés -------------
+    std::vector<ReferenceMatch> matches = named;
     for (const auto& mention : in.referenceMentions) {
-        const auto m = library.find(mention);
-        if (m.found()) addEntries(m);
-        else u.unknownReferences.push_back(mention);
+        auto m = library.find(mention);
+        if (!m.found()) {
+            // « fein de travis scott » : un titre de l'artiste reconnu.
+            for (auto& n : matches)
+                if (n.kind == Kind::Artist)
+                    if (auto t = library.findTitleOf(n.entries, mention); t.found()) {
+                        n = t;
+                        m = t;
+                        break;
+                    }
+            if (m.found()) continue;
+            u.unknownReferences.push_back(mention);
+            continue;
+        }
+        matches.push_back(m);
     }
-    // Un artiste, un titre ou un genre cité sans « comme » (« un son rage bien propre »).
     std::vector<std::string> stillUnknown;
     for (std::size_t i = 0; i < in.unknownWords.size(); ++i) {
         if (i + 1 < in.unknownWords.size()) {
             const auto pair = library.find(in.unknownWords[i] + " " + in.unknownWords[i + 1]);
-            if (pair.found() && pair.how.rfind("titre", 0) == 0) {
-                addEntries(pair);
+            if (pair.found() && pair.kind != Kind::Artist) { // titre ou genre en deux mots (« rap fr »)
+                matches.push_back(pair);
                 ++i;
                 continue;
             }
         }
         const auto m = library.find(in.unknownWords[i]);
-        if (m.found()) addEntries(m);
+        // Un mot isolé ne vaut pas un titre (trop de titres d'un mot).
+        if (m.found() && m.kind != Kind::Title) matches.push_back(m);
         else stillUnknown.push_back(in.unknownWords[i]);
     }
     in.unknownWords = stillUnknown;
 
-    // Artistes connus de nom seulement : leurs genres prennent le relais.
-    std::vector<const ReferenceEntry*> measured;
-    std::vector<std::string> byNameOnly;
-    for (const auto* e : u.referenceEntries) {
-        if (e->measured) measured.push_back(e);
-        else if (std::find(byNameOnly.begin(), byNameOnly.end(), e->artist) == byNameOnly.end()) byNameOnly.push_back(e->artist);
-    }
-    if (measured.empty() && !byNameOnly.empty()) {
-        std::string genres;
-        for (const auto* e : u.referenceEntries)
-            for (const auto& g : e->genres) {
-                const auto m = library.find(g);
-                bool any = false;
-                for (const auto* x : m.entries)
-                    if (x->measured && std::find(measured.begin(), measured.end(), x) == measured.end()) {
-                        measured.push_back(x);
-                        any = true;
-                    }
-                if (any) genres += (genres.empty() ? "" : ", ") + g;
-            }
-        std::string names;
-        for (const auto& n : byNameOnly) names += (names.empty() ? "" : ", ") + n;
-        if (!measured.empty()) {
-            u.referenceName = "profil " + genres + " (" + std::to_string(measured.size()) + " titre" + (measured.size() > 1 ? "s" : "") +
-                              ") pour " + names;
-            u.suggestion = "Je connais " + names + " de nom : en attendant, je vise le profil moyen " + genres +
-                           ". Glisse-moi un son de " + names + " pour viser juste.";
-        } else if (!audioReferenceProvided) {
-            u.question = "Je connais " + names + " de nom, mais je n'ai encore aucun son de ce style à écouter. Glisse-moi un son de " +
-                         names + ", ou cite un artiste proche que j'ai déjà écouté.";
+    // ---- 3. Ce que l'on peut vraiment écouter --------------------------------
+    // Titre ou artiste mesurés : ses sons. Connus de nom seulement : les titres
+    // mesurés de SES genres. Un genre : ses titres mesurés. Rien : question.
+    std::vector<std::string> names, missing, missingGenres, profiles;
+    const auto addMeasured = [&](const std::vector<const ReferenceEntry*>& list) {
+        for (const auto* e : list)
+            if (e->measured && std::find(u.referenceEntries.begin(), u.referenceEntries.end(), e) == u.referenceEntries.end())
+                u.referenceEntries.push_back(e);
+    };
+    for (const auto& m : matches) {
+        const std::string label = m.kind == Kind::Genre ? m.how.substr(6, m.how.find(" (") - 6)
+                                : m.kind == Kind::Title ? "« " + m.entries.front()->title + " » de " + m.entries.front()->artist
+                                                        : m.entries.front()->artist;
+        std::vector<const ReferenceEntry*> heard;
+        if (m.kind == Kind::Genre) heard = library.measuredWithGenre(label);
+        else
+            for (const auto* e : m.entries)
+                if (e->measured) heard.push_back(e);
+        if (!heard.empty()) {
+            addMeasured(heard);
+            const std::string count = std::to_string(heard.size()) + (heard.size() > 1 ? " titres écoutés" : " titre écouté");
+            u.referenceName += std::string(u.referenceName.empty() ? "" : " + ") +
+                               (m.kind == Kind::Genre ? "genre " + label + " (" + count + ")"
+                                : m.kind == Kind::Artist ? "artiste " + label + " (" + count + ")"
+                                                         : "titre " + m.entries.front()->displayName());
+            continue;
         }
+        if (m.kind == Kind::Genre) {
+            missingGenres.push_back(label);
+            continue;
+        }
+        // Connu de nom : genres de l'artiste (ou du titre).
+        std::vector<std::string> tags;
+        for (const auto* e : m.entries)
+            for (const auto& g : e->genres)
+                if (std::find(tags.begin(), tags.end(), g) == tags.end()) tags.push_back(g);
+        std::vector<std::string> used;
+        for (const auto& g : tags) {
+            const auto list = library.measuredWithGenre(g);
+            if (!list.empty()) {
+                addMeasured(list);
+                used.push_back(g);
+            }
+        }
+        if (used.empty()) {
+            missing.push_back(label);
+            continue;
+        }
+        names.push_back(label);
+        profiles.push_back(listNames(used));
+        u.referenceName += std::string(u.referenceName.empty() ? "" : " + ") + "profil " + listNames(used) + " pour " + label;
     }
-    u.referenceEntries = measured;
+    if (!names.empty())
+        u.suggestion = "Je connais " + listNames(names) + " de nom : en attendant, je vise le profil moyen " + listNames(profiles) +
+                       ". Glisse-moi un son de " + listNames(names) + " pour viser juste.";
 
     u.request = requestFromInterpretation(in);
     if (!u.referenceName.empty()) u.request.understood.push_back("Référence : " + u.referenceName);
 
-    // Ce qu'il faut demander avant d'agir.
-    std::string known;
-    for (const auto& a : library.artists()) known += (known.empty() ? "" : ", ") + a;
-    if (!u.unknownReferences.empty() && !audioReferenceProvided) {
-        std::string names;
-        for (const auto& n : u.unknownReferences) names += (names.empty() ? "« " : ", « ") + n + " »";
-        u.question = "Je ne connais pas encore " + names +
-                     ". Pour viser juste : cite-moi un artiste proche que je connais (" + (known.empty() ? "base vide" : known) +
-                     "), ou glisse-moi un son de cet artiste : je l'écouterai et je l'ajouterai à la base.";
-    } else if (u.question) {
-        // déjà posée (artiste connu de nom, aucun son du genre)
-    } else if (in.mentionsProvidedReference && !audioReferenceProvided && !u.hasReference()) {
+    // ---- 4. Ce qu'il faut demander avant d'agir ------------------------------
+    const auto heardArtists = library.measuredArtists();
+    const std::string known = heardArtists.empty() ? "aucun pour l'instant" : listNames(heardArtists, 5);
+    if (audioReferenceProvided) return u;
+    if (!u.unknownReferences.empty()) {
+        std::vector<std::string> quoted;
+        for (const auto& n : u.unknownReferences) quoted.push_back("« " + n + " »");
+        u.question = "Je ne connais pas encore " + listNames(quoted) + ". Pour viser juste : cite-moi un artiste proche que j'ai déjà écouté (" +
+                     known + std::string("), ou glisse-moi un son de cet artiste : je l'écouterai et je l'ajouterai à la base.");
+    } else if (!missingGenres.empty() && missing.empty() && !u.hasReference()) {
+        u.question = std::string("Je n'ai encore écouté aucun son ") + listNames(missingGenres) +
+                     ". Glisse-moi un titre de ce style, ou cite un artiste que j'ai déjà écouté (" + known + ").";
+    } else if ((!missing.empty() || !missingGenres.empty()) && !u.hasReference()) {
+        missing.insert(missing.end(), missingGenres.begin(), missingGenres.end());
+        u.question = std::string("Je connais ") + listNames(missing) + " de nom, mais je n'ai encore écouté aucun son de ce style. Glisse-moi un son de " +
+                     listNames(missing) + ", ou cite un artiste que j'ai déjà écouté (" + known + ").";
+    } else if (in.mentionsProvidedReference && !u.hasReference()) {
         u.question = "Tu parles d'une référence : glisse-moi le son, je l'écoute avant de toucher à ta prod.";
-    } else if (in.hits.empty() && !in.lufs && !u.hasReference() && !audioReferenceProvided) {
-        u.question = "Je n'ai pas compris ce que tu veux changer. Donne-moi un artiste ou un titre (je connais : " +
-                     (known.empty() ? "base vide" : known) +
+    } else if (in.hits.empty() && !in.lufs && !u.hasReference()) {
+        u.question = std::string("Je n'ai pas compris ce que tu veux changer. Donne-moi un artiste ou un titre (j'ai écouté : ") + known +
                      "), ou dis-moi ce qui ne va pas : « ça manque de crispy », « trop de basse », « je veux que ce soit propre »…";
     }
     return u;

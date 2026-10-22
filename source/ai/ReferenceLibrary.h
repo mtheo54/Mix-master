@@ -30,6 +30,7 @@
 
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace omnis::ai {
@@ -46,6 +47,9 @@ struct ReferenceEntry {
 };
 
 struct ReferenceMatch {
+    enum class Kind { None, Title, Artist, Genre };
+    Kind kind = Kind::None;
+    bool exact = false; ///< noms compactés identiques (sinon : faute tolérée)
     std::vector<const ReferenceEntry*> entries;
     std::string how; ///< « artiste 2hollis (1 titre) », « genre rage (2 titres) »
     [[nodiscard]] bool found() const noexcept { return !entries.empty(); }
@@ -56,11 +60,23 @@ public:
     bool parse(std::string_view text, std::string* error = nullptr);
     [[nodiscard]] std::string serialize() const;
 
-    void add(ReferenceEntry entry); ///< remplace un titre existant du même artiste
+    /// Remplace l'entrée de même artiste et même titre (noms compactés identiques).
+    void add(ReferenceEntry entry);
     [[nodiscard]] const std::vector<ReferenceEntry>& entries() const noexcept { return entries_; }
 
-    /// Titre exact > artiste > genre.
+    /// Noms exacts d'abord (« artiste titre » > artiste > titre), puis les mêmes
+    /// avec fautes tolérées, puis les genres.
     [[nodiscard]] ReferenceMatch find(std::string_view query) const;
+
+    /// Un titre parmi les entrées d'un artiste déjà reconnu, comparé plus
+    /// largement (« fein de travis scott » -> « FE!N »).
+    [[nodiscard]] ReferenceMatch findTitleOf(const std::vector<const ReferenceEntry*>& artistEntries, std::string_view title) const;
+
+    /// Entrées MESURÉES portant ce genre, le leur ou celui de leur artiste
+    /// (entrée sans titre : « SLAYR ; hyperpop » vaut pour tous ses titres).
+    [[nodiscard]] std::vector<const ReferenceEntry*> measuredWithGenre(std::string_view genre) const;
+    /// Artistes dont au moins un titre est mesuré (ceux qu'OMNIS a écoutés).
+    [[nodiscard]] std::vector<std::string> measuredArtists() const;
 
     [[nodiscard]] std::vector<std::string> artists() const;
     [[nodiscard]] std::vector<std::string> genres() const;
@@ -68,8 +84,25 @@ public:
     /// Base livrée avec le plug-in (data/references.txt).
     static const ReferenceLibrary& builtin();
 
+    /// Clé de comparaison d'un nom, calculée une fois (la base peut compter des
+    /// milliers de titres : la recherche ne retokenise rien).
+    struct NameKey {
+        std::string compact, digits, phonetic;
+        [[nodiscard]] bool matches(const NameKey& other) const noexcept;
+        static NameKey of(std::string_view name);
+    };
+
 private:
+    struct EntryKeys {
+        NameKey artist, title, artistTitle, titleArtist;
+        std::vector<NameKey> aliases, genres;
+    };
+    void index(std::size_t i);
+
     std::vector<ReferenceEntry> entries_;
+    std::vector<EntryKeys> keys_;
+    std::unordered_map<std::string, std::size_t> exact_; ///< « artiste|titre » compacts -> index
+    std::unordered_map<std::string, std::size_t> artistLevel_; ///< artiste compact -> entrée sans titre
 };
 
 /// Signature moyenne (balances relatives au corps, sonies moyennes) des

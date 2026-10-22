@@ -9,6 +9,10 @@
 //    omnis_refdb nom --artiste "Yeat" --genres "rage" [--alias "…"] --db base.txt
 //    omnis_refdb noms liste.txt --db base.txt
 //                (une ligne par artiste : « Artiste ; genre, genre ; alias, alias »)
+//    omnis_refdb csv export.csv --classes familles.txt --db base.txt
+//                (export de playlists : colonnes « Artist Name(s) », « Track Name »,
+//                « Genre_Classement » ; seuls les noms, titres et le classement de la
+//                personne sont gardés — jamais les colonnes calculées par Spotify)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
@@ -20,9 +24,11 @@
 #include "analysis/SpectralSignature.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <string>
 
 using namespace omnis;
@@ -67,6 +73,47 @@ bool measure(const std::string& path, ai::ReferenceEntry& e, std::string& error)
     return true;
 }
 
+/// Une ligne CSV (RFC 4180 : guillemets, guillemets doublés, virgules dans un champ).
+std::vector<std::string> csvFields(const std::string& line) {
+    std::vector<std::string> out(1);
+    bool quoted = false;
+    for (std::size_t i = 0; i < line.size(); ++i) {
+        const char c = line[i];
+        if (quoted) {
+            if (c == '"' && i + 1 < line.size() && line[i + 1] == '"') {
+                out.back() += '"';
+                ++i;
+            } else if (c == '"') {
+                quoted = false;
+            } else {
+                out.back() += c;
+            }
+        } else if (c == '"') {
+            quoted = true;
+        } else if (c == ',') {
+            out.emplace_back();
+        } else if (c != '\r') {
+            out.back() += c;
+        }
+    }
+    return out;
+}
+
+/// Titre sans « (feat. …) », « (with …) », « [prod. …] » : on cherche le morceau, pas l'invité.
+std::string cleanTitle(std::string t) {
+    for (std::size_t i = 0; i < t.size(); ++i) {
+        if (t[i] != '(' && t[i] != '[') continue;
+        std::string inside = t.substr(i + 1, 6);
+        for (char& c : inside) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (inside.rfind("feat", 0) == 0 || inside.rfind("ft.", 0) == 0 || inside.rfind("with ", 0) == 0 || inside.rfind("prod", 0) == 0) {
+            t.erase(i);
+            break;
+        }
+    }
+    while (!t.empty() && (t.back() == ' ' || t.back() == '-')) t.pop_back();
+    return t;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -89,6 +136,7 @@ int main(int argc, char** argv) {
         else if (a == "--titre" && i + 1 < argc) title = argv[++i];
         else if (a == "--genres" && i + 1 < argc) genres = argv[++i];
         else if (a == "--alias" && i + 1 < argc) aliases = argv[++i];
+        else if (a == "--classes" && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
     }
 
@@ -146,6 +194,87 @@ int main(int argc, char** argv) {
         }
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%d son(s) mesuré(s) -> %s (%zu entrées)\n", added, db.c_str(), user.entries().size());
+        return 0;
+    }
+    if (command == "csv") {
+        std::string classesPath;
+        for (int i = 2; i + 1 < argc; ++i)
+            if (std::string(argv[i]) == "--classes") classesPath = argv[i + 1];
+        if (input.empty() || db.empty()) return 1;
+        // Familles -> mots de genre.
+        std::vector<std::pair<std::string, std::vector<std::string>>> classes;
+        {
+            std::ifstream in(classesPath);
+            std::string line;
+            while (std::getline(in, line)) {
+                if (line.empty() || line[0] == '#') continue;
+                const auto arrow = line.find("=>");
+                if (arrow == std::string::npos) continue;
+                const auto names = list(line.substr(0, arrow));
+                if (!names.empty()) classes.emplace_back(names.front(), loose(line.substr(arrow + 2)));
+            }
+        }
+        const auto tagsOf = [&](const std::string& family) {
+            for (const auto& [name, tags] : classes)
+                if (name == family) return tags;
+            return family.empty() ? std::vector<std::string>{} : std::vector<std::string>{family};
+        };
+        std::ifstream in(input, std::ios::binary);
+        std::string line;
+        std::getline(in, line);
+        if (line.rfind("\xEF\xBB\xBF", 0) == 0) line.erase(0, 3); // BOM
+        const auto header = csvFields(line);
+        const auto column = [&](const char* name) {
+            for (std::size_t i = 0; i < header.size(); ++i)
+                if (header[i] == name) return static_cast<int>(i);
+            return -1;
+        };
+        const int cArtist = column("Artist Name(s)"), cTitle = column("Track Name"), cFamily = column("Genre_Classement");
+        if (cArtist < 0 || cTitle < 0) {
+            std::fputs("colonnes « Artist Name(s) » / « Track Name » introuvables\n", stderr);
+            return 1;
+        }
+        auto user = openDb(db);
+        std::map<std::string, std::map<std::string, int>> artistFamilies;
+        int tracks = 0;
+        while (std::getline(in, line)) {
+            const auto f = csvFields(line);
+            if (static_cast<int>(f.size()) <= std::max(cArtist, cTitle)) continue;
+            const std::string family = cFamily >= 0 && cFamily < static_cast<int>(f.size()) ? f[static_cast<std::size_t>(cFamily)] : "";
+            std::vector<std::string> artists;
+            std::size_t start = 0;
+            const std::string& names = f[static_cast<std::size_t>(cArtist)];
+            for (std::size_t i = 0; i <= names.size(); ++i)
+                if (i == names.size() || names[i] == ';') {
+                    const auto a = list(names.substr(start, i - start));
+                    if (!a.empty()) artists.push_back(a.front());
+                    start = i + 1;
+                }
+            if (artists.empty()) continue;
+            ai::ReferenceEntry e;
+            e.artist = artists.front();
+            e.title = cleanTitle(f[static_cast<std::size_t>(cTitle)]);
+            e.genres = tagsOf(family);
+            e.measured = false;
+            if (!e.title.empty()) user.add(e);
+            for (const auto& a : artists) ++artistFamilies[a][family];
+            ++tracks;
+        }
+        // Un artiste reçoit les familles qui font au moins 20 % de ses titres.
+        for (const auto& [name, families] : artistFamilies) {
+            int total = 0;
+            for (const auto& [fam, n] : families) total += n;
+            ai::ReferenceEntry e;
+            e.artist = name;
+            e.measured = false;
+            for (const auto& [fam, n] : families)
+                if (n * 5 >= total)
+                    for (const auto& t : tagsOf(fam))
+                        if (std::find(e.genres.begin(), e.genres.end(), t) == e.genres.end()) e.genres.push_back(t);
+            user.add(e);
+        }
+        if (!writeTextFile(db, user.serialize())) return 1;
+        std::printf("%d titre(s), %zu artiste(s) -> %s (%zu entrées)\n", tracks, artistFamilies.size(), db.c_str(), user.entries().size());
         return 0;
     }
     if (command == "nom" || command == "noms") {

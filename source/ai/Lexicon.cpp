@@ -242,6 +242,15 @@ std::string formatNumber(double v) {
 
 } // namespace
 
+bool isCommonWord(const std::string& t) {
+    if (isStopword(t)) return true;
+    const std::vector<std::string> one{t};
+    for (const Phrases* list : {&intensifiers(), &diminishers(), &more(), &less(), &tooMuch(), &negations(), &keeps(),
+                                &stateMarkers(), &desireMarkers(), &referenceTriggers(), &clauseBreaks()})
+        if (matchPhrases(one, 0, 1, *list) == 1) return true;
+    return false;
+}
+
 const char* axisKey(Axis a) noexcept { return kAxes[static_cast<int>(a)].key; }
 const char* axisLabel(Axis a) noexcept { return kAxes[static_cast<int>(a)].label; }
 const char* axisUnit(Axis a) noexcept { return kAxes[static_cast<int>(a)].unit; }
@@ -439,6 +448,7 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
                 } else {
                     std::size_t k = j;
                     while (k < end && k - j < 4) {
+                        if (tokens[k] == kReferenceMarker) break; // « fein de <artiste reconnu> »
                         bool isConcept = false;
                         for (const auto& c : lexicon.concepts()) isConcept = isConcept || matchConcept(tokens, k, end, c) > 0;
                         if (isConcept || matchPhrases(tokens, k, end, desireMarkers()) || matchPhrases(tokens, k, end, keeps()) ||
@@ -450,7 +460,10 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
                             break;
                         ++k;
                     }
-                    if (k > j) out.referenceMentions.push_back(join(tokens, j, k));
+                    // Déterminants en fin de mention retirés (« fein de » -> « fein »).
+                    std::size_t last = k;
+                    while (last > j && matchPhrases(tokens, last - 1, last, determiners()) == 1) --last;
+                    if (last > j) out.referenceMentions.push_back(join(tokens, j, last));
                     j = k;
                 }
                 resetModifiers();

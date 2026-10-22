@@ -39,7 +39,7 @@ std::vector<std::string> splitList(std::string_view s) {
 }
 
 /// Nom compacté : mots normalisés collés (« 2 Hollis » -> « 2hollis »).
-std::string compact(std::string_view name) {
+std::string compactName(std::string_view name) {
     std::string out;
     for (const auto& t : tokenize(name))
         if (isWord(t)) out += t;
@@ -70,19 +70,34 @@ std::string pluralTitles(std::size_t n) { return std::to_string(n) + (n > 1 ? " 
 
 std::string ReferenceEntry::displayName() const { return title.empty() ? artist : artist + " - " + title; }
 
+ReferenceLibrary::NameKey ReferenceLibrary::NameKey::of(std::string_view name) {
+    NameKey k;
+    k.compact = compactName(name);
+    std::string letters;
+    for (char c : k.compact) (c >= '0' && c <= '9' ? k.digits : letters) += c;
+    k.phonetic = letters.empty() ? std::string() : phoneticKey(letters);
+    return k;
+}
+
+bool ReferenceLibrary::NameKey::matches(const NameKey& o) const noexcept {
+    if (compact.empty() || o.compact.empty()) return false;
+    if (compact == o.compact) return true;
+    // Les chiffres d'un nom (« 2hollis », « 21 savage ») sont exacts ; les
+    // lettres tolèrent les fautes (« 2holis »), sauf sous 5 caractères
+    // (« trop » n'est pas le genre « trap »).
+    if (digits != o.digits || phonetic.empty() || o.phonetic.empty()) return false;
+    if (std::min(compact.size(), o.compact.size()) < 5) return false;
+    if (phonetic == o.phonetic) return true;
+    const std::size_t len = std::min(phonetic.size(), o.phonetic.size());
+    if (len < 4 || phonetic[0] != o.phonetic[0]) return false;
+    const int allowed = len >= 8 ? 2 : 1;
+    const auto diff = phonetic.size() > o.phonetic.size() ? phonetic.size() - o.phonetic.size() : o.phonetic.size() - phonetic.size();
+    if (diff > static_cast<std::size_t>(allowed)) return false;
+    return damerauLevenshtein(phonetic, o.phonetic) <= allowed;
+}
+
 bool namesMatch(std::string_view a, std::string_view b) {
-    const std::string ca = compact(a), cb = compact(b);
-    if (ca.empty() || cb.empty()) return false;
-    if (ca == cb) return true;
-    // Les chiffres d'un nom (« 2hollis », « 21 savage ») doivent être exacts,
-    // les lettres tolèrent les fautes (« 2holis »).
-    std::string digitsA, digitsB, lettersA, lettersB;
-    for (char c : ca) (c >= '0' && c <= '9' ? digitsA : lettersA) += c;
-    for (char c : cb) (c >= '0' && c <= '9' ? digitsB : lettersB) += c;
-    if (digitsA != digitsB || lettersA.empty() || lettersB.empty()) return false;
-    // Noms courts : exacts (« trop » n'est pas le genre « trap »).
-    if (std::min(ca.size(), cb.size()) < 5) return false;
-    return fuzzyEquals(lettersA, lettersB);
+    return ReferenceLibrary::NameKey::of(a).matches(ReferenceLibrary::NameKey::of(b));
 }
 
 bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
@@ -177,76 +192,172 @@ std::string ReferenceLibrary::serialize() const {
     return out;
 }
 
+void ReferenceLibrary::index(std::size_t i) {
+    if (keys_.size() <= i) keys_.resize(i + 1);
+    const auto& e = entries_[i];
+    auto& k = keys_[i];
+    k.artist = NameKey::of(e.artist);
+    k.title = e.title.empty() ? NameKey{} : NameKey::of(e.title);
+    k.artistTitle = e.title.empty() ? NameKey{} : NameKey::of(e.artist + " " + e.title);
+    k.titleArtist = e.title.empty() ? NameKey{} : NameKey::of(e.title + " " + e.artist);
+    k.aliases.clear();
+    k.genres.clear();
+    for (const auto& a : e.aliases) k.aliases.push_back(NameKey::of(a));
+    for (const auto& g : e.genres) k.genres.push_back(NameKey::of(g));
+}
+
 void ReferenceLibrary::add(ReferenceEntry entry) {
-    for (auto& e : entries_)
-        if (namesMatch(e.artist, entry.artist) && namesMatch(e.title.empty() ? e.artist : e.title, entry.title.empty() ? entry.artist : entry.title)) {
-            // Une entrée de nom ne remplace jamais des mesures ; elle peut
-            // compléter genres et alias.
-            if (!entry.measured && e.measured) {
-                for (auto& g : entry.genres)
-                    if (std::none_of(e.genres.begin(), e.genres.end(), [&](const std::string& x) { return namesMatch(x, g); })) e.genres.push_back(g);
-                for (auto& a : entry.aliases) e.aliases.push_back(a);
-                return;
-            }
+    // Doublon = même artiste et même titre une fois compactés (« 2 Hollis » =
+    // « 2hollis ») : recherche directe, la base pouvant compter des milliers
+    // d'entrées.
+    const std::string id = compactName(entry.artist) + "|" + compactName(entry.title);
+    if (const auto it = exact_.find(id); it != exact_.end()) {
+        auto& e = entries_[it->second];
+        // Une entrée de nom ne remplace jamais des mesures ; elle peut
+        // compléter genres et alias.
+        if (!entry.measured && e.measured) {
+            for (auto& g : entry.genres)
+                if (std::none_of(e.genres.begin(), e.genres.end(), [&](const std::string& x) { return namesMatch(x, g); })) e.genres.push_back(g);
+            for (auto& a : entry.aliases) e.aliases.push_back(a);
+        } else {
             e = std::move(entry);
-            return;
         }
+        index(it->second);
+        return;
+    }
+    exact_[id] = entries_.size();
+    if (entry.title.empty()) artistLevel_[compactName(entry.artist)] = entries_.size();
     entries_.push_back(std::move(entry));
+    index(entries_.size() - 1);
 }
 
 ReferenceMatch ReferenceLibrary::find(std::string_view query) const {
     ReferenceMatch m;
-    if (compact(query).empty()) return m;
-    // 1. Un titre (« poster boy », « 2hollis poster boy »).
-    for (const auto& e : entries_)
-        if (!e.title.empty() && (namesMatch(query, e.title) || namesMatch(query, e.artist + " " + e.title) ||
-                                 namesMatch(query, e.title + " " + e.artist))) {
-            m.entries.push_back(&e);
-            m.how = "titre " + e.displayName();
+    const NameKey q = NameKey::of(query);
+    if (q.compact.empty()) return m;
+    const auto same = [&](const NameKey& k, bool exact) { return exact ? (!k.compact.empty() && k.compact == q.compact) : k.matches(q); };
+    const auto byArtist = [&](bool exact) {
+        for (std::size_t i = 0; i < entries_.size(); ++i) {
+            bool hit = same(keys_[i].artist, exact);
+            for (const auto& al : keys_[i].aliases) hit = hit || same(al, exact);
+            if (hit) m.entries.push_back(&entries_[i]);
+        }
+        if (!m.found()) return false;
+        m.kind = ReferenceMatch::Kind::Artist;
+        m.how = "artiste " + m.entries.front()->artist + " (" + pluralTitles(m.entries.size()) + ")";
+        return true;
+    };
+    const auto byArtistTitle = [&](bool exact) {
+        for (std::size_t i = 0; i < entries_.size(); ++i)
+            if (same(keys_[i].artistTitle, exact) || same(keys_[i].titleArtist, exact)) {
+                m.kind = ReferenceMatch::Kind::Title;
+                m.entries.push_back(&entries_[i]);
+                m.how = "titre " + entries_[i].displayName();
+                return true;
+            }
+        return false;
+    };
+    const auto byTitle = [&](bool exact) {
+        for (std::size_t i = 0; i < entries_.size(); ++i)
+            if (!entries_[i].title.empty() && same(keys_[i].title, exact)) {
+                m.kind = ReferenceMatch::Kind::Title;
+                m.entries.push_back(&entries_[i]);
+                m.how = "titre " + entries_[i].displayName();
+                return true;
+            }
+        return false;
+    };
+    // Exact : « artiste titre » > artiste > titre. Avec fautes : l'artiste
+    // d'abord (« ken carsonn » est Ken Carson, pas « Ken Carson - Pots »).
+    m.exact = true;
+    if (byArtistTitle(true) || byArtist(true) || byTitle(true)) return m;
+    m.exact = false;
+    if (byArtist(false) || byArtistTitle(false) || byTitle(false)) return m;
+    // Un genre.
+    for (const bool exact : {true, false}) {
+        std::string genre;
+        for (std::size_t i = 0; i < entries_.size(); ++i)
+            for (std::size_t g = 0; g < keys_[i].genres.size(); ++g)
+                if (same(keys_[i].genres[g], exact)) {
+                    m.entries.push_back(&entries_[i]);
+                    genre = entries_[i].genres[g];
+                    break;
+                }
+        if (m.found()) {
+            m.kind = ReferenceMatch::Kind::Genre;
+            m.exact = exact;
+            m.how = "genre " + genre + " (" + pluralTitles(m.entries.size()) + ")";
             return m;
         }
-    // 2. Un artiste (ou un alias).
-    for (const auto& e : entries_) {
-        bool hit = namesMatch(query, e.artist);
-        for (const auto& a : e.aliases) hit = hit || namesMatch(query, a);
-        if (hit) m.entries.push_back(&e);
     }
-    if (m.found()) {
-        m.how = "artiste " + m.entries.front()->artist + " (" + pluralTitles(m.entries.size()) + ")";
-        return m;
-    }
-    // 3. Un genre.
-    std::string genre;
-    for (const auto& e : entries_)
-        for (const auto& g : e.genres)
-            if (namesMatch(query, g)) {
-                m.entries.push_back(&e);
-                genre = g;
-                break;
-            }
-    if (m.found()) m.how = "genre " + genre + " (" + pluralTitles(m.entries.size()) + ")";
     return m;
+}
+
+ReferenceMatch ReferenceLibrary::findTitleOf(const std::vector<const ReferenceEntry*>& artistEntries, std::string_view title) const {
+    ReferenceMatch m;
+    const NameKey q = NameKey::of(title);
+    if (q.phonetic.size() < 3) return m;
+    for (const auto* e : artistEntries) {
+        if (e < entries_.data() || e >= entries_.data() + entries_.size() || e->title.empty()) continue;
+        const NameKey& k = keys_[static_cast<std::size_t>(e - entries_.data())].title;
+        // L'artiste est déjà sûr : une faute est tolérée même sur un titre court.
+        if (k.compact == q.compact || k.matches(q) ||
+            (k.digits == q.digits && !k.phonetic.empty() && k.phonetic[0] == q.phonetic[0] && damerauLevenshtein(k.phonetic, q.phonetic) <= 1)) {
+            m.kind = ReferenceMatch::Kind::Title;
+            m.entries.push_back(e);
+            m.how = "titre " + e->displayName();
+            return m;
+        }
+    }
+    return m;
+}
+
+std::vector<const ReferenceEntry*> ReferenceLibrary::measuredWithGenre(std::string_view genre) const {
+    std::vector<const ReferenceEntry*> out;
+    const NameKey q = NameKey::of(genre);
+    const auto carries = [&](std::size_t i) {
+        for (const auto& g : keys_[i].genres)
+            if (g.matches(q)) return true;
+        return false;
+    };
+    for (std::size_t i = 0; i < entries_.size(); ++i) {
+        if (!entries_[i].measured) continue;
+        const auto artist = artistLevel_.find(keys_[i].artist.compact);
+        if (carries(i) || (artist != artistLevel_.end() && carries(artist->second))) out.push_back(&entries_[i]);
+    }
+    return out;
+}
+
+std::vector<std::string> ReferenceLibrary::measuredArtists() const {
+    std::vector<std::string> out;
+    std::unordered_map<std::string, bool> seen;
+    for (std::size_t i = 0; i < entries_.size(); ++i)
+        if (entries_[i].measured && seen.emplace(keys_[i].artist.compact, true).second) out.push_back(entries_[i].artist);
+    return out;
 }
 
 std::vector<std::string> ReferenceLibrary::artists() const {
     std::vector<std::string> out;
-    for (const auto& e : entries_)
-        if (std::none_of(out.begin(), out.end(), [&](const std::string& a) { return namesMatch(a, e.artist); })) out.push_back(e.artist);
+    std::unordered_map<std::string, bool> seen;
+    for (std::size_t i = 0; i < entries_.size(); ++i)
+        if (seen.emplace(keys_[i].artist.compact, true).second) out.push_back(entries_[i].artist);
     return out;
 }
 
 std::vector<std::string> ReferenceLibrary::genres() const {
     std::vector<std::string> out;
-    for (const auto& e : entries_)
-        for (const auto& g : e.genres)
-            if (std::none_of(out.begin(), out.end(), [&](const std::string& x) { return namesMatch(x, g); })) out.push_back(g);
+    std::unordered_map<std::string, bool> seen;
+    for (std::size_t i = 0; i < entries_.size(); ++i)
+        for (std::size_t g = 0; g < entries_[i].genres.size(); ++g)
+            if (seen.emplace(keys_[i].genres[g].compact, true).second) out.push_back(entries_[i].genres[g]);
     return out;
 }
 
 const ReferenceLibrary& ReferenceLibrary::builtin() {
     static const ReferenceLibrary library = [] {
         ReferenceLibrary l;
-        l.parse(data::references());
+        l.parse(data::references()); // titres mesurés
+        l.parse(data::catalogue());  // artistes et titres connus de nom (complètent les genres)
         return l;
     }();
     return library;
