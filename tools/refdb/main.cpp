@@ -77,7 +77,7 @@ ai::ReferenceLibrary openDb(const std::string& db) {
 }
 
 /// `threads` : threads pour CE fichier (1 quand plusieurs fichiers sont mesurés en parallèle).
-bool measure(const std::string& path, ai::ReferenceEntry& e, std::string& error, unsigned threads = 0) {
+bool measure(const std::filesystem::path& path, ai::ReferenceEntry& e, std::string& error, unsigned threads = 0) {
     AudioFile f;
     if (!readAudioFile(path, f, error)) return false;
     const auto& r = f.channels[std::min<std::size_t>(1, f.channels.size() - 1)];
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
         std::vector<std::filesystem::path> files;
         std::error_code ec;
         for (const auto& entry : std::filesystem::recursive_directory_iterator(input, ec))
-            if (entry.is_regular_file() && isReadableAudio(entry.path().string())) files.push_back(entry.path());
+            if (entry.is_regular_file() && isReadableAudio(entry.path())) files.push_back(entry.path());
         std::sort(files.begin(), files.end());
         // Un fichier par cœur : décodage et analyse en parallèle, résultats
         // rangés dans l'ordre des fichiers.
@@ -270,7 +270,8 @@ int main(int argc, char** argv) {
             pool.emplace_back([&] {
                 for (std::size_t i; (i = next.fetch_add(1)) < files.size();) {
                     // « Artiste - Titre » ; sans tiret : le nom de fichier est l'artiste.
-                    const std::string stem = files[i].stem().string();
+                    // En UTF-8, comme le reste de la base (« La Fève », pas la page de code).
+                    const std::string stem = utf8Path(files[i].stem());
                     auto& job = jobs[i];
                     const auto dash = stem.find(" - ");
                     job.entry.artist = dash == std::string::npos ? stem : stem.substr(0, dash);
@@ -283,7 +284,7 @@ int main(int argc, char** argv) {
                         for (const auto& g : l->genres)
                             if (std::find(job.entry.genres.begin(), job.entry.genres.end(), g) == job.entry.genres.end()) job.entry.genres.push_back(g);
                     }
-                    job.ok = measure(files[i].string(), job.entry, job.error, 1);
+                    job.ok = measure(files[i], job.entry, job.error, 1);
                 }
             });
         for (auto& t : pool) t.join();
@@ -292,7 +293,7 @@ int main(int argc, char** argv) {
         for (std::size_t i = 0; i < files.size(); ++i) {
             const auto& job = jobs[i];
             if (!job.ok) {
-                std::printf("  ignoré : %s (%s)\n", files[i].filename().string().c_str(), job.error.c_str());
+                std::printf("  ignoré : %s (%s)\n", utf8Path(files[i].filename()).c_str(), job.error.c_str());
                 continue;
             }
             std::printf("  %-44s %6.1f LUFS  LRA %4.1f\n", job.entry.displayName().c_str(), job.entry.signature.integratedLufs,

@@ -9,11 +9,19 @@
 // =============================================================================
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace omnis::tools {
+
+/// Chemin en UTF-8 (noms écrits dans les bases, messages). `path.string()` passe
+/// par la page de code de Windows : accents faussés, exception sur « Θ » ou « ？ ».
+inline std::string utf8Path(const std::filesystem::path& path) {
+    const auto s = path.u8string();
+    return std::string(s.begin(), s.end());
+}
 
 enum class SampleFormat { Pcm16, Pcm24, Pcm32, Float32, Float64 };
 
@@ -30,7 +38,7 @@ struct AudioFile {
     }
 };
 
-bool readWav(const std::string& path, AudioFile& out, std::string& error);
+bool readWav(const std::filesystem::path& path, AudioFile& out, std::string& error);
 bool writeWav(const std::string& path, const AudioFile& in, SampleFormat format, std::string& error);
 
 /// "pcm16", "pcm24", "pcm32", "f32", "f64" (insensible à la casse).

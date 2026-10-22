@@ -48,10 +48,10 @@ bool parseSampleFormat(std::string_view text, SampleFormat& format) {
     return true;
 }
 
-bool readWav(const std::string& path, AudioFile& out, std::string& error) {
+bool readWav(const std::filesystem::path& path, AudioFile& out, std::string& error) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
-        error = "impossible d'ouvrir " + path;
+        error = "impossible d'ouvrir " + utf8Path(path);
         return false;
     }
     std::vector<unsigned char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());

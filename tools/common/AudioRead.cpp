@@ -9,17 +9,28 @@
 
 #include <algorithm>
 #include <cctype>
+#include <fstream>
 
 namespace omnis::tools {
 
 namespace {
 
-std::string extensionOf(const std::string& path) {
-    const auto dot = path.find_last_of('.');
-    if (dot == std::string::npos) return {};
-    std::string e = path.substr(dot + 1);
+std::string extensionOf(const std::filesystem::path& path) {
+    std::string e = utf8Path(path.extension());
+    if (!e.empty()) e.erase(0, 1);
     for (char& c : e) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return e;
+}
+
+/// Fichier entier en mémoire : dr_flac / dr_mp3 n'ouvrent que des noms `char`
+/// (page de code sous Windows), la mémoire évite la question.
+bool readBytes(const std::filesystem::path& path, std::vector<unsigned char>& data) {
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    if (!in) return false;
+    const auto size = static_cast<std::size_t>(in.tellg());
+    data.resize(size);
+    in.seekg(0);
+    return static_cast<bool>(in.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(size)));
 }
 
 bool fill(AudioFile& out, const float* interleaved, unsigned long long frames, unsigned channels, unsigned sampleRate) {
@@ -34,32 +45,37 @@ bool fill(AudioFile& out, const float* interleaved, unsigned long long frames, u
 
 } // namespace
 
-bool isReadableAudio(const std::string& path) {
+bool isReadableAudio(const std::filesystem::path& path) {
     const std::string e = extensionOf(path);
     return e == "wav" || e == "mp3" || e == "flac";
 }
 
-bool readAudioFile(const std::string& path, AudioFile& out, std::string& error) {
+bool readAudioFile(const std::filesystem::path& path, AudioFile& out, std::string& error) {
     const std::string e = extensionOf(path);
+    if (e != "mp3" && e != "flac") return readWav(path, out, error);
+    std::vector<unsigned char> data;
+    if (!readBytes(path, data)) {
+        error = "impossible d'ouvrir " + utf8Path(path);
+        return false;
+    }
     if (e == "mp3") {
         drmp3_config config{};
         drmp3_uint64 frames = 0;
-        float* pcm = drmp3_open_file_and_read_pcm_frames_f32(path.c_str(), &config, &frames, nullptr);
+        float* pcm = drmp3_open_memory_and_read_pcm_frames_f32(data.data(), data.size(), &config, &frames, nullptr);
+        data = {};
         const bool ok = fill(out, pcm, frames, config.channels, config.sampleRate);
         drmp3_free(pcm, nullptr);
-        if (!ok) error = "MP3 illisible : " + path;
+        if (!ok) error = "MP3 illisible : " + utf8Path(path);
         return ok;
     }
-    if (e == "flac") {
-        unsigned channels = 0, sampleRate = 0;
-        drflac_uint64 frames = 0;
-        float* pcm = drflac_open_file_and_read_pcm_frames_f32(path.c_str(), &channels, &sampleRate, &frames, nullptr);
-        const bool ok = fill(out, pcm, frames, channels, sampleRate);
-        drflac_free(pcm, nullptr);
-        if (!ok) error = "FLAC illisible : " + path;
-        return ok;
-    }
-    return readWav(path, out, error);
+    unsigned channels = 0, sampleRate = 0;
+    drflac_uint64 frames = 0;
+    float* pcm = drflac_open_memory_and_read_pcm_frames_f32(data.data(), data.size(), &channels, &sampleRate, &frames, nullptr);
+    data = {};
+    const bool ok = fill(out, pcm, frames, channels, sampleRate);
+    drflac_free(pcm, nullptr);
+    if (!ok) error = "FLAC illisible : " + utf8Path(path);
+    return ok;
 }
 
 } // namespace omnis::tools

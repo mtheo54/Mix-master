@@ -16,9 +16,10 @@
 namespace omnis::tools {
 
 /// Choix du décodeur d'après l'extension (.wav, .mp3, .flac ; casse ignorée).
-bool readAudioFile(const std::string& path, AudioFile& out, std::string& error);
+/// Chemin natif : sous Windows, tout nom de fichier s'ouvre, quelle que soit la page de code.
+bool readAudioFile(const std::filesystem::path& path, AudioFile& out, std::string& error);
 
 /// Extensions lisibles (pour le parcours de dossiers).
-bool isReadableAudio(const std::string& path);
+bool isReadableAudio(const std::filesystem::path& path);
 
 } // namespace omnis::tools
