@@ -1,0 +1,136 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Genres des titres de référence (fournis par l'utilisateur)
+#
+#  Une ligne : « Artiste ; Titre ; genre, genre ». Le premier genre est la
+#  famille, les suivants précisent le style. Importé par
+#  `omnis_refdb titres data/titres_genres.txt --db data/catalogue.txt`, puis
+#  utilisé par `omnis_refdb scan` pour classer les sons mesurés.
+# =============================================================================
+La Fève ; Big Louis ; rap fr, chill
+La Fève ; Balenciaga ; rap fr, rage
+La Fève ; Mauvais Payeur ; rap fr, trap
+La Fève ; Loyal ; rap fr, soul
+La Fève ; Zayon ; rap fr, cloud
+La Fève ; 24 ; rap fr, sombre
+Rounhaa ; Music Sounds Better With You ; rap fr, melodique
+Luther ; Garçon ; rap fr, new wave
+Ken Carson ; Fighting My Demons ; rap us, rage
+Ken Carson ; Overseas ; rap us, rage
+Playboi Carti ; Stop Breathing ; rap us, punk trap
+Playboi Carti ; Location ; rap us, cloud
+Playboi Carti ; 2024 ; rap us, trap
+Playboi Carti ; Shoota (feat. Lil Uzi Vert) ; rap us, euphoric
+Yeat ; Breathe ; rap us, futuriste
+Destroy Lonely ; If Looks Could Kill ; rap us, shoegaze trap
+2hollis ; poster boy ; hyperpop, electroclash
+2hollis ; crush ; hyperpop, euro-trance
+2hollis ; jeans ; hyperpop, rage
+55asky ; 444 ; digicore, bitcrush
+Jane Remover ; movies for guys ; dariacore, chaos
+glaive ; astrid ; hyperpop, melodique
+SOPHIE ; Faceshopping ; hyperpop, metal
+100 gecs ; money machine ; hyperpop, hard clipping
+Travis Scott ; FE!N ; rap us, rage
+Travis Scott ; SICKO MODE ; rap us, psyché trap
+Travis Scott ; Skeletons ; rap us, psychédélique
+Travis Scott ; 90210 ; rap us, progressif
+Travis Scott ; HIGHEST IN THE ROOM ; rap us, psyché trap
+Travis Scott ; MY EYES ; rap us, intime
+Don Toliver ; Tore Up ; rap us, rock rage
+Metro Boomin ; Superhero (Heroes & Villains) ; rap us, cinématique
+Kanye West ; On Sight ; rap us, industriel
+Kanye West ; Black Skinhead ; rap us, tribal
+Kanye West ; Flashing Lights ; rap us, synth-pop
+Kanye West ; Power ; rap us, maximaliste
+Kanye West ; Ghost Town ; rap us, rock soul
+Kanye West ; Runaway ; rap us, minimaliste
+Kanye West ; Through The Wire ; rap us, boom-bap
+Kanye West ; Off The Grid ; rap us, drill
+Daft Punk ; One More Time ; electronique, french touch
+Daft Punk ; Giorgio by Moroder ; electronique, audiophile
+Daft Punk ; Robot Rock ; electronique, electro-rock
+Daft Punk ; Doing It Right ; electronique, minimaliste
+Daft Punk ; Da Funk ; electronique, analogique
+Daft Punk ; Contact ; electronique, saturation
+Kavinsky ; Nightcall ; electronique, synthwave
+Air ; La Femme d'Argent ; electronique, downtempo
+Snoop Dogg & Pharrell ; Drop It Like It's Hot ; rap us, minimaliste
+Daft Punk & Pharrell ; Get Lucky ; pop, funk
+N.E.R.D & Rihanna ; Lemon ; rap us, bounce
+Pharrell Williams ; Happy ; pop, lumineux
+Clipse ; Grindin' ; rap us, percussions
+N.E.R.D ; Lapdance ; rock, rap
+Justin Timberlake (prod. Timbaland) ; Cry Me a River ; r&b, pop
+Nelly Furtado & Timbaland ; Promiscuous ; pop, club
+Justice ; Stress ; electronique, saturation
+Justice ; D.A.N.C.E. ; electronique, electro-disco
+Justice ; Genesis ; electronique, cuivres
+Mr. Oizo ; Flat Beat ; electronique, sub-wobble
+SebastiAn ; Ross Ross Ross ; electronique, cut-up
+DJ Mehdi ; Signatune (Thomas Bangalter Edit) ; electronique, french touch
+Gesaffelstein ; Pursuit ; electronique, techno industrielle
+Boys Noize ; & Down ; electronique, electro-trash
+Nirvana ; Smells Like Teen Spirit ; rock, grunge
+Nirvana ; Something in the Way ; rock, acoustique
+Nirvana ; Scentless Apprentice ; rock, grunge
+Nirvana ; Heart-Shaped Box ; rock, grunge
+Alice In Chains ; Man in the Box ; rock, metal
+Soundgarden ; Black Hole Sun ; rock, psyché
+Rage Against The Machine ; Killing in the Name ; rock, crossover
+The Smashing Pumpkins ; Cherub Rock ; rock, shoegaze
+Metallica ; Enter Sandman ; metal, heavy metal
+Metallica ; Sad But True ; metal, heavy metal
+Metallica ; Nothing Else Matters ; metal, ballade
+Metallica ; Master of Puppets ; metal, thrash metal
+Metallica ; One ; metal, thrash metal
+Metallica ; The Day That Never Comes ; metal, hard rock
+Metallica ; For Whom the Bell Tolls ; metal, heavy metal
+Metallica ; Lux Æterna ; metal, thrash metal
+System of a Down ; Chop Suey! ; metal, nu-metal
+System of a Down ; Toxicity ; metal, nu-metal
+System of a Down ; Aerials ; metal, nu-metal
+System of a Down ; B.Y.O.B. ; metal, nu-metal
+Deftones ; My Own Summer (Shove It) ; metal, nu-metal
+Deftones ; Change (In the House of Flies) ; metal, shoegaze metal
+Korn ; Freak on a Leash ; metal, nu-metal
+Slipknot ; Duality ; metal, nu-metal
+Madvillain ; All Caps ; hip-hop, boom-bap
+Westside Gunn ; 327 (feat. Joey Bada$$ & Tyler, The Creator) ; hip-hop, griselda
+Freddie Gibbs & The Alchemist ; 1985 ; hip-hop, drumless
+J Dilla ; Workinonit ; hip-hop, boom-bap
+Mobb Deep ; Shook Ones, Pt. II ; hip-hop, boom-bap
+Dr. Dre ; Still D.R.E. ; hip-hop, west coast
+Kendrick Lamar ; HUMBLE. ; hip-hop, trap moderne
+JPEGMAFIA & Danny Brown ; Lean Beef Patty ; hip-hop, experimental
+Pop Smoke ; Dior ; uk bass, drill
+Central Cee ; Doja ; uk bass, drill
+Skepta ; Shutdown ; uk bass, grime
+Fred again.. & Skrillex & Four Tet ; Baby again.. ; uk bass, club
+Sammy Virji ; If U Need It ; uk bass, garage
+Chase & Status & Bou ; Baddadan ; uk bass, drum & bass
+The Prodigy ; Breathe ; uk bass, big beat
+Nia Archives ; Baianá ; uk bass, jungle
+$uicideboy$ ; Paris ; phonk, dark trap
+$uicideboy$ ; Matte Black ; phonk, dark trap
+Kordhell ; Murder In My Mind ; phonk, drift phonk
+Pharmacist ; North Memphis ; phonk, lo-fi
+BONES ; HDMI ; phonk, underground
+Ghostemane ; Mercury: Retrograde ; phonk, trap-metal
+Three 6 Mafia ; Stay Fly ; phonk, memphis
+Xavier Wulf ; Psycho Pass ; phonk, underground
+Billie Eilish ; bad guy ; pop, minimaliste
+Billie Eilish ; Everything I Wanted ; pop, doux
+The Weeknd ; Blinding Lights ; pop, synth-pop
+The Weeknd ; The Hills ; r&b, dark r&b
+Frank Ocean ; Nights ; r&b, progressif
+Frank Ocean ; Pink + White ; r&b, neo-soul
+Rosalía ; BIZCOCHITO ; pop, avant-pop
+SZA ; Kill Bill ; r&b, moderne
+Skrillex & Fred again.. & Flowdan ; Rumble ; electronique, bass design
+Skrillex ; Scary Monsters and Nice Sprites ; electronique, brostep
+Flume ; Never Be Like You ; electronique, future bass
+Flume ; Ecdysis ; electronique, glitch
+Aphex Twin ; Windowlicker ; electronique, idm
+Burial ; Archangel ; electronique, dubstep
+Tame Impala ; Let It Happen ; rock, psyché pop
+Massive Attack ; Angel ; electronique, trip-hop

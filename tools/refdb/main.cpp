@@ -13,6 +13,11 @@
 //                (export de playlists : colonnes « Artist Name(s) », « Track Name »,
 //                « Genre_Classement » ; seuls les noms, titres et le classement de la
 //                personne sont gardés — jamais les colonnes calculées par Spotify)
+//    omnis_refdb titres liste.txt --db base.txt
+//                (« Artiste ; Titre ; genre, genre » : importe et signale les
+//                désaccords avec le classement des playlists de la personne)
+//    omnis_refdb scan dossier/ --titres liste.txt --db base.txt
+//                (chaque son est reconnu dans la liste et prend ses genres)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
@@ -103,6 +108,69 @@ std::vector<std::string> csvFields(const std::string& line) {
     return out;
 }
 
+struct TitleLine {
+    std::string artist, title;
+    std::vector<std::string> genres;
+};
+
+/// Écritures d'un même genre ramenées à une seule (« r&b » -> « rnb ») et
+/// micro-genres rattachés à leur famille (« digicore » est de l'hyperpop).
+std::vector<std::string> canonicalGenres(std::vector<std::string> genres) {
+    static const std::pair<const char*, const char*> kAlias[] = {{"r&b", "rnb"}, {"r & b", "rnb"}, {"électronique", "electronique"},
+                                                                 {"électro", "electro"}};
+    static const std::pair<const char*, const char*> kFamily[] = {{"digicore", "hyperpop"}, {"dariacore", "hyperpop"}};
+    for (auto& g : genres) {
+        std::string lower;
+        for (char c : g) lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        for (const auto& [from, to] : kAlias)
+            if (lower == from) g = to;
+    }
+    const std::vector<std::string> base = genres;
+    for (const auto& g : base)
+        for (const auto& [micro, family] : kFamily)
+            if (g == micro && std::find(genres.begin(), genres.end(), family) == genres.end()) genres.emplace_back(family);
+    return genres;
+}
+
+std::vector<TitleLine> readTitleList(const std::string& path) {
+    std::vector<TitleLine> out;
+    std::ifstream in(path);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::vector<std::string> f;
+        std::size_t start = 0;
+        for (std::size_t i = 0; i <= line.size(); ++i)
+            if (i == line.size() || line[i] == ';') {
+                f.push_back(line.substr(start, i - start));
+                start = i + 1;
+            }
+        if (f.size() < 3) continue;
+        TitleLine t;
+        const auto a = list(f[0]), ti = list(f[1]);
+        if (a.empty() || ti.empty()) continue;
+        t.artist = a.front();
+        t.title = ti.front();
+        t.genres = canonicalGenres(loose(f[2]));
+        out.push_back(std::move(t));
+    }
+    return out;
+}
+
+/// Ligne de la liste correspondant à un fichier « Artiste - Titre » (fautes
+/// tolérées) ; à défaut, un titre exact et unique dans la liste.
+const TitleLine* lineForFile(const std::vector<TitleLine>& lines, const std::string& artist, const std::string& title) {
+    for (const auto& l : lines)
+        if (!artist.empty() && ai::namesMatch(l.artist, artist) && ai::namesMatch(l.title, title)) return &l;
+    const TitleLine* only = nullptr;
+    for (const auto& l : lines)
+        if (ai::namesMatch(l.title, title.empty() ? artist : title)) {
+            if (only) return nullptr; // ambigu
+            only = &l;
+        }
+    return only;
+}
+
 /// Titre sans « (feat. …) », « (with …) », « [prod. …] » : on cherche le morceau, pas l'invité.
 std::string cleanTitle(std::string t) {
     for (std::size_t i = 0; i < t.size(); ++i) {
@@ -140,7 +208,7 @@ int main(int argc, char** argv) {
         else if (a == "--titre" && i + 1 < argc) title = argv[++i];
         else if (a == "--genres" && i + 1 < argc) genres = argv[++i];
         else if (a == "--alias" && i + 1 < argc) aliases = argv[++i];
-        else if (a == "--classes" && i + 1 < argc) ++i;
+        else if ((a == "--classes" || a == "--titres") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
     }
 
@@ -172,6 +240,9 @@ int main(int argc, char** argv) {
     }
     if (command == "scan") {
         if (input.empty() || db.empty()) return 1;
+        std::vector<TitleLine> titleList;
+        for (int i = 2; i + 1 < argc; ++i)
+            if (std::string(argv[i]) == "--titres") titleList = readTitleList(argv[i + 1]);
         auto user = openDb(db);
         std::vector<std::filesystem::path> files;
         std::error_code ec;
@@ -200,6 +271,13 @@ int main(int argc, char** argv) {
                     job.entry.artist = dash == std::string::npos ? stem : stem.substr(0, dash);
                     job.entry.title = dash == std::string::npos ? std::string() : stem.substr(dash + 3);
                     job.entry.genres = list(genres);
+                    // Reconnu dans la liste : noms exacts de la liste et ses genres.
+                    if (const TitleLine* l = lineForFile(titleList, job.entry.artist, job.entry.title)) {
+                        job.entry.artist = l->artist;
+                        job.entry.title = l->title;
+                        for (const auto& g : l->genres)
+                            if (std::find(job.entry.genres.begin(), job.entry.genres.end(), g) == job.entry.genres.end()) job.entry.genres.push_back(g);
+                    }
                     job.ok = measure(files[i].string(), job.entry, job.error, 1);
                 }
             });
@@ -220,6 +298,42 @@ int main(int argc, char** argv) {
         std::printf("Mesuré en %.1f s sur %u cœur(s)\n", seconds, workers);
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%d son(s) mesuré(s) -> %s (%zu entrées)\n", added, db.c_str(), user.entries().size());
+        return 0;
+    }
+    if (command == "titres") {
+        if (input.empty() || db.empty()) return 1;
+        const auto lines = readTitleList(input);
+        const auto known = loadLibrary(db); // catalogue livré + base : le classement des playlists
+        auto user = openDb(db);
+        int disagreements = 0;
+        for (const auto& l : lines) {
+            ai::ReferenceEntry e;
+            e.artist = l.artist;
+            e.title = l.title;
+            e.genres = l.genres;
+            e.measured = false;
+            // Le classement des playlists de la personne fait foi : on signale les désaccords.
+            const auto m = known.find(l.artist);
+            if (m.found() && m.kind == ai::ReferenceMatch::Kind::Artist && !l.genres.empty()) {
+                std::vector<std::string> theirs;
+                for (const auto* x : m.entries)
+                    for (const auto& g : x->genres)
+                        if (std::find(theirs.begin(), theirs.end(), g) == theirs.end()) theirs.push_back(g);
+                const bool agree = std::any_of(l.genres.begin(), l.genres.end(), [&](const std::string& g) {
+                    return std::any_of(theirs.begin(), theirs.end(), [&](const std::string& t) { return ai::namesMatch(g, t); });
+                });
+                if (!agree && !theirs.empty()) {
+                    std::string t;
+                    for (const auto& g : theirs) t += (t.empty() ? "" : ", ") + g;
+                    std::printf("  désaccord : %s - %s : liste « %s », tes playlists « %s »\n", l.artist.c_str(), l.title.c_str(),
+                                l.genres.front().c_str(), t.c_str());
+                    ++disagreements;
+                }
+            }
+            user.add(e);
+        }
+        if (!writeTextFile(db, user.serialize())) return 1;
+        std::printf("%zu titre(s) importé(s), %d désaccord(s) avec tes playlists -> %s\n", lines.size(), disagreements, db.c_str());
         return 0;
     }
     if (command == "csv") {

@@ -1,4 +1,4 @@
-# OMNIS — catalogue de noms (playlists de l'utilisateur : artistes, titres, familles ; aucun audio, aucune donnée Spotify calculée)
+# OMNIS — base de références (signatures mesurées, aucun audio)
 
 [$ilkMoney - My Potna Dem]
 artiste = $ilkMoney
@@ -1746,7 +1746,7 @@ genres = bo | ost | anime | jeux video | bande originale
 [Kanye West - Ghost Town]
 artiste = Kanye West
 titre = Ghost Town
-genres = bo | ost | anime | jeux video | bande originale
+genres = rap us | rock soul | bo | ost | anime | jeux video | bande originale
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kendrick Lamar - How Much A Dollar Cost]
@@ -1872,7 +1872,7 @@ genres = bo | ost | anime | jeux video | bande originale
 [Soundgarden - Black Hole Sun]
 artiste = Soundgarden
 titre = Black Hole Sun
-genres = bo | ost | anime | jeux video | bande originale
+genres = rock | psyché | bo | ost | anime | jeux video | bande originale
 # connu de nom : en attente d'un son pour le mesurer
 
 [Tame Impala - Posthumous Forgiveness]
@@ -1992,7 +1992,7 @@ genres = hyperpop | experimental
 [2hollis - jeans]
 artiste = 2hollis
 titre = jeans
-genres = hyperpop | experimental
+genres = hyperpop | rage | experimental
 # connu de nom : en attente d'un son pour le mesurer
 
 [55ASKY - DUFFEL BAG]
@@ -2573,7 +2573,7 @@ genres = pop | rnb | indie
 [Frank Ocean - Pink + White]
 artiste = Frank Ocean
 titre = Pink + White
-genres = pop | rnb | indie
+genres = rnb | neo-soul | pop | indie
 # connu de nom : en attente d'un son pour le mesurer
 
 [Harry Nilsson - One]
@@ -2813,7 +2813,7 @@ genres = pop | rnb | indie
 [SZA - Kill Bill]
 artiste = SZA
 titre = Kill Bill
-genres = pop | rnb | indie
+genres = rnb | moderne | pop | indie
 # connu de nom : en attente d'un son pour le mesurer
 
 [Sia - Genius]
@@ -2879,7 +2879,7 @@ genres = pop | rnb | indie
 [Tame Impala - Let It Happen]
 artiste = Tame Impala
 titre = Let It Happen
-genres = pop | rnb | indie
+genres = rock | psyché pop | pop | rnb | indie
 # connu de nom : en attente d'un son pour le mesurer
 
 [Tame Impala - One More Hour]
@@ -3140,10 +3140,10 @@ titre = SYRUP SIPPIN
 genres = rap us | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
-[Destroy Lonely - if looks could kill]
+[Destroy Lonely - If Looks Could Kill]
 artiste = Destroy Lonely
-titre = if looks could kill
-genres = rap us | rap | hip-hop | rap international
+titre = If Looks Could Kill
+genres = rap us | shoegaze trap | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Diddy - I Need a Girl (Pt. 2)]
@@ -3182,10 +3182,10 @@ titre = DEEP IN THE WATER
 genres = rap us | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
-[Don Toliver - TORE UP]
+[Don Toliver - Tore Up]
 artiste = Don Toliver
-titre = TORE UP
-genres = rap us | rap | hip-hop | rap international
+titre = Tore Up
+genres = rap us | rock rage | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Don Toliver - After Party - CHOPNOTSLOP REMIX]
@@ -3233,7 +3233,7 @@ genres = rap us | rap | hip-hop | rap international
 [Dr. Dre - Still D.R.E.]
 artiste = Dr. Dre
 titre = Still D.R.E.
-genres = rap us | rap | hip-hop | rap international
+genres = hip-hop | west coast | rap us | rap | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Drake - Champagne Poetry]
@@ -3647,7 +3647,7 @@ genres = rap us | rap | hip-hop | rap international
 [Kanye West - Black Skinhead]
 artiste = Kanye West
 titre = Black Skinhead
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | tribal | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kanye West - Bound 2]
@@ -3719,13 +3719,13 @@ genres = rap us | rap | hip-hop | rap international
 [Kanye West - Off The Grid]
 artiste = Kanye West
 titre = Off The Grid
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | drill | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kanye West - On Sight]
 artiste = Kanye West
 titre = On Sight
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | industriel | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kanye West - Roses]
@@ -3749,7 +3749,7 @@ genres = rap us | rap | hip-hop | rap international
 [Kanye West - Through The Wire]
 artiste = Kanye West
 titre = Through The Wire
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | boom-bap | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kanye West - Life Of The Party]
@@ -3773,7 +3773,7 @@ genres = rap us | rap | hip-hop | rap international
 [Kanye West - Flashing Lights]
 artiste = Kanye West
 titre = Flashing Lights
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | synth-pop | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kanye West - Gold Digger]
@@ -3815,7 +3815,7 @@ genres = rap us | rap | hip-hop | rap international
 [Kanye West - Runaway]
 artiste = Kanye West
 titre = Runaway
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | minimaliste | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kanye West - Devil In A New Dress]
@@ -3899,7 +3899,7 @@ genres = rap us | rap | hip-hop | rap international
 [Ken Carson - Fighting My Demons]
 artiste = Ken Carson
 titre = Fighting My Demons
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | rage | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Ken Carson - Green Room]
@@ -3998,10 +3998,10 @@ titre = leather jacket
 genres = rap us | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
-[Ken Carson - overseas]
+[Ken Carson - Overseas]
 artiste = Ken Carson
-titre = overseas
-genres = rap us | rap | hip-hop | rap international
+titre = Overseas
+genres = rap us | rage | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Ken Carson - ss]
@@ -4127,7 +4127,7 @@ genres = rap us | rap | hip-hop | rap international
 [Kendrick Lamar - HUMBLE.]
 artiste = Kendrick Lamar
 titre = HUMBLE.
-genres = rap us | rap | hip-hop | rap international
+genres = hip-hop | trap moderne | rap us | rap | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Kendrick Lamar - Hood Politics]
@@ -4643,7 +4643,7 @@ genres = rap us | rap | hip-hop | rap international
 [Madvillain - All Caps]
 artiste = Madvillain
 titre = All Caps
-genres = rap us | rap | hip-hop | rap international
+genres = hip-hop | boom-bap | rap us | rap | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Madvillain - Bistro]
@@ -4709,7 +4709,7 @@ genres = rap us | rap | hip-hop | rap international
 [Metro Boomin - Superhero (Heroes & Villains)]
 artiste = Metro Boomin
 titre = Superhero (Heroes & Villains)
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | cinématique | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Metro Boomin - I Can't Save You (Interlude)]
@@ -4841,7 +4841,7 @@ genres = rap us | rap | hip-hop | rap international
 [Playboi Carti - 2024]
 artiste = Playboi Carti
 titre = 2024
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | trap | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Playboi Carti - Meh]
@@ -5105,7 +5105,7 @@ genres = rap us | rap | hip-hop | rap international
 [Playboi Carti - Stop Breathing]
 artiste = Playboi Carti
 titre = Stop Breathing
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | punk trap | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Playboi Carti - Vamp Anthem]
@@ -5471,7 +5471,7 @@ genres = rap us | rap | hip-hop | rap international
 [Travis Scott - MY EYES]
 artiste = Travis Scott
 titre = MY EYES
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | intime | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Travis Scott - NC-17]
@@ -5501,7 +5501,7 @@ genres = rap us | rap | hip-hop | rap international
 [Travis Scott - SICKO MODE]
 artiste = Travis Scott
 titre = SICKO MODE
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | psyché trap | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Travis Scott - SIRENS]
@@ -5510,10 +5510,10 @@ titre = SIRENS
 genres = rap us | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
-[Travis Scott - SKELETONS]
+[Travis Scott - Skeletons]
 artiste = Travis Scott
-titre = SKELETONS
-genres = rap us | rap | hip-hop | rap international
+titre = Skeletons
+genres = rap us | psychédélique | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Travis Scott - STARGAZING]
@@ -5603,7 +5603,7 @@ genres = rap us | rap | hip-hop | rap international
 [Travis Scott - 90210]
 artiste = Travis Scott
 titre = 90210
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | progressif | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Travis Scott - LOOOVE]
@@ -5621,7 +5621,7 @@ genres = rap us | rap | hip-hop | rap international
 [Travis Scott - FE!N]
 artiste = Travis Scott
 titre = FE!N
-genres = rap us | rap | hip-hop | rap international
+genres = rap us | rage | rap | hip-hop | rap international
 # connu de nom : en attente d'un son pour le mesurer
 
 [Travis Scott - Oh My Dis Side]
@@ -7495,16 +7495,16 @@ titre = BACK IN THE DAYS (GLOBE)
 genres = rap fr | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
-[La Fève - BALENCIAGA]
+[La Fève - Balenciaga]
 artiste = La Fève
-titre = BALENCIAGA
-genres = rap fr | rap francais | new wave | rap
+titre = Balenciaga
+genres = rap fr | rage | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
-[La Fève - BIG LOUIS]
+[La Fève - Big Louis]
 artiste = La Fève
-titre = BIG LOUIS
-genres = rap fr | rap francais | new wave | rap
+titre = Big Louis
+genres = rap fr | chill | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
 [La Fève - BIGLAF]
@@ -7609,10 +7609,10 @@ titre = LYELE OUTRO
 genres = rap fr | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
-[La Fève - MAUVAIS PAYEUR]
+[La Fève - Mauvais Payeur]
 artiste = La Fève
-titre = MAUVAIS PAYEUR
-genres = rap fr | rap francais | new wave | rap
+titre = Mauvais Payeur
+genres = rap fr | trap | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
 [La Fève - NAVRÉ]
@@ -9328,7 +9328,7 @@ genres = rock | metal
 [Deftones - Change (In the House of Flies)]
 artiste = Deftones
 titre = Change (In the House of Flies)
-genres = rock | metal
+genres = metal | shoegaze metal | rock
 # connu de nom : en attente d'un son pour le mesurer
 
 [Deftones - Sextape]
@@ -9496,7 +9496,7 @@ genres = rock | metal
 [Nirvana - Heart-Shaped Box]
 artiste = Nirvana
 titre = Heart-Shaped Box
-genres = rock | metal
+genres = rock | grunge | metal
 # connu de nom : en attente d'un son pour le mesurer
 
 [Nirvana - Lithium]
@@ -9514,13 +9514,13 @@ genres = rock | metal
 [Nirvana - Smells Like Teen Spirit]
 artiste = Nirvana
 titre = Smells Like Teen Spirit
-genres = rock | metal
+genres = rock | grunge | metal
 # connu de nom : en attente d'un son pour le mesurer
 
-[Nirvana - Something In The Way]
+[Nirvana - Something in the Way]
 artiste = Nirvana
-titre = Something In The Way
-genres = rock | metal
+titre = Something in the Way
+genres = rock | acoustique | metal
 # connu de nom : en attente d'un son pour le mesurer
 
 [Pantera - This Love]
@@ -9673,16 +9673,16 @@ titre = ATWA
 genres = rock | metal
 # connu de nom : en attente d'un son pour le mesurer
 
-[System Of A Down - Aerials]
-artiste = System Of A Down
+[System of a Down - Aerials]
+artiste = System of a Down
 titre = Aerials
-genres = rock | metal
+genres = metal | nu-metal | rock
 # connu de nom : en attente d'un son pour le mesurer
 
-[System Of A Down - Chop Suey!]
-artiste = System Of A Down
+[System of a Down - Chop Suey!]
+artiste = System of a Down
 titre = Chop Suey!
-genres = rock | metal
+genres = metal | nu-metal | rock
 # connu de nom : en attente d'un son pour le mesurer
 
 [System Of A Down - Lonely Day]
@@ -10036,7 +10036,7 @@ genres = electro | house | dance | electronique
 [Daft Punk - Contact]
 artiste = Daft Punk
 titre = Contact
-genres = electro | house | dance | electronique
+genres = electronique | saturation | electro | house | dance
 # connu de nom : en attente d'un son pour le mesurer
 
 [Daft Punk - End of Line]
@@ -10054,7 +10054,7 @@ genres = electro | house | dance | electronique
 [Daft Punk - Giorgio by Moroder]
 artiste = Daft Punk
 titre = Giorgio by Moroder
-genres = electro | house | dance | electronique
+genres = electronique | audiophile | electro | house | dance
 # connu de nom : en attente d'un son pour le mesurer
 
 [Daft Punk - Give Life Back to Music]
@@ -10084,13 +10084,13 @@ genres = electro | house | dance | electronique
 [Daft Punk - One More Time]
 artiste = Daft Punk
 titre = One More Time
-genres = electro | house | dance | electronique
+genres = electronique | french touch | electro | house | dance
 # connu de nom : en attente d'un son pour le mesurer
 
 [Daft Punk - Robot Rock]
 artiste = Daft Punk
 titre = Robot Rock
-genres = electro | house | dance | electronique
+genres = electronique | electro-rock | electro | house | dance
 # connu de nom : en attente d'un son pour le mesurer
 
 [Daft Punk - Short Circuit]
@@ -10696,7 +10696,7 @@ genres = electro | house | dance | electronique
 [The Weeknd - Blinding Lights]
 artiste = The Weeknd
 titre = Blinding Lights
-genres = electro | house | dance | electronique
+genres = pop | synth-pop | electro | house | dance | electronique
 # connu de nom : en attente d'un son pour le mesurer
 
 [The Weeknd - Call Out My Name]
@@ -16645,4 +16645,526 @@ artiste = yvngchris
 
 [zee!]
 artiste = zee!
+# connu de nom : en attente d'un son pour le mesurer
+
+[La Fève - Loyal]
+artiste = La Fève
+titre = Loyal
+genres = rap fr | soul
+# connu de nom : en attente d'un son pour le mesurer
+
+[La Fève - Zayon]
+artiste = La Fève
+titre = Zayon
+genres = rap fr | cloud
+# connu de nom : en attente d'un son pour le mesurer
+
+[La Fève - 24]
+artiste = La Fève
+titre = 24
+genres = rap fr | sombre
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rounhaa - Music Sounds Better With You]
+artiste = Rounhaa
+titre = Music Sounds Better With You
+genres = rap fr | melodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Luther - Garçon]
+artiste = Luther
+titre = Garçon
+genres = rap fr | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Playboi Carti - Location]
+artiste = Playboi Carti
+titre = Location
+genres = rap us | cloud
+# connu de nom : en attente d'un son pour le mesurer
+
+[Playboi Carti - Shoota (feat. Lil Uzi Vert)]
+artiste = Playboi Carti
+titre = Shoota (feat. Lil Uzi Vert)
+genres = rap us | euphoric
+# connu de nom : en attente d'un son pour le mesurer
+
+[Yeat - Breathe]
+artiste = Yeat
+titre = Breathe
+genres = rap us | futuriste
+# connu de nom : en attente d'un son pour le mesurer
+
+[2hollis - poster boy]
+artiste = 2hollis
+titre = poster boy
+genres = hyperpop | electroclash
+# connu de nom : en attente d'un son pour le mesurer
+
+[2hollis - crush]
+artiste = 2hollis
+titre = crush
+genres = hyperpop | euro-trance
+# connu de nom : en attente d'un son pour le mesurer
+
+[55asky - 444]
+artiste = 55asky
+titre = 444
+genres = digicore | bitcrush | hyperpop
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jane Remover - movies for guys]
+artiste = Jane Remover
+titre = movies for guys
+genres = dariacore | chaos | hyperpop
+# connu de nom : en attente d'un son pour le mesurer
+
+[glaive - astrid]
+artiste = glaive
+titre = astrid
+genres = hyperpop | melodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[SOPHIE - Faceshopping]
+artiste = SOPHIE
+titre = Faceshopping
+genres = hyperpop | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[100 gecs - money machine]
+artiste = 100 gecs
+titre = money machine
+genres = hyperpop | hard clipping
+# connu de nom : en attente d'un son pour le mesurer
+
+[Travis Scott - HIGHEST IN THE ROOM]
+artiste = Travis Scott
+titre = HIGHEST IN THE ROOM
+genres = rap us | psyché trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kanye West - Power]
+artiste = Kanye West
+titre = Power
+genres = rap us | maximaliste
+# connu de nom : en attente d'un son pour le mesurer
+
+[Daft Punk - Doing It Right]
+artiste = Daft Punk
+titre = Doing It Right
+genres = electronique | minimaliste
+# connu de nom : en attente d'un son pour le mesurer
+
+[Daft Punk - Da Funk]
+artiste = Daft Punk
+titre = Da Funk
+genres = electronique | analogique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kavinsky - Nightcall]
+artiste = Kavinsky
+titre = Nightcall
+genres = electronique | synthwave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Air - La Femme d'Argent]
+artiste = Air
+titre = La Femme d'Argent
+genres = electronique | downtempo
+# connu de nom : en attente d'un son pour le mesurer
+
+[Snoop Dogg & Pharrell - Drop It Like It's Hot]
+artiste = Snoop Dogg & Pharrell
+titre = Drop It Like It's Hot
+genres = rap us | minimaliste
+# connu de nom : en attente d'un son pour le mesurer
+
+[Daft Punk & Pharrell - Get Lucky]
+artiste = Daft Punk & Pharrell
+titre = Get Lucky
+genres = pop | funk
+# connu de nom : en attente d'un son pour le mesurer
+
+[N.E.R.D & Rihanna - Lemon]
+artiste = N.E.R.D & Rihanna
+titre = Lemon
+genres = rap us | bounce
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pharrell Williams - Happy]
+artiste = Pharrell Williams
+titre = Happy
+genres = pop | lumineux
+# connu de nom : en attente d'un son pour le mesurer
+
+[Clipse - Grindin']
+artiste = Clipse
+titre = Grindin'
+genres = rap us | percussions
+# connu de nom : en attente d'un son pour le mesurer
+
+[N.E.R.D - Lapdance]
+artiste = N.E.R.D
+titre = Lapdance
+genres = rock | rap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Justin Timberlake (prod. Timbaland) - Cry Me a River]
+artiste = Justin Timberlake (prod. Timbaland)
+titre = Cry Me a River
+genres = rnb | pop
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nelly Furtado & Timbaland - Promiscuous]
+artiste = Nelly Furtado & Timbaland
+titre = Promiscuous
+genres = pop | club
+# connu de nom : en attente d'un son pour le mesurer
+
+[Justice - Stress]
+artiste = Justice
+titre = Stress
+genres = electronique | saturation
+# connu de nom : en attente d'un son pour le mesurer
+
+[Justice - D.A.N.C.E.]
+artiste = Justice
+titre = D.A.N.C.E.
+genres = electronique | electro-disco
+# connu de nom : en attente d'un son pour le mesurer
+
+[Justice - Genesis]
+artiste = Justice
+titre = Genesis
+genres = electronique | cuivres
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mr. Oizo - Flat Beat]
+artiste = Mr. Oizo
+titre = Flat Beat
+genres = electronique | sub-wobble
+# connu de nom : en attente d'un son pour le mesurer
+
+[SebastiAn - Ross Ross Ross]
+artiste = SebastiAn
+titre = Ross Ross Ross
+genres = electronique | cut-up
+# connu de nom : en attente d'un son pour le mesurer
+
+[DJ Mehdi - Signatune (Thomas Bangalter Edit)]
+artiste = DJ Mehdi
+titre = Signatune (Thomas Bangalter Edit)
+genres = electronique | french touch
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gesaffelstein - Pursuit]
+artiste = Gesaffelstein
+titre = Pursuit
+genres = electronique | techno industrielle
+# connu de nom : en attente d'un son pour le mesurer
+
+[Boys Noize - & Down]
+artiste = Boys Noize
+titre = & Down
+genres = electronique | electro-trash
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nirvana - Scentless Apprentice]
+artiste = Nirvana
+titre = Scentless Apprentice
+genres = rock | grunge
+# connu de nom : en attente d'un son pour le mesurer
+
+[Alice In Chains - Man in the Box]
+artiste = Alice In Chains
+titre = Man in the Box
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rage Against The Machine - Killing in the Name]
+artiste = Rage Against The Machine
+titre = Killing in the Name
+genres = rock | crossover
+# connu de nom : en attente d'un son pour le mesurer
+
+[The Smashing Pumpkins - Cherub Rock]
+artiste = The Smashing Pumpkins
+titre = Cherub Rock
+genres = rock | shoegaze
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - Enter Sandman]
+artiste = Metallica
+titre = Enter Sandman
+genres = metal | heavy metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - Sad But True]
+artiste = Metallica
+titre = Sad But True
+genres = metal | heavy metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - Nothing Else Matters]
+artiste = Metallica
+titre = Nothing Else Matters
+genres = metal | ballade
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - Master of Puppets]
+artiste = Metallica
+titre = Master of Puppets
+genres = metal | thrash metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - One]
+artiste = Metallica
+titre = One
+genres = metal | thrash metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - The Day That Never Comes]
+artiste = Metallica
+titre = The Day That Never Comes
+genres = metal | hard rock
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - For Whom the Bell Tolls]
+artiste = Metallica
+titre = For Whom the Bell Tolls
+genres = metal | heavy metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica - Lux Æterna]
+artiste = Metallica
+titre = Lux Æterna
+genres = metal | thrash metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[System of a Down - Toxicity]
+artiste = System of a Down
+titre = Toxicity
+genres = metal | nu-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[System of a Down - B.Y.O.B.]
+artiste = System of a Down
+titre = B.Y.O.B.
+genres = metal | nu-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Deftones - My Own Summer (Shove It)]
+artiste = Deftones
+titre = My Own Summer (Shove It)
+genres = metal | nu-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Korn - Freak on a Leash]
+artiste = Korn
+titre = Freak on a Leash
+genres = metal | nu-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Slipknot - Duality]
+artiste = Slipknot
+titre = Duality
+genres = metal | nu-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Westside Gunn - 327 (feat. Joey Bada$$ & Tyler, The Creator)]
+artiste = Westside Gunn
+titre = 327 (feat. Joey Bada$$ & Tyler, The Creator)
+genres = hip-hop | griselda
+# connu de nom : en attente d'un son pour le mesurer
+
+[Freddie Gibbs & The Alchemist - 1985]
+artiste = Freddie Gibbs & The Alchemist
+titre = 1985
+genres = hip-hop | drumless
+# connu de nom : en attente d'un son pour le mesurer
+
+[J Dilla - Workinonit]
+artiste = J Dilla
+titre = Workinonit
+genres = hip-hop | boom-bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mobb Deep - Shook Ones, Pt. II]
+artiste = Mobb Deep
+titre = Shook Ones, Pt. II
+genres = hip-hop | boom-bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[JPEGMAFIA & Danny Brown - Lean Beef Patty]
+artiste = JPEGMAFIA & Danny Brown
+titre = Lean Beef Patty
+genres = hip-hop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pop Smoke - Dior]
+artiste = Pop Smoke
+titre = Dior
+genres = uk bass | drill
+# connu de nom : en attente d'un son pour le mesurer
+
+[Central Cee - Doja]
+artiste = Central Cee
+titre = Doja
+genres = uk bass | drill
+# connu de nom : en attente d'un son pour le mesurer
+
+[Skepta - Shutdown]
+artiste = Skepta
+titre = Shutdown
+genres = uk bass | grime
+# connu de nom : en attente d'un son pour le mesurer
+
+[Fred again.. & Skrillex & Four Tet - Baby again..]
+artiste = Fred again.. & Skrillex & Four Tet
+titre = Baby again..
+genres = uk bass | club
+# connu de nom : en attente d'un son pour le mesurer
+
+[Sammy Virji - If U Need It]
+artiste = Sammy Virji
+titre = If U Need It
+genres = uk bass | garage
+# connu de nom : en attente d'un son pour le mesurer
+
+[Chase & Status & Bou - Baddadan]
+artiste = Chase & Status & Bou
+titre = Baddadan
+genres = uk bass | drum & bass
+# connu de nom : en attente d'un son pour le mesurer
+
+[The Prodigy - Breathe]
+artiste = The Prodigy
+titre = Breathe
+genres = uk bass | big beat
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nia Archives - Baianá]
+artiste = Nia Archives
+titre = Baianá
+genres = uk bass | jungle
+# connu de nom : en attente d'un son pour le mesurer
+
+[$uicideboy$ - Paris]
+artiste = $uicideboy$
+titre = Paris
+genres = phonk | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[$uicideboy$ - Matte Black]
+artiste = $uicideboy$
+titre = Matte Black
+genres = phonk | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kordhell - Murder In My Mind]
+artiste = Kordhell
+titre = Murder In My Mind
+genres = phonk | drift phonk
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pharmacist - North Memphis]
+artiste = Pharmacist
+titre = North Memphis
+genres = phonk | lo-fi
+# connu de nom : en attente d'un son pour le mesurer
+
+[BONES - HDMI]
+artiste = BONES
+titre = HDMI
+genres = phonk | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ghostemane - Mercury: Retrograde]
+artiste = Ghostemane
+titre = Mercury: Retrograde
+genres = phonk | trap-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Three 6 Mafia - Stay Fly]
+artiste = Three 6 Mafia
+titre = Stay Fly
+genres = phonk | memphis
+# connu de nom : en attente d'un son pour le mesurer
+
+[Xavier Wulf - Psycho Pass]
+artiste = Xavier Wulf
+titre = Psycho Pass
+genres = phonk | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[Billie Eilish - bad guy]
+artiste = Billie Eilish
+titre = bad guy
+genres = pop | minimaliste
+# connu de nom : en attente d'un son pour le mesurer
+
+[Billie Eilish - Everything I Wanted]
+artiste = Billie Eilish
+titre = Everything I Wanted
+genres = pop | doux
+# connu de nom : en attente d'un son pour le mesurer
+
+[The Weeknd - The Hills]
+artiste = The Weeknd
+titre = The Hills
+genres = rnb | dark r&b
+# connu de nom : en attente d'un son pour le mesurer
+
+[Frank Ocean - Nights]
+artiste = Frank Ocean
+titre = Nights
+genres = rnb | progressif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rosalía - BIZCOCHITO]
+artiste = Rosalía
+titre = BIZCOCHITO
+genres = pop | avant-pop
+# connu de nom : en attente d'un son pour le mesurer
+
+[Skrillex & Fred again.. & Flowdan - Rumble]
+artiste = Skrillex & Fred again.. & Flowdan
+titre = Rumble
+genres = electronique | bass design
+# connu de nom : en attente d'un son pour le mesurer
+
+[Skrillex - Scary Monsters and Nice Sprites]
+artiste = Skrillex
+titre = Scary Monsters and Nice Sprites
+genres = electronique | brostep
+# connu de nom : en attente d'un son pour le mesurer
+
+[Flume - Never Be Like You]
+artiste = Flume
+titre = Never Be Like You
+genres = electronique | future bass
+# connu de nom : en attente d'un son pour le mesurer
+
+[Flume - Ecdysis]
+artiste = Flume
+titre = Ecdysis
+genres = electronique | glitch
+# connu de nom : en attente d'un son pour le mesurer
+
+[Aphex Twin - Windowlicker]
+artiste = Aphex Twin
+titre = Windowlicker
+genres = electronique | idm
+# connu de nom : en attente d'un son pour le mesurer
+
+[Burial - Archangel]
+artiste = Burial
+titre = Archangel
+genres = electronique | dubstep
+# connu de nom : en attente d'un son pour le mesurer
+
+[Massive Attack - Angel]
+artiste = Massive Attack
+titre = Angel
+genres = electronique | trip-hop
 # connu de nom : en attente d'un son pour le mesurer

@@ -257,3 +257,18 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     OMNIS_CHECK(!h.question.has_value());
     OMNIS_CHECK(h.referenceEntries.size() == 2); // 2hollis et SLAYR (classé hyperpop par l'utilisateur)
 }
+
+OMNIS_TEST("références: des mesures remplacent une entrée de nom sans perdre ses genres") {
+    ReferenceLibrary lib;
+    lib.parse("[Kanye West - Power]\nartiste = Kanye West\ntitre = Power\ngenres = rap us | maximaliste\n");
+    ReferenceEntry measured;
+    measured.artist = "Kanye West";
+    measured.title = "Power";
+    measured.signature.integratedLufs = -7.0;
+    lib.add(measured);
+    OMNIS_CHECK(lib.entries().size() == 1);
+    const auto& e = lib.entries().front();
+    OMNIS_CHECK(e.measured);
+    OMNIS_CHECK(e.genres.size() == 2);
+    OMNIS_CHECK_NEAR(e.signature.integratedLufs, -7.0, 1e-12);
+}

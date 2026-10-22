@@ -217,12 +217,20 @@ void ReferenceLibrary::add(ReferenceEntry entry) {
         auto& e = entries_[it->second];
         // Une entrée de nom ne remplace jamais des mesures ; elle peut
         // compléter genres et alias.
+        const auto mergeInto = [](ReferenceEntry& to, const ReferenceEntry& from) {
+            for (const auto& g : from.genres)
+                if (std::none_of(to.genres.begin(), to.genres.end(), [&](const std::string& x) { return namesMatch(x, g); })) to.genres.push_back(g);
+            for (const auto& a : from.aliases)
+                if (std::find(to.aliases.begin(), to.aliases.end(), a) == to.aliases.end()) to.aliases.push_back(a);
+        };
         if (!entry.measured && e.measured) {
-            for (auto& g : entry.genres)
-                if (std::none_of(e.genres.begin(), e.genres.end(), [&](const std::string& x) { return namesMatch(x, g); })) e.genres.push_back(g);
-            for (auto& a : entry.aliases) e.aliases.push_back(a);
+            mergeInto(e, entry);
         } else {
+            // Des mesures remplacent une entrée de nom (ou de plus anciennes
+            // mesures) sans perdre ses genres ni ses alias.
+            const ReferenceEntry previous = e;
             e = std::move(entry);
+            if (!previous.measured || e.genres.empty()) mergeInto(e, previous);
         }
         index(it->second);
         return;
