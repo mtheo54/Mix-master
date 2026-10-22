@@ -262,6 +262,7 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
     // Titre ou artiste mesurés : ses sons. Connus de nom seulement : les titres
     // mesurés de SES genres. Un genre : ses titres mesurés. Rien : question.
     std::vector<std::string> names, missing, missingGenres, profiles;
+    std::vector<std::string> viaSimilar, similarNames, knownTraits;
     const auto addMeasured = [&](const std::vector<const ReferenceEntry*>& list) {
         for (const auto* e : list)
             if (e->measured && std::find(u.referenceEntries.begin(), u.referenceEntries.end(), e) == u.referenceEntries.end())
@@ -289,7 +290,19 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
             missingGenres.push_back(label);
             continue;
         }
-        // Connu de nom : genres de l'artiste (ou du titre).
+        // Connu de nom : d'abord ses artistes proches déjà écoutés (plus
+        // précis qu'un genre entier), puis les genres de l'artiste (ou du titre).
+        if (m.kind != Kind::Genre) {
+            const auto near = library.measuredSimilarTo(m.entries.front()->artist);
+            if (!near.entries.empty()) {
+                addMeasured(near.entries);
+                viaSimilar.push_back(label);
+                similarNames.push_back(listNames(near.artists));
+                u.referenceName += std::string(u.referenceName.empty() ? "" : " + ") + "proches " + listNames(near.artists) + " pour " + label;
+                if (!near.traits.empty()) knownTraits.push_back("Ce que je sais de " + label + " : " + near.traits);
+                continue;
+            }
+        }
         std::vector<std::string> tags;
         for (const auto* e : m.entries)
             for (const auto& g : e->genres)
@@ -310,11 +323,19 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
         profiles.push_back(listNames(used));
         u.referenceName += std::string(u.referenceName.empty() ? "" : " + ") + "profil " + listNames(used) + " pour " + label;
     }
+    std::string advice;
+    if (!viaSimilar.empty())
+        advice = "Je n'ai pas encore écouté " + listNames(viaSimilar) + " : en attendant, je vise ses artistes proches que j'ai écoutés (" +
+                 listNames(similarNames) + "). ";
     if (!names.empty())
-        u.suggestion = "Je connais " + listNames(names) + " de nom : en attendant, je vise le profil moyen " + listNames(profiles) +
-                       ". Glisse-moi un son de " + listNames(names) + " pour viser juste.";
+        advice += "Je connais " + listNames(names) + " de nom : en attendant, je vise le profil moyen " + listNames(profiles) + ". ";
+    if (!advice.empty()) {
+        viaSimilar.insert(viaSimilar.end(), names.begin(), names.end());
+        u.suggestion = advice + "Glisse-moi un son de " + listNames(viaSimilar) + " pour viser juste.";
+    }
 
     u.request = requestFromInterpretation(in);
+    u.request.understood.insert(u.request.understood.end(), knownTraits.begin(), knownTraits.end());
     if (!u.referenceName.empty()) u.request.understood.push_back("Référence : " + u.referenceName);
 
     // ---- 4. Ce qu'il faut demander avant d'agir ------------------------------

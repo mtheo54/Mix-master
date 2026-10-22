@@ -7,7 +7,7 @@
 - **L'IA.** Il lit ta demande en français, même avec des fautes. Il sait de quel artiste ou de
   quel genre tu parles, il écoute une référence, et il rapproche ta prod de ce son **sans la
   copier ni la détruire**.
-- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 111 tests du
+- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 114 tests du
   moteur, 3 tests du plug-in, le validateur officiel Steinberg (537 tests).
 - **Ce qui manque surtout :**
   - une version Windows que tu peux installer dans FL Studio ;
@@ -44,6 +44,9 @@ Latence totale : 668 ms, compensée automatiquement par FL Studio.
 - **Connaît tes artistes.** Il connaît les 1911 titres et 1247 artistes de tes playlists, avec
   tes 8 familles (rap US, rap FR, hyperpop…). « ken carsonn », « fein de travis scott »,
   « comme la feve » : il trouve.
+- **Se sert des artistes proches.** « comme Yeat » sans aucun son de Yeat : il vise les artistes
+  proches de Yeat qu'il a déjà écoutés, sinon le profil du genre. Les fiches d'artistes viennent
+  d'une recherche Gemini (`docs/GEMINI_ARTISTES.md`).
 - **Ne fait jamais semblant.** S'il n'a encore écouté aucun son d'un style, il le dit et te
   demande un son ou un artiste proche.
 - **Écoute une référence.**

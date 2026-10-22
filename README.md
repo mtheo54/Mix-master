@@ -139,6 +139,7 @@ $B/omnis_ask "ça manque de crispy, genre slayer" [--log retours.tsv --correctio
 $B/omnis_refdb add titre.flac --artiste "2hollis" --titre "poster boy" --genres "rage" --db refs.txt
 $B/omnis_refdb scan mes_refs/ --genres "rage" --db refs.txt      # « Artiste - Titre.mp3|flac|wav »
 $B/omnis_refdb noms artistes.txt --db refs.txt                    # « Artiste ; genre, genre ; alias »
+$B/omnis_refdb artistes data/artistes_proches.txt --db refs.txt      # « Artiste ; famille ; styles ; proches : A | B ; traits : … »
 $B/omnis_refdb csv playlists.csv --classes data/genres_classement.txt --db refs.txt   # export de playlists
 $B/omnis_learn local retours.tsv --lexique lexique_utilisateur.txt
 ```

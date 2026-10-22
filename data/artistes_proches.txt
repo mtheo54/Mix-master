@@ -1,0 +1,7 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Liens entre artistes (recherche, voir docs/GEMINI_ARTISTES.md)
+#
+#  Une ligne : « Artiste ; famille ; styles ; proches : A | B | C ; traits : … ».
+#  Importé par `omnis_refdb artistes data/artistes_proches.txt --db data/catalogue.txt`.
+#  Un proche ne sert de référence que si OMNIS a écouté un de ses sons.
+# =============================================================================

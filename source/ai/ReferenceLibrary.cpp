@@ -143,6 +143,8 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
         else if (key == "titre") current.title = value;
         else if (key == "alias") current.aliases = splitList(value);
         else if (key == "genres") current.genres = splitList(value);
+        else if (key == "proches") current.similar = splitList(value);
+        else if (key == "traits") current.traits = value;
         else if (key == "lufs") number_(s.integratedLufs);
         else if (key == "lra") number_(s.loudnessRangeLu);
         else if (key == "tp") number_(s.truePeakDb);
@@ -178,6 +180,12 @@ std::string ReferenceLibrary::serialize() const {
             for (std::size_t i = 0; i < e.genres.size(); ++i) out += (i ? " | " : "") + e.genres[i];
             out += "\n";
         }
+        if (!e.similar.empty()) {
+            out += "proches = ";
+            for (std::size_t i = 0; i < e.similar.size(); ++i) out += (i ? " | " : "") + e.similar[i];
+            out += "\n";
+        }
+        if (!e.traits.empty()) out += "traits = " + e.traits + "\n";
         if (!e.measured) {
             out += "# connu de nom : en attente d'un son pour le mesurer\n";
             continue;
@@ -222,6 +230,9 @@ void ReferenceLibrary::add(ReferenceEntry entry) {
                 if (std::none_of(to.genres.begin(), to.genres.end(), [&](const std::string& x) { return namesMatch(x, g); })) to.genres.push_back(g);
             for (const auto& a : from.aliases)
                 if (std::find(to.aliases.begin(), to.aliases.end(), a) == to.aliases.end()) to.aliases.push_back(a);
+            for (const auto& a : from.similar)
+                if (std::none_of(to.similar.begin(), to.similar.end(), [&](const std::string& x) { return namesMatch(x, a); })) to.similar.push_back(a);
+            if (to.traits.empty()) to.traits = from.traits;
         };
         if (!entry.measured && e.measured) {
             mergeInto(e, entry);
@@ -231,6 +242,8 @@ void ReferenceLibrary::add(ReferenceEntry entry) {
             const ReferenceEntry previous = e;
             e = std::move(entry);
             if (!previous.measured || e.genres.empty()) mergeInto(e, previous);
+            if (e.similar.empty()) e.similar = previous.similar;
+            if (e.traits.empty()) e.traits = previous.traits;
         }
         index(it->second);
         return;
@@ -360,6 +373,44 @@ std::vector<const ReferenceEntry*> ReferenceLibrary::measuredWithGenre(std::stri
     return out;
 }
 
+ReferenceLibrary::Neighbours ReferenceLibrary::measuredSimilarTo(std::string_view artist, std::size_t maxArtists) const {
+    Neighbours out;
+    const NameKey self = NameKey::of(artist);
+    if (self.compact.empty()) return out;
+    const auto isArtist = [](const EntryKeys& k, const NameKey& name) {
+        if (k.artist.matches(name)) return true;
+        return std::any_of(k.aliases.begin(), k.aliases.end(), [&](const NameKey& a) { return a.matches(name); });
+    };
+    // Proches cités par l'artiste (toutes ses entrées), puis artistes qui le citent.
+    std::vector<std::string> candidates;
+    const auto push = [&](const std::string& name) {
+        if (!namesMatch(name, artist) &&
+            std::none_of(candidates.begin(), candidates.end(), [&](const std::string& c) { return namesMatch(c, name); }))
+            candidates.push_back(name);
+    };
+    for (std::size_t i = 0; i < entries_.size(); ++i)
+        if (isArtist(keys_[i], self)) {
+            for (const auto& s : entries_[i].similar) push(s);
+            if (out.traits.empty()) out.traits = entries_[i].traits;
+        }
+    for (std::size_t i = 0; i < entries_.size(); ++i)
+        if (!entries_[i].similar.empty() && !isArtist(keys_[i], self) &&
+            std::any_of(entries_[i].similar.begin(), entries_[i].similar.end(), [&](const std::string& s) { return namesMatch(s, artist); }))
+            push(entries_[i].artist);
+    for (const auto& name : candidates) {
+        if (out.artists.size() >= maxArtists) break;
+        const NameKey key = NameKey::of(name);
+        std::string heard;
+        for (std::size_t i = 0; i < entries_.size(); ++i)
+            if (entries_[i].measured && isArtist(keys_[i], key)) {
+                out.entries.push_back(&entries_[i]);
+                if (heard.empty()) heard = entries_[i].artist;
+            }
+        if (!heard.empty()) out.artists.push_back(heard);
+    }
+    return out;
+}
+
 std::vector<std::string> ReferenceLibrary::measuredArtists() const {
     std::vector<std::string> out;
     std::unordered_map<std::string, bool> seen;
@@ -383,6 +434,71 @@ std::vector<std::string> ReferenceLibrary::genres() const {
         for (std::size_t g = 0; g < entries_[i].genres.size(); ++g)
             if (seen.emplace(keys_[i].genres[g].compact, true).second) out.push_back(entries_[i].genres[g]);
     return out;
+}
+
+bool parseArtistLink(std::string_view line, ReferenceEntry& out) {
+    std::string text;
+    for (char c : line)
+        if (c != '*' && c != '`') text += c; // gras / code markdown
+    std::string_view t = text;
+    const auto skipSpaces = [&] {
+        while (!t.empty() && std::isspace(static_cast<unsigned char>(t.front()))) t.remove_prefix(1);
+    };
+    skipSpaces();
+    if (t.empty() || t.front() == '#' || t.find(';') == std::string_view::npos) return false;
+    // Puces (« - », « • », « > ») et numérotation (« 12. », « 3) ») ; pas « 21 Savage ».
+    for (bool more = true; more;) {
+        more = false;
+        if (t.front() == '-' || t.front() == '>') t.remove_prefix(1), more = true;
+        else if (t.rfind("\xE2\x80\xA2", 0) == 0) t.remove_prefix(3), more = true;
+        else if (const auto d = t.find_first_not_of("0123456789"); d > 0 && d < t.size() && (t[d] == '.' || t[d] == ')'))
+            t.remove_prefix(d + 1), more = true;
+        skipSpaces();
+        if (t.empty()) return false;
+    }
+
+    std::vector<std::string> fields;
+    std::size_t start = 0;
+    for (std::size_t i = 0; i <= t.size(); ++i)
+        if (i == t.size() || t[i] == ';') {
+            fields.push_back(trim(t.substr(start, i - start)));
+            start = i + 1;
+        }
+    // « A | B » ; « A, B » seulement sans « | » (« Tyler, The Creator »).
+    const auto commaList = [](std::string s) {
+        if (s.find('|') == std::string::npos)
+            for (char& c : s)
+                if (c == ',') c = '|';
+        return splitList(s);
+    };
+    // « proches : … », « traits sonores : … » : champ nommé, à n'importe quelle place.
+    const auto labelled = [](const std::string& f, const char* label, std::string& value) {
+        std::string lower;
+        for (char c : f.substr(0, f.find(':'))) lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (f.find(':') == std::string::npos || trim(lower).rfind(label, 0) != 0) return false;
+        value = trim(std::string_view(f).substr(f.find(':') + 1));
+        return true;
+    };
+    ReferenceEntry e;
+    e.measured = false;
+    if (!labelled(fields[0], "artiste", e.artist)) e.artist = fields[0];
+    if (e.artist.empty()) return false;
+    const auto addGenres = [&](const std::string& list) {
+        for (auto& g : commaList(list))
+            if (std::none_of(e.genres.begin(), e.genres.end(), [&](const std::string& x) { return namesMatch(x, g); }))
+                e.genres.push_back(std::move(g));
+    };
+    std::size_t plain = 0;
+    for (std::size_t i = 1; i < fields.size(); ++i) {
+        std::string value;
+        if (labelled(fields[i], "proche", value)) e.similar = commaList(value);
+        else if (labelled(fields[i], "trait", value)) e.traits = value;
+        else if (labelled(fields[i], "famille", value) || labelled(fields[i], "style", value) || labelled(fields[i], "genre", value))
+            addGenres(value);
+        else if (plain++ < 2) addGenres(fields[i]); // famille, puis styles
+    }
+    out = std::move(e);
+    return true;
 }
 
 bool addToLibraryFile(const std::string& path, const ReferenceEntry& entry) {

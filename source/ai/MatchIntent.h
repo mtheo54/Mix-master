@@ -85,8 +85,9 @@ struct Understanding {
 
 /// `audioReferenceProvided` : la personne a déjà glissé un son de référence.
 /// Artiste inconnu sans son -> question (artiste proche connu, ou un son).
-/// Artiste connu de nom seulement -> profil moyen de ses genres, avec la
-/// suggestion d'envoyer un son ; sans genre mesuré -> question.
+/// Artiste connu de nom seulement -> ses artistes proches déjà écoutés, à
+/// défaut le profil moyen de ses genres, avec la suggestion d'envoyer un son ;
+/// sans proche ni genre mesuré -> question.
 Understanding understandRequest(std::string_view text, const Lexicon& lexicon, const ReferenceLibrary& library,
                                 bool audioReferenceProvided);
 

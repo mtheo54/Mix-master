@@ -16,6 +16,10 @@
 //    omnis_refdb titres liste.txt --db base.txt
 //                (« Artiste ; Titre ; genre, genre » : importe et signale les
 //                désaccords avec le classement des playlists de la personne)
+//    omnis_refdb artistes liens.txt --db base.txt
+//                (« Artiste ; famille ; styles ; proches : A, B ; traits : … » :
+//                les artistes proches servent de référence tant que l'artiste
+//                lui-même n'a pas été écouté)
 //    omnis_refdb scan dossier/ --titres liste.txt --db base.txt
 //                (chaque son est reconnu dans la liste et prend ses genres)
 //    omnis_refdb list [--db base.txt]
@@ -195,6 +199,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb scan dossier/ [--genres \"a|b\"] --db base.txt   (« Artiste - Titre.mp3|flac|wav »)\n"
                   "  omnis_refdb nom --artiste NOM --genres \"a|b\" [--alias \"x|y\"] --db base.txt\n"
                   "  omnis_refdb noms liste.txt --db base.txt   (« Artiste ; genre, genre ; alias »)\n"
+                  "  omnis_refdb artistes liens.txt --db base.txt   (« Artiste ; famille ; styles ; proches : A, B ; traits : … »)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
         return 1;
@@ -334,6 +339,58 @@ int main(int argc, char** argv) {
         }
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%zu titre(s) importé(s), %d désaccord(s) avec tes playlists -> %s\n", lines.size(), disagreements, db.c_str());
+        return 0;
+    }
+    if (command == "artistes") {
+        if (input.empty() || db.empty()) return 1;
+        const auto known = loadLibrary(db);
+        auto user = openDb(db);
+        std::ifstream in(input);
+        std::string line;
+        int imported = 0, disagreements = 0, withoutSimilar = 0;
+        std::string notFound;
+        std::map<std::string, int> unknownSimilar; // proches cités, absents de la base
+        while (std::getline(in, line)) {
+            ai::ReferenceEntry e;
+            if (!ai::parseArtistLink(line, e)) continue;
+            e.genres = canonicalGenres(e.genres);
+            // « Artiste ; inconnu » : la recherche n'a rien trouvé de sûr (souvent un nom inventé).
+            if (e.genres.empty() || ai::namesMatch(e.genres.front(), "inconnu")) {
+                notFound += (notFound.empty() ? "" : ", ") + e.artist;
+                continue;
+            }
+            const auto m = known.find(e.artist);
+            const bool knownArtist = m.found() && m.exact && m.kind == ai::ReferenceMatch::Kind::Artist;
+            // Le classement des playlists de la personne fait foi.
+            if (knownArtist && !e.genres.empty()) {
+                std::vector<std::string> theirs;
+                for (const auto* x : m.entries)
+                    for (const auto& g : x->genres)
+                        if (std::find(theirs.begin(), theirs.end(), g) == theirs.end()) theirs.push_back(g);
+                if (!theirs.empty() && std::none_of(theirs.begin(), theirs.end(), [&](const std::string& t) { return ai::namesMatch(e.genres.front(), t); })) {
+                    std::string t;
+                    for (const auto& g : theirs) t += (t.empty() ? "" : ", ") + g;
+                    std::printf("  désaccord : %s : liste « %s », tes playlists « %s »\n", e.artist.c_str(), e.genres.front().c_str(), t.c_str());
+                    ++disagreements;
+                }
+            }
+            if (e.similar.empty()) ++withoutSimilar;
+            for (const auto& s : e.similar)
+                if (const auto k = known.find(s); !k.found() || k.kind != ai::ReferenceMatch::Kind::Artist) ++unknownSimilar[s];
+            if (knownArtist) e.artist = m.entries.front()->artist; // écriture de la base (« La Fève », pas « la feve »)
+            user.add(e);
+            ++imported;
+        }
+        if (!writeTextFile(db, user.serialize())) return 1;
+        std::printf("%d artiste(s) importé(s), %d sans proches, %d désaccord(s) avec tes playlists -> %s\n", imported, withoutSimilar,
+                    disagreements, db.c_str());
+        if (!notFound.empty()) std::printf("Introuvables, non importés : %s\n", notFound.c_str());
+        if (!unknownSimilar.empty()) {
+            std::string names;
+            for (const auto& [name, count] : unknownSimilar) names += (names.empty() ? "" : ", ") + name;
+            std::printf("%zu proche(s) cité(s) mais absents de la base (ils comptent dès qu'un son d'eux est mesuré) : %s\n",
+                        unknownSimilar.size(), names.c_str());
+        }
         return 0;
     }
     if (command == "csv") {

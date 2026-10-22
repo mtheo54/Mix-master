@@ -18,6 +18,8 @@
 //      titre = poster boy
 //      alias = 2 hollis | two hollis
 //      genres = rage | hyperpop
+//      proches = SLAYR | Jane Remover | Glaive     (artistes proches, du plus proche)
+//      traits = 808 saturée, synthés stridents       (texte, pour expliquer)
 //      lufs = -3.7          lra = …   tp = …   sub = …   (une clé par ligne)
 //      mid = 21 valeurs     side = 21 valeurs     dyn = 21 valeurs
 //  Une entrée sans mesures (pas de « mid ») est un artiste connu DE NOM : il
@@ -40,6 +42,8 @@ struct ReferenceEntry {
     std::string title;
     std::vector<std::string> aliases;
     std::vector<std::string> genres;
+    std::vector<std::string> similar; ///< artistes proches, du plus proche au moins proche
+    std::string traits;               ///< traits sonores (« 808 saturée, autotune »), pour expliquer
     analysis::SpectralSignature signature;
     bool measured = true; ///< false : connu de nom (et de genre) seulement, en attente d'un son
 
@@ -75,6 +79,14 @@ public:
     /// Entrées MESURÉES portant ce genre, le leur ou celui de leur artiste
     /// (entrée sans titre : « SLAYR ; hyperpop » vaut pour tous ses titres).
     [[nodiscard]] std::vector<const ReferenceEntry*> measuredWithGenre(std::string_view genre) const;
+    /// Artistes proches d'un artiste qu'OMNIS a déjà écoutés : ceux qu'il cite
+    /// (dans l'ordre), puis ceux qui le citent. Au plus `maxArtists` artistes.
+    struct Neighbours {
+        std::vector<std::string> artists;
+        std::vector<const ReferenceEntry*> entries; ///< leurs titres mesurés
+        std::string traits;                         ///< traits connus de l'artiste demandé
+    };
+    [[nodiscard]] Neighbours measuredSimilarTo(std::string_view artist, std::size_t maxArtists = 3) const;
     /// Artistes dont au moins un titre est mesuré (ceux qu'OMNIS a écoutés).
     [[nodiscard]] std::vector<std::string> measuredArtists() const;
 
@@ -113,6 +125,13 @@ analysis::SpectralSignature aggregateSignature(const std::vector<const Reference
 /// fichier temporaire puis renommage : jamais de base à moitié écrite.
 /// Non temps réel.
 bool addToLibraryFile(const std::string& path, const ReferenceEntry& entry);
+
+/// Une ligne de liens entre artistes (data/artistes_proches.txt, faite par
+/// une recherche) : « Artiste ; famille ; style, style ; proches : A, B, C ;
+/// traits : 808 saturée, autotune ». Tolère la mise en forme d'un assistant
+/// (puces, gras, « Proches: »). Donne une entrée d'artiste connue de nom ;
+/// false pour un commentaire ou une ligne sans artiste.
+bool parseArtistLink(std::string_view line, ReferenceEntry& out);
 
 /// Comparaison tolérante de deux noms (« 2 hollis » = « 2hollis » = « 2holis ») ;
 /// exacte sous 5 caractères (« trop » n'est pas le genre « trap »).

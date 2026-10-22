@@ -280,3 +280,59 @@ OMNIS_TEST("références: des mesures remplacent une entrée de nom sans perdre 
     OMNIS_CHECK(e.genres.size() == 2);
     OMNIS_CHECK_NEAR(e.signature.integratedLufs, -7.0, 1e-12);
 }
+
+OMNIS_TEST("références: liens entre artistes (« proches ») lus depuis une recherche, mise en forme tolérée") {
+    ReferenceEntry e;
+    OMNIS_CHECK(parseArtistLink("Yeat ; rap us ; rage, trap ; proches : Ken Carson, SLAYR, Destroy Lonely ; traits : 808 saturée, cloches", e));
+    OMNIS_CHECK(e.artist == "Yeat" && !e.measured);
+    OMNIS_CHECK(e.genres.size() == 3 && e.genres[0] == "rap us" && e.genres[2] == "trap");
+    OMNIS_CHECK(e.similar.size() == 3 && e.similar[1] == "SLAYR");
+    OMNIS_CHECK(e.traits == "808 saturée, cloches");
+    // Puces, numéros, gras, champs nommés dans le désordre ; « 21 Savage » garde son 21.
+    OMNIS_CHECK(parseArtistLink("12. **21 Savage** ; Famille : rap us ; Styles : trap ; Traits sonores : voix posée ; Proches: Metro Boomin", e));
+    OMNIS_CHECK(e.artist == "21 Savage");
+    OMNIS_CHECK(e.genres.size() == 2 && e.similar.size() == 1 && e.traits == "voix posée");
+    OMNIS_CHECK(parseArtistLink("- Artiste : La Fève ; rap fr ; new wave", e) && e.artist == "La Fève" && e.similar.empty());
+    OMNIS_CHECK(parseArtistLink("Earl Sweatshirt ; rap us ; abstract ; proches : Tyler, The Creator | MIKE | Navy Blue", e));
+    OMNIS_CHECK(e.similar.size() == 3 && e.similar[0] == "Tyler, The Creator");
+    OMNIS_CHECK(!parseArtistLink("# Artiste ; famille ; styles", e));
+    OMNIS_CHECK(!parseArtistLink("Voici la liste demandée :", e));
+
+    // Relecture : proches et traits survivent à la base texte.
+    ReferenceLibrary lib;
+    parseArtistLink("Yeat ; rap us ; rage ; proches : Ken Carson, SLAYR ; traits : 808 saturée", e);
+    lib.add(e);
+    ReferenceLibrary again;
+    OMNIS_CHECK(again.parse(lib.serialize()));
+    OMNIS_CHECK(again.entries().front().similar.size() == 2 && again.entries().front().traits == "808 saturée");
+}
+
+OMNIS_TEST("compréhension: artiste connu de nom -> ses proches écoutés avant le profil de son genre") {
+    ReferenceLibrary lib;
+    lib.parse(kLibrary); // 2hollis (rage, hyperpop) et SLAYR (rage) mesurés
+    ReferenceEntry e;
+    parseArtistLink("Yeat ; rage ; trap ; proches : Ken Carson, SLAYR ; traits : 808 saturée", e);
+    lib.add(e);
+    // Proche cité : seul SLAYR (Ken Carson n'est pas mesuré), pas tout le genre rage.
+    const auto near = lib.measuredSimilarTo("yeat");
+    OMNIS_CHECK(near.artists.size() == 1 && near.artists[0] == "SLAYR");
+    const auto u = understandRequest("comme yeat, fort", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(!u.question.has_value());
+    OMNIS_CHECK(u.referenceEntries.size() == 1 && u.referenceEntries[0]->artist == "SLAYR");
+    OMNIS_CHECK(u.suggestion.value_or("").find("proches") != std::string::npos);
+    OMNIS_CHECK(u.suggestion.value_or("").find("SLAYR") != std::string::npos);
+    OMNIS_CHECK(std::any_of(u.request.understood.begin(), u.request.understood.end(),
+                            [](const std::string& s) { return s.find("808 saturée") != std::string::npos; }));
+
+    // Lien dans l'autre sens : un artiste que personne n'a décrit, mais qu'un autre cite.
+    lib.parse("[Che]\nartiste = Che\ngenres = zouk\n\n[2hollis]\nartiste = 2hollis\nproches = Che | Jane Remover\n");
+    const auto c = understandRequest("comme che", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(!c.question.has_value());
+    OMNIS_CHECK(c.referenceEntries.size() == 1 && c.referenceEntries[0]->artist == "2hollis");
+
+    // Aucun proche écouté : on retombe sur le profil du genre, comme avant.
+    lib.parse("[Lancey Foux]\nartiste = Lancey Foux\ngenres = rage\nproches = Inconnu Un | Inconnu Deux\n");
+    const auto l = understandRequest("comme lancey foux", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(l.referenceEntries.size() == 2);
+    OMNIS_CHECK(l.suggestion.value_or("").find("profil moyen") != std::string::npos);
+}
