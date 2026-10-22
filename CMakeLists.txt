@@ -251,6 +251,11 @@ if(OMNIS_BUILD_TESTS)
         )
         target_include_directories(omnis_plugin_tests PRIVATE source)
         target_link_libraries(omnis_plugin_tests PRIVATE omnis_tools_common omnis_core sdk)
+        if(APPLE)
+            # Le SDK (fstring, FUID) appelle CoreFoundation ; le plug-in le reçoit
+            # par smtg_add_vst3plugin, ce programme de test non.
+            target_link_libraries(omnis_plugin_tests PRIVATE "-framework CoreFoundation")
+        endif()
         target_compile_definitions(omnis_plugin_tests PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
         add_test(NAME omnis_plugin_state COMMAND omnis_plugin_tests)
     endif()
