@@ -5,10 +5,11 @@ SDK Steinberg + moteur DSP C++20 en double précision, piloté à terme par IA (
 prompts en langage naturel, profils de genres) et habillé d'une interface NanoVG / OpenGL
 rétro-futuriste.
 
-> **État : Modules 1, 2 et 3 / 6 terminés** : architecture, squelette VST3, mesures normalisées,
-> banc de test, filtres TPT/SVF et crossovers, **Sub Control & Mono Maker** à phase linéaire
-> ([calibration](docs/CALIBRATION_MODULE2.md)), puis **oversampling HIIR, clipper ADAA et limiteur
-> true peak** ([calibration](docs/CALIBRATION_MODULE3.md)).
+> **État : Modules 1, 2 et 3 / 6 terminés, module 4 en cours** : architecture, squelette VST3,
+> mesures normalisées, banc de test, filtres TPT/SVF et crossovers, **Sub Control & Mono Maker** à
+> phase linéaire ([calibration](docs/CALIBRATION_MODULE2.md)), **oversampling HIIR, clipper ADAA et
+> limiteur true peak** ([calibration](docs/CALIBRATION_MODULE3.md)), puis **Match EQ et adaptation à
+> une référence** ([calibration](docs/CALIBRATION_MODULE4.md)).
 
 ## Module 2 : Sub Control & Mono Maker
 
@@ -24,7 +25,7 @@ rétro-futuriste.
 
 Pourquoi la phase linéaire par défaut : sur la référence 2hollis, la version IIR classique fait
 monter le true peak de **+7.8 dB** (rotation de phase de la 808 écrêtée), la version FIR de
-**+0.6 dB** pour un sub aussi mono. Latence constante de l'étage : 197 ms à 44.1 kHz (chaîne complète : 203 ms), compensée par le DAW.
+**+0.6 dB** pour un sub aussi mono. Latence constante de l'étage : 197 ms à 44.1 kHz (chaîne complète : 509 ms), compensée par le DAW.
 Coût : ~3 % d'un cœur.
 
 ---
@@ -40,6 +41,7 @@ Coût : ~3 % d'un cœur.
 | Clip Oversampling | 1x–16x | 8x | Suréchantillonnage (HIIR phase minimale) |
 | Clip Split | 60–300 Hz | 120 Hz | Séparation sub / reste (phase linéaire) : la 808 s'écrête sans intermoduler la voix |
 | Clip Sub Drive | −12…+12 dB | 0 dB | Poussée supplémentaire de la bande sub (« 808 ultra-clippée, sub propre ») |
+| Clip Sub Make-Room | 0–100 % | 0 % | La bande sub cède la place quand la somme dépasse le plafond (au plus −6 dB) ; désactivé par défaut, il vidait le sub |
 | Limiter Gain | 0–24 dB | 0 dB | Poussée dans le limiteur |
 | Limiter Ceiling | −6–0 dBTP | −1.0 dBTP | Plafond true peak (toujours) |
 | Limiter Release | 1–1000 ms | 60 ms | Relâchement de base |
@@ -49,6 +51,31 @@ Pas de mode figé « Club » / « Safe » : l'intensité (sonie visée, plafond)
 personne, et l'algorithme cherche la répartition la plus propre pour l'atteindre (`omnis_tune`,
 précurseur du pilotage par IA). Repliement d'un écrêtage dur de 6 dB à 5 kHz : −35 dB en 1x,
 **−94 dB en 8x** ; intermodulation d'une voix par une 808 écrêtée : **−85 dB** grâce aux deux bandes.
+
+---
+
+## Module 4 (partie 1) : Match EQ & adaptation à une référence
+
+« Ressembler, pas copier ». OMNIS écoute la référence citée dans la demande et n'en garde que les
+traits **persistants** : balance large Mid/Side, énergie du sub (indépendamment de la note de la
+808), dynamique par bande, sonie. Il déplace ensuite la prod **en partie** vers cette référence,
+avec des bornes qui protègent son identité, et explique ce qu'il fait.
+
+| Paramètre | Plage | Défaut | Rôle |
+|---|---|---|---|
+| Match Amount | 0–100 % | 100 % | Dosage de la courbe d'intention |
+| Match Mid / Side 20 Hz … 20k (2 × 21 nœuds) | ±12 dB | 0 dB | Courbe M/S à phase linéaire, une demi-octave entre nœuds, écrite par l'adaptation (ou à la main) |
+
+| Règle | Défaut |
+|---|---|
+| Ressemblance (part de l'écart refermée) | 50 %, « un peu » 30 %, « exactement » 80 %, jamais plus de 85 % |
+| Sub (≤ 100 Hz) | ±3 dB (« garde ma 808 » : ±1 dB) |
+| Ailleurs | −6 / +4 dB ; jamais de boost d'une bande vide |
+| Largeur (Side − Mid, > 120 Hz) | ±4 dB ; jamais d'élargissement d'une bande quasi mono |
+
+```bash
+$B/omnis_match prod.wav reference.wav --demande "comme la réf mais garde ma 808, fort" --render master.wav
+```
 
 ## Ce que contient le Module 1
 
@@ -103,6 +130,8 @@ $B/omnis_analyze mix.wav --json
 
 $B/omnis_compare mix.wav master.wav         # distorsion non linéaire ajoutée (pondérée K, par région)
 $B/omnis_tune mix.wav --target -6 --full    # réglage le plus propre pour atteindre une sonie
+$B/omnis_tune mix.wav --target -6 --max-clean   # le plus fort possible sans détruire la prod
+$B/omnis_match prod.wav ref.wav --demande "…"   # ressembler à une référence (voir module 4)
 
 $B/omnis_render --params                    # clés de paramètres
 $B/omnis_render mix.wav out.wav --set input_gain=-3dB --set monitor=Side --report
@@ -117,14 +146,15 @@ alignée échantillon par échantillon sur l'entrée (null-test possible dans n'
 source/
   core/       primitives temps réel (SPSC, triple buffer, lisseur, tampons alignés, FTZ/DAZ)
   dsp/        SVF TPT, crossovers Linkwitz-Riley, FFT, convolution partitionnée stéréo
-  stages/     étages de la chaîne (Sub Control & Mono Maker + banque de noyaux FIR)
-  analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques
+  stages/     étages de la chaîne (Sub Control, Match EQ, Clipper, Limiteur + banques de noyaux FIR)
+  ai/         intention d'adaptation à une référence et lecture de la demande (précurseur du module 5)
+  analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
   params/     table unique des paramètres (DSP, VST3, outils, IA)
   engine/     Engine + interface Stage (chaîne, PDC, bypass, monitoring, mesures)
   plugin/vst3 processeur, contrôleur, état, factory
-tools/        testgen, analyze, render (+ WAV I/O, signaux, rapport)
+tools/        testgen, analyze, render, compare, tune, match (+ WAV I/O, signaux, rapport)
 tests/        tests unitaires sans dépendance
-docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md, CALIBRATION_MODULE3.md
+docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2/3/4.md
 ```
 
 ## Feuille de route
@@ -134,7 +164,8 @@ docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2.md, CAL
    à somme passe-tout, FFT et convolution partitionnée UPOLS, Sub Control & Mono Maker M/S à phase linéaire
 3. ✅ **Oversampling & Clipper** : demi-bandes HIIR conçues à la volée (1x–16x), clipper ADAA
    Hard / Soft Knee / Diode à deux bandes, limiteur brickwall true peak à release adaptatif
-4. Match EQ & FFT — Blackman-Harris 8192, convolution partitionnée, profils de référence
+4. 🔶 **Match EQ & multibande** : ✅ Match EQ M/S à phase linéaire, signature de référence,
+   adaptation partielle bornée et expliquée ; à venir : dynamique multibande (tenue de la 808)
 5. Moteur IA & embeddings — ONNX Runtime C++ / RTNeural, MLP 40–60 paramètres
 6. UI NanoVG — IPlugView OpenGL, oscilloscope phosphore, matrice LED, champ de prompt
 

@@ -52,6 +52,14 @@ enum class ParamId : std::uint32_t {
     SubSynth = 106,
     SubPhaseMode = 107,
 
+    // --- Match EQ (200–299) ----------------------------------------------------
+    // Courbe d'intention : un gain par nœud (demi-octave, 20 Hz – 20 kHz) en Mid
+    // et en Side, écrite par l'adaptation à la référence (ou à la main), dosée
+    // par MatchAmount. Nœud k : MatchMidFirst + k, MatchSideFirst + k.
+    MatchAmount = 200,
+    MatchMidFirst = 210,  ///< … 230
+    MatchSideFirst = 250, ///< … 270
+
     // --- Smart Wave-Shaping / Mastering Clipper (500–599) ---------------------
     ClipMode = 500,
     ClipDrive = 501,
@@ -89,6 +97,16 @@ enum class ParamScale : std::uint8_t {
     Linear,      ///< plain = min + n·(max − min)
     Logarithmic, ///< plain = min·(max/min)^n — fréquences (min > 0)
 };
+
+/// Nœuds du Match EQ : f_k = 20 Hz · 2^(k/2), k = 0 … kMatchBands − 1.
+inline constexpr int kMatchBands = 21;
+double matchBandHz(int band) noexcept;
+inline ParamId matchMidId(int band) noexcept {
+    return static_cast<ParamId>(static_cast<std::uint32_t>(ParamId::MatchMidFirst) + static_cast<std::uint32_t>(band));
+}
+inline ParamId matchSideId(int band) noexcept {
+    return static_cast<ParamId>(static_cast<std::uint32_t>(ParamId::MatchSideFirst) + static_cast<std::uint32_t>(band));
+}
 
 /// Modes d'écoute (bouton chiclet « Side solo » de l'interface).
 enum class MonitorMode : int { Stereo = 0, Mid = 1, Side = 2 };

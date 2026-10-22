@@ -136,7 +136,7 @@ TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strate
         result.integratedLufs = lufs;
         result.truePeakDb = tp;
         result.distortion = measureDistortion(excerpt, out);
-        result.tonal = compareTonalBalance(excerpt, out);
+        result.tonal = compareTonalBalance(options.tonalReference ? *options.tonalReference : excerpt, out);
         result.tonalOk = result.tonal.maxDeviationDb <= options.maxTonalDeviationDb;
         return result;
     }
@@ -157,7 +157,7 @@ TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strate
     result.truePeakDb = tp;
     result.reached = std::fabs(lufs - options.targetLufs) <= 0.15;
     result.distortion = measureDistortion(excerpt, out);
-    result.tonal = compareTonalBalance(excerpt, out);
+    result.tonal = compareTonalBalance(options.tonalReference ? *options.tonalReference : excerpt, out);
     result.tonalOk = result.tonal.maxDeviationDb <= options.maxTonalDeviationDb;
     return result;
 }
@@ -170,7 +170,7 @@ TuningResult loudestClean(const AudioFile& excerpt, const TuningStrategy& strate
         result.totalGainDb = gainDb;
         out = renderWithSettings(excerpt, settingsOf(result));
         // La cible reste un plafond : jamais plus fort que demandé.
-        return compareTonalBalance(excerpt, out).maxDeviationDb <= options.maxTonalDeviationDb &&
+        return compareTonalBalance(options.tonalReference ? *options.tonalReference : excerpt, out).maxDeviationDb <= options.maxTonalDeviationDb &&
                analyze(out).integratedLufs <= options.targetLufs + options.toleranceLu;
     };
 
@@ -191,7 +191,7 @@ TuningResult loudestClean(const AudioFile& excerpt, const TuningStrategy& strate
     result.truePeakDb = report.truePeakDb;
     result.reached = report.integratedLufs >= options.targetLufs - 0.15;
     result.distortion = measureDistortion(excerpt, out);
-    result.tonal = compareTonalBalance(excerpt, out);
+    result.tonal = compareTonalBalance(options.tonalReference ? *options.tonalReference : excerpt, out);
     result.tonalOk = true;
     return result;
 }

@@ -59,6 +59,10 @@ struct TuningOptions {
     /// Écart d'équilibre tonal maximal admis (dB par octave) : au-delà, la
     /// stratégie « détruit la prod » et est écartée quel que soit son score.
     double maxTonalDeviationDb = 1.5;
+    /// Équilibre à respecter, aligné sur l'extrait. nullptr : la prod elle-même.
+    /// Avec un Match EQ, c'est l'INTENTION (prod passée dans l'EQ seul) : on
+    /// vérifie que la dynamique ne défait pas le déplacement voulu.
+    const AudioFile* tonalReference = nullptr;
 };
 
 /// Passage le plus fort (fenêtre glissante de `seconds` sur la sonie short-term).

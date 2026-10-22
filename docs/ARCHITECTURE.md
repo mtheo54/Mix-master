@@ -36,7 +36,7 @@ sortie = sec + mix·(traité − sec)        mix lissé 20 ms : 1 = actif, 0 = b
 Ordre prévu des étages (plages d'identifiants de paramètres réservées entre parenthèses) :
 
 1. Sub Control & Mono Maker (100–199)
-2. Match EQ dynamique & correctif (200–299)
+2. Match EQ M/S à phase linéaire, courbe d'intention (200–299) ✅
 3. Excitation harmonique M/S (300–399)
 4. Multi-Band Dynamic Processor (400–499)
 5. Smart Wave-Shaping / Mastering Clipper (500–599)
@@ -58,9 +58,11 @@ Mesures en lecture seule : 1000–1099. Global : 0–99.
 
 ## 4. Latence (PDC)
 
-Latence actuelle de la chaîne : 8957 échantillons à 44.1 kHz (203 ms), 8976 à 48 kHz, 17920 à
-96 kHz. Elle se décompose ainsi : Sub Control (FIR 16384 taps : N/2 + une partition = 8704), clipper
-(retard de phase 16x arrondi, 8) et limiteur (lookahead 5 ms + détecteur true peak 24).
+Latence actuelle de la chaîne : 22454 échantillons à 44.1 kHz (509 ms), 22512 à 48 kHz, 44992 à
+96 kHz. Elle se décompose ainsi : Sub Control et Match EQ (FIR 16384 taps chacun : N/2 + une
+partition = 8704), clipper (séparation sub/reste à phase linéaire, retard de phase de
+l'oversampling 16x, anticipation du partage de marge) et limiteur (lookahead 10 ms + détecteur
+true peak).
 
 - Latence totale = Σ latences des étages, **constante pour une fréquence d'échantillonnage donnée**.
 - Un étage dont le coût varie avec un réglage (FIR 4096 vs 16384 taps, oversampling 8x vs 16x)
@@ -102,7 +104,8 @@ par paramètre). Les rafales au-delà de la capacité sont réduites au dernier 
 | Thread audio → thread d'analyse / IA (snapshots audio) | `SpscRingBuffer<T>` (wait-free, perte plutôt qu'attente si plein) | primitive prête, câblage module 4–5 |
 | Thread audio → thread de calcul (réglages du Sub Control) | `TripleBuffer<SubKernelRequest>` | ✅ Module 2 |
 | Thread de calcul → DSP (noyaux FIR du Sub Control) | Banque de 3 emplacements à état atomique (`Free → Writing → Ready → Active → Retiring`), fondu d'une trame | ✅ Module 2 |
-| Thread IA → DSP (noyaux du Match EQ, courbes cibles) | Même banque, généralisée | module 4 |
+| Thread de calcul → DSP (noyaux du Match EQ) | Même banque (`FirKernelBank<Request, Designer>`) | ✅ Module 4 |
+| Analyse de référence → courbe du Match EQ | `ai::planMatch` → 43 paramètres (`match_*`) | ✅ outils ; câblage plug-in module 5–6 |
 | IA → paramètres utilisateur | `beginEdit / performEdit / endEdit` du contrôleur | module 5 |
 | DSP → UI (scope, spectre) | `IDataExchange` (SDK ≥ 3.7.9) | module 6 |
 

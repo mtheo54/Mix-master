@@ -71,10 +71,14 @@ add_library(omnis_core STATIC
     source/dsp/StereoConvolver.cpp
     source/dsp/StereoConvolver.h
     source/dsp/SvfFilter.h
+    source/ai/MatchIntent.cpp
+    source/ai/MatchIntent.h
     source/analysis/KWeightingFilter.h
     source/analysis/LoudnessMeter.cpp
     source/analysis/LoudnessMeter.h
     source/analysis/SignalStatistics.h
+    source/analysis/SpectralSignature.cpp
+    source/analysis/SpectralSignature.h
     source/analysis/StereoMeter.h
     source/analysis/TruePeakMeter.cpp
     source/analysis/TruePeakMeter.h
@@ -89,6 +93,10 @@ add_library(omnis_core STATIC
     source/stages/ClipperStage.h
     source/stages/LimiterStage.cpp
     source/stages/LimiterStage.h
+    source/stages/MatchEqStage.cpp
+    source/stages/MatchEqStage.h
+    source/stages/MatchKernelBank.cpp
+    source/stages/MatchKernelBank.h
     source/stages/SubControlStage.cpp
     source/stages/SubKernelBank.cpp
     source/stages/SubKernelBank.h
@@ -155,7 +163,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
-    foreach(tool testgen analyze render compare tune)
+    foreach(tool testgen analyze render compare tune match)
         add_executable(omnis_${tool} tools/${tool}/main.cpp)
         target_link_libraries(omnis_${tool} PRIVATE omnis_tools_common omnis_compile_options)
     endforeach()
@@ -175,6 +183,8 @@ if(OMNIS_BUILD_TESTS)
         tests/TestOversampling.cpp
         tests/TestDynamics.cpp
         tests/TestSubControl.cpp
+        tests/TestMatchEq.cpp
+        tests/TestMatchIntent.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp

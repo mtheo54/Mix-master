@@ -25,7 +25,7 @@ constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", 
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
-constexpr std::array<ParamSpec, 30> kParameters{{
+constexpr std::array<ParamSpec, 73> kParameters{{
     // id                         key              name                    short     unit    kind                  min     max    def    steps choices         smooth  dec
     {ParamId::Bypass,            "bypass",        "Bypass",               "Byp",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  20.0,   0},
     {ParamId::InputGain,         "input_gain",    "Input Gain",           "In",     "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
@@ -42,6 +42,52 @@ constexpr std::array<ParamSpec, 30> kParameters{{
     {ParamId::SubFreq,           "sub_freq",      "Sub Freq",             "SubF",   "Hz",   ParamKind::Continuous, 30.0,   150.0, 70.0,  0,    {},             50.0,   0, kLog},
     {ParamId::SubSynth,          "sub_synth",     "Sub Synth",            "Synth",  "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
     {ParamId::SubPhaseMode,      "sub_phase",     "Sub Phase",            "Phase",  "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kPhaseLabels,   30.0,   0},
+
+    // Match EQ (docs/CALIBRATION_MODULE4.md). Pas de lissage par paramètre : un
+    // changement de courbe est fondu sur une trame de convolution.
+    {ParamId::MatchAmount,       "match_amount",  "Match Amount",         "Match",  "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             0.0,    0},
+    {static_cast<ParamId>(210), "match_m_20",    "Match Mid 20",        "M20",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(211), "match_m_28",    "Match Mid 28",        "M28",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(212), "match_m_40",    "Match Mid 40",        "M40",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(213), "match_m_57",    "Match Mid 57",        "M57",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(214), "match_m_80",    "Match Mid 80",        "M80",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(215), "match_m_113",   "Match Mid 113",       "M113",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(216), "match_m_160",   "Match Mid 160",       "M160",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(217), "match_m_226",   "Match Mid 226",       "M226",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(218), "match_m_320",   "Match Mid 320",       "M320",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(219), "match_m_453",   "Match Mid 453",       "M453",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(220), "match_m_640",   "Match Mid 640",       "M640",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(221), "match_m_905",   "Match Mid 905",       "M905",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(222), "match_m_1280",  "Match Mid 1.3k",      "M1.3k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(223), "match_m_1810",  "Match Mid 1.8k",      "M1.8k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(224), "match_m_2560",  "Match Mid 2.6k",      "M2.6k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(225), "match_m_3620",  "Match Mid 3.6k",      "M3.6k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(226), "match_m_5120",  "Match Mid 5.1k",      "M5.1k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(227), "match_m_7241",  "Match Mid 7.2k",      "M7.2k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(228), "match_m_10240", "Match Mid 10k",       "M10k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(229), "match_m_14482", "Match Mid 14k",       "M14k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(230), "match_m_20480", "Match Mid 20k",       "M20k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(250), "match_s_20",    "Match Side 20",       "S20",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(251), "match_s_28",    "Match Side 28",       "S28",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(252), "match_s_40",    "Match Side 40",       "S40",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(253), "match_s_57",    "Match Side 57",       "S57",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(254), "match_s_80",    "Match Side 80",       "S80",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(255), "match_s_113",   "Match Side 113",      "S113",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(256), "match_s_160",   "Match Side 160",      "S160",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(257), "match_s_226",   "Match Side 226",      "S226",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(258), "match_s_320",   "Match Side 320",      "S320",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(259), "match_s_453",   "Match Side 453",      "S453",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(260), "match_s_640",   "Match Side 640",      "S640",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(261), "match_s_905",   "Match Side 905",      "S905",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(262), "match_s_1280",  "Match Side 1.3k",     "S1.3k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(263), "match_s_1810",  "Match Side 1.8k",     "S1.8k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(264), "match_s_2560",  "Match Side 2.6k",     "S2.6k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(265), "match_s_3620",  "Match Side 3.6k",     "S3.6k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(266), "match_s_5120",  "Match Side 5.1k",     "S5.1k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(267), "match_s_7241",  "Match Side 7.2k",     "S7.2k",  "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(268), "match_s_10240", "Match Side 10k",      "S10k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(269), "match_s_14482", "Match Side 14k",      "S14k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(270), "match_s_20480", "Match Side 20k",      "S20k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
 
     // Clipper (calibration : docs/CALIBRATION_MODULE3.md).
     {ParamId::ClipMode,          "clip_mode",     "Clip Mode",            "ClipM",  "",     ParamKind::Choice,     0.0,    2.0,   1.0,   2,    kClipModeLabels, 20.0,  0},
@@ -101,6 +147,8 @@ std::optional<double> parseNumber(std::string_view s) {
 } // namespace
 
 std::span<const ParamSpec> allParameters() noexcept { return kParameters; }
+
+double matchBandHz(int band) noexcept { return 20.0 * std::exp2(0.5 * band); }
 
 const ParamSpec* findParameter(ParamId id) noexcept {
     for (const auto& p : kParameters)
