@@ -79,7 +79,8 @@ OMNIS_TEST("plug-in: la référence jouée sur l'entrée auxiliaire entre dans l
     using namespace Steinberg::Vst;
     namespace fs = std::filesystem;
     const fs::path dir = fs::temp_directory_path() / "omnis_test_user_data";
-    fs::remove_all(dir);
+    std::error_code ec;
+    fs::remove_all(dir, ec);
     setUserDataDir(dir.string());
 
     IPtr<vst3::OmnisProcessor> p = owned(new vst3::OmnisProcessor());
@@ -130,9 +131,12 @@ OMNIS_TEST("plug-in: la référence jouée sur l'entrée auxiliaire entre dans l
     const fs::path library = dir / "references_utilisateur.txt";
     for (int i = 0; i < 1000 && !fs::exists(library); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(5));
     OMNIS_CHECK(fs::exists(library));
-    std::ifstream in(library);
     std::stringstream text;
-    text << in.rdbuf();
+    {
+        // Fermé avant la suppression du dossier : Windows refuse d'effacer un fichier ouvert.
+        std::ifstream in(library);
+        text << in.rdbuf();
+    }
     OMNIS_CHECK(text.str().find("Référence écoutée") != std::string::npos);
 
     // La session garde la référence et la prod (données en plus des paramètres).
@@ -147,14 +151,15 @@ OMNIS_TEST("plug-in: la référence jouée sur l'entrée auxiliaire entre dans l
     p->setProcessing(false);
     p->setActive(false);
     p->terminate();
-    fs::remove_all(dir);
+    fs::remove_all(dir, ec);
 }
 
 OMNIS_TEST("plug-in: une écoute de moins de 60 s n'est pas retenue") {
     using namespace Steinberg::Vst;
     namespace fs = std::filesystem;
     const fs::path dir = fs::temp_directory_path() / "omnis_test_user_data_short";
-    fs::remove_all(dir);
+    std::error_code ec;
+    fs::remove_all(dir, ec);
     setUserDataDir(dir.string());
     IPtr<vst3::OmnisProcessor> p = owned(new vst3::OmnisProcessor());
     p->initialize(nullptr);
@@ -190,5 +195,5 @@ OMNIS_TEST("plug-in: une écoute de moins de 60 s n'est pas retenue") {
     OMNIS_CHECK(!fs::exists(dir / "references_utilisateur.txt"));
     p->setActive(false);
     p->terminate();
-    fs::remove_all(dir);
+    fs::remove_all(dir, ec);
 }
