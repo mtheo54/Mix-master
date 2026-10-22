@@ -36,6 +36,15 @@ double percentile(std::vector<double> v, double p) {
 
 } // namespace
 
+void SpectralSignature::detectCutoff() noexcept {
+    trustedBands = kBands;
+    if (kBands < 3 || midDb[static_cast<std::size_t>(kBands - 3)] <= -150.0) return; // rien de mesuré à 10 kHz
+    const auto at = [&](int k) { return midDb[static_cast<std::size_t>(k)]; };
+    const int top = kBands - 1, below = kBands - 2, ref = kBands - 3; // 20 k, 14 k, 10 k
+    if (at(top) - at(ref) < -20.0) trustedBands = top;
+    if (trustedBands == top && at(below) - at(ref) < -12.0) trustedBands = below;
+}
+
 double SpectralSignature::relativeMidDb(int band) const noexcept { return midDb[static_cast<std::size_t>(band)] - bodyDb(); }
 
 double SpectralSignature::bodyDb() const noexcept {
@@ -181,6 +190,7 @@ SpectralSignature SignatureAccumulator::result() const {
     double sub = 0.0;
     for (std::size_t k = 0; k < static_cast<std::size_t>(SpectralSignature::kSubBands); ++k) sub += sumM[k] / count;
     sig.subEnergyDb = powerToDb(sub, -200.0);
+    sig.detectCutoff();
     return sig;
 }
 

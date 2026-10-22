@@ -368,12 +368,15 @@ MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& re
     const double r = std::clamp(request.resemblance, 0.0, kMaxResemblance);
 
     BandArray gap{}, widthGap{};
-    for (int k = 0; k < kBands; ++k) {
+    // Un nœud que la référence ne mesure pas (aigu coupé par un encodeur) :
+    // aucun écart, la prod garde le sien.
+    for (int k = 0; k < kBands && ref.trusts(k); ++k) {
         gap[static_cast<std::size_t>(k)] = ref.relativeMidDb(k) - prod.relativeMidDb(k);
         widthGap[static_cast<std::size_t>(k)] = ref.widthDb(k) - prod.widthDb(k);
     }
     intent.gapDb = smooth(gap);
     intent.widthGapDb = smooth(widthGap);
+    for (int k = ref.trustedBands; k < kBands; ++k) intent.gapDb[static_cast<std::size_t>(k)] = intent.widthGapDb[static_cast<std::size_t>(k)] = 0.0;
     // Sous 80 Hz, seule l'énergie du sub compte (sa forme dépend de la note de la
     // 808) : un écart unique, en plateau.
     const double subGap = (ref.subEnergyDb - ref.bodyDb()) - (prod.subEnergyDb - prod.bodyDb());
@@ -457,6 +460,9 @@ MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& re
                                              format(" : la référence est à %+.1f dB, on ne bouge que de %+.1f dB (identité de ta prod)",
                                                     regionMean(intent.gapDb, region), applied));
     }
+    if (ref.trustedBands < kBands)
+        intent.protectedTraits.push_back(format("Extrême aigu (%.0f kHz et plus) : la référence y est coupée (fichier compressé ?), on n'y touche pas",
+                                                hz(ref.trustedBands) / 1000.0));
     intent.protectedTraits.push_back(format("Ressemblance : %.0f %% de l'écart, jamais la totalité", 100.0 * r));
     return intent;
 }
@@ -481,6 +487,7 @@ double tonalDistanceDb(const SpectralSignature& a, const SpectralSignature& b) {
     double sum = 0.0;
     int count = 0;
     for (int k = 0; k < kBands; ++k) {
+        if (!a.trusts(k) || !b.trusts(k)) continue;
         if (a.relativeMidDb(k) < kEmptyBandDb && b.relativeMidDb(k) < kEmptyBandDb) continue;
         const double d = a.relativeMidDb(k) - b.relativeMidDb(k);
         sum += d * d;

@@ -11310,6 +11310,7 @@ genres = rap us | rap | hip-hop | rap international
 
 [BKTHERULA]
 artiste = BKTHERULA
+genres = rap us | rage
 # connu de nom : en attente d'un son pour le mesurer
 
 [BLIND.SEE]
@@ -17167,4 +17168,149 @@ genres = electronique | dubstep
 artiste = Massive Attack
 titre = Angel
 genres = electronique | trip-hop
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kery James]
+artiste = Kery James
+genres = rap fr | conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Naps]
+artiste = Naps
+genres = rap fr | melodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Dinos]
+artiste = Dinos
+genres = rap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kerchak]
+artiste = Kerchak
+genres = rap fr | afro
+# connu de nom : en attente d'un son pour le mesurer
+
+[JUL]
+artiste = JUL
+genres = rap fr | melodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lomepal]
+artiste = Lomepal
+genres = rap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gazo]
+artiste = Gazo
+genres = rap fr | drill
+# connu de nom : en attente d'un son pour le mesurer
+
+[Medine]
+artiste = Medine
+genres = rap fr | conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[La Fouine]
+artiste = La Fouine
+genres = rap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Carbonne]
+artiste = Carbonne
+genres = rap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lyonzon]
+artiste = Lyonzon
+genres = rap fr | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jace!]
+artiste = Jace!
+genres = rap us | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lazer Dim 700]
+artiste = Lazer Dim 700
+genres = rap us | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[De La Soul]
+artiste = De La Soul
+genres = rap us | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mobb Deep]
+artiste = Mobb Deep
+genres = rap us | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Common]
+artiste = Common
+genres = rap us | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Denzel Curry]
+artiste = Denzel Curry
+genres = rap us
+# connu de nom : en attente d'un son pour le mesurer
+
+[Isaiah Rashad]
+artiste = Isaiah Rashad
+genres = rap us
+# connu de nom : en attente d'un son pour le mesurer
+
+[Glokk40Spaz]
+artiste = Glokk40Spaz
+genres = rap us | rage
+# connu de nom : en attente d'un son pour le mesurer
+
+[JPEGMAFIA & Danny Brown]
+artiste = JPEGMAFIA & Danny Brown
+genres = rap us | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[A Tribe Called Quest]
+artiste = A Tribe Called Quest
+genres = rap us | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[DDG]
+artiste = DDG
+genres = rap us | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ab-Soul]
+artiste = Ab-Soul
+genres = rap us
+# connu de nom : en attente d'un son pour le mesurer
+
+[Samara Cyn]
+artiste = Samara Cyn
+genres = rap us
+# connu de nom : en attente d'un son pour le mesurer
+
+[DJ Muggs]
+artiste = DJ Muggs
+genres = rap us | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tyla]
+artiste = Tyla
+genres = pop | amapiano
+# connu de nom : en attente d'un son pour le mesurer
+
+[Klaas]
+artiste = Klaas
+genres = electro | dance
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jean-Michel Jarre]
+artiste = Jean-Michel Jarre
+genres = electro | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Carter Burwell]
+artiste = Carter Burwell
+genres = bo | musique de film
 # connu de nom : en attente d'un son pour le mesurer

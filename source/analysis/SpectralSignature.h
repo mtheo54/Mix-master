@@ -58,6 +58,17 @@ struct SpectralSignature {
     double truePeakDb = -200.0;
     double plrDb = 0.0; ///< true peak − sonie intégrée
     int activeFrames = 0;
+    /// Nœuds dignes de confiance, du grave vers l'aigu : un fichier compressé
+    /// (MP3 faible, YouTube) est coupé vers 16 kHz ; son nœud 20 kHz décrit
+    /// l'encodeur, pas le mix (voir detectCutoff).
+    int trustedBands = params::kMatchBands;
+
+    /// Coupure d'encodeur : le nœud 20 kHz plus de 20 dB sous celui de 10 kHz
+    /// (un master sans perte : −9 à −13 dB, même les plus sombres > −20 ;
+    /// un fichier coupé à 16 kHz : −25 à −38 dB, mesuré sur 97 titres). Le
+    /// 14 kHz suit au-delà de 12 dB de chute.
+    void detectCutoff() noexcept;
+    [[nodiscard]] bool trusts(int band) const noexcept { return band < trustedBands; }
 
     /// Niveau du Mid relatif à son « corps » (moyenne des nœuds 200 Hz – 5 kHz).
     [[nodiscard]] double relativeMidDb(int band) const noexcept;

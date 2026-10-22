@@ -5,3 +5,36 @@
 #  Importé par `omnis_refdb artistes data/artistes_proches.txt --db data/catalogue.txt`.
 #  Un proche ne sert de référence que si OMNIS a écouté un de ses sons.
 # =============================================================================
+
+# --- Familles des artistes écoutés, fixées sans recherche (certaines seulement ; les
+#     autres attendent une fiche ou le classement de l'utilisateur) ---
+Kery James ; rap fr ; conscient
+Naps ; rap fr ; melodique
+Dinos ; rap fr
+Kerchak ; rap fr ; afro
+JUL ; rap fr ; melodique
+Lomepal ; rap fr
+Gazo ; rap fr ; drill
+Medine ; rap fr ; conscient
+La Fouine ; rap fr
+Carbonne ; rap fr
+Lyonzon ; rap fr ; new wave
+Jace! ; rap us ; trap
+Lazer Dim 700 ; rap us ; underground
+De La Soul ; rap us ; boom bap
+Bktherula ; rap us ; rage
+Mobb Deep ; rap us ; boom bap
+Common ; rap us ; boom bap
+Denzel Curry ; rap us
+Isaiah Rashad ; rap us
+Glokk40Spaz ; rap us ; rage
+JPEGMAFIA ; rap us ; experimental
+A Tribe Called Quest ; rap us ; boom bap
+DDG ; rap us ; trap
+Ab-Soul ; rap us
+Samara Cyn ; rap us
+DJ Muggs ; rap us ; boom bap
+Tyla ; pop ; amapiano
+Klaas ; electro ; dance
+Jean-Michel Jarre ; electro ; electronique
+Carter Burwell ; bo ; musique de film

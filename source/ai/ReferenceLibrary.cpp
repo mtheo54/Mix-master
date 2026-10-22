@@ -8,6 +8,7 @@
 #include "TextMatch.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -111,6 +112,7 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
     bool hasMeasures = false;
     const auto close = [&] {
         current.measured = hasMeasures;
+        if (hasMeasures) current.signature.detectCutoff(); // recalculée : la base ne garde que les mesures
         hasMeasures = false;
         if (open && !current.artist.empty()) add(std::move(current));
         current = ReferenceEntry{};
@@ -544,13 +546,23 @@ analysis::SpectralSignature aggregateSignature(const std::vector<const Reference
     if (entries.empty()) return out;
     out.integratedLufs = out.loudnessRangeLu = out.truePeakDb = out.plrDb = out.subEnergyDb = 0.0;
     const double n = static_cast<double>(entries.size());
+    // Un nœud n'est moyenné que sur les titres qui le mesurent vraiment (un
+    // fichier coupé à 16 kHz ne dit rien de l'air) ; sans aucun, il ne l'est pas.
+    std::array<int, static_cast<std::size_t>(kBands)> trusting{};
+    for (const auto* e : entries)
+        for (int k = 0; k < kBands; ++k)
+            if (e->signature.trusts(k)) ++trusting[static_cast<std::size_t>(k)];
+    out.trustedBands = 0;
+    while (out.trustedBands < kBands && trusting[static_cast<std::size_t>(out.trustedBands)] > 0) ++out.trustedBands;
     for (const auto* e : entries) {
         const auto& s = e->signature;
         const double body = s.bodyDb();
         for (std::size_t k = 0; k < static_cast<std::size_t>(kBands); ++k) {
-            out.midDb[k] += (s.midDb[k] - body) / n;
-            out.sideDb[k] += (s.sideDb[k] - body) / n;
-            out.midSpreadDb[k] += s.midSpreadDb[k] / n;
+            if (!s.trusts(static_cast<int>(k))) continue;
+            const double share = 1.0 / trusting[k];
+            out.midDb[k] += (s.midDb[k] - body) * share;
+            out.sideDb[k] += (s.sideDb[k] - body) * share;
+            out.midSpreadDb[k] += s.midSpreadDb[k] * share;
         }
         out.subEnergyDb += (s.subEnergyDb - body) / n;
         out.integratedLufs += s.integratedLufs / n;

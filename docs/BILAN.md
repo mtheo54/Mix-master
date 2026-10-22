@@ -7,7 +7,7 @@
 - **L'IA.** Il lit ta demande en français, même avec des fautes. Il sait de quel artiste ou de
   quel genre tu parles, il écoute une référence, et il rapproche ta prod de ce son **sans la
   copier ni la détruire**.
-- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 114 tests du
+- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 115 tests du
   moteur, 3 tests du plug-in, le validateur officiel Steinberg (537 tests).
 - **Ce qui manque surtout :**
   - une version Windows que tu peux installer dans FL Studio ;
@@ -139,7 +139,7 @@ Pour `pour_claude_plugin` : V1 Club −5.1 LUFS, V2 −5.1, V3 −9.5, V4 (vers 
 | 1 | **Une version Windows téléchargeable** | La CI compile déjà OMNIS sous Windows, mais ne met pas le `.vst3` à disposition. Tu n'as encore jamais pu l'essayer dans FL Studio. | petit |
 | 2 | **Saturation dédiée de la 808** (« crispy », grain) | Seule voie réaliste vers −6 LUFS sur tes prods | moyen |
 | 3 | **Interface** (module 6) | Champ pour taper ta demande, bouton « appliquer » après l'écoute d'une référence, affichage de ce qu'il a compris | gros |
-| 4 | **Remplir la base de références** | Aujourd'hui : 2 titres mesurés (poster boy, Sloppy Joe). Pour tes 8 familles, il faut 2 à 4 titres chacune. | dépend de toi |
+| 4 | **Remplir la base de références** | 91 titres mesurés, surtout rap fr et rap us. Il en manque en rock, electro, pop et rage (2 titres seulement). | dépend de toi |
 | 5 | **Modèle de compréhension local** (module 5) | Comprendre n'importe quelle phrase, sans internet, dans tes 1 à 2 Go | gros |
 | 6 | **Mise à jour pour tous** | Point de collecte des retours anonymes + fichier de données signé. Dépend de ce qu'Onirique permet. | moyen |
 | 7 | Réduire la latence | 668 ms ; fusionner deux égaliseurs retirerait environ 200 ms | petit |

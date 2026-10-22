@@ -7,6 +7,7 @@
 #include "TestSignals.h"
 
 #include "ai/MatchIntent.h"
+#include "ai/ReferenceLibrary.h"
 #include "analysis/SpectralSignature.h"
 #include "stages/MatchEqStage.h"
 
@@ -188,4 +189,51 @@ OMNIS_TEST("signature: l'intro calme n'entre pas dans le cœur du morceau") {
     const auto withIntro = analyzeSignature(song.channels[0].data(), song.channels[1].data(), song.numFrames(), kFs);
     const auto coreOnly = analyzeSignature(core.channels[0].data(), core.channels[1].data(), core.numFrames(), kFs);
     for (int k = 1; k < params::kMatchBands - 1; ++k) OMNIS_CHECK_NEAR(withIntro.relativeMidDb(k), coreOnly.relativeMidDb(k), 0.3);
+}
+
+OMNIS_TEST("signature: aigu coupé par un encodeur -> nœud ignoré (profil, intention, distance)") {
+    constexpr int top = params::kMatchBands - 1;
+    // Un master sombre mais entier (−15 dB de 10 à 20 kHz) reste fiable.
+    auto dark = flatSignature();
+    dark.midDb[top] = -35.0;
+    dark.detectCutoff();
+    OMNIS_CHECK(dark.trustedBands == params::kMatchBands);
+    // Coupé à 16 kHz : −30 dB à 20 kHz.
+    auto cut = flatSignature();
+    cut.midDb[top] = -50.0;
+    cut.detectCutoff();
+    OMNIS_CHECK(cut.trustedBands == top);
+    OMNIS_CHECK(!cut.trusts(top) && cut.trusts(top - 1));
+
+    // La prod n'est pas assombrie par une référence coupée…
+    const auto prod = flatSignature();
+    ai::MatchRequest req;
+    const auto fromCut = ai::planMatch(prod, cut, req);
+    OMNIS_CHECK_NEAR(fromCut.midDb[top], 0.0, 1e-9);
+    OMNIS_CHECK(contains(fromCut.protectedTraits, "coupée"));
+    // … alors qu'une vraie référence sombre l'est (à 50 %, bornée).
+    OMNIS_CHECK(ai::planMatch(prod, dark, req).midDb[top] < -3.0);
+    // La distance tonale ignore le nœud coupé.
+    auto same = cut;
+    same.midDb[top] = -20.0;
+    OMNIS_CHECK_NEAR(ai::tonalDistanceDb(cut, same), 0.0, 1e-9);
+
+    // Profil : le nœud n'est moyenné que sur les titres qui le mesurent.
+    ai::ReferenceEntry a, b;
+    a.artist = "A";
+    a.signature = cut;
+    b.artist = "B";
+    b.signature = dark;
+    const auto both = ai::aggregateSignature({&a, &b});
+    OMNIS_CHECK(both.trustedBands == params::kMatchBands);
+    OMNIS_CHECK_NEAR(both.midDb[top], dark.relativeMidDb(top), 1e-9);
+    const auto onlyCut = ai::aggregateSignature({&a});
+    OMNIS_CHECK(onlyCut.trustedBands == top);
+
+    // Relu depuis la base texte : la coupure est recalculée.
+    ai::ReferenceLibrary lib;
+    lib.add(a);
+    ai::ReferenceLibrary again;
+    OMNIS_CHECK(again.parse(lib.serialize()));
+    OMNIS_CHECK(again.entries().front().signature.trustedBands == top);
 }

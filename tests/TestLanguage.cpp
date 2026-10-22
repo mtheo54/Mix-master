@@ -241,9 +241,11 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     // Connus de nom ET classés « rage » par la personne : on vise le profil
     // rage écouté (2hollis, SLAYR) en suggérant d'envoyer un son.
     const auto said = [](const Understanding& u) { return u.suggestion.value_or("") + u.question.value_or(""); };
-    // « la feve » est l'artiste, pas un de ses titres.
+    // « la feve » est l'artiste, pas un de ses titres : ses sons écoutés.
     const auto a = ask("garde ma 808 comme la feve");
-    OMNIS_CHECK(said(a).find("La Fève") != std::string::npos);
+    OMNIS_CHECK(a.referenceName.find("artiste La Fève") != std::string::npos);
+    OMNIS_CHECK(a.referenceEntries.size() >= 5 && !a.question.has_value());
+    for (const auto* e : a.referenceEntries) OMNIS_CHECK(e->artist == "La Fève" && e->measured);
     OMNIS_CHECK(a.request.protectedRegions[0]);
     // « fein de travis scott » -> le titre FE!N.
     OMNIS_CHECK(said(ask("un son comme fein de travis scott")).find("FE!N") != std::string::npos);
@@ -260,10 +262,16 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     const auto i = ask("intro un peu plus large");
     OMNIS_CHECK(!i.hasReference() && !i.question.has_value());
     // Genre sans aucun son écouté : on le dit ; genre écouté : on y va.
-    OMNIS_CHECK(ask("trop brillant, genre rap fr").question->find("aucun son rap fr") != std::string::npos);
+    OMNIS_CHECK(ask("trop brillant, genre rock").question.value_or("").find("aucun son rock") != std::string::npos);
+    const auto fr = ask("trop brillant, genre rap fr");
+    OMNIS_CHECK(!fr.question.has_value() && fr.referenceEntries.size() >= 20);
     const auto h = ask("un son hyperpop crispy");
     OMNIS_CHECK(!h.question.has_value());
-    OMNIS_CHECK(h.referenceEntries.size() == 2); // 2hollis et SLAYR (classé hyperpop par l'utilisateur)
+    const auto heard = [&](const char* artist) {
+        return std::any_of(h.referenceEntries.begin(), h.referenceEntries.end(), [&](const ReferenceEntry* e) { return e->artist == artist; });
+    };
+    OMNIS_CHECK(heard("2hollis") && heard("SLAYR")); // SLAYR : classé hyperpop par l'utilisateur
+    OMNIS_CHECK(heard("Luther")); // classé hyperpop par ses playlists
 }
 
 OMNIS_TEST("références: des mesures remplacent une entrée de nom sans perdre ses genres") {
