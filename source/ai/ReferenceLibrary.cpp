@@ -313,15 +313,7 @@ ReferenceMatch ReferenceLibrary::find(std::string_view query) const {
         m.how = "artiste " + *artist + " (" + pluralTitles(m.entries.size()) + ")";
         return true;
     };
-    // Exact : « artiste titre » > artiste > titre > prénom. Avec fautes :
-    // l'artiste d'abord (« ken carsonn » est Ken Carson, pas « Ken Carson - Pots »).
-    m.exact = true;
-    if (byArtistTitle(true) || byArtist(true) || byTitle(true)) return m;
-    if (byFirstName()) return m;
-    m.exact = false;
-    if (byArtist(false) || byArtistTitle(false) || byTitle(false)) return m;
-    // Un genre.
-    for (const bool exact : {true, false}) {
+    const auto byGenre = [&](bool exact) {
         std::string genre;
         for (std::size_t i = 0; i < entries_.size(); ++i)
             for (std::size_t g = 0; g < keys_[i].genres.size(); ++g)
@@ -330,13 +322,19 @@ ReferenceMatch ReferenceLibrary::find(std::string_view query) const {
                     genre = entries_[i].genres[g];
                     break;
                 }
-        if (m.found()) {
-            m.kind = ReferenceMatch::Kind::Genre;
-            m.exact = exact;
-            m.how = "genre " + genre + " (" + pluralTitles(m.entries.size()) + ")";
-            return m;
-        }
-    }
+        if (!m.found()) return false;
+        m.kind = ReferenceMatch::Kind::Genre;
+        m.how = "genre " + genre + " (" + pluralTitles(m.entries.size()) + ")";
+        return true;
+    };
+    // Exact : « artiste titre » > artiste > titre > genre > prénom (« rage » est
+    // le genre, pas Rage Against The Machine). Avec fautes : l'artiste d'abord
+    // (« ken carsonn » est Ken Carson, pas « Ken Carson - Pots »), le genre en dernier.
+    m.exact = true;
+    if (byArtistTitle(true) || byArtist(true) || byTitle(true) || byGenre(true)) return m;
+    if (byFirstName()) return m;
+    m.exact = false;
+    if (byArtist(false) || byArtistTitle(false) || byTitle(false) || byGenre(false)) return m;
     return m;
 }
 

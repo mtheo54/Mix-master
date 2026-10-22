@@ -68,8 +68,8 @@ public:
     void add(ReferenceEntry entry);
     [[nodiscard]] const std::vector<ReferenceEntry>& entries() const noexcept { return entries_; }
 
-    /// Noms exacts d'abord (« artiste titre » > artiste > titre), puis les mêmes
-    /// avec fautes tolérées, puis les genres.
+    /// Noms exacts d'abord (« artiste titre » > artiste > titre > genre > prénom
+    /// seul), puis les mêmes avec fautes tolérées, le genre en dernier.
     [[nodiscard]] ReferenceMatch find(std::string_view query) const;
 
     /// Un titre parmi les entrées d'un artiste déjà reconnu, comparé plus

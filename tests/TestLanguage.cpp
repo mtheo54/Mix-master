@@ -258,6 +258,10 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     OMNIS_CHECK(ks.find("quannnic") == std::string::npos);
     OMNIS_CHECK(ks.find("Kanye West, Kanye West") == std::string::npos); // pas de doublon titre / artiste
     OMNIS_CHECK(said(ask("genre uk bass bien propre")).find("« uk »") == std::string::npos);
+    // « rage » est le genre, pas Rage Against The Machine (prénom seul).
+    const auto rage = ask("genre rage, garde ma 808");
+    OMNIS_CHECK(!rage.question.has_value());
+    OMNIS_CHECK(rage.referenceName.find("genre rage") != std::string::npos);
     // Un mot courant qui est aussi un titre ne devient pas une référence.
     const auto i = ask("intro un peu plus large");
     OMNIS_CHECK(!i.hasReference() && !i.question.has_value());
