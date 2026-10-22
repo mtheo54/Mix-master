@@ -31,7 +31,13 @@
 - Genres : sa propre classification (8 familles de playlists, `data/genres_classement.txt`) ;
   2hollis et SLAYR : rage, hyperpop.
 
-## En cours
+## Fait récemment
 
-- Entrée de référence du plug-in (bus auxiliaire VST3). OMNIS écoute la référence jouée dans le
-  DAW, en mesure la signature en temps réel sur un thread d'analyse, et ne garde que les chiffres.
+- **Écoute d'une référence dans le DAW** (bus auxiliaire « Reference », paramètre « Listen
+  Reference »). Voir README, « Écouter une référence dans FL Studio ».
+
+## À venir
+
+- Appliquer la référence écoutée depuis le plug-in : le contrôleur calcule l'intention et écrit
+  les paramètres `match_*` / `mb_*` via performEdit. Ça demande l'interface (module 6), pour
+  saisir la demande et nommer la référence.

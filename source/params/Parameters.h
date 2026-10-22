@@ -41,6 +41,7 @@ enum class ParamId : std::uint32_t {
     InputGain = 1,
     OutputGain = 2,
     Monitor = 3,
+    RefCapture = 4, ///< écoute de la référence jouée sur l'entrée auxiliaire
 
     // --- Sub Control & Mono Maker (100–199) ----------------------------------
     LowCutFreq = 100,
@@ -92,6 +93,8 @@ enum class ParamId : std::uint32_t {
     MeterTruePeak = 1003,
     MeterCorrelation = 1004,
     MeterLoudnessRange = 1005,
+    MeterRefSeconds = 1006, ///< secondes de référence écoutées (non silencieuses)
+    MeterRefLufs = 1007,    ///< sonie intégrée de la référence écoutée
 };
 
 enum class ParamKind : std::uint8_t {
@@ -153,7 +156,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 96;
+inline constexpr std::size_t kParameterCount = 99;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

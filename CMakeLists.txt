@@ -109,6 +109,8 @@ add_library(omnis_core STATIC
     source/engine/Engine.h
     source/engine/MasteringChain.cpp
     source/engine/MasteringChain.h
+    source/engine/ReferenceCapture.cpp
+    source/engine/ReferenceCapture.h
     source/engine/Stage.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
@@ -222,6 +224,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestMatchIntent.cpp
         tests/TestLanguage.cpp
         tests/TestLearning.cpp
+        tests/TestReferenceCapture.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp
@@ -243,9 +246,11 @@ if(OMNIS_BUILD_TESTS)
             source/plugin/vst3/OmnisProcessor.cpp
             source/plugin/vst3/OmnisState.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/common/memorystream.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/parameterchanges.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/processdata.cpp
         )
         target_include_directories(omnis_plugin_tests PRIVATE source)
-        target_link_libraries(omnis_plugin_tests PRIVATE omnis_core sdk)
+        target_link_libraries(omnis_plugin_tests PRIVATE omnis_tools_common omnis_core sdk)
         target_compile_definitions(omnis_plugin_tests PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
         add_test(NAME omnis_plugin_state COMMAND omnis_plugin_tests)
     endif()

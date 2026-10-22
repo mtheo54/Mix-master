@@ -91,6 +91,22 @@ référence ; la compensation rend à chaque bande son énergie (équilibre tona
 | MB *bande* Attack / Release | 1–300 / 10–3000 ms | 10–30 / 80–250 ms | Au-delà de 10 ms d'attaque, le transitoire passe (punch) |
 | MB *bande* Makeup | ±12 dB | 0 | Compensation |
 
+### Écouter une référence dans FL Studio (sans rien télécharger)
+
+1. Mettre OMNIS sur le master. Dans le Mixer, envoyer la piste de la référence (un titre acheté, sa
+   propre prod…) vers l'entrée auxiliaire **Reference** d'OMNIS (sidechain), sans la router vers
+   le master.
+2. Activer **Listen Reference**, jouer le passage voulu (au moins 5 s), désactiver.
+3. OMNIS a mesuré la référence et, en même temps, la prod. Pendant l'écoute, il affiche les
+   secondes écoutées et la sonie de la référence (paramètres en lecture seule). Seuls des nombres
+   sont gardés :
+   - dans la base de la personne : `references_utilisateur.txt`, dans le dossier de données
+     d'OMNIS (`%APPDATA%\Abrasion Labs\OMNIS` sous Windows) ;
+   - dans la session : la référence et la prod.
+
+Le thread audio ne fait que copier les échantillons dans deux files sans verrou. L'analyse tourne
+sur son propre thread et donne exactement la signature d'une analyse de fichier (testé).
+
 ### Comprendre la demande, références, apprentissage ([détails](docs/APPRENTISSAGE.md))
 
 - **Fautes comprises** (clé phonétique + Damerau-Levenshtein) : « propr », « crispi »,

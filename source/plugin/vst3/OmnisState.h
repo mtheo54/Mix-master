@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 
 namespace omnis::vst3 {
 
@@ -32,5 +33,13 @@ bool writeState(Steinberg::IBStream* stream, const std::function<double(std::uin
 /// Lit un état ; `setNormalized(id, value)` est appelée pour chaque paramètre
 /// connu et persistant. Renvoie false si le flux n'est pas un état OMNIS.
 bool readState(Steinberg::IBStream* stream, const std::function<void(std::uint32_t, double)>& setNormalized);
+
+/// Données en plus des paramètres, écrites APRÈS eux (un lecteur plus ancien
+/// s'arrête aux paramètres et les ignore) : uint32 'OMRF', uint32 longueur,
+/// texte (signatures de la dernière référence écoutée, format de la base).
+inline constexpr std::uint32_t kExtrasMagic = 0x46524D4F; // "OMRF"
+bool writeExtras(Steinberg::IBStream* stream, const std::string& text);
+/// À appeler juste après readState() ; false si le flux n'en contient pas.
+bool readExtras(Steinberg::IBStream* stream, std::string& text);
 
 } // namespace omnis::vst3

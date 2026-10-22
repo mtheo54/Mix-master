@@ -11,6 +11,8 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <locale>
 #include <sstream>
 
@@ -351,6 +353,31 @@ std::vector<std::string> ReferenceLibrary::genres() const {
         for (std::size_t g = 0; g < entries_[i].genres.size(); ++g)
             if (seen.emplace(keys_[i].genres[g].compact, true).second) out.push_back(entries_[i].genres[g]);
     return out;
+}
+
+bool addToLibraryFile(const std::string& path, const ReferenceEntry& entry) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    fs::create_directories(fs::path(path).parent_path(), ec);
+    ReferenceLibrary library;
+    {
+        std::ifstream in(path, std::ios::binary);
+        if (in) {
+            std::ostringstream text;
+            text << in.rdbuf();
+            library.parse(text.str());
+        }
+    }
+    library.add(entry);
+    const std::string temp = path + ".tmp";
+    {
+        std::ofstream out(temp, std::ios::binary | std::ios::trunc);
+        if (!out) return false;
+        out << library.serialize();
+        if (!out) return false;
+    }
+    fs::rename(temp, path, ec);
+    return !ec;
 }
 
 const ReferenceLibrary& ReferenceLibrary::builtin() {

@@ -13,16 +13,24 @@
 //     norme ; l'interface NanoVG du module 6 utilisera en plus l'API
 //     IDataExchange pour le scope et le spectre).
 //   - Sonie intégrée remise à zéro à chaque démarrage du transport de l'hôte.
+//   - Entrée auxiliaire « Reference » (sidechain) : quand « Listen Reference »
+//     est actif, la référence et la prod sont écoutées (engine/ReferenceCapture,
+//     thread d'analyse). À l'arrêt, la référence entre dans la base de la
+//     personne (core/UserDataDir.h) et ses signatures sont gardées dans l'état
+//     de la session. Aucun audio n'est enregistré.
 // =============================================================================
 #pragma once
 
 #include "engine/Engine.h"
+#include "engine/ReferenceCapture.h"
 #include "params/Parameters.h"
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
 
 #include <array>
 #include <atomic>
+#include <mutex>
+#include <string>
 #include <vector>
 
 namespace omnis::vst3 {
@@ -69,7 +77,13 @@ private:
     template <typename Sample>
     void processSegments(Sample** inputs, Sample** outputs, Steinberg::int32 numSamples);
 
+    void onCaptureFinished(const ReferenceCapture::Result& result); ///< thread d'analyse
+
     Engine engine_;
+    ReferenceCapture capture_;
+    double sampleRate_ = 48000.0;
+    std::mutex captureMutex_;
+    std::string capturedText_; ///< signatures de la dernière écoute (état de la session)
 
     // Valeurs normalisées courantes (lues par getState depuis le thread UI,
     // écrites par process() depuis le thread audio) -> atomiques.

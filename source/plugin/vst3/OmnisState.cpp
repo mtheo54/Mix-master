@@ -54,4 +54,21 @@ bool readState(IBStream* stream, const std::function<void(std::uint32_t, double)
     return true;
 }
 
+bool writeExtras(IBStream* stream, const std::string& text) {
+    if (!stream) return false;
+    IBStreamer streamer(stream, kLittleEndian);
+    if (!streamer.writeInt32u(kExtrasMagic) || !streamer.writeInt32u(static_cast<uint32>(text.size()))) return false;
+    return text.empty() || streamer.writeRaw(text.data(), static_cast<TSize>(text.size())) == static_cast<TSize>(text.size());
+}
+
+bool readExtras(IBStream* stream, std::string& text) {
+    if (!stream) return false;
+    IBStreamer streamer(stream, kLittleEndian);
+    uint32 magic = 0, length = 0;
+    if (!streamer.readInt32u(magic) || magic != kExtrasMagic || !streamer.readInt32u(length)) return false;
+    if (length > (16u << 20)) return false; // garde-fou : flux corrompu
+    text.assign(length, '\0');
+    return length == 0 || streamer.readRaw(text.data(), static_cast<TSize>(length)) == static_cast<TSize>(length);
+}
+
 } // namespace omnis::vst3

@@ -25,13 +25,21 @@
 //  et coupures sont exclus (trames à plus de 20 dB sous le 95e centile).
 //
 //  Non temps réel (alloue) : analyse d'une référence ou d'une prod complète,
-//  sur un thread de calcul dans le plug-in.
+//  sur un thread de calcul dans le plug-in. SignatureAccumulator fait la même
+//  analyse au fil de l'eau (bloc par bloc, pendant la lecture dans le DAW) ;
+//  analyzeSignature() n'en est que l'appel en une fois : résultats identiques.
 // =============================================================================
 #pragma once
 
+#include "LoudnessMeter.h"
+#include "TruePeakMeter.h"
+
+#include "dsp/Fft.h"
 #include "params/Parameters.h"
 
 #include <array>
+#include <complex>
+#include <vector>
 
 namespace omnis::analysis {
 
@@ -54,6 +62,43 @@ struct SpectralSignature {
     static constexpr int kSubBands = 5; ///< nœuds 20 … 80 Hz
     /// Largeur : Side − Mid au nœud (dB).
     [[nodiscard]] double widthDb(int band) const noexcept { return sideDb[static_cast<std::size_t>(band)] - midDb[static_cast<std::size_t>(band)]; }
+};
+
+/// Analyse au fil de l'eau. Non temps réel : push() alloue quand le nombre de
+/// trames grandit (à appeler depuis un thread d'analyse, jamais le thread audio).
+class SignatureAccumulator {
+public:
+    void prepare(double sampleRate);
+    void reset();
+    void push(const double* left, const double* right, int numFrames);
+
+    [[nodiscard]] double secondsAnalysed() const noexcept { return sampleRate_ > 0.0 ? static_cast<double>(samples_) / sampleRate_ : 0.0; }
+    [[nodiscard]] double integratedLufs() const noexcept { return loudness_.integratedLufs(); }
+    [[nodiscard]] SpectralSignature result() const;
+
+private:
+    struct NodeWeights {
+        int firstBin = 0;
+        std::vector<double> weight; ///< déjà multiplié par f (puissance par octave)
+        double norm = 0.0;
+    };
+    struct Frame {
+        BandArray mid{}, side{};
+        double total = 0.0;
+    };
+    void analyseFrame();
+
+    double sampleRate_ = 0.0;
+    int n_ = 0;
+    long long samples_ = 0;
+    dsp::Fft fft_;
+    std::vector<double> window_, pendingL_, pendingR_, pm_, ps_;
+    int filled_ = 0;
+    std::vector<std::complex<double>> buf_;
+    std::array<NodeWeights, params::kMatchBands> nodes_{};
+    std::vector<Frame> frames_;
+    LoudnessMeter loudness_;
+    TruePeakMeter peaks_;
 };
 
 SpectralSignature analyzeSignature(const double* left, const double* right, int numFrames, double sampleRate);

@@ -109,6 +109,11 @@ private:
 /// entrées MESURÉES ; les entrées connues de nom seulement sont ignorées.
 analysis::SpectralSignature aggregateSignature(const std::vector<const ReferenceEntry*>& entries);
 
+/// Ajoute une entrée à un fichier de base (créé au besoin) ; écriture dans un
+/// fichier temporaire puis renommage : jamais de base à moitié écrite.
+/// Non temps réel.
+bool addToLibraryFile(const std::string& path, const ReferenceEntry& entry);
+
 /// Comparaison tolérante de deux noms (« 2 hollis » = « 2hollis » = « 2holis ») ;
 /// exacte sous 5 caractères (« trop » n'est pas le genre « trap »).
 bool namesMatch(std::string_view a, std::string_view b);

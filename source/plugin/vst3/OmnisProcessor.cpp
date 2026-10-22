@@ -7,6 +7,8 @@
 #include "OmnisIds.h"
 #include "OmnisState.h"
 
+#include "ai/ReferenceLibrary.h"
+#include "core/UserDataDir.h"
 #include "engine/MasteringChain.h"
 
 #include "pluginterfaces/base/ibstream.h"
@@ -15,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <ctime>
 
 namespace omnis::vst3 {
 
@@ -25,9 +28,26 @@ using params::ParamKind;
 
 namespace {
 
-constexpr std::array<ParamId, 6> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
+constexpr std::array<ParamId, 8> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
                                            ParamId::MeterIntegrated, ParamId::MeterTruePeak,
-                                           ParamId::MeterCorrelation, ParamId::MeterLoudnessRange};
+                                           ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
+                                           ParamId::MeterRefSeconds, ParamId::MeterRefLufs};
+
+/// En dessous, l'écoute est jugée trop courte pour décrire un titre.
+constexpr double kMinReferenceSeconds = 5.0;
+
+std::string nowLabel() {
+    const std::time_t t = std::time(nullptr);
+    std::tm local{};
+#ifdef _WIN32
+    localtime_s(&local, &t);
+#else
+    localtime_r(&t, &local);
+#endif
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &local);
+    return buf;
+}
 
 double meterPlainValue(ParamId id, const MeterReadout& m) {
     switch (id) {
@@ -46,6 +66,7 @@ double meterPlainValue(ParamId id, const MeterReadout& m) {
 OmnisProcessor::OmnisProcessor() {
     setControllerClass(FUID::fromTUID(kControllerUID));
     buildMasteringChain(engine_);
+    capture_.setCompletionHandler([this](const ReferenceCapture::Result& r) { onCaptureFinished(r); });
     static_assert(kMeterIds.size() <= std::tuple_size_v<decltype(lastMeterValues_)>);
     const auto all = params::allParameters();
     for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i)
@@ -53,24 +74,52 @@ OmnisProcessor::OmnisProcessor() {
     lastMeterValues_.fill(-1.0);
 }
 
-OmnisProcessor::~OmnisProcessor() = default;
+OmnisProcessor::~OmnisProcessor() { capture_.release(); }
+
+void OmnisProcessor::onCaptureFinished(const ReferenceCapture::Result& r) {
+    if (r.referenceSeconds < kMinReferenceSeconds || r.reference.activeFrames == 0) return;
+    ai::ReferenceEntry ref;
+    ref.artist = "Référence écoutée";
+    ref.title = nowLabel();
+    ref.signature = r.reference;
+    // Dans la base de la personne : réutilisable dans toutes ses sessions.
+    ai::addToLibraryFile((userDataDir() / "references_utilisateur.txt").string(), ref);
+    // Dans la session : la référence ET la prod au moment de l'écoute.
+    ai::ReferenceLibrary session;
+    session.add(ref);
+    ai::ReferenceEntry prod;
+    prod.artist = "Prod";
+    prod.title = ref.title;
+    prod.signature = r.prod;
+    prod.measured = r.prod.activeFrames > 0;
+    session.add(prod);
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    capturedText_ = session.serialize();
+}
 
 tresult PLUGIN_API OmnisProcessor::initialize(FUnknown* context) {
     const tresult result = AudioEffect::initialize(context);
     if (result != kResultOk) return result;
     addAudioInput(STR16("Stereo In"), SpeakerArr::kStereo);
+    // Sidechain : la référence que la personne joue dans son projet.
+    addAudioInput(STR16("Reference"), SpeakerArr::kStereo, BusTypes::kAux, 0);
     addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
     return kResultOk;
 }
 
-tresult PLUGIN_API OmnisProcessor::terminate() { return AudioEffect::terminate(); }
+tresult PLUGIN_API OmnisProcessor::terminate() {
+    capture_.release();
+    return AudioEffect::terminate();
+}
 
 tresult PLUGIN_API OmnisProcessor::setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
                                                       SpeakerArrangement* outputs, int32 numOuts) {
-    // Mastering stéréo uniquement : 1 entrée stéréo -> 1 sortie stéréo.
-    if (numIns == 1 && numOuts == 1 && inputs[0] == SpeakerArr::kStereo && outputs[0] == SpeakerArr::kStereo)
-        return AudioEffect::setBusArrangements(inputs, numIns, outputs, numOuts);
-    return kResultFalse;
+    // Mastering stéréo : entrée stéréo -> sortie stéréo, plus la référence
+    // (stéréo ou mono) sur l'entrée auxiliaire.
+    if (numOuts != 1 || outputs[0] != SpeakerArr::kStereo || numIns < 1 || numIns > 2 || inputs[0] != SpeakerArr::kStereo)
+        return kResultFalse;
+    if (numIns == 2 && inputs[1] != SpeakerArr::kStereo && inputs[1] != SpeakerArr::kMono) return kResultFalse;
+    return AudioEffect::setBusArrangements(inputs, numIns, outputs, numOuts);
 }
 
 tresult PLUGIN_API OmnisProcessor::canProcessSampleSize(int32 symbolicSampleSize) {
@@ -93,6 +142,7 @@ tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
                                       params::toPlain(all[i], normalized_[i].load(std::memory_order_relaxed)));
     }
     pendingState_.store(false, std::memory_order_relaxed);
+    sampleRate_ = setup.sampleRate;
     meterIntervalSamples_ = std::max(1, static_cast<int>(setup.sampleRate / 30.0)); // ~30 Hz
     meterCountdown_ = 0;
     return kResultOk;
@@ -103,6 +153,12 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         engine_.reset();
         transportWasPlaying_ = false;
         lastMeterValues_.fill(-1.0);
+        // Hors thread audio : files et thread d'analyse de l'écoute.
+        capture_.prepare(sampleRate_);
+        const int index = params::parameterIndex(ParamId::RefCapture);
+        capture_.setCapturing(index >= 0 && normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed) >= 0.5);
+    } else {
+        capture_.release();
     }
     return AudioEffect::setActive(state);
 }
@@ -121,6 +177,7 @@ void OmnisProcessor::applyParameter(ParamID id, ParamValue normalized, bool imme
     if (index >= 0 && index < static_cast<int>(kMaxParams))
         normalized_[static_cast<std::size_t>(index)].store(normalized, std::memory_order_relaxed);
     const double plain = params::toPlain(*spec, normalized);
+    if (spec->id == ParamId::RefCapture) capture_.setCapturing(plain >= 0.5);
     if (immediate)
         engine_.setParameterImmediate(spec->id, plain);
     else
@@ -216,7 +273,9 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
     for (std::size_t i = 0; i < kMeterIds.size(); ++i) {
         const auto* spec = params::findParameter(kMeterIds[i]);
         if (!spec) continue;
-        double plain = meterPlainValue(kMeterIds[i], readout);
+        double plain = kMeterIds[i] == ParamId::MeterRefSeconds ? capture_.referenceSeconds()
+                       : kMeterIds[i] == ParamId::MeterRefLufs  ? capture_.referenceLufs()
+                                                                : meterPlainValue(kMeterIds[i], readout);
         if (!std::isfinite(plain)) plain = spec->minValue; // -inf LUFS -> bas d'échelle
         const double normalized = params::toNormalized(*spec, plain);
         if (std::fabs(normalized - lastMeterValues_[i]) < 1.0e-5) continue;
@@ -243,6 +302,22 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
                            false);
         numEvents_ = 0;
         return kResultOk;
+    }
+
+    // Écoute de la référence : copie vers le thread d'analyse AVANT le
+    // traitement (l'hôte peut traiter en place). La prod est mesurée en même temps.
+    if (capture_.capturing()) {
+        const bool aux = data.numInputs > 1 && data.inputs[1].numChannels > 0;
+        const int auxChannels = aux ? data.inputs[1].numChannels : 0;
+        if (data.symbolicSampleSize == kSample64) {
+            const double* refL = aux ? data.inputs[1].channelBuffers64[0] : nullptr;
+            const double* refR = auxChannels > 1 ? data.inputs[1].channelBuffers64[1] : refL;
+            capture_.push(refL, refR, data.inputs[0].channelBuffers64[0], data.inputs[0].channelBuffers64[1], data.numSamples);
+        } else {
+            const float* refL = aux ? data.inputs[1].channelBuffers32[0] : nullptr;
+            const float* refR = auxChannels > 1 ? data.inputs[1].channelBuffers32[1] : refL;
+            capture_.push(refL, refR, data.inputs[0].channelBuffers32[0], data.inputs[0].channelBuffers32[1], data.numSamples);
+        }
     }
 
     if (data.symbolicSampleSize == kSample64)
@@ -273,6 +348,11 @@ tresult PLUGIN_API OmnisProcessor::setState(IBStream* state) {
         if (index >= 0 && index < static_cast<int>(kMaxParams)) values[static_cast<std::size_t>(index)] = value;
     });
     if (!ok) return kResultFalse;
+    std::string extras;
+    if (readExtras(state, extras)) {
+        std::lock_guard<std::mutex> lock(captureMutex_);
+        capturedText_ = std::move(extras);
+    }
 
     for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i)
         normalized_[i].store(values[i], std::memory_order_relaxed);
@@ -287,7 +367,9 @@ tresult PLUGIN_API OmnisProcessor::getState(IBStream* state) {
                    ? normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed)
                    : 0.0;
     });
-    return ok ? kResultOk : kResultFalse;
+    if (!ok) return kResultFalse;
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    return writeExtras(state, capturedText_) ? kResultOk : kResultFalse;
 }
 
 } // namespace omnis::vst3

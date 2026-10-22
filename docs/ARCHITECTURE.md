@@ -101,7 +101,7 @@ par paramètre). Les rafales au-delà de la capacité sont réduites au dernier 
 |---|---|---|
 | Hôte → DSP (paramètres) | Files d'automation VST3, découpage échantillon-précis | ✅ Module 1 |
 | DSP → contrôleur (mesures) | Paramètres de sortie en lecture seule, ~30 Hz | ✅ Module 1 |
-| Thread audio → thread d'analyse / IA (snapshots audio) | `SpscRingBuffer<T>` (wait-free, perte plutôt qu'attente si plein) | primitive prête, câblage module 4–5 |
+| Thread audio → thread d'analyse (écoute d'une référence) | `ReferenceCapture` : deux `SpscRingBuffer` (référence + prod), perte plutôt qu'attente si plein | ✅ |
 | Thread audio → thread de calcul (réglages du Sub Control) | `TripleBuffer<SubKernelRequest>` | ✅ Module 2 |
 | Thread de calcul → DSP (noyaux FIR du Sub Control) | Banque de 3 emplacements à état atomique (`Free → Writing → Ready → Active → Retiring`), fondu d'une trame | ✅ Module 2 |
 | Thread de calcul → DSP (noyaux du Match EQ) | Même banque (`FirKernelBank<Request, Designer>`) | ✅ Module 4 |

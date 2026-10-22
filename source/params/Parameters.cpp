@@ -31,6 +31,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::InputGain,         "input_gain",    "Input Gain",           "In",     "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::OutputGain,        "output_gain",   "Output Gain",          "Out",    "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::Monitor,           "monitor",       "Monitor",              "Mon",    "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kMonitorLabels, 15.0,   0},
+    {ParamId::RefCapture,        "ref_capture",   "Listen Reference",     "Ref",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
 
     // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence
     // (voir docs/CALIBRATION_MODULE2.md).
@@ -137,6 +138,8 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::MeterTruePeak,     "meter_tp",      "True Peak",            "TP",     "dBTP", ParamKind::Meter,      -80.0,  12.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterCorrelation,  "meter_corr",    "Phase Correlation",    "Corr",   "",     ParamKind::Meter,      -1.0,   1.0,   0.0,   0,    {},             0.0,    2},
     {ParamId::MeterLoudnessRange,"meter_lra",     "Loudness Range",       "LRA",    "LU",   ParamKind::Meter,      0.0,    40.0,  0.0,   0,    {},             0.0,    1},
+    {ParamId::MeterRefSeconds,   "meter_ref_s",   "Reference Listened",   "RefS",   "s",    ParamKind::Meter,      0.0,    600.0, 0.0,   0,    {},             0.0,    0},
+    {ParamId::MeterRefLufs,      "meter_ref_lufs","Reference Loudness",   "RefI",   "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
 }};
 // clang-format on
 static_assert(kParameters.size() == kParameterCount, "kParameterCount doit suivre la table");
