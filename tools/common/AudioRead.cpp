@@ -27,7 +27,9 @@ std::string extensionOf(const std::filesystem::path& path) {
 bool readBytes(const std::filesystem::path& path, std::vector<unsigned char>& data) {
     std::ifstream in(path, std::ios::binary | std::ios::ate);
     if (!in) return false;
-    const auto size = static_cast<std::size_t>(in.tellg());
+    const auto end = in.tellg();
+    if (end < 0) return false;
+    const auto size = static_cast<std::size_t>(end);
     data.resize(size);
     in.seekg(0);
     return static_cast<bool>(in.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(size)));
