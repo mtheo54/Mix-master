@@ -43,6 +43,7 @@ OMNIS_TEST("capture: signature de la référence jouée = signature du fichier (
         got = r;
         done.store(1);
     });
+    c.setMinimumSeconds(10.0);
     c.prepare(kFs);
     c.setCapturing(true);
     play(c, ref, prod);
@@ -74,4 +75,31 @@ OMNIS_TEST("capture: rien n'est poussé hors écoute, et une file pleine perd de
     OMNIS_CHECK(ms < 50.0);
     OMNIS_CHECK(c.droppedSamples() > 0);
     c.setCapturing(false);
+}
+
+OMNIS_TEST("capture: écoute trop courte gardée, la suivante s'y ajoute ; retenue au-delà du minimum") {
+    auto ref = tools::signals::pinkNoise(kFs, 8.0, -14.0, 41, true);
+    std::atomic<int> done{0};
+    double seconds = 0.0;
+    ReferenceCapture c;
+    c.setCompletionHandler([&](const ReferenceCapture::Result& r) {
+        seconds = r.referenceSeconds;
+        done.fetch_add(1);
+    });
+    c.setMinimumSeconds(12.0);
+    c.prepare(kFs);
+    const auto pass = [&] {
+        c.setCapturing(true);
+        play(c, ref, ref);
+        c.setCapturing(false);
+        for (int i = 0; i < 200 && c.pending() > 0; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    };
+    pass(); // 8 s : trop court
+    OMNIS_CHECK(done.load() == 0);
+    OMNIS_CHECK_NEAR(c.referenceSeconds(), 8.0, 0.1);
+    pass(); // + 8 s = 16 s : retenue
+    for (int i = 0; i < 400 && done.load() == 0; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    OMNIS_CHECK(done.load() == 1);
+    OMNIS_CHECK_NEAR(seconds, 16.0, 0.1);
 }

@@ -46,7 +46,10 @@ Seuls les éléments **persistants** sont mesurés :
 - dynamique de chaque bande (P90 − P10 du niveau dans le temps) ;
 - sonie intégrée, LRA, true peak, PLR.
 
-Les silences, intros et coupures sont exclus (porte à −20 dB du 95e centile).
+Seul le **cœur du morceau** est mesuré : les trames à plus de 10 dB sous le 95e centile sont
+écartées (intros, breaks, fins calmes, silences). La porte était d'abord à −20 dB : une intro sombre
+à −17 dB entrait dans la mesure et décalait la balance jusqu'à 3.4 dB (test). Sur les références
+denses, le passage à −10 dB ne change presque rien (sub +0.14 / +0.19 dB).
 
 **Pourquoi des bandes compactes et un bloc sub.** Le spectre fin dépend des notes : une 808 en Fa
 et une 808 en La n'ont pas leur fondamentale au même endroit. Ce sont des choix d'arrangement, pas

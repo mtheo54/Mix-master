@@ -6,6 +6,9 @@
 
 #include "core/Decibels.h"
 
+#include <future>
+#include <thread>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -57,9 +60,9 @@ void SignatureAccumulator::prepare(double sampleRate) {
     for (int i = 0; i < n_; ++i) window_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(2.0 * std::numbers::pi * i / n_);
     pendingL_.assign(static_cast<std::size_t>(n_), 0.0);
     pendingR_.assign(static_cast<std::size_t>(n_), 0.0);
-    pm_.assign(static_cast<std::size_t>(bins), 0.0);
-    ps_.assign(static_cast<std::size_t>(bins), 0.0);
-    buf_.assign(static_cast<std::size_t>(n_), {});
+    workspace_.pm.assign(static_cast<std::size_t>(bins), 0.0);
+    workspace_.ps.assign(static_cast<std::size_t>(bins), 0.0);
+    workspace_.buf.assign(static_cast<std::size_t>(n_), {});
     for (int k = 0; k < kBands; ++k) {
         const double fc = params::matchBandHz(k);
         auto& w = nodes_[static_cast<std::size_t>(k)];
@@ -87,6 +90,7 @@ void SignatureAccumulator::prepare(double sampleRate) {
 
 void SignatureAccumulator::reset() {
     filled_ = 0;
+    parallelTruePeak_ = -1.0;
     samples_ = 0;
     frames_.clear();
     loudness_.reset();
@@ -106,7 +110,8 @@ void SignatureAccumulator::push(const double* left, const double* right, int num
         filled_ += take;
         i += take;
         if (filled_ == n_) {
-            analyseFrame();
+            frames_.emplace_back();
+            analyseFrame(pendingL_.data(), pendingR_.data(), workspace_, frames_.back());
             // Recouvrement de 50 % : la seconde moitié devient le début de la trame suivante.
             std::copy(pendingL_.begin() + hop, pendingL_.end(), pendingL_.begin());
             std::copy(pendingR_.begin() + hop, pendingR_.end(), pendingR_.begin());
@@ -115,48 +120,47 @@ void SignatureAccumulator::push(const double* left, const double* right, int num
     }
 }
 
-void SignatureAccumulator::analyseFrame() {
+void SignatureAccumulator::analyseFrame(const double* left, const double* right, Workspace& ws, Frame& fr) const {
     const int bins = n_ / 2;
     // Mid en partie réelle, Side en partie imaginaire : une FFT pour deux.
     for (int i = 0; i < n_; ++i) {
         const auto idx = static_cast<std::size_t>(i);
         const double w = window_[idx];
-        buf_[idx] = {0.5 * (pendingL_[idx] + pendingR_[idx]) * w, 0.5 * (pendingL_[idx] - pendingR_[idx]) * w};
+        ws.buf[idx] = {0.5 * (left[i] + right[i]) * w, 0.5 * (left[i] - right[i]) * w};
     }
-    fft_.forward(buf_.data());
-    Frame fr;
+    fft_.forward(ws.buf.data());
+    fr = Frame{};
     for (int b = 1; b < bins; ++b) {
-        const auto z = buf_[static_cast<std::size_t>(b)];
-        const auto zc = std::conj(buf_[static_cast<std::size_t>(n_ - b)]);
-        pm_[static_cast<std::size_t>(b)] = std::norm(0.5 * (z + zc));
-        ps_[static_cast<std::size_t>(b)] = std::norm(0.5 * (z - zc));
-        fr.total += pm_[static_cast<std::size_t>(b)] + ps_[static_cast<std::size_t>(b)];
+        const auto z = ws.buf[static_cast<std::size_t>(b)];
+        const auto zc = std::conj(ws.buf[static_cast<std::size_t>(n_ - b)]);
+        ws.pm[static_cast<std::size_t>(b)] = std::norm(0.5 * (z + zc));
+        ws.ps[static_cast<std::size_t>(b)] = std::norm(0.5 * (z - zc));
+        fr.total += ws.pm[static_cast<std::size_t>(b)] + ws.ps[static_cast<std::size_t>(b)];
     }
     for (int k = 0; k < kBands; ++k) {
         const auto& w = nodes_[static_cast<std::size_t>(k)];
         double am = 0.0, as = 0.0;
         for (std::size_t j = 0; j < w.weight.size(); ++j) {
-            am += w.weight[j] * pm_[static_cast<std::size_t>(w.firstBin) + j];
-            as += w.weight[j] * ps_[static_cast<std::size_t>(w.firstBin) + j];
+            am += w.weight[j] * ws.pm[static_cast<std::size_t>(w.firstBin) + j];
+            as += w.weight[j] * ws.ps[static_cast<std::size_t>(w.firstBin) + j];
         }
         fr.mid[static_cast<std::size_t>(k)] = w.norm > 0.0 ? am / w.norm : 0.0;
         fr.side[static_cast<std::size_t>(k)] = w.norm > 0.0 ? as / w.norm : 0.0;
     }
-    frames_.push_back(fr);
 }
 
 SpectralSignature SignatureAccumulator::result() const {
     SpectralSignature sig;
     sig.integratedLufs = loudness_.integratedLufs();
     sig.loudnessRangeLu = loudness_.loudnessRangeLu();
-    sig.truePeakDb = gainToDb(peaks_.truePeakMax());
+    sig.truePeakDb = gainToDb(parallelTruePeak_ >= 0.0 ? parallelTruePeak_ : peaks_.truePeakMax());
     sig.plrDb = std::isfinite(sig.integratedLufs) ? sig.truePeakDb - sig.integratedLufs : 0.0;
     if (frames_.empty()) return sig;
 
     // ---- Porte : seules les trames « actives » décrivent le mix ---------------
     std::vector<double> totals;
     for (const auto& f : frames_) totals.push_back(f.total);
-    const double gate = percentile(totals, 0.95) * 0.01; // −20 dB
+    const double gate = percentile(totals, 0.95) * dbToPower(-kCoreGateDb); // cœur du morceau
     std::array<double, kBands> sumM{}, sumS{};
     std::array<std::vector<double>, kBands> levels;
     for (const auto& f : frames_) {
@@ -178,6 +182,58 @@ SpectralSignature SignatureAccumulator::result() const {
     for (std::size_t k = 0; k < static_cast<std::size_t>(SpectralSignature::kSubBands); ++k) sub += sumM[k] / count;
     sig.subEnergyDb = powerToDb(sub, -200.0);
     return sig;
+}
+
+SpectralSignature SignatureAccumulator::analyzeParallel(const double* left, const double* right, int numFrames, double sampleRate,
+                                                        unsigned threads) {
+    if (threads == 0) threads = std::max(1u, std::thread::hardware_concurrency());
+    SignatureAccumulator a;
+    a.prepare(sampleRate);
+    const int hop = a.n_ / 2;
+    const int count = numFrames >= a.n_ ? (numFrames - a.n_) / hop + 1 : 0;
+    a.frames_.resize(static_cast<std::size_t>(count));
+    a.samples_ = numFrames;
+
+    std::vector<std::future<double>> peaks;
+    std::vector<std::future<void>> frames;
+    const unsigned parts = std::min<unsigned>(threads, static_cast<unsigned>(std::max(1, count)));
+    for (unsigned t = 0; t < parts; ++t) {
+        // Trames [j0, j1) : chaque thread a son espace de travail, la FFT est partagée (lecture seule).
+        const int j0 = static_cast<int>(static_cast<long long>(count) * t / parts);
+        const int j1 = static_cast<int>(static_cast<long long>(count) * (t + 1) / parts);
+        frames.push_back(std::async(std::launch::async, [&a, left, right, j0, j1, hop] {
+            Workspace ws;
+            ws.buf.assign(static_cast<std::size_t>(a.n_), {});
+            ws.pm.assign(static_cast<std::size_t>(a.n_ / 2), 0.0);
+            ws.ps.assign(static_cast<std::size_t>(a.n_ / 2), 0.0);
+            for (int j = j0; j < j1; ++j)
+                a.analyseFrame(left + static_cast<std::ptrdiff_t>(j) * hop, right + static_cast<std::ptrdiff_t>(j) * hop, ws,
+                               a.frames_[static_cast<std::size_t>(j)]);
+        }));
+        // Crête vraie du segment [s0, s1), amorcée par les échantillons qui le précèdent.
+        const int s0 = static_cast<int>(static_cast<long long>(numFrames) * t / parts);
+        const int s1 = static_cast<int>(static_cast<long long>(numFrames) * (t + 1) / parts);
+        peaks.push_back(std::async(std::launch::async, [left, right, s0, s1] {
+            TruePeakMeter meter;
+            meter.prepare(2);
+            const int prime = std::min(s0, TruePeakMeter::kTapsPerPhase - 1);
+            if (prime > 0) {
+                const double* ch[2] = {left + s0 - prime, right + s0 - prime};
+                meter.process(ch, prime);
+                meter.resetPeaks();
+            }
+            const double* ch[2] = {left + s0, right + s0};
+            meter.process(ch, s1 - s0);
+            return meter.truePeakMax();
+        }));
+    }
+    const double* ch[2] = {left, right};
+    a.loudness_.process(ch, numFrames); // séquentielle (filtres et porte), et rapide
+    double tp = 0.0;
+    for (auto& f : peaks) tp = std::max(tp, f.get());
+    for (auto& f : frames) f.get();
+    a.parallelTruePeak_ = tp;
+    return a.result();
 }
 
 SpectralSignature analyzeSignature(const double* left, const double* right, int numFrames, double sampleRate) {

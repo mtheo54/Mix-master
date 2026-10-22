@@ -17,6 +17,11 @@
 //                    files dans les accumulateurs. Quand l'écoute s'arrête
 //                    (setCapturing(false)), il termine l'analyse et appelle le
 //                    gestionnaire de fin — sur SON thread, jamais l'audio.
+//
+//  Durée : une référence n'est retenue qu'après au moins 60 s de son non
+//  silencieux (5 s, c'était parfois l'intro). Les écoutes s'ADDITIONNENT :
+//  couper puis relancer reprend là où on en était (on peut jouer le couplet,
+//  puis le refrain) ; la mesure repart de zéro une fois la référence retenue.
 // =============================================================================
 #pragma once
 
@@ -51,6 +56,9 @@ public:
     void release();
     /// Avant prepare().
     void setCompletionHandler(CompletionHandler handler) { handler_ = std::move(handler); }
+    /// Avant prepare(). Durée d'écoute minimale avant de retenir la référence.
+    void setMinimumSeconds(double seconds) { minimumSeconds_ = seconds; }
+    static constexpr double kDefaultMinimumSeconds = 60.0;
 
     // ---- Thread audio --------------------------------------------------------
     void setCapturing(bool on) noexcept { capturing_.store(on, std::memory_order_release); }
@@ -76,6 +84,7 @@ private:
     std::size_t drain(bool& sawSignal);
 
     double sampleRate_ = 48000.0;
+    double minimumSeconds_ = kDefaultMinimumSeconds;
     SpscRingBuffer<Frame> refRing_, prodRing_;
     std::atomic<bool> capturing_{false}, running_{false};
     std::atomic<double> refSeconds_{0.0}, refLufs_{-70.0};
@@ -89,6 +98,7 @@ private:
     std::vector<Frame> chunkRef_, chunkProd_;
     std::vector<double> l_, r_, pl_, pr_;
     double activeSamples_ = 0.0;
+    bool fresh_ = true; ///< la prochaine écoute repart de zéro
 
     mutable std::mutex resultMutex_;
     Result result_;

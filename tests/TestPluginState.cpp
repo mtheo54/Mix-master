@@ -96,8 +96,9 @@ OMNIS_TEST("plug-in: la référence jouée sur l'entrée auxiliaire entre dans l
     OMNIS_CHECK(data.prepare(*p, 512, kSample32));
     OMNIS_CHECK(data.numInputs == 2);
     ParameterChanges changes(8), outChanges(32);
-    const auto ref = tools::signals::pinkNoise(48000.0, 6.0, -14.0, 31, true);
-    const auto prod = tools::signals::pinkNoise(48000.0, 6.0, -26.0, 32, true);
+    // 61 s : il faut au moins 60 s d'écoute pour retenir une référence.
+    const auto ref = tools::signals::pinkNoise(48000.0, 61.0, -14.0, 31, true);
+    const auto prod = tools::signals::pinkNoise(48000.0, 61.0, -26.0, 32, true);
     const auto block = [&](int pos, int capture) {
         changes.clearQueue();
         outChanges.clearQueue();
@@ -118,11 +119,16 @@ OMNIS_TEST("plug-in: la référence jouée sur l'entrée auxiliaire entre dans l
         return p->process(data);
     };
     OMNIS_CHECK(block(0, 1) == kResultOk); // « Listen Reference » activé
-    for (int pos = 512; pos + 512 <= ref.numFrames(); pos += 512) block(pos, -1);
+    for (int pos = 512; pos + 512 <= ref.numFrames(); pos += 512) {
+        block(pos, -1);
+        // Un vrai hôte joue en temps réel ; on joue ~20x plus vite, ce que
+        // l'analyse suit sans perdre d'échantillons.
+        if ((pos / 512) % 2 == 0) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
     block(0, 0); // arrêt de l'écoute
 
     const fs::path library = dir / "references_utilisateur.txt";
-    for (int i = 0; i < 600 && !fs::exists(library); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    for (int i = 0; i < 1000 && !fs::exists(library); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(5));
     OMNIS_CHECK(fs::exists(library));
     std::ifstream in(library);
     std::stringstream text;
@@ -139,6 +145,49 @@ OMNIS_TEST("plug-in: la référence jouée sur l'entrée auxiliaire entre dans l
     OMNIS_CHECK(extras.find("Prod") != std::string::npos && extras.find("Référence écoutée") != std::string::npos);
 
     p->setProcessing(false);
+    p->setActive(false);
+    p->terminate();
+    fs::remove_all(dir);
+}
+
+OMNIS_TEST("plug-in: une écoute de moins de 60 s n'est pas retenue") {
+    using namespace Steinberg::Vst;
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::temp_directory_path() / "omnis_test_user_data_short";
+    fs::remove_all(dir);
+    setUserDataDir(dir.string());
+    IPtr<vst3::OmnisProcessor> p = owned(new vst3::OmnisProcessor());
+    p->initialize(nullptr);
+    SpeakerArrangement ins[2] = {SpeakerArr::kStereo, SpeakerArr::kStereo}, outs[1] = {SpeakerArr::kStereo};
+    p->setBusArrangements(ins, 2, outs, 1);
+    p->activateBus(kAudio, kInput, 1, true);
+    ProcessSetup setup{kRealtime, kSample32, 512, 48000.0};
+    p->setupProcessing(setup);
+    p->setActive(true);
+    HostProcessData data;
+    data.prepare(*p, 512, kSample32);
+    ParameterChanges changes(8), outChanges(32);
+    const auto play = [&](int blocks, int capture) {
+        for (int b = 0; b < blocks; ++b) {
+            changes.clearQueue();
+            outChanges.clearQueue();
+            if (b == 0 && capture >= 0) {
+                int32 q = 0, point = 0;
+                if (IParamValueQueue* queue = changes.addParameterData(static_cast<ParamID>(params::ParamId::RefCapture), q))
+                    queue->addPoint(0, capture, point);
+            }
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < 512; ++i) data.inputs[1].channelBuffers32[c][i] = 0.3f * std::sin(0.05f * static_cast<float>(i + 512 * b));
+            data.numSamples = 512;
+            data.inputParameterChanges = &changes;
+            data.outputParameterChanges = &outChanges;
+            p->process(data);
+        }
+    };
+    play(940, 1); // 10 s
+    play(1, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    OMNIS_CHECK(!fs::exists(dir / "references_utilisateur.txt"));
     p->setActive(false);
     p->terminate();
     fs::remove_all(dir);

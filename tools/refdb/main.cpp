@@ -24,7 +24,10 @@
 #include "analysis/SpectralSignature.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
+#include <chrono>
+#include <thread>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -64,11 +67,12 @@ ai::ReferenceLibrary openDb(const std::string& db) {
     return user;
 }
 
-bool measure(const std::string& path, ai::ReferenceEntry& e, std::string& error) {
+/// `threads` : threads pour CE fichier (1 quand plusieurs fichiers sont mesurés en parallèle).
+bool measure(const std::string& path, ai::ReferenceEntry& e, std::string& error, unsigned threads = 0) {
     AudioFile f;
     if (!readAudioFile(path, f, error)) return false;
     const auto& r = f.channels[std::min<std::size_t>(1, f.channels.size() - 1)];
-    e.signature = analysis::analyzeSignature(f.channels[0].data(), r.data(), f.numFrames(), f.sampleRate);
+    e.signature = analysis::SignatureAccumulator::analyzeParallel(f.channels[0].data(), r.data(), f.numFrames(), f.sampleRate, threads);
     e.measured = true;
     return true;
 }
@@ -174,24 +178,46 @@ int main(int argc, char** argv) {
         for (const auto& entry : std::filesystem::recursive_directory_iterator(input, ec))
             if (entry.is_regular_file() && isReadableAudio(entry.path().string())) files.push_back(entry.path());
         std::sort(files.begin(), files.end());
-        int added = 0;
-        for (const auto& path : files) {
-            // « Artiste - Titre » ; sans tiret : le nom de fichier est l'artiste.
-            const std::string stem = path.stem().string();
-            ai::ReferenceEntry e;
-            const auto dash = stem.find(" - ");
-            e.artist = dash == std::string::npos ? stem : stem.substr(0, dash);
-            e.title = dash == std::string::npos ? std::string() : stem.substr(dash + 3);
-            e.genres = list(genres);
+        // Un fichier par cœur : décodage et analyse en parallèle, résultats
+        // rangés dans l'ordre des fichiers.
+        struct Job {
+            ai::ReferenceEntry entry;
             std::string error;
-            if (!measure(path.string(), e, error)) {
-                std::printf("  ignoré : %s (%s)\n", path.filename().string().c_str(), error.c_str());
+            bool ok = false;
+        };
+        std::vector<Job> jobs(files.size());
+        std::atomic<std::size_t> next{0};
+        const unsigned workers = std::max(1u, std::min<unsigned>(std::thread::hardware_concurrency(), static_cast<unsigned>(files.size())));
+        const auto t0 = std::chrono::steady_clock::now();
+        std::vector<std::thread> pool;
+        for (unsigned w = 0; w < workers; ++w)
+            pool.emplace_back([&] {
+                for (std::size_t i; (i = next.fetch_add(1)) < files.size();) {
+                    // « Artiste - Titre » ; sans tiret : le nom de fichier est l'artiste.
+                    const std::string stem = files[i].stem().string();
+                    auto& job = jobs[i];
+                    const auto dash = stem.find(" - ");
+                    job.entry.artist = dash == std::string::npos ? stem : stem.substr(0, dash);
+                    job.entry.title = dash == std::string::npos ? std::string() : stem.substr(dash + 3);
+                    job.entry.genres = list(genres);
+                    job.ok = measure(files[i].string(), job.entry, job.error, 1);
+                }
+            });
+        for (auto& t : pool) t.join();
+        const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        int added = 0;
+        for (std::size_t i = 0; i < files.size(); ++i) {
+            const auto& job = jobs[i];
+            if (!job.ok) {
+                std::printf("  ignoré : %s (%s)\n", files[i].filename().string().c_str(), job.error.c_str());
                 continue;
             }
-            std::printf("  %-44s %6.1f LUFS  LRA %4.1f\n", e.displayName().c_str(), e.signature.integratedLufs, e.signature.loudnessRangeLu);
-            user.add(e);
+            std::printf("  %-44s %6.1f LUFS  LRA %4.1f\n", job.entry.displayName().c_str(), job.entry.signature.integratedLufs,
+                        job.entry.signature.loudnessRangeLu);
+            user.add(job.entry);
             ++added;
         }
+        std::printf("Mesuré en %.1f s sur %u cœur(s)\n", seconds, workers);
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%d son(s) mesuré(s) -> %s (%zu entrées)\n", added, db.c_str(), user.entries().size());
         return 0;

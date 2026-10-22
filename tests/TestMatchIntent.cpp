@@ -153,3 +153,39 @@ OMNIS_TEST("demande: 808 protégée, sonie explicite, brillance, ressemblance") 
     OMNIS_CHECK(c.targetLufs.has_value() && std::fabs(*c.targetLufs + 6.5) < 1e-12);
     OMNIS_CHECK_NEAR(c.maxTonalDeviationDb, 3.0, 1e-12);
 }
+
+OMNIS_TEST("signature: analyse parallèle = analyse séquentielle, au bit près") {
+    auto noise = tools::signals::pinkNoise(kFs, 30.0, -16.0, 51, true);
+    // Une intro calme puis le cœur du morceau.
+    for (std::size_t i = 0; i < static_cast<std::size_t>(5.0 * kFs); ++i) {
+        noise.channels[0][i] *= 0.05;
+        noise.channels[1][i] *= 0.05;
+    }
+    const auto a = analyzeSignature(noise.channels[0].data(), noise.channels[1].data(), noise.numFrames(), kFs);
+    for (unsigned threads : {2u, 3u, 4u}) {
+        const auto b = analysis::SignatureAccumulator::analyzeParallel(noise.channels[0].data(), noise.channels[1].data(),
+                                                                         noise.numFrames(), kFs, threads);
+        OMNIS_CHECK(a.midDb == b.midDb && a.sideDb == b.sideDb && a.midSpreadDb == b.midSpreadDb);
+        OMNIS_CHECK(a.truePeakDb == b.truePeakDb && a.integratedLufs == b.integratedLufs && a.activeFrames == b.activeFrames);
+    }
+}
+
+OMNIS_TEST("signature: l'intro calme n'entre pas dans le cœur du morceau") {
+    auto song = tools::signals::pinkNoise(kFs, 30.0, -16.0, 52, true);
+    // 10 s d'intro sombre, 17 dB plus bas (mesuré : assez fort pour passer l'ancienne
+    // porte à −20 dB, pas la porte du cœur à −10 dB).
+    const std::size_t intro = static_cast<std::size_t>(10.0 * kFs);
+    for (int ch = 0; ch < 2; ++ch) {
+        auto& x = song.channels[static_cast<std::size_t>(ch)];
+        double prev = 0.0;
+        for (std::size_t i = 0; i < intro; ++i) {
+            prev = 0.97 * prev + 0.03 * x[i];
+            x[i] = 0.2 * prev;
+        }
+    }
+    auto core = song;
+    for (auto& ch : core.channels) ch.erase(ch.begin(), ch.begin() + static_cast<std::ptrdiff_t>(intro));
+    const auto withIntro = analyzeSignature(song.channels[0].data(), song.channels[1].data(), song.numFrames(), kFs);
+    const auto coreOnly = analyzeSignature(core.channels[0].data(), core.channels[1].data(), core.numFrames(), kFs);
+    for (int k = 1; k < params::kMatchBands - 1; ++k) OMNIS_CHECK_NEAR(withIntro.relativeMidDb(k), coreOnly.relativeMidDb(k), 0.3);
+}

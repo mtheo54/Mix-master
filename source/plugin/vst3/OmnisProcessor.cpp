@@ -33,8 +33,6 @@ constexpr std::array<ParamId, 8> kMeterIds{ParamId::MeterMomentary, ParamId::Met
                                            ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
                                            ParamId::MeterRefSeconds, ParamId::MeterRefLufs};
 
-/// En dessous, l'écoute est jugée trop courte pour décrire un titre.
-constexpr double kMinReferenceSeconds = 5.0;
 
 std::string nowLabel() {
     const std::time_t t = std::time(nullptr);
@@ -77,7 +75,8 @@ OmnisProcessor::OmnisProcessor() {
 OmnisProcessor::~OmnisProcessor() { capture_.release(); }
 
 void OmnisProcessor::onCaptureFinished(const ReferenceCapture::Result& r) {
-    if (r.referenceSeconds < kMinReferenceSeconds || r.reference.activeFrames == 0) return;
+    // La durée minimale (60 s) est tenue par ReferenceCapture.
+    if (r.reference.activeFrames == 0) return;
     ai::ReferenceEntry ref;
     ref.artist = "Référence écoutée";
     ref.title = nowLabel();

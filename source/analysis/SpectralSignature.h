@@ -21,8 +21,11 @@
 //  (voir subEnergyDb et ai/MatchIntent).
 //
 //  Niveau d'un nœud = puissance par octave (densité × f) : un bruit rose est
-//  plat. Trames de 0.37 s (Hann, recouvrement 50 %) ; les silences, intros
-//  et coupures sont exclus (trames à plus de 20 dB sous le 95e centile).
+//  plat. Trames de 0.37 s (Hann, recouvrement 50 %). Seul le CŒUR du morceau
+//  est retenu : les trames à plus de 10 dB sous le 95e centile (intros,
+//  breaks, fins calmes, silences) sont exclues — c'est sur ses passages
+//  pleins qu'un master se juge. (Une porte à −20 dB laissait entrer les
+//  intros.)
 //
 //  Non temps réel (alloue) : analyse d'une référence ou d'une prod complète,
 //  sur un thread de calcul dans le plug-in. SignatureAccumulator fait la même
@@ -68,6 +71,9 @@ struct SpectralSignature {
 /// trames grandit (à appeler depuis un thread d'analyse, jamais le thread audio).
 class SignatureAccumulator {
 public:
+    /// Porte du cœur du morceau : trames à moins de 10 dB du 95e centile.
+    static constexpr double kCoreGateDb = 10.0;
+
     void prepare(double sampleRate);
     void reset();
     void push(const double* left, const double* right, int numFrames);
@@ -75,6 +81,13 @@ public:
     [[nodiscard]] double secondsAnalysed() const noexcept { return sampleRate_ > 0.0 ? static_cast<double>(samples_) / sampleRate_ : 0.0; }
     [[nodiscard]] double integratedLufs() const noexcept { return loudness_.integratedLufs(); }
     [[nodiscard]] SpectralSignature result() const;
+
+    /// Un fichier entier, réparti sur `threads` threads (0 : tous les cœurs).
+    /// Trames indépendantes et crête vraie découpée en segments amorcés par
+    /// les 47 échantillons précédents : résultat identique au bit près à
+    /// l'analyse séquentielle (testé).
+    static SpectralSignature analyzeParallel(const double* left, const double* right, int numFrames, double sampleRate,
+                                             unsigned threads = 0);
 
 private:
     struct NodeWeights {
@@ -86,15 +99,20 @@ private:
         BandArray mid{}, side{};
         double total = 0.0;
     };
-    void analyseFrame();
+    struct Workspace {
+        std::vector<std::complex<double>> buf;
+        std::vector<double> pm, ps;
+    };
+    void analyseFrame(const double* left, const double* right, Workspace& ws, Frame& out) const;
 
     double sampleRate_ = 0.0;
     int n_ = 0;
     long long samples_ = 0;
     dsp::Fft fft_;
-    std::vector<double> window_, pendingL_, pendingR_, pm_, ps_;
+    std::vector<double> window_, pendingL_, pendingR_;
     int filled_ = 0;
-    std::vector<std::complex<double>> buf_;
+    Workspace workspace_;
+    double parallelTruePeak_ = -1.0; ///< crête vraie calculée hors de peaks_ (analyse parallèle)
     std::array<NodeWeights, params::kMatchBands> nodes_{};
     std::vector<Frame> frames_;
     LoudnessMeter loudness_;

@@ -29,6 +29,7 @@ void ReferenceCapture::prepare(double sampleRate, double ringSeconds) {
     chunkProd_.resize(kChunk);
     for (auto* v : {&l_, &r_, &pl_, &pr_}) v->resize(kChunk);
     pending_.store(0, std::memory_order_relaxed);
+    fresh_ = true;
     running_.store(true, std::memory_order_release);
     worker_ = std::thread([this] { workerLoop(); });
 }
@@ -74,12 +75,13 @@ void ReferenceCapture::workerLoop() {
     bool wasCapturing = false;
     while (running_.load(std::memory_order_acquire)) {
         const bool now = capturing_.load(std::memory_order_acquire);
-        if (now && !wasCapturing) {
+        if (now && !wasCapturing && fresh_) {
             refAcc_.reset();
             prodAcc_.reset();
             activeSamples_ = 0.0;
             refSeconds_.store(0.0, std::memory_order_relaxed);
             refLufs_.store(-70.0, std::memory_order_relaxed);
+            fresh_ = false;
         }
         bool sawSignal = false;
         std::size_t total = 0;
@@ -89,8 +91,9 @@ void ReferenceCapture::workerLoop() {
             const double lufs = refAcc_.integratedLufs();
             if (std::isfinite(lufs)) refLufs_.store(lufs, std::memory_order_relaxed);
         }
-        if (!now && wasCapturing) {
+        if (!now && wasCapturing && activeSamples_ / sampleRate_ >= minimumSeconds_) {
             // Fin de l'écoute : ce qui restait dans les files a été vidé ci-dessus.
+            // (Écoute trop courte : on garde l'acquis, la suivante s'y ajoute.)
             Result r;
             r.reference = refAcc_.result();
             r.prod = prodAcc_.result();
@@ -101,6 +104,7 @@ void ReferenceCapture::workerLoop() {
                 hasResult_ = true;
             }
             if (handler_) handler_(r);
+            fresh_ = true;
         }
         wasCapturing = now;
         if (total == 0) std::this_thread::sleep_for(std::chrono::milliseconds(5));

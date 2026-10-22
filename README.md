@@ -96,7 +96,9 @@ référence ; la compensation rend à chaque bande son énergie (équilibre tona
 1. Mettre OMNIS sur le master. Dans le Mixer, envoyer la piste de la référence (un titre acheté, sa
    propre prod…) vers l'entrée auxiliaire **Reference** d'OMNIS (sidechain), sans la router vers
    le master.
-2. Activer **Listen Reference**, jouer le passage voulu (au moins 5 s), désactiver.
+2. Activer **Listen Reference** et jouer au moins **60 s** de la référence, puis désactiver. Les
+   écoutes s'additionnent : on peut jouer le couplet, couper, puis le refrain. Seul le cœur du
+   morceau compte : les passages à plus de 10 dB sous les plus forts (intro, breaks) sont écartés.
 3. OMNIS a mesuré la référence et, en même temps, la prod. Pendant l'écoute, il affiche les
    secondes écoutées et la sonie de la référence (paramètres en lecture seule). Seuls des nombres
    sont gardés :
@@ -106,6 +108,16 @@ référence ; la compensation rend à chaque bande son énergie (équilibre tona
 
 Le thread audio ne fait que copier les échantillons dans deux files sans verrou. L'analyse tourne
 sur son propre thread et donne exactement la signature d'une analyse de fichier (testé).
+
+Un **fichier** de référence s'analyse en entier, en parallèle sur tous les cœurs, avec un résultat
+identique au bit près à l'analyse séquentielle. Mesures sur 4 cœurs :
+
+| Cas | Avant | Après |
+|---|---|---|
+| Un titre de 2 min | 1089 ms | **223 ms** |
+| `omnis_refdb scan`, 4 titres (8 min) | — | **1.0 s** |
+
+Le gros du gain vient de la crête vraie (2.2x plus rapide, un fichier découpé en segments exacts).
 
 ### Comprendre la demande, références, apprentissage ([détails](docs/APPRENTISSAGE.md))
 

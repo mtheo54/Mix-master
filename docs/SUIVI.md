@@ -34,7 +34,10 @@
 ## Fait récemment
 
 - **Écoute d'une référence dans le DAW** (bus auxiliaire « Reference », paramètre « Listen
-  Reference »). Voir README, « Écouter une référence dans FL Studio ».
+  Reference »). Au moins 60 s, écoutes cumulables, cœur du morceau seulement. Voir README,
+  « Écouter une référence dans FL Studio ».
+- **Analyse d'un fichier en parallèle** (identique au bit près) ; `omnis_refdb scan` mesure un
+  fichier par cœur : prêt pour les références de ce soir.
 
 ## À venir
 
