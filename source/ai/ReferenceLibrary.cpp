@@ -277,10 +277,32 @@ ReferenceMatch ReferenceLibrary::find(std::string_view query) const {
             }
         return false;
     };
-    // Exact : « artiste titre » > artiste > titre. Avec fautes : l'artiste
-    // d'abord (« ken carsonn » est Ken Carson, pas « Ken Carson - Pots »).
+    // Prénom seul d'un artiste en plusieurs mots (« kanye », « travis »), s'il
+    // ne désigne qu'un artiste : avant toute faute supposée (« kanye » n'est
+    // pas « quannnic »).
+    const auto byFirstName = [&]() {
+        if (q.compact.size() < 4) return false;
+        const std::string* artist = nullptr;
+        for (std::size_t i = 0; i < entries_.size(); ++i) {
+            const std::string& name = entries_[i].artist;
+            const auto space = name.find(' ');
+            if (space == std::string::npos || compactName(name.substr(0, space)) != q.compact) continue;
+            if (artist && compactName(*artist) != keys_[i].artist.compact) return false; // ambigu (« lil »)
+            artist = &entries_[i].artist;
+        }
+        if (!artist) return false;
+        const NameKey full = NameKey::of(*artist);
+        for (std::size_t i = 0; i < entries_.size(); ++i)
+            if (keys_[i].artist.compact == full.compact) m.entries.push_back(&entries_[i]);
+        m.kind = ReferenceMatch::Kind::Artist;
+        m.how = "artiste " + *artist + " (" + pluralTitles(m.entries.size()) + ")";
+        return true;
+    };
+    // Exact : « artiste titre » > artiste > titre > prénom. Avec fautes :
+    // l'artiste d'abord (« ken carsonn » est Ken Carson, pas « Ken Carson - Pots »).
     m.exact = true;
     if (byArtistTitle(true) || byArtist(true) || byTitle(true)) return m;
+    if (byFirstName()) return m;
     m.exact = false;
     if (byArtist(false) || byArtistTitle(false) || byTitle(false)) return m;
     // Un genre.

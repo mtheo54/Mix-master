@@ -238,16 +238,24 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     OMNIS_CHECK(lib.entries().size() > 3000);
     const auto ask = [&](const char* t) { return understandRequest(t, Lexicon::builtin(), lib, false); };
 
+    // Connus de nom ET classés « rage » par la personne : on vise le profil
+    // rage écouté (2hollis, SLAYR) en suggérant d'envoyer un son.
+    const auto said = [](const Understanding& u) { return u.suggestion.value_or("") + u.question.value_or(""); };
     // « la feve » est l'artiste, pas un de ses titres.
     const auto a = ask("garde ma 808 comme la feve");
-    OMNIS_CHECK(a.question.has_value() && a.question->find("La Fève") != std::string::npos);
+    OMNIS_CHECK(said(a).find("La Fève") != std::string::npos);
     OMNIS_CHECK(a.request.protectedRegions[0]);
     // « fein de travis scott » -> le titre FE!N.
-    OMNIS_CHECK(ask("un son comme fein de travis scott").question->find("FE!N") != std::string::npos);
+    OMNIS_CHECK(said(ask("un son comme fein de travis scott")).find("FE!N") != std::string::npos);
     // « ken carsonn » : l'artiste (pas « carton », pas « Ken Carson - Pots »).
     const auto k = ask("genre ken carsonn mais propre");
     OMNIS_CHECK(hitOf(k.interpretation, "carton") == nullptr);
-    OMNIS_CHECK(k.question->find("Ken Carson de nom") != std::string::npos);
+    OMNIS_CHECK(said(k).find("Ken Carson de nom") != std::string::npos);
+    // Prénom seul (« kanye ») ; genre en deux mots (« uk bass »).
+    const std::string ks = said(ask("un son comme black skinhead de kanye"));
+    OMNIS_CHECK(ks.find("quannnic") == std::string::npos);
+    OMNIS_CHECK(ks.find("Kanye West, Kanye West") == std::string::npos); // pas de doublon titre / artiste
+    OMNIS_CHECK(said(ask("genre uk bass bien propre")).find("« uk »") == std::string::npos);
     // Un mot courant qui est aussi un titre ne devient pas une référence.
     const auto i = ask("intro un peu plus large");
     OMNIS_CHECK(!i.hasReference() && !i.question.has_value());

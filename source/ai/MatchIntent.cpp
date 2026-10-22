@@ -195,7 +195,10 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
             }
             if (!words || (len == 1 && lexiconWord(tokens[i]))) continue;
             const auto m = library.find(window);
-            if (!m.found() || m.kind == Kind::Genre) continue;
+            // Les genres d'un mot passent par la lecture normale (mots courts,
+            // ambigus) ; un genre exact en plusieurs mots est repéré ici, sinon
+            // « uk bass » se lisait « uk » + « basse ».
+            if (!m.found() || (m.kind == Kind::Genre && (len < 2 || !m.exact))) continue;
             if (!m.exact && (isCommonWord(tokens[i]) || isCommonWord(tokens[i + len - 1]))) continue;
             if (m.kind == Kind::Title && len == 1 && !afterTrigger(i)) continue;
             named.push_back(m);
@@ -245,6 +248,15 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
         else stillUnknown.push_back(in.unknownWords[i]);
     }
     in.unknownWords = stillUnknown;
+    // « black skinhead de kanye » : le titre suffit, l'artiste seul est un doublon.
+    matches.erase(std::remove_if(matches.begin(), matches.end(),
+                                 [&](const ReferenceMatch& m) {
+                                     if (m.kind != Kind::Artist) return false;
+                                     return std::any_of(matches.begin(), matches.end(), [&](const ReferenceMatch& t) {
+                                         return t.kind == Kind::Title && namesMatch(t.entries.front()->artist, m.entries.front()->artist);
+                                     });
+                                 }),
+                  matches.end());
 
     // ---- 3. Ce que l'on peut vraiment écouter --------------------------------
     // Titre ou artiste mesurés : ses sons. Connus de nom seulement : les titres
