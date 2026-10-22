@@ -73,7 +73,10 @@ private:
 
     // Valeurs normalisées courantes (lues par getState depuis le thread UI,
     // écrites par process() depuis le thread audio) -> atomiques.
-    static constexpr std::size_t kMaxParams = 64;
+    // Un emplacement par paramètre de la table. (Une capacité fixe de 64 avait
+    // été dépassée par le Match EQ : les paramètres suivants n'étaient ni
+    // sauvegardés ni rechargés.)
+    static constexpr std::size_t kMaxParams = params::kParameterCount;
     std::array<std::atomic<double>, kMaxParams> normalized_{};
     std::atomic<bool> pendingState_{false};
 

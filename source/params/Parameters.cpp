@@ -25,7 +25,7 @@ constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", 
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
-constexpr std::array<ParamSpec, 96> kParameters{{
+constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // id                         key              name                    short     unit    kind                  min     max    def    steps choices         smooth  dec
     {ParamId::Bypass,            "bypass",        "Bypass",               "Byp",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  20.0,   0},
     {ParamId::InputGain,         "input_gain",    "Input Gain",           "In",     "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
@@ -139,6 +139,7 @@ constexpr std::array<ParamSpec, 96> kParameters{{
     {ParamId::MeterLoudnessRange,"meter_lra",     "Loudness Range",       "LRA",    "LU",   ParamKind::Meter,      0.0,    40.0,  0.0,   0,    {},             0.0,    1},
 }};
 // clang-format on
+static_assert(kParameters.size() == kParameterCount, "kParameterCount doit suivre la table");
 
 std::string_view trim(std::string_view s) {
     while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.remove_prefix(1);

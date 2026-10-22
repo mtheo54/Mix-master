@@ -151,6 +151,10 @@ struct ParamSpec {
     ParamScale scale = ParamScale::Linear;
 };
 
+/// Nombre de paramètres de la table (vérifié à la compilation dans
+/// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
+inline constexpr std::size_t kParameterCount = 96;
+
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;
 

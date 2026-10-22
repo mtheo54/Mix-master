@@ -233,6 +233,23 @@ if(OMNIS_BUILD_TESTS)
     target_link_libraries(omnis_tests PRIVATE Threads::Threads)
     add_test(NAME omnis_unit_tests COMMAND omnis_tests)
 
+    # État du processeur VST3 : aller-retour de tous les paramètres (le
+    # validateur ne teste que les valeurs par défaut).
+    if(OMNIS_BUILD_VST3)
+        add_executable(omnis_plugin_tests
+            tests/TestFramework.h
+            tests/TestMain.cpp
+            tests/TestPluginState.cpp
+            source/plugin/vst3/OmnisProcessor.cpp
+            source/plugin/vst3/OmnisState.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/common/memorystream.cpp
+        )
+        target_include_directories(omnis_plugin_tests PRIVATE source)
+        target_link_libraries(omnis_plugin_tests PRIVATE omnis_core sdk)
+        target_compile_definitions(omnis_plugin_tests PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+        add_test(NAME omnis_plugin_state COMMAND omnis_plugin_tests)
+    endif()
+
     if(OMNIS_BUILD_VST3 AND TARGET validator)
         get_target_property(OMNIS_PLUGIN_PACKAGE OMNIS SMTG_PLUGIN_PACKAGE_PATH)
         add_test(NAME vst3_validator COMMAND validator "${OMNIS_PLUGIN_PACKAGE}")
