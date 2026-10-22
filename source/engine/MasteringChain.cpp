@@ -7,6 +7,7 @@
 #include "stages/ClipperStage.h"
 #include "stages/LimiterStage.h"
 #include "stages/MatchEqStage.h"
+#include "stages/MultibandStage.h"
 #include "stages/SubControlStage.h"
 
 #include <memory>
@@ -17,7 +18,7 @@ void buildMasteringChain(Engine& engine) {
     engine.appendStage(std::make_unique<SubControlStage>()); // 1. Sub Control & Mono Maker
     engine.appendStage(std::make_unique<MatchEqStage>());    // 2. Match EQ (intention tonale)
     // 3. Excitation M/S      — module 3
-    // 4. Multibande          — module 4
+    engine.appendStage(std::make_unique<MultibandStage>());  // 4. Multibande (tenue de la 808)
     engine.appendStage(std::make_unique<ClipperStage>());    // 5. Clipper
     engine.appendStage(std::make_unique<LimiterStage>());    // 6. Limiteur brickwall
     // 7. Dither              — avec l'export (module 3 bis)

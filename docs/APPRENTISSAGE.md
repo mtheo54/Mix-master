@@ -74,14 +74,12 @@ Une petite grammaire lit chaque proposition :
 Les mots non compris sont gardés : ils servent à l'apprentissage (§4).
 
 **Limite honnête.** Un lexique, même grand, ne comprendra jamais *tout* comme le ferait un modèle de
-langage. L'architecture prévoit donc deux étages qui produisent **le même résultat** (un vecteur
-d'axes) :
-- **hors ligne, toujours disponible** : ce lexique ;
-- **en ligne, optionnel** (module 5) : un modèle de langage qui traduit une phrase libre en ce même
-  vecteur, avec le lexique comme vocabulaire de sortie.
-
-Le plug-in fonctionne sans réseau. Le modèle ne fait qu'élargir la compréhension, et toute
-correction de la personne nourrit les deux.
+langage. Décision de l'utilisateur : **tout en local, sans internet ni coût**, avec un plug-in qui
+peut peser 1 à 2 Go. Le module 5 ajoutera donc un **modèle de compréhension embarqué**. La piste
+privilégiée est un modèle d'*embeddings* multilingue (quelques centaines de Mo) exécuté sur la
+machine. Il rapproche une expression inconnue (« ça manque de mordant ») des expressions du
+lexique par le sens, et rend le même vecteur d'axes. Le lexique reste le vocabulaire de sortie et
+la solution de repli. Toute correction de la personne nourrit les deux.
 
 ## 3. Les références (`ai/ReferenceLibrary`, `data/references.txt`)
 
@@ -96,10 +94,14 @@ correction de la personne nourrit les deux.
   > base.
 - **Son fourni pour un artiste inconnu** → sa signature entre dans la base utilisateur
   (`omnis_match … --db`).
-- Base livrée aujourd'hui : 2 titres (poster boy, Sloppy Joe), les seules références fournies. Les
-  genres attribués (rage, hyperpop) sont à confirmer. La base « énorme » se construit avec
-  `omnis_refdb add` sur des titres de référence, et avec les sons que les personnes fournissent
-  (§4).
+- Base livrée aujourd'hui : 2 titres (poster boy, Sloppy Joe), les seules références fournies,
+  genres confirmés par l'utilisateur (rage, hyperpop). La base « énorme » se construit avec
+  `omnis_refdb add` sur des fichiers audio possédés légalement, et avec les sons que les personnes
+  fournissent (§4).
+- **Pas de Spotify.** Depuis le 27 novembre 2024, une nouvelle application n'a plus accès aux
+  analyses audio, aux caractéristiques audio ni aux extraits de 30 s. Et la politique développeur
+  de Spotify interdit d'utiliser son contenu pour entraîner ou alimenter un modèle d'IA. Les
+  signatures doivent donc venir de fichiers audio réels, analysés sur la machine.
 
 ## 4. Apprendre (`ai/Feedback`)
 
@@ -140,7 +142,7 @@ manque :
 | Serveur de collecte et de fusion | Reçoit les exports, applique `applyCommunity`, garde l'historique. |
 | **Validation avant diffusion** | Une base mise à jour doit repasser un banc de masters de référence (garde tonale, distorsion, sonie) : une mauvaise mise à jour toucherait tout le monde d'un coup. |
 | Paquets de données **versionnés et signés** | Le plug-in ne charge qu'un paquet signé par Abrasion Labs ; retour arrière possible. |
-| Vérification au lancement du plug-in (jamais pendant le rendu audio) | Thread de fond, sans réseau dans le thread audio ; échec silencieux, la base embarquée reste valable. |
+| Vérification au lancement du plug-in (jamais pendant le rendu audio) | Thread de fond, sans réseau dans le thread audio ; échec silencieux, la base embarquée reste valable. Désactivable : le plug-in reste entièrement utilisable hors ligne. |
 | Protection contre les abus | Le seuil de personnes différentes empêche une seule machine de « voter » 1000 fois. |
 
 Seules les **données** se mettent à jour (lexique et références), jamais le code DSP. C'est plus

@@ -78,6 +78,8 @@ add_library(omnis_core STATIC
     source/dsp/StereoConvolver.cpp
     source/dsp/StereoConvolver.h
     source/dsp/SvfFilter.h
+    source/ai/DynamicsIntent.cpp
+    source/ai/DynamicsIntent.h
     source/ai/EmbeddedData.h
     source/ai/Feedback.cpp
     source/ai/Feedback.h
@@ -89,6 +91,8 @@ add_library(omnis_core STATIC
     source/ai/ReferenceLibrary.h
     source/ai/TextMatch.cpp
     source/ai/TextMatch.h
+    source/analysis/BandLevels.cpp
+    source/analysis/BandLevels.h
     source/analysis/KWeightingFilter.h
     source/analysis/LoudnessMeter.cpp
     source/analysis/LoudnessMeter.h
@@ -113,6 +117,8 @@ add_library(omnis_core STATIC
     source/stages/MatchEqStage.h
     source/stages/MatchKernelBank.cpp
     source/stages/MatchKernelBank.h
+    source/stages/MultibandStage.cpp
+    source/stages/MultibandStage.h
     source/stages/SubControlStage.cpp
     source/stages/SubKernelBank.cpp
     source/stages/SubKernelBank.h
@@ -201,6 +207,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestDynamics.cpp
         tests/TestSubControl.cpp
         tests/TestMatchEq.cpp
+        tests/TestMultiband.cpp
         tests/TestMatchIntent.cpp
         tests/TestLanguage.cpp
         tests/TestLearning.cpp

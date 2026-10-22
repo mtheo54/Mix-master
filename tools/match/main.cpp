@@ -15,10 +15,13 @@
 //   2. écoute la référence et la prod (analysis::SpectralSignature) ;
 //   3. en déduit l'intention : déplacement partiel et borné (ai::planMatch),
 //      expliqué en clair ;
-//   4. cherche la sonie la plus forte, jusqu'à la cible, qui respecte cette
+//   4. règle la tenue dans le temps (multibande, ai::planDynamics) d'après la
+//      variation de chaque bande dans la référence, compensation recalée par
+//      mesure pour rendre à chaque bande son énergie ;
+//   5. cherche la sonie la plus forte, jusqu'à la cible, qui respecte cette
 //      intention (garde tonale mesurée par rapport à la prod passée dans
-//      l'EQ seul) ; la même recherche sans Match EQ sert de témoin ;
-//   5. rend le master et mesure la ressemblance avant / après.
+//      l'EQ et le multibande) ; témoins : sans rien, EQ seul ;
+//   6. rend le master et mesure la ressemblance avant / après.
 // =============================================================================
 #include "AiFiles.h"
 #include "AnalysisReport.h"
@@ -26,9 +29,12 @@
 #include "TonalBalance.h"
 #include "WavFile.h"
 
+#include "ai/DynamicsIntent.h"
 #include "ai/MatchIntent.h"
+#include "analysis/BandLevels.h"
 #include "analysis/SpectralSignature.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <future>
@@ -160,25 +166,74 @@ int main(int argc, char** argv) {
     std::printf("\nCible %.1f LUFS (plafond), plafond true peak %.1f dBTP, tolérance %.1f dB, %s (%.0f s)\n", options.targetLufs, ceiling,
                 options.maxTonalDeviationDb, excerpt.numFrames() == prod.numFrames() ? "morceau entier" : "passage le plus fort",
                 excerpt.durationSeconds());
+    // ---- 4 bis. Tenue dans le temps (multibande), réglée sur l'entrée du multibande.
+    const auto levelsOf = [&](const AudioFile& f) {
+        return analysis::measureBandLevels(f.channels[0].data(), f.channels[1].data(), f.numFrames(), f.sampleRate, {120.0, 800.0, 5000.0});
+    };
+    Settings dyn;
+    AudioFile intentionMb;
+    if (sigRefOpt) {
+        auto dynamics = ai::planDynamics(sigProd, *sigRefOpt, levelsOf(intention), request, understanding.interpretation.desire);
+        // Compensation recalée par mesure : chaque bande retrouve son énergie moyenne.
+        const auto energy = levelsOf(intention);
+        for (int pass = 0; pass < 3; ++pass) {
+            const auto out = levelsOf(renderWithSettings(excerpt, concat(concat(eq, ai::dynamicsSettings(dynamics)), {{"lim_ceiling", 0.0}})));
+            for (int b = 0; b < params::kMbBands; ++b) {
+                auto& band = dynamics.bands[static_cast<std::size_t>(b)];
+                if (band.active()) band.makeupDb = std::clamp(band.makeupDb + energy.meanDb[static_cast<std::size_t>(b)] - out.meanDb[static_cast<std::size_t>(b)], -12.0, 12.0);
+            }
+        }
+        std::printf("\nTenue dans le temps (multibande) :\n");
+        for (const auto& line : dynamics.explanation) std::printf("  - %s\n", line.c_str());
+        for (int b = 0; b < params::kMbBands; ++b)
+            if (dynamics.bands[static_cast<std::size_t>(b)].active())
+                std::printf("    %s : compensation %+.1f dB\n", ai::mbBandName(b), dynamics.bands[static_cast<std::size_t>(b)].makeupDb);
+        dyn = ai::dynamicsSettings(dynamics);
+    }
+    intentionMb = renderWithSettings(excerpt, concat(concat(eq, dyn), {{"lim_ceiling", 0.0}}));
+    TuningOptions held = options;
+    held.tonalReference = &intentionMb;
+
     const TuningStrategy witness{"sans Match EQ (témoin)", base, {{"clip_drive", 0.7}, {"lim_gain", 0.3}}};
-    const TuningStrategy limOnly{"Match EQ + limiteur seul", concat(base, eq), {{"lim_gain", 1.0}}};
-    const TuningStrategy clip{"Match EQ + clip 70/30", concat(base, eq), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}};
+    const TuningStrategy eqClip{"Match EQ + clip 70/30", concat(base, eq), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}};
+    const TuningStrategy mbLim{"EQ + multibande + limiteur", concat(concat(base, eq), dyn), {{"lim_gain", 1.0}}};
+    const TuningStrategy mbClip{"EQ + multibande + clip 70/30", concat(concat(base, eq), dyn), {{"clip_drive", 0.7}, {"lim_gain", 0.3}}};
     auto fWitness = std::async(std::launch::async, [&] { return loudestClean(excerpt, witness, options); });
-    auto fLim = std::async(std::launch::async, [&] { return loudestClean(excerpt, limOnly, matched); });
-    auto fClip = std::async(std::launch::async, [&] { return loudestClean(excerpt, clip, matched); });
-    const TuningResult rWitness = fWitness.get(), rLim = fLim.get(), rClip = fClip.get();
+    auto fEq = std::async(std::launch::async, [&] { return loudestClean(excerpt, eqClip, matched); });
+    auto fMbLim = std::async(std::launch::async, [&] { return loudestClean(excerpt, mbLim, held); });
+    auto fMbClip = std::async(std::launch::async, [&] { return loudestClean(excerpt, mbClip, held); });
+    const TuningResult rWitness = fWitness.get(), rEq = fEq.get(), rMbLim = fMbLim.get(), rMbClip = fMbClip.get();
+    std::printf("\nCible %.1f LUFS (plafond), plafond true peak %.1f dBTP, tolérance %.1f dB, %s (%.0f s)\n", options.targetLufs, ceiling,
+                options.maxTonalDeviationDb, excerpt.numFrames() == prod.numFrames() ? "morceau entier" : "passage le plus fort",
+                excerpt.durationSeconds());
     printResult(witness.name.c_str(), rWitness);
-    printResult(limOnly.name.c_str(), rLim);
-    printResult(clip.name.c_str(), rClip);
-    const bool clipBetter = rClip.integratedLufs > rLim.integratedLufs + 0.1 ||
-                            (std::fabs(rClip.integratedLufs - rLim.integratedLufs) <= 0.1 && rClip.distortion.weightedDb < rLim.distortion.weightedDb);
-    const TuningResult& best = clipBetter ? rClip : rLim;
-    std::printf("Retenu : %s (%+.1f LU par rapport au témoin)\n", best.strategy.name.c_str(), best.integratedLufs - rWitness.integratedLufs);
-    std::printf("    vs intention : %s", best.tonal.toText().c_str());
+    printResult(eqClip.name.c_str(), rEq);
+    printResult(mbLim.name.c_str(), rMbLim);
+    printResult(mbClip.name.c_str(), rMbClip);
+    // La tenue fait partie de l'intention (trait persistant de la référence) :
+    // dès que le multibande est actif, on garde la meilleure de ses deux
+    // variantes (la plus forte ; à 0.1 LU près, la plus propre). L'EQ seul ne
+    // sert que de témoin. Sans tenue à prendre, l'EQ seul est retenu.
+    const bool holding = std::any_of(dyn.begin(), dyn.end(), [](const auto& kv) {
+        return kv.first.find("_ratio") != std::string::npos && kv.second > 1.001;
+    });
+    const TuningResult* best = holding ? &rMbClip : &rEq;
+    if (holding && (rMbLim.integratedLufs > rMbClip.integratedLufs + 0.1 ||
+                    (std::fabs(rMbLim.integratedLufs - rMbClip.integratedLufs) <= 0.1 &&
+                     rMbLim.distortion.weightedDb < rMbClip.distortion.weightedDb)))
+        best = &rMbLim;
+    std::printf("Retenu : %s (%+.1f LU par rapport au témoin)\n", best->strategy.name.c_str(), best->integratedLufs - rWitness.integratedLufs);
+    std::printf("    vs intention : %s", best->tonal.toText().c_str());
+    if (const char* dump = std::getenv("OMNIS_SETTINGS_OUT")) {
+        if (FILE* f = std::fopen(dump, "w")) {
+            for (const auto& [k, v] : settingsOf(*best)) std::fprintf(f, "%s %.6f\n", k.c_str(), v);
+            std::fclose(f);
+        }
+    }
 
     // ---- 5. Rendu et ressemblance -------------------------------------------------
     if (!renderPath.empty()) {
-        const AudioFile master = renderWithSettings(prod, settingsOf(best));
+        const AudioFile master = renderWithSettings(prod, settingsOf(*best));
         if (!writeWav(renderPath, master, SampleFormat::Pcm24, error)) {
             std::fprintf(stderr, "%s\n", error.c_str());
             return 1;

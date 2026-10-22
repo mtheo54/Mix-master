@@ -1,4 +1,4 @@
-# Calibration du module 4 (partie 1) : Match EQ et adaptation à une référence
+# Calibration du module 4 : Match EQ, adaptation à une référence, tenue multibande
 
 Point de départ, les mots de l'utilisateur : *« l'IA analyse la demande, écoute franchement le titre,
 détermine les éléments persistants de pourquoi le mix est comme ça, et après elle s'adapte à la
@@ -34,8 +34,7 @@ prod ─► Sub Control ─► Match EQ ─► Clipper ─► Limiteur ─► ma
 | Match Amount 50 % de −6 dB à 40 Hz | −3.0 dB (±0.05) |
 | Changement de courbe en lecture | aucune discontinuité |
 
-Latence de l'étage : 8704 échantillons (197 ms à 44.1 kHz). Chaîne complète : 22454 échantillons
-(509 ms) à 44.1 kHz, compensés par le DAW. Piste d'économie : fusionner le Match EQ dans le noyau
+Latence de l'étage : 8704 échantillons (197 ms à 44.1 kHz). Chaîne complète : voir §6.4. Piste d'économie : fusionner le Match EQ dans le noyau
 du Sub Control. Les deux sont des modules M/S à phase linéaire, la fusion retirerait 197 ms.
 
 ## 2. Écouter le titre : la signature (`analysis/SpectralSignature`)
@@ -136,3 +135,81 @@ pas de son EQ.
 temps, avec un gain de compensation. On garde ainsi l'énergie du sub tout en baissant ses crêtes,
 et le limiteur n'a plus à l'écraser. La cible de tenue vient de la signature de la référence (écart
 P90 − P10 par bande), dosée et bornée comme l'EQ.
+
+## 6. Tenue dans le temps : le multibande (`stages/MultibandStage`, paramètres 400–444)
+
+### 6.1 L'étage
+
+- 4 bandes (sub < 120 Hz < bas < 800 Hz < médium < 5 kHz < aigu) séparées à phase linéaire par
+  trois FIR de 8192 taps. Chaque bande est la différence de deux passe-bas Linkwitz-Riley à phase
+  nulle, la quatrième est le complément. La reconstruction est exacte : ratio 1 donne un retard
+  pur (null-test < 1e-12).
+- Par bande, liée en stéréo : seuil (dBFS RMS), ratio, attaque, relâchement, compensation, genou
+  de 6 dB.
+- Détecteur RMS sur une fenêtre glissante **tournée vers l'avant** : 50 ms pour le sub, 20 ms
+  au-dessus. Le gain passe ensuite par `LookaheadGain` (anticipation de 10 ms, minimum glissant
+  puis rampe), la même brique que le limiteur.
+
+Trois versions ont été écartées au banc de test, chacune pour un défaut mesuré :
+
+| Version | Défaut mesuré |
+|---|---|
+| RMS à constante de 30 ms, gain lissé en dB | l'attaque de la 808 passait : détecteur plus lent que l'anticipation |
+| Fenêtre centrée de 25 ms | ondulait à 30 Hz (compression de 0.5 dB de trop) et était à moitié vide au début d'un coup |
+| Fenêtre tournée vers l'avant (retenue) | le coup ne dépasse plus sa valeur tenue (< 1.5 dB) |
+
+| Test | Résultat |
+|---|---|
+| Neutre | retard pur, < 1e-12 |
+| Compensation +6 dB sur le médium | gain = 1 + (2 − 1)·\|B₂(f)\| à ±0.03 dB (chevauchement Linkwitz-Riley) |
+| 30 Hz à −10 dBFS RMS, seuil −20, ratio 4 | −7.5 dB (±0.2) |
+| 808 compressée de 9 dB | harmoniques < −50 dB, voix à 1 kHz intacte (±0.1 dB) |
+| Coup de 808 sur silence | pas de pointe au-dessus de la valeur tenue |
+
+### 6.2 Le réglage, d'après la référence (`ai/DynamicsIntent`)
+
+1. L'écart de **variation** par bande (P90 − P10 dans le temps, signatures) est refermé à hauteur
+   de la ressemblance, au plus 60 % de la variation de la prod.
+2. Seuil = médiane de la bande (`analysis/BandLevels`). Ratio choisi pour que la moitié haute se
+   réduise de l'écart voulu, au plus **4:1** (2:1 pour une région protégée).
+3. Attaque : 10 ms dans le sub, 20 à 25 ms au-dessus pour laisser passer les transitoires
+   (davantage si la demande parle de punch).
+4. Compensation **recalée par mesure** en trois passes : chaque bande retrouve son énergie
+   moyenne, donc l'équilibre tonal de l'intention ne bouge pas.
+
+Exemple (prod `pour_claude`, référence SLAYR) :
+
+```
+Sub : varie de 48 dB (référence 34 dB) -> seuil -20.6 dBFS, ratio 4.0:1, attaque 10 ms    compensation +2.4 dB
+Médium : varie de 16 dB (référence 9 dB) -> seuil -40.1 dBFS, ratio 2.0:1, attaque 25 ms  compensation +3.4 dB
+```
+
+### 6.3 Résultats
+
+| Prod → référence | LRA prod → master (réf.) | Sonie intégrée | Distance tonale à la réf. | Sonie propre (passage fort) : témoin → avec tenue |
+|---|---|---|---|---|
+| pour_claude → SLAYR | 12.1 → **5.2 LU** (3.6) | −9.3 LUFS | 6.0 → 3.5 dB | −8.78 → −8.67 |
+| pour_claude → poster boy | 12.1 → **5.2 LU** (7.7) | −9.2 LUFS | 8.2 → 5.5 dB | −8.78 → −8.60 |
+
+**La tenue et la densité de la référence sont là, mais la sonie propre ne gagne que 0.1 à 0.2 LU.**
+
+### 6.4 Pourquoi (mesuré, trois hypothèses écartées)
+
+| Hypothèse | Test | Verdict |
+|---|---|---|
+| Le limiteur module la 808 cycle par cycle (anticipation trop courte) | anticipation 20 ms | aucun effet, revenu à 10 ms |
+| Le sub remplit la marge | sub −4 puis −5 dB dans l'intention | +0.1 / +0.2 LU seulement |
+| La tolérance est trop stricte | tolérance 3 dB (« sale ») | +0.6 LU seulement |
+
+La vraie limite, ce sont les **crêtes courtes**. Le passage le plus fort de la prod a 12 dB entre
+ses crêtes et sa sonie (PSR, sous les 50 ms). Viser −6 LUFS sous −0.3 dBTP demande moins de
+5.7 dB, et poster boy est à 4.4 dB. Retirer 6 dB de crêtes courtes, c'est de la distorsion ou un
+déplacement d'équilibre : les références font ce choix, leur son est saturé. Le multibande ne
+travaille que sur la dynamique longue, ce qui est son rôle.
+
+Pistes pour aller plus fort sans « détruire » : saturation dédiée de la 808, qui change une partie
+de son énergie en harmoniques audibles (étage d'excitation, paramètres 300–399, déjà nommé
+« saturation » dans le lexique) ; écrêtage par bande à crêtes courtes.
+
+Latence de la chaîne complète : **29452 échantillons (668 ms) à 44.1 kHz**, compensés par le DAW.
+Fusionner le Match EQ dans le noyau du Sub Control retirerait 197 ms.

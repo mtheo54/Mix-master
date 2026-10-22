@@ -5,11 +5,11 @@ SDK Steinberg + moteur DSP C++20 en double précision, piloté à terme par IA (
 prompts en langage naturel, profils de genres) et habillé d'une interface NanoVG / OpenGL
 rétro-futuriste.
 
-> **État : Modules 1, 2 et 3 / 6 terminés, module 4 en cours** : architecture, squelette VST3,
+> **État : Modules 1 à 4 / 6 terminés, module 5 commencé** : architecture, squelette VST3,
 > mesures normalisées, banc de test, filtres TPT/SVF et crossovers, **Sub Control & Mono Maker** à
 > phase linéaire ([calibration](docs/CALIBRATION_MODULE2.md)), **oversampling HIIR, clipper ADAA et
-> limiteur true peak** ([calibration](docs/CALIBRATION_MODULE3.md)), puis **Match EQ et adaptation à
-> une référence** ([calibration](docs/CALIBRATION_MODULE4.md)).
+> limiteur true peak** ([calibration](docs/CALIBRATION_MODULE3.md)), puis **Match EQ, adaptation à
+> une référence et tenue multibande** ([calibration](docs/CALIBRATION_MODULE4.md)).
 
 ## Module 2 : Sub Control & Mono Maker
 
@@ -25,7 +25,7 @@ rétro-futuriste.
 
 Pourquoi la phase linéaire par défaut : sur la référence 2hollis, la version IIR classique fait
 monter le true peak de **+7.8 dB** (rotation de phase de la 808 écrêtée), la version FIR de
-**+0.6 dB** pour un sub aussi mono. Latence constante de l'étage : 197 ms à 44.1 kHz (chaîne complète : 509 ms), compensée par le DAW.
+**+0.6 dB** pour un sub aussi mono. Latence constante de l'étage : 197 ms à 44.1 kHz (chaîne complète : 668 ms), compensée par le DAW.
 Coût : ~3 % d'un cœur.
 
 ---
@@ -77,6 +77,19 @@ avec des bornes qui protègent son identité, et explique ce qu'il fait.
 $B/omnis_match prod.wav reference.wav --demande "comme la réf mais garde ma 808, fort" --render master.wav
 $B/omnis_match prod.wav --demande "comme 2holis, un poil plus crispy" --render master.wav   # référence de la base
 ```
+
+**Tenue multibande** (paramètres 400–444) : 4 bandes à phase linéaire (120 Hz / 800 Hz / 5 kHz),
+compresseur à anticipation par bande, réglé d'après la *variation* de chaque bande dans la
+référence ; la compensation rend à chaque bande son énergie (équilibre tonal inchangé). Sur
+`pour_claude` → SLAYR : LRA 12.1 → 5.2 LU (référence 3.6).
+
+| Paramètre | Plage | Défaut | Rôle |
+|---|---|---|---|
+| MB Split Low / Mid / High | 60–250 / 250–2500 / 2500–12000 Hz | 120 / 800 / 5000 Hz | Séparations Linkwitz-Riley à phase nulle |
+| MB *bande* Threshold | −60–0 dBFS RMS | 0 | Seuil |
+| MB *bande* Ratio | 1–20:1 | 1 (neutre) | Ratio, genou 6 dB |
+| MB *bande* Attack / Release | 1–300 / 10–3000 ms | 10–30 / 80–250 ms | Au-delà de 10 ms d'attaque, le transitoire passe (punch) |
+| MB *bande* Makeup | ±12 dB | 0 | Compensation |
 
 ### Comprendre la demande, références, apprentissage ([détails](docs/APPRENTISSAGE.md))
 
@@ -167,7 +180,7 @@ alignée échantillon par échantillon sur l'entrée (null-test possible dans n'
 source/
   core/       primitives temps réel (SPSC, triple buffer, lisseur, tampons alignés, FTZ/DAZ)
   dsp/        SVF TPT, crossovers Linkwitz-Riley, FFT, convolution partitionnée stéréo
-  stages/     étages de la chaîne (Sub Control, Match EQ, Clipper, Limiteur + banques de noyaux FIR)
+  stages/     étages de la chaîne (Sub Control, Match EQ, Multibande, Clipper, Limiteur + noyaux FIR)
   ai/         compréhension de la demande (fautes, lexique), base de références, intention
               d'adaptation, apprentissage (précurseur du module 5)
 data/         lexique_fr.txt, references.txt (compilés dans le plug-in, éditables)
@@ -187,11 +200,11 @@ docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2/3/4.md,
    à somme passe-tout, FFT et convolution partitionnée UPOLS, Sub Control & Mono Maker M/S à phase linéaire
 3. ✅ **Oversampling & Clipper** : demi-bandes HIIR conçues à la volée (1x–16x), clipper ADAA
    Hard / Soft Knee / Diode à deux bandes, limiteur brickwall true peak à release adaptatif
-4. 🔶 **Match EQ & multibande** : ✅ Match EQ M/S à phase linéaire, signature de référence,
-   adaptation partielle bornée et expliquée ; à venir : dynamique multibande (tenue de la 808)
+4. ✅ **Match EQ & multibande** : Match EQ M/S à phase linéaire, signature de référence,
+   adaptation partielle bornée et expliquée, tenue multibande à anticipation
 5. 🔶 Moteur IA : ✅ compréhension de la demande hors ligne, base de références, apprentissage local
-   et logique communautaire ; à venir : modèle de langage optionnel, prédicteur de paramètres,
-   serveur de mise à jour (consentement, validation, paquets signés)
+   et logique communautaire ; à venir : modèle de compréhension local (embarqué, sans internet),
+   prédicteur de paramètres, serveur de mise à jour (consentement, validation, paquets signés)
 6. UI NanoVG — IPlugView OpenGL, oscilloscope phosphore, matrice LED, champ de prompt
 
 Chaque module DSP critique sera calibré sur des fichiers audio réels : voir

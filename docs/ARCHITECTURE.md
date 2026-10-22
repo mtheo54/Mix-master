@@ -38,7 +38,7 @@ Ordre prévu des étages (plages d'identifiants de paramètres réservées entre
 1. Sub Control & Mono Maker (100–199)
 2. Match EQ M/S à phase linéaire, courbe d'intention (200–299) ✅
 3. Excitation harmonique M/S (300–399)
-4. Multi-Band Dynamic Processor (400–499)
+4. Multi-Band Dynamic Processor (400–499) ✅
 5. Smart Wave-Shaping / Mastering Clipper (500–599)
 6. Lookahead Brickwall Limiter (600–699)
 7. Dither TPDF + noise-shaping (700–799)
@@ -58,9 +58,9 @@ Mesures en lecture seule : 1000–1099. Global : 0–99.
 
 ## 4. Latence (PDC)
 
-Latence actuelle de la chaîne : 22454 échantillons à 44.1 kHz (509 ms), 22512 à 48 kHz, 44992 à
+Latence actuelle de la chaîne : 29452 échantillons à 44.1 kHz (668 ms), 29744 à 48 kHz, 59456 à
 96 kHz. Elle se décompose ainsi : Sub Control et Match EQ (FIR 16384 taps chacun : N/2 + une
-partition = 8704), clipper (séparation sub/reste à phase linéaire, retard de phase de
+partition = 8704), multibande (FIR 8192 : 4352, + anticipation 10 ms et fenêtre RMS 50 ms), clipper (séparation sub/reste à phase linéaire, retard de phase de
 l'oversampling 16x, anticipation du partage de marge) et limiteur (lookahead 10 ms + détecteur
 true peak).
 

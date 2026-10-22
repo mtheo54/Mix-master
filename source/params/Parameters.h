@@ -60,6 +60,15 @@ enum class ParamId : std::uint32_t {
     MatchMidFirst = 210,  ///< … 230
     MatchSideFirst = 250, ///< … 270
 
+    // --- Multi-Band Dynamic Processor (400–499) --------------------------------
+    // Trois fréquences de séparation, puis par bande (base + 0 … 4) : seuil,
+    // ratio, attaque, relâchement, gain de compensation. Bandes : sub 410,
+    // bas 420, médium 430, aigu 440.
+    MbSplitLow = 400,
+    MbSplitMid = 401,
+    MbSplitHigh = 402,
+    MbBandFirst = 410, ///< bande b, réglage r : 410 + 10·b + r
+
     // --- Smart Wave-Shaping / Mastering Clipper (500–599) ---------------------
     ClipMode = 500,
     ClipDrive = 501,
@@ -106,6 +115,14 @@ inline ParamId matchMidId(int band) noexcept {
 }
 inline ParamId matchSideId(int band) noexcept {
     return static_cast<ParamId>(static_cast<std::uint32_t>(ParamId::MatchSideFirst) + static_cast<std::uint32_t>(band));
+}
+
+/// Multibande : 4 bandes, 5 réglages chacune.
+inline constexpr int kMbBands = 4;
+enum class MbControl : int { Threshold = 0, Ratio = 1, Attack = 2, Release = 3, Makeup = 4 };
+inline ParamId mbId(int band, MbControl control) noexcept {
+    return static_cast<ParamId>(static_cast<std::uint32_t>(ParamId::MbBandFirst) + 10u * static_cast<std::uint32_t>(band) +
+                                static_cast<std::uint32_t>(control));
 }
 
 /// Modes d'écoute (bouton chiclet « Side solo » de l'interface).

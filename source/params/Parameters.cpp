@@ -25,7 +25,7 @@ constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", 
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
-constexpr std::array<ParamSpec, 73> kParameters{{
+constexpr std::array<ParamSpec, 96> kParameters{{
     // id                         key              name                    short     unit    kind                  min     max    def    steps choices         smooth  dec
     {ParamId::Bypass,            "bypass",        "Bypass",               "Byp",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  20.0,   0},
     {ParamId::InputGain,         "input_gain",    "Input Gain",           "In",     "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
@@ -88,6 +88,32 @@ constexpr std::array<ParamSpec, 73> kParameters{{
     {static_cast<ParamId>(268), "match_s_10240", "Match Side 10k",      "S10k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(269), "match_s_14482", "Match Side 14k",      "S14k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(270), "match_s_20480", "Match Side 20k",      "S20k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+
+    // Multibande (docs/CALIBRATION_MODULE4.md §6). Défauts neutres : ratio 1,
+    // compensation 0 -> l'étage est un retard pur.
+    {ParamId::MbSplitLow,        "mb_split_low",  "MB Split Low",         "MbLo",   "Hz",   ParamKind::Continuous, 60.0,   250.0, 120.0, 0,    {},             50.0,   0, kLog},
+    {ParamId::MbSplitMid,        "mb_split_mid",  "MB Split Mid",         "MbMid",  "Hz",   ParamKind::Continuous, 250.0,  2500.0, 800.0, 0,   {},             50.0,   0, kLog},
+    {ParamId::MbSplitHigh,       "mb_split_high", "MB Split High",        "MbHi",   "Hz",   ParamKind::Continuous, 2500.0, 12000.0, 5000.0, 0, {},             50.0,   0, kLog},
+    {static_cast<ParamId>(410), "mb_sub_thr",    "MB Sub Threshold",    "SThr",   "dBFS", ParamKind::Continuous, -60.0, 0.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(411), "mb_sub_ratio",  "MB Sub Ratio",        "SRat",   ":1",   ParamKind::Continuous, 1.0, 20.0, 1.0, 0, {}, 30.0, 2, kLog},
+    {static_cast<ParamId>(412), "mb_sub_attack", "MB Sub Attack",       "SAtt",   "ms",   ParamKind::Continuous, 1.0, 300.0, 30.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(413), "mb_sub_release","MB Sub Release",      "SRel",   "ms",   ParamKind::Continuous, 10.0, 3000.0, 250.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(414), "mb_sub_makeup", "MB Sub Makeup",       "SMk",    "dB",   ParamKind::Continuous, -12.0, 12.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(420), "mb_low_thr",    "MB Low Threshold",    "LThr",   "dBFS", ParamKind::Continuous, -60.0, 0.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(421), "mb_low_ratio",  "MB Low Ratio",        "LRat",   ":1",   ParamKind::Continuous, 1.0, 20.0, 1.0, 0, {}, 30.0, 2, kLog},
+    {static_cast<ParamId>(422), "mb_low_attack", "MB Low Attack",       "LAtt",   "ms",   ParamKind::Continuous, 1.0, 300.0, 20.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(423), "mb_low_release","MB Low Release",      "LRel",   "ms",   ParamKind::Continuous, 10.0, 3000.0, 200.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(424), "mb_low_makeup", "MB Low Makeup",       "LMk",    "dB",   ParamKind::Continuous, -12.0, 12.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(430), "mb_mid_thr",    "MB Mid Threshold",    "MThr",   "dBFS", ParamKind::Continuous, -60.0, 0.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(431), "mb_mid_ratio",  "MB Mid Ratio",        "MRat",   ":1",   ParamKind::Continuous, 1.0, 20.0, 1.0, 0, {}, 30.0, 2, kLog},
+    {static_cast<ParamId>(432), "mb_mid_attack", "MB Mid Attack",       "MAtt",   "ms",   ParamKind::Continuous, 1.0, 300.0, 10.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(433), "mb_mid_release","MB Mid Release",      "MRel",   "ms",   ParamKind::Continuous, 10.0, 3000.0, 150.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(434), "mb_mid_makeup", "MB Mid Makeup",       "MMk",    "dB",   ParamKind::Continuous, -12.0, 12.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(440), "mb_high_thr",   "MB High Threshold",   "HThr",   "dBFS", ParamKind::Continuous, -60.0, 0.0, 0.0, 0, {}, 30.0, 1},
+    {static_cast<ParamId>(441), "mb_high_ratio", "MB High Ratio",       "HRat",   ":1",   ParamKind::Continuous, 1.0, 20.0, 1.0, 0, {}, 30.0, 2, kLog},
+    {static_cast<ParamId>(442), "mb_high_attack","MB High Attack",      "HAtt",   "ms",   ParamKind::Continuous, 1.0, 300.0, 5.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(443), "mb_high_release","MB High Release",     "HRel",   "ms",   ParamKind::Continuous, 10.0, 3000.0, 100.0, 0, {}, 0.0, 0, kLog},
+    {static_cast<ParamId>(444), "mb_high_makeup","MB High Makeup",      "HMk",    "dB",   ParamKind::Continuous, -12.0, 12.0, 0.0, 0, {}, 30.0, 1},
 
     // Clipper (calibration : docs/CALIBRATION_MODULE3.md).
     {ParamId::ClipMode,          "clip_mode",     "Clip Mode",            "ClipM",  "",     ParamKind::Choice,     0.0,    2.0,   1.0,   2,    kClipModeLabels, 20.0,  0},
