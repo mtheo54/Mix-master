@@ -6,6 +6,7 @@
 //  Les fichiers traités doivent être alignés sur l'original (omnis_render
 //  compense la latence). Plus la valeur est basse, plus c'est propre.
 // =============================================================================
+#include "AudioRead.h"
 #include "AnalysisReport.h"
 #include "DistortionAnalysis.h"
 #include "TonalBalance.h"
@@ -23,14 +24,14 @@ int main(int argc, char** argv) {
     }
     AudioFile reference;
     std::string error;
-    if (!readWav(argv[1], reference, error)) {
+    if (!readAudioFile(argv[1], reference, error)) {
         std::fprintf(stderr, "%s : %s\n", argv[1], error.c_str());
         return 1;
     }
     int status = 0;
     for (int i = 2; i < argc; ++i) {
         AudioFile processed;
-        if (!readWav(argv[i], processed, error)) {
+        if (!readAudioFile(argv[i], processed, error)) {
             std::fprintf(stderr, "%s : %s\n", argv[i], error.c_str());
             status = 1;
             continue;

@@ -99,15 +99,18 @@ référence ; la compensation rend à chaque bande son énergie (équilibre tona
   grammaire. Exemples : « ça manque de crispy », « c'est trop brillant », « c'est pas propre »,
   « pas trop fort », « garde ma 808 », « un poil », « vraiment ».
 - **Base de références** (`data/references.txt`) : signatures mesurées, jamais d'audio. Recherche
-  par titre, artiste, alias ou genre. Si l'artiste est **inconnu**, le plug-in demande un artiste
-  proche ou un son, et ajoute ce son à la base.
+  par titre, artiste, alias ou genre. Un artiste **connu de nom** utilise le profil de ses genres
+  en attendant un son ; s'il est **inconnu**, le plug-in demande un artiste proche ou un son, et
+  ajoute ce son à la base. Lecture WAV, MP3 et FLAC, en local.
 - **Apprentissage** : chaque correction ajuste le sens des mots chez la personne, et un mot inconnu
   devient un concept. Un export anonyme permet une fusion communautaire, qui ne retient que les
   tendances confirmées par 10 personnes et plus.
 
 ```bash
 $B/omnis_ask "ça manque de crispy, genre slayer" [--log retours.tsv --correction "presence=+1" --note 1]
-$B/omnis_refdb add titre.wav --artiste "2hollis" --titre "poster boy" --genres "rage" --db refs.txt
+$B/omnis_refdb add titre.flac --artiste "2hollis" --titre "poster boy" --genres "rage" --db refs.txt
+$B/omnis_refdb scan mes_refs/ --genres "rage" --db refs.txt      # « Artiste - Titre.mp3|flac|wav »
+$B/omnis_refdb noms artistes.txt --db refs.txt                    # « Artiste ; genre, genre ; alias »
 $B/omnis_learn local retours.tsv --lexique lexique_utilisateur.txt
 ```
 
@@ -184,6 +187,7 @@ source/
   ai/         compréhension de la demande (fautes, lexique), base de références, intention
               d'adaptation, apprentissage (précurseur du module 5)
 data/         lexique_fr.txt, references.txt (compilés dans le plug-in, éditables)
+third_party/  dr_libs (décodeurs MP3 / FLAC, domaine public)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
   params/     table unique des paramètres (DSP, VST3, outils, IA)
   engine/     Engine + interface Stage (chaîne, PDC, bypass, monitoring, mesures)

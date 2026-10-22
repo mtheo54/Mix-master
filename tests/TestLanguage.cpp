@@ -190,3 +190,45 @@ OMNIS_TEST("demande: phrases réelles (« ça claque », « dans les aigus », �
     const auto r = parseRequest("plus brillant, plus d'air, plus d'aigus, encore plus brillant");
     for (double v : r.midBiasDb) OMNIS_CHECK(v <= 4.0 + 1e-9);
 }
+
+OMNIS_TEST("références: artiste connu de nom -> profil de son genre, puis question si genre inconnu") {
+    ReferenceLibrary lib;
+    lib.parse(kLibrary);
+    lib.parse("[Yeat]\nartiste = Yeat\ngenres = rage\n\n[Inconnu Total]\nartiste = Zorglub\ngenres = zouk\n");
+    OMNIS_CHECK(lib.entries().size() == 4);
+    OMNIS_CHECK(!lib.find("yeat").entries.front()->measured);
+
+    const auto u = understandRequest("comme yeat, fort", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(!u.question.has_value());
+    OMNIS_CHECK(u.suggestion.has_value());
+    OMNIS_CHECK(u.referenceEntries.size() == 2); // les deux titres « rage » mesurés
+    for (const auto* e : u.referenceEntries) OMNIS_CHECK(e->measured);
+
+    const auto z = understandRequest("comme zorglub", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(z.question.has_value());
+    OMNIS_CHECK(!understandRequest("comme zorglub", Lexicon::builtin(), lib, true).question.has_value());
+
+    // Une entrée de nom ne remplace jamais des mesures (elle complète les genres).
+    lib.parse("[2hollis]\nartiste = 2hollis\ntitre = poster boy\ngenres = electronique\n");
+    const auto m = lib.find("poster boy");
+    OMNIS_CHECK(m.entries.front()->measured);
+    OMNIS_CHECK(m.entries.front()->genres.size() == 3);
+    // Relecture : l'entrée de nom reste sans mesures.
+    ReferenceLibrary again;
+    again.parse(lib.serialize());
+    OMNIS_CHECK(!again.find("yeat").entries.front()->measured);
+}
+
+OMNIS_TEST("références: un nom de la base n'est jamais lu comme un mot (« ken carsonn » != « carton »)") {
+    ReferenceLibrary lib;
+    lib.parse(kLibrary);
+    lib.parse("[Ken Carson]\nartiste = Ken Carson\ngenres = rage\n");
+    const auto u = understandRequest("genre ken carsonn mais propre", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(hitOf(u.interpretation, "carton") == nullptr);
+    OMNIS_CHECK(hitOf(u.interpretation, "propre") != nullptr);
+    OMNIS_CHECK(u.referenceName.find("Ken Carson") != std::string::npos);
+    OMNIS_CHECK(!u.question.has_value());
+    // Un mot court n'est jamais pris pour un genre voisin (« trop » / « trap »).
+    OMNIS_CHECK(!namesMatch("trop", "trap"));
+    OMNIS_CHECK(namesMatch("slayer", "slayr"));
+}

@@ -20,6 +20,9 @@
 //      genres = rage | hyperpop
 //      lufs = -3.7          lra = …   tp = …   sub = …   (une clé par ligne)
 //      mid = 21 valeurs     side = 21 valeurs     dyn = 21 valeurs
+//  Une entrée sans mesures (pas de « mid ») est un artiste connu DE NOM : il
+//  est reconnu dans la demande et rattaché à ses genres, le temps qu'un son
+//  permette de le mesurer.
 // =============================================================================
 #pragma once
 
@@ -37,6 +40,7 @@ struct ReferenceEntry {
     std::vector<std::string> aliases;
     std::vector<std::string> genres;
     analysis::SpectralSignature signature;
+    bool measured = true; ///< false : connu de nom (et de genre) seulement, en attente d'un son
 
     [[nodiscard]] std::string displayName() const;
 };
@@ -68,10 +72,12 @@ private:
     std::vector<ReferenceEntry> entries_;
 };
 
-/// Signature moyenne (balances relatives au corps, sonies moyennes).
+/// Signature moyenne (balances relatives au corps, sonies moyennes) des
+/// entrées MESURÉES ; les entrées connues de nom seulement sont ignorées.
 analysis::SpectralSignature aggregateSignature(const std::vector<const ReferenceEntry*>& entries);
 
-/// Comparaison tolérante de deux noms (« 2 hollis » = « 2hollis » = « 2holis »).
+/// Comparaison tolérante de deux noms (« 2 hollis » = « 2hollis » = « 2holis ») ;
+/// exacte sous 5 caractères (« trop » n'est pas le genre « trap »).
 bool namesMatch(std::string_view a, std::string_view b);
 
 } // namespace omnis::ai

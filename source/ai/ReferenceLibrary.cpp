@@ -80,6 +80,8 @@ bool namesMatch(std::string_view a, std::string_view b) {
     for (char c : ca) (c >= '0' && c <= '9' ? digitsA : lettersA) += c;
     for (char c : cb) (c >= '0' && c <= '9' ? digitsB : lettersB) += c;
     if (digitsA != digitsB || lettersA.empty() || lettersB.empty()) return false;
+    // Noms courts : exacts (« trop » n'est pas le genre « trap »).
+    if (std::min(ca.size(), cb.size()) < 5) return false;
     return fuzzyEquals(lettersA, lettersB);
 }
 
@@ -89,7 +91,10 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
     std::string line;
     ReferenceEntry current;
     bool open = false;
+    bool hasMeasures = false;
     const auto close = [&] {
+        current.measured = hasMeasures;
+        hasMeasures = false;
         if (open && !current.artist.empty()) add(std::move(current));
         current = ReferenceEntry{};
         open = false;
@@ -126,7 +131,10 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
         else if (key == "tp") number_(s.truePeakDb);
         else if (key == "plr") number_(s.plrDb);
         else if (key == "sub") number_(s.subEnergyDb);
-        else if (key == "mid") ok = parseBands(value, s.midDb) && ok;
+        else if (key == "mid") {
+            ok = parseBands(value, s.midDb) && ok;
+            hasMeasures = true;
+        }
         else if (key == "side") ok = parseBands(value, s.sideDb) && ok;
         else if (key == "dyn") ok = parseBands(value, s.midSpreadDb) && ok;
         else if (error) *error += "ligne " + std::to_string(number) + " : clé inconnue « " + key + " » ignorée\n";
@@ -153,6 +161,10 @@ std::string ReferenceLibrary::serialize() const {
             for (std::size_t i = 0; i < e.genres.size(); ++i) out += (i ? " | " : "") + e.genres[i];
             out += "\n";
         }
+        if (!e.measured) {
+            out += "# connu de nom : en attente d'un son pour le mesurer\n";
+            continue;
+        }
         for (const auto& [key, value] : {std::pair{"lufs", s.integratedLufs}, std::pair{"lra", s.loudnessRangeLu},
                                          std::pair{"tp", s.truePeakDb}, std::pair{"plr", s.plrDb}, std::pair{"sub", s.subEnergyDb}}) {
             std::snprintf(buf, sizeof(buf), "%s = %.2f\n", key, value);
@@ -168,6 +180,14 @@ std::string ReferenceLibrary::serialize() const {
 void ReferenceLibrary::add(ReferenceEntry entry) {
     for (auto& e : entries_)
         if (namesMatch(e.artist, entry.artist) && namesMatch(e.title.empty() ? e.artist : e.title, entry.title.empty() ? entry.artist : entry.title)) {
+            // Une entrée de nom ne remplace jamais des mesures ; elle peut
+            // compléter genres et alias.
+            if (!entry.measured && e.measured) {
+                for (auto& g : entry.genres)
+                    if (std::none_of(e.genres.begin(), e.genres.end(), [&](const std::string& x) { return namesMatch(x, g); })) e.genres.push_back(g);
+                for (auto& a : entry.aliases) e.aliases.push_back(a);
+                return;
+            }
             e = std::move(entry);
             return;
         }
@@ -232,8 +252,11 @@ const ReferenceLibrary& ReferenceLibrary::builtin() {
     return library;
 }
 
-analysis::SpectralSignature aggregateSignature(const std::vector<const ReferenceEntry*>& entries) {
+analysis::SpectralSignature aggregateSignature(const std::vector<const ReferenceEntry*>& all) {
     analysis::SpectralSignature out;
+    std::vector<const ReferenceEntry*> entries;
+    for (const auto* e : all)
+        if (e->measured) entries.push_back(e);
     if (entries.empty()) return out;
     out.integratedLufs = out.loudnessRangeLu = out.truePeakDb = out.plrDb = out.subEnergyDb = 0.0;
     const double n = static_cast<double>(entries.size());

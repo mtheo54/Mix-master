@@ -94,6 +94,20 @@ la solution de repli. Toute correction de la personne nourrit les deux.
   > base.
 - **Son fourni pour un artiste inconnu** → sa signature entre dans la base utilisateur
   (`omnis_match … --db`).
+- **Artiste connu de nom seulement** (`omnis_refdb nom` / `noms`, sans son) : il est reconnu dans la
+  demande et le plug-in vise le **profil moyen de ses genres**, en suggérant d'envoyer un son :
+  > Je connais Ken Carson de nom : en attendant, je vise le profil moyen rage. Glisse-moi un son de
+  > Ken Carson pour viser juste.
+
+  Si aucun titre de ses genres n'a encore été mesuré, la question est posée. Une entrée de nom ne
+  remplace jamais des mesures : elle ne fait qu'ajouter des genres et des alias.
+- **Les noms passent avant les mots** : les noms de la base (artiste, alias, titre, fautes
+  comprises) sont repérés avant la lecture du lexique. Sans ça, « ken carsonn » devenait
+  « carton » (mesuré). Les noms de moins de 5 caractères se comparent exactement : « trop » n'est
+  pas le genre « trap ».
+- **Formats** : WAV, MP3, FLAC (décodeurs dr_mp3 / dr_flac, domaine public, `third_party/`), tout
+  en local. `omnis_refdb scan dossier/` mesure tout un dossier de fichiers nommés
+  « Artiste - Titre.ext ».
 - Base livrée aujourd'hui : 2 titres (poster boy, Sloppy Joe), les seules références fournies,
   genres confirmés par l'utilisateur (rage, hyperpop). La base « énorme » se construit avec
   `omnis_refdb add` sur des fichiers audio possédés légalement, et avec les sons que les personnes

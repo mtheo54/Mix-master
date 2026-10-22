@@ -10,6 +10,7 @@
 //  stratégie atteint sans s'écarter de plus de --max-tonal dB (par octave) de
 //  l'équilibre tonal de la prod ; --target devient un plafond.
 // =============================================================================
+#include "AudioRead.h"
 #include "AnalysisReport.h"
 #include "LoudnessTuner.h"
 #include "WavFile.h"
@@ -65,7 +66,7 @@ int main(int argc, char** argv) {
     }
     AudioFile input;
     std::string error;
-    if (!readWav(argv[1], input, error)) {
+    if (!readAudioFile(argv[1], input, error)) {
         std::fprintf(stderr, "%s\n", error.c_str());
         return 1;
     }

@@ -115,6 +115,10 @@ struct Interpretation {
     bool mentionsProvidedReference = false;     ///< « comme la réf », « comme le son »
 };
 
+/// Jeton qui remplace un nom de la base de références déjà reconnu
+/// (ai::understandRequest) : ignoré par interpret(), jamais pris pour un mot.
+inline constexpr const char* kReferenceMarker = "omnisrefmark";
+
 Interpretation interpret(std::string_view text, const Lexicon& lexicon);
 
 } // namespace omnis::ai

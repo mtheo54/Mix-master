@@ -14,6 +14,7 @@
 //  Exemple :
 //    omnis_render mix.wav master.wav --set input_gain=+3dB --set monitor=Side
 // =============================================================================
+#include "AudioRead.h"
 #include "AnalysisReport.h"
 #include "WavFile.h"
 
@@ -110,7 +111,7 @@ int main(int argc, char** argv) {
 
     AudioFile input;
     std::string error;
-    if (!readWav(inPath, input, error)) {
+    if (!readAudioFile(inPath, input, error)) {
         std::fprintf(stderr, "%s : %s\n", inPath.c_str(), error.c_str());
         return 1;
     }

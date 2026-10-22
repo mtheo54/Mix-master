@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
     else std::snprintf(loudness, sizeof(loudness), "%+.1f LU %s", u.request.loudnessOffsetLu, u.hasReference() ? "autour de la référence" : "autour de -10 LUFS");
     std::printf("Ressemblance %.0f %%, tolérance tonale %.1f dB, sonie %s\n", 100.0 * u.request.resemblance, u.request.maxTonalDeviationDb,
                 loudness);
+    if (u.suggestion) std::printf("\nConseil : %s\n", u.suggestion->c_str());
     if (u.question) std::printf("\nQuestion : %s\n", u.question->c_str());
 
     if (!logPath.empty()) {

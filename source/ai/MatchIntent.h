@@ -78,12 +78,15 @@ struct Understanding {
     std::string referenceName;                           ///< « artiste 2hollis (1 titre) »
     std::vector<std::string> unknownReferences;          ///< nommées mais inconnues
     std::optional<std::string> question;                 ///< à poser avant d'agir
+    std::optional<std::string> suggestion;               ///< conseil, n'empêche pas d'agir
 
     [[nodiscard]] bool hasReference() const noexcept { return !referenceEntries.empty(); }
 };
 
 /// `audioReferenceProvided` : la personne a déjà glissé un son de référence.
 /// Artiste inconnu sans son -> question (artiste proche connu, ou un son).
+/// Artiste connu de nom seulement -> profil moyen de ses genres, avec la
+/// suggestion d'envoyer un son ; sans genre mesuré -> question.
 Understanding understandRequest(std::string_view text, const Lexicon& lexicon, const ReferenceLibrary& library,
                                 bool audioReferenceProvided);
 

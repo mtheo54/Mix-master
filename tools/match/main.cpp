@@ -23,6 +23,7 @@
 //      l'EQ et le multibande) ; témoins : sans rien, EQ seul ;
 //   6. rend le master et mesure la ressemblance avant / après.
 // =============================================================================
+#include "AudioRead.h"
 #include "AiFiles.h"
 #include "AnalysisReport.h"
 #include "LoudnessTuner.h"
@@ -101,7 +102,7 @@ int main(int argc, char** argv) {
 
     AudioFile prod, ref;
     std::string error;
-    if (!readWav(argv[1], prod, error) || (!refPath.empty() && !readWav(refPath, ref, error))) {
+    if (!readAudioFile(argv[1], prod, error) || (!refPath.empty() && !readAudioFile(refPath, ref, error))) {
         std::fprintf(stderr, "%s\n", error.c_str());
         return 1;
     }
@@ -116,6 +117,7 @@ int main(int argc, char** argv) {
     std::printf("Demande : « %s »\n", demande.c_str());
     for (const auto& s : request.understood) std::printf("  - %s\n", s.c_str());
     for (const auto& s : request.pending) std::printf("  - (à venir) %s\n", s.c_str());
+    if (understanding.suggestion) std::printf("  - Conseil : %s\n", understanding.suggestion->c_str());
     if (understanding.question) {
         std::printf("\nQuestion : %s\n", understanding.question->c_str());
         return 2;

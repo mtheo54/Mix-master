@@ -166,9 +166,19 @@ endif()
 #  Outils de banc de test
 # -----------------------------------------------------------------------------
 if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
+    # Décodeurs MP3 / FLAC (domaine public, code tiers : compilé sans nos
+    # avertissements stricts).
+    add_library(omnis_dr_libs STATIC third_party/dr_libs/dr_libs_impl.cpp)
+    target_include_directories(omnis_dr_libs PUBLIC third_party/dr_libs)
+    if(NOT MSVC)
+        target_compile_options(omnis_dr_libs PRIVATE -w)
+    endif()
+
     add_library(omnis_tools_common STATIC
         tools/common/AiFiles.h
         tools/common/AnalysisReport.cpp
+        tools/common/AudioRead.cpp
+        tools/common/AudioRead.h
         tools/common/AnalysisReport.h
         tools/common/DistortionAnalysis.cpp
         tools/common/DistortionAnalysis.h
@@ -182,7 +192,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/WavFile.h
     )
     target_include_directories(omnis_tools_common PUBLIC tools/common)
-    target_link_libraries(omnis_tools_common PUBLIC omnis_core PRIVATE omnis_compile_options)
+    target_link_libraries(omnis_tools_common PUBLIC omnis_core PRIVATE omnis_dr_libs omnis_compile_options)
 endif()
 
 if(OMNIS_BUILD_TOOLS)

@@ -395,6 +395,10 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
         };
         for (std::size_t i = from; i < end;) {
             const std::string& t = tokens[i];
+            if (t == kReferenceMarker) {
+                ++i;
+                continue;
+            }
 
             // Sonie explicite : « -8 lufs », « -8lufs ».
             if (isNumber(t) && i + 1 < end && (tokens[i + 1] == "lufs" || tokens[i + 1] == "lu" || fuzzyEquals(tokens[i + 1], "lufs"))) {
@@ -427,7 +431,9 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
                     if (d == 0) break;
                     j += d;
                 }
-                if (matchPhrases(tokens, j, end, providedReference()) > 0) {
+                if (j < end && tokens[j] == kReferenceMarker) {
+                    // nom déjà reconnu dans la base : rien à collecter
+                } else if (matchPhrases(tokens, j, end, providedReference()) > 0) {
                     out.mentionsProvidedReference = true;
                     j += matchPhrases(tokens, j, end, providedReference());
                 } else {

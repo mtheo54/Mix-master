@@ -5,6 +5,7 @@
 //  Usage : omnis_analyze fichier.wav [autre.wav ...] [--bands] [--json]
 //  --bands : énergie, corrélation, ratio S/M et crête par bande (LR8).
 // =============================================================================
+#include "AudioRead.h"
 #include "AnalysisReport.h"
 #include "WavFile.h"
 
@@ -32,7 +33,7 @@ int main(int argc, char** argv) {
     for (const auto& path : files) {
         AudioFile f;
         std::string error;
-        if (!readWav(path, f, error)) {
+        if (!readAudioFile(path, f, error)) {
             std::fprintf(stderr, "%s : %s\n", path.c_str(), error.c_str());
             status = 1;
             continue;
