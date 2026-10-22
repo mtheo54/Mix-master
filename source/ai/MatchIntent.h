@@ -21,9 +21,16 @@
 //   4. Largeur : même logique sur l'écart Side − Mid, au-dessus du Mono Maker
 //      seulement, ±4 dB ; pas d'élargissement d'une bande quasi mono.
 //   5. Demande explicite (« garde ma 808 », « plus brillant »…) : appliquée
-//      après les bornes automatiques — la personne a le dernier mot.
+//      après les bornes automatiques — la personne a le dernier mot. Une
+//      région protégée (« garde ma 808 ») ne bouge pas de plus de ±1 dB.
+//   6. Sonie : explicite, sinon celle de la référence ; « fort » ne la
+//      dépasse pas (c'est ce que veut dire « fort comme la réf »), « club »
+//      la dépasse d'un demi-LU par LU au-delà ; « dynamique » la réduit.
 // =============================================================================
 #pragma once
+
+#include "Lexicon.h"
+#include "ReferenceLibrary.h"
 
 #include "analysis/SpectralSignature.h"
 #include "stages/MatchKernelBank.h"
@@ -38,21 +45,47 @@ namespace omnis::ai {
 using analysis::BandArray;
 using analysis::SpectralSignature;
 
-/// Ce que la demande de la personne fixe (ai/MatchIntent.cpp : parseRequest).
+/// Régions du Match EQ (mêmes bornes que les axes Sub … Air du lexique).
+inline constexpr int kRegionCount = kTonalAxes;
+int regionOfBand(int band) noexcept;
+
+/// Ce que la demande de la personne fixe.
 struct MatchRequest {
-    double resemblance = 0.5;           ///< fraction de l'écart refermée (0..0.85)
-    std::optional<double> targetLufs;   ///< sonie explicite ; sinon celle de la référence
+    double resemblance = 0.5;           ///< fraction de l'écart refermée (0.2..0.8)
+    std::optional<double> targetLufs;   ///< sonie explicite (« -8 lufs », « spotify »)
+    double loudnessOffsetLu = 0.0;      ///< « fort », « club », « dynamique »…
     double maxTonalDeviationDb = 1.5;   ///< tolérance de la dynamique vis-à-vis de l'intention
     double subLimitDb = 3.0;            ///< borne du déplacement sous 100 Hz
+    std::array<bool, kRegionCount> protectedRegions{}; ///< « garde ma 808 » : ±1 dB
+    bool widthProtected = false;
     BandArray midBiasDb{};              ///< souhaits explicites, ajoutés après les bornes
     BandArray sideBiasDb{};
     std::vector<std::string> understood; ///< ce qui a été compris (affichable)
+    std::vector<std::string> pending;    ///< compris, appliqué par un étage à venir
 };
 
-/// Lecture « au plus simple » d'une demande en français (mots-clés) : « comme
-/// la réf mais garde ma 808 », « très fort », « un peu plus brillant », « −8
-/// LUFS », « propre »… Le module 5 remplacera cette lecture par des embeddings.
+/// Traduit l'interprétation d'une phrase (ai/Lexicon.h) en demande.
+MatchRequest requestFromInterpretation(const Interpretation& interpretation);
+
+/// Raccourci : lexique livré, sans base de références.
 MatchRequest parseRequest(std::string_view text);
+
+/// La demande complète : mots, référence nommée, question si besoin.
+struct Understanding {
+    Interpretation interpretation;
+    MatchRequest request;
+    std::vector<const ReferenceEntry*> referenceEntries; ///< résolues dans la base
+    std::string referenceName;                           ///< « artiste 2hollis (1 titre) »
+    std::vector<std::string> unknownReferences;          ///< nommées mais inconnues
+    std::optional<std::string> question;                 ///< à poser avant d'agir
+
+    [[nodiscard]] bool hasReference() const noexcept { return !referenceEntries.empty(); }
+};
+
+/// `audioReferenceProvided` : la personne a déjà glissé un son de référence.
+/// Artiste inconnu sans son -> question (artiste proche connu, ou un son).
+Understanding understandRequest(std::string_view text, const Lexicon& lexicon, const ReferenceLibrary& library,
+                                bool audioReferenceProvided);
 
 struct MatchIntent {
     MatchCurve midDb{};  ///< courbe Mid à écrire dans le Match EQ
@@ -65,6 +98,10 @@ struct MatchIntent {
 };
 
 MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& reference, const MatchRequest& request);
+
+/// Sans référence : seuls les souhaits explicites, sonie de base −10 LUFS
+/// (± « fort », « dynamique »…).
+MatchIntent planFromWords(const SpectralSignature& prod, const MatchRequest& request);
 
 /// Distance tonale RMS (dB) entre deux signatures sur les nœuds significatifs :
 /// mesure de la « ressemblance » avant / après.

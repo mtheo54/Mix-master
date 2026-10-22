@@ -1,0 +1,80 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Lexique de la demande (base de mots, version 1)
+#
+#  Une ligne par concept :
+#      qualite <id> : expression | expression | ... => axe valeur, axe valeur
+#      defaut  <id> : expression | ...               => axe valeur, ...
+#
+#  « qualite » : ce que la personne VEUT quand elle le nomme (« plus brillant »,
+#  « manque de crispy », « trop brillant » = moins).
+#  « defaut » : ce dont elle SE PLAINT quand elle le nomme (« c'est boueux »,
+#  « trop boueux » = la même plainte). Les valeurs décrivent le défaut ; la
+#  correction appliquée est l'inverse.
+#
+#  Axes (dB sauf mention) : sub (20–80 Hz), bas (110–230), bas_medium
+#  (320–640), medium (0.9–2.6 k), presence (3.6–7 k), air (10–20 k),
+#  largeur (Side), sonie (LU, relatif), cible_lufs (absolu), proprete (-1 sale
+#  … +1 propre), ressemblance (écart à 50 %), punch, densite, saturation
+#  (-1 … +1, appliqués par les étages à venir).
+#
+#  Les expressions sont comparées après normalisation (minuscules, accents
+#  retirés) et avec tolérance aux fautes : inutile d'écrire les variantes
+#  d'orthographe, seulement les synonymes. Un fichier utilisateur peut
+#  redéfinir un concept (même id) : c'est ce que fait l'apprentissage.
+# =============================================================================
+
+# ---- Couleur ----------------------------------------------------------------
+qualite brillant   : brillant | brillance | bright | briller | eclatant | lumineux | scintillant | cristallin | clarte | etincelant | shiny => presence +1, air +2
+qualite air        : air | aere | aerien | airy | ouvert | ouverture | souffle | respire en haut | de l air => air +2
+qualite crispy     : crispy | crisp | croustillant | croquant | craquant | crunchy | crunch | grain | granuleux | qui croustille | croustille => presence +1.5, air +1, saturation +0.5
+qualite chaud      : chaud | warm | chaleureux | analogique | analog | vintage | velours | rond | moelleux | soyeux | cosy => bas_medium +1, air -1, saturation +0.3
+qualite froid      : froid | cold | clinique | digital | numerique | chirurgical => bas_medium -1, air +1
+qualite sombre     : sombre | dark | obscur | nocturne | tenebreux => presence -1, air -1.5
+qualite gras       : gras | epais | fat | gros | lourd | massif | plein | du corps | charnu | costaud | thick | heavy | imposant => bas +1.5, bas_medium +0.5
+qualite basse      : basse | basses | bass | sub | 808 | grave | graves | low | lows | low end | sub bass | infra => sub +2, bas +1
+qualite aigus      : aigus | aigu | high | highs | treble | hautes frequences | les hauts | le haut => presence +1, air +1.5
+qualite mediums    : mediums | mids | les mids | milieu | le milieu | medium => medium +1.5
+qualite bas_medium : bas medium | bas mediums | low mids | lowmids | bas mids => bas_medium +1.5
+qualite kick       : kick | grosse caisse | gc | kik => bas +1, punch +0.5
+qualite voix       : voix | vocal | vocals | vocaux | chant | rappeur | flow | toplines | lead vocal => medium +1, presence +1
+qualite presence   : presence | devant | en avant | qui ressort | qui perce | percer | proche | intime | upfront | in your face => presence +1.5, medium +0.5
+qualite doux       : doux | douceur | soft | smooth | veloute | caressant | apaise => presence -0.5, air -0.5, proprete +0.3
+qualite profond    : profond | profondeur | deep | abyssal | qui descend | descend bas => sub +1.5, air -0.5
+qualite lofi       : lofi | lo fi | cassette | vinyle | vieux son | old school | oldschool => air -2, saturation +0.5, proprete -0.3
+qualite moderne    : moderne | actuel | radio | commercial | pro | professionnel | carre | poli | polished => air +1, presence +0.5, sonie +1, proprete +0.5
+
+# ---- Défauts (plaintes) -----------------------------------------------------
+defaut boueux      : boueux | boue | muddy | mud | brouillon | baveux | bave | pateux | confus | empate | bouillie | soupe | flou | crade dans les bas => bas_medium +2, bas +1, proprete -0.5
+defaut etouffe     : etouffe | sourd | bouche | voile | feutre | muffled | dull | terne | eteint | ferme | enferme | dans une boite | sous l eau | sous une couverture => presence -1.5, air -2
+defaut agressif    : agressif dans les aigus | harsh | percant | strident | criard | qui pique | ca pique | pique les oreilles | tranchant | metallique | aigre | fatiguant | fatigant | qui agresse => presence +2, air +1
+defaut siffle      : sifflant | sifflante | ca siffle | sibilant | sibilance | les s | les esses | chuintant => presence +2
+defaut nasal       : nasal | nasillard | telephone | son de telephone | honky | dans le nez => medium +2
+defaut carton      : boxy | carton | cartonneux | boite en carton | creux au milieu => bas_medium +1.5
+defaut creux       : creux | vide | maigre | thin | faiblard | chetif | anemique | sans corps | squelettique | tinny => bas -1.5, bas_medium -1.5
+defaut boom        : boomy | ca resonne | resonne | bourdonne | ronfle | gonfle | ca bave en bas | trop rond | baffe => bas +2, sub +1
+defaut distordu    : distordu | disto | ca sature | sature | grésille | gresille | ca craque | craque | crache | ca clip | clippe | grille | ca grille | crackle | distorted | ca bave => saturation +1, proprete -1
+defaut ecrase      : ecrase | aplati | sans vie | pompe | ca pompe | pompage | pumping | squashe | etouffe par le limiteur | trop compresse | surcompresse | plat => densite +1, punch -1
+defaut mou         : mou | molasson | sans patate | sans peche | faible | timide | pas d impact | manque d impact | gentil | sage => punch -1, sonie -1
+defaut lointain    : lointain | en retrait | derriere | recule | distant | trop loin | noye | noyee | perdu dans le mix | enterre => presence -1.5, medium -0.5
+defaut etroit      : etroit | serre | tout au centre | trop mono | petit | etrique => largeur -2
+defaut trop_large  : trop large | phase | hors phase | qui flotte | ca part sur les cotes | bizarre en mono => largeur +2
+
+# ---- Énergie et dynamique ---------------------------------------------------
+qualite punch      : punch | punchy | patate | peche | impact | percutant | ca tape | qui tape | tape | ca claque | claque | qui claque | nerveux | snappy | attaque | qui cogne | cogne | slap => punch +1, presence +0.3
+qualite fort       : fort | loud | puissant | niveau | volume | sonie | gros son | qui envoie | envoie | pete | qui pete | vener | venere | enerve => sonie +2
+qualite club       : club | boite de nuit | festival | soundsystem | sound system | banger | a fond | max | maximum | dancefloor => sonie +4, densite +0.5
+qualite dynamique  : dynamique | respire | nuance | vivant | naturel | organique | aere dans la dynamique | qui respire | ouvert dans la dynamique => sonie -3, densite -1, punch +0.5
+qualite dense      : dense | compact | compresse | colle | glue | soude | homogene | tenu | coherent | glued | cohesif => densite +1
+qualite streaming  : spotify | streaming | apple music | deezer | youtube | soundcloud | tidal | plateformes => cible_lufs -14
+
+# ---- Propreté / caractère ---------------------------------------------------
+qualite propre     : propre | clean | net | precis | defini | lisible | transparent | pur | clair | limpide | nickel | carre net | soigne | sans bavure => proprete +1
+qualite sale       : sale | dirty | crade | cra cra | agressif | violent | brutal | rugueux | rough | gritty | trash | destroy | sature a fond | ecrase a fond => proprete -1, saturation +0.5, sonie +1
+
+# ---- Largeur ------------------------------------------------------------------
+qualite large      : large | wide | stereo | ample | spacieux | immersif | espace | ecarte | 3d | largeur | panoramique | englobant => largeur +2
+qualite mono       : mono | centre | compact au centre | narrow | resserre | focus => largeur -2
+
+# ---- Rapport à la référence ---------------------------------------------------
+qualite pareil     : pareil | identique | copie | clone | meme son | le meme | exactement pareil | a l identique | pile pareil => ressemblance +0.3
+qualite inspire    : inspire | inspiration | esprit | vibe | dans l esprit | influence | clin d oeil | rappelle | un rappel => ressemblance -0.2

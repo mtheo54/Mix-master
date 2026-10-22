@@ -2,11 +2,16 @@
 //  Abrasion Labs // OMNIS
 //  tools/match — « Fais sonner ma prod comme ce titre, sans la détruire. »
 //
-//  Usage : omnis_match prod.wav reference.wav [--demande "texte"]
+//  Usage : omnis_match prod.wav [reference.wav] [--demande "texte"]
+//                     [--db refs_utilisateur.txt] [--lexique lexique_utilisateur.txt]
 //                     [--resemblance 50] [--target -6] [--ceiling -0.3]
 //                     [--full] [--render master.wav]
 //
-//   1. Lit la demande (ai::parseRequest) ;
+//   1. Comprend la demande (ai::understandRequest : fautes, nuances, artiste,
+//      titre ou genre cité). La référence vient du son fourni, sinon de la
+//      base ; un artiste inconnu sans son -> la question est posée et rien
+//      n'est rendu. Un son fourni pour un artiste inconnu est ajouté à la base
+//      utilisateur (--db) ;
 //   2. écoute la référence et la prod (analysis::SpectralSignature) ;
 //   3. en déduit l'intention : déplacement partiel et borné (ai::planMatch),
 //      expliqué en clair ;
@@ -15,6 +20,7 @@
 //      l'EQ seul) ; la même recherche sans Match EQ sert de témoin ;
 //   5. rend le master et mesure la ressemblance avant / après.
 // =============================================================================
+#include "AiFiles.h"
 #include "AnalysisReport.h"
 #include "LoudnessTuner.h"
 #include "TonalBalance.h"
@@ -26,6 +32,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <future>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -64,18 +71,21 @@ void printResult(const char* label, const TuningResult& r) {
 } // namespace
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
+    if (argc < 2) {
         std::puts("Abrasion Labs // OMNIS — adaptation à une référence\n"
-                  "  omnis_match prod.wav reference.wav [--demande \"texte\"] [--resemblance 50] [--target -6]\n"
-                  "              [--ceiling -0.3] [--full] [--render master.wav]");
+                  "  omnis_match prod.wav [reference.wav] [--demande \"texte\"] [--db refs.txt] [--lexique lexique.txt]\n"
+                  "              [--resemblance 50] [--target -6] [--ceiling -0.3] [--full] [--render master.wav]");
         return 1;
     }
-    std::string demande, renderPath;
+    std::string demande, renderPath, refPath, dbPath, lexiconPath;
     double ceiling = -0.3, resemblance = -1.0, target = 1.0;
     TuningOptions options;
-    for (int i = 3; i < argc; ++i) {
+    for (int i = 2; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--demande" && i + 1 < argc) demande = argv[++i];
+        else if (a == "--db" && i + 1 < argc) dbPath = argv[++i];
+        else if (a == "--lexique" && i + 1 < argc) lexiconPath = argv[++i];
+        else if (i == 2 && a.rfind("--", 0) != 0) refPath = a;
         else if (a == "--resemblance" && i + 1 < argc) resemblance = std::atof(argv[++i]) * 0.01;
         else if (a == "--target" && i + 1 < argc) target = std::atof(argv[++i]);
         else if (a == "--ceiling" && i + 1 < argc) ceiling = std::atof(argv[++i]);
@@ -85,22 +95,47 @@ int main(int argc, char** argv) {
 
     AudioFile prod, ref;
     std::string error;
-    if (!readWav(argv[1], prod, error) || !readWav(argv[2], ref, error)) {
+    if (!readWav(argv[1], prod, error) || (!refPath.empty() && !readWav(refPath, ref, error))) {
         std::fprintf(stderr, "%s\n", error.c_str());
         return 1;
     }
 
     // ---- 1. Demande ------------------------------------------------------------
-    auto request = ai::parseRequest(demande);
+    const auto lexicon = loadLexicon(lexiconPath);
+    const auto library = loadLibrary(dbPath);
+    const auto understanding = ai::understandRequest(demande, lexicon, library, !refPath.empty());
+    auto request = understanding.request;
     if (resemblance >= 0.0) request.resemblance = resemblance;
     if (target <= 0.0) request.targetLufs = target;
     std::printf("Demande : « %s »\n", demande.c_str());
     for (const auto& s : request.understood) std::printf("  - %s\n", s.c_str());
+    for (const auto& s : request.pending) std::printf("  - (à venir) %s\n", s.c_str());
+    if (understanding.question) {
+        std::printf("\nQuestion : %s\n", understanding.question->c_str());
+        return 2;
+    }
 
     // ---- 2-3. Écoute et intention ----------------------------------------------
     const auto sigProd = signatureOf(prod);
-    const auto sigRef = signatureOf(ref);
-    const auto intent = ai::planMatch(sigProd, sigRef, request);
+    std::optional<analysis::SpectralSignature> sigRefOpt;
+    if (!refPath.empty()) {
+        sigRefOpt = signatureOf(ref);
+        // Un son fourni pour un artiste que la base ne connaissait pas : on l'apprend.
+        if (!understanding.unknownReferences.empty() && !dbPath.empty()) {
+            ai::ReferenceLibrary user;
+            std::string text;
+            if (readTextFile(dbPath, text)) user.parse(text);
+            ai::ReferenceEntry e;
+            e.artist = understanding.unknownReferences.front();
+            e.signature = *sigRefOpt;
+            user.add(e);
+            if (writeTextFile(dbPath, user.serialize()))
+                std::printf("  - « %s » ajouté à ta base de références (%s)\n", e.artist.c_str(), dbPath.c_str());
+        }
+    } else if (understanding.hasReference()) {
+        sigRefOpt = ai::aggregateSignature(understanding.referenceEntries);
+    }
+    const auto intent = sigRefOpt ? ai::planMatch(sigProd, *sigRefOpt, request) : ai::planFromWords(sigProd, request);
     std::printf("\nPourquoi la référence sonne comme ça :\n");
     for (const auto& s : intent.referenceTraits) std::printf("  - %s\n", s.c_str());
     std::printf("Ce que l'on garde de ta prod :\n");
@@ -152,8 +187,9 @@ int main(int argc, char** argv) {
         const auto sigOut = signatureOf(master);
         std::printf("\nRendu : %s  I=%.1f LUFS  TP=%.2f dBTP  LRA=%.1f LU\n", renderPath.c_str(), rep.integratedLufs, rep.truePeakDb,
                     rep.loudnessRangeLu);
-        std::printf("Distance tonale à la référence : %.1f dB -> %.1f dB (prod -> master)\n", ai::tonalDistanceDb(sigProd, sigRef),
-                    ai::tonalDistanceDb(sigOut, sigRef));
+        if (sigRefOpt)
+            std::printf("Distance tonale à la référence : %.1f dB -> %.1f dB (prod -> master)\n", ai::tonalDistanceDb(sigProd, *sigRefOpt),
+                        ai::tonalDistanceDb(sigOut, *sigRefOpt));
         std::printf("Changement par rapport à la prod :\n    %s", compareTonalBalance(prod, master).toText().c_str());
     }
     return 0;

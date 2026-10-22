@@ -22,6 +22,7 @@ constexpr double kMaxCutDb = 6.0;
 constexpr double kMaxBoostDb = 4.0;
 constexpr double kSideLimitDb = 4.0;
 constexpr double kEmptyBandDb = -40.0;
+constexpr double kMaxWordDb = 4.0;
 
 struct Region {
     const char* name;
@@ -53,141 +54,147 @@ double regionMean(const BandArray& v, const Region& r) {
     return s / (r.last - r.first + 1);
 }
 
+/// « fort » vise la sonie de la référence sans la dépasser ; au-delà de +2
+/// (« club », « très fort »), un demi-LU par LU ; « dynamique » la réduit.
+double loudnessAdjust(double offset) { return std::min(0.0, offset) + 0.5 * std::max(0.0, offset - 2.0); }
+
 std::string format(const char* fmt, double a, double b = 0.0, double c = 0.0) {
     char buf[256];
     std::snprintf(buf, sizeof(buf), fmt, a, b, c);
     return buf;
 }
 
-// ---- Lecture de la demande ---------------------------------------------------
-
-/// Minuscules ASCII et accents français retirés (UTF-8).
-std::string normalize(std::string_view text) {
-    static const std::pair<const char*, char> kAccents[] = {
-        {"é", 'e'}, {"è", 'e'}, {"ê", 'e'}, {"ë", 'e'}, {"à", 'a'}, {"â", 'a'}, {"ç", 'c'}, {"î", 'i'},
-        {"ï", 'i'}, {"ô", 'o'}, {"ù", 'u'}, {"û", 'u'}, {"É", 'e'}, {"È", 'e'}, {"À", 'a'}, {"’", '\''},
-    };
-    std::string out;
-    for (std::size_t i = 0; i < text.size();) {
-        bool replaced = false;
-        for (const auto& [from, to] : kAccents) {
-            const std::string_view f(from);
-            if (text.substr(i, f.size()) == f) {
-                out += to;
-                i += f.size();
-                replaced = true;
-                break;
-            }
-        }
-        if (replaced) continue;
-        const char c = text[i++];
-        out += (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-    }
-    return out;
-}
-
-bool has(const std::string& text, std::initializer_list<const char*> words) {
-    for (const char* w : words)
-        if (text.find(w) != std::string::npos) return true;
-    return false;
-}
-
-void addBias(BandArray& bias, double fromHz, double toHz, double db) {
-    for (int k = 0; k < kBands; ++k)
-        if (hz(k) >= fromHz && hz(k) <= toHz) bias[static_cast<std::size_t>(k)] += db;
-}
-
-/// « -8 lufs », « −8.5 LUFS », « 8 lufs » (sonie toujours négative).
-std::optional<double> explicitLufs(const std::string& t) {
-    const auto pos = t.find("lufs");
-    if (pos == std::string::npos) return std::nullopt;
-    std::size_t end = pos;
-    while (end > 0 && t[end - 1] == ' ') --end;
-    std::size_t start = end;
-    while (start > 0 && (std::isdigit(static_cast<unsigned char>(t[start - 1])) || t[start - 1] == '.' || t[start - 1] == ','))
-        --start;
-    if (start == end) return std::nullopt;
-    std::string number = t.substr(start, end - start);
-    std::replace(number.begin(), number.end(), ',', '.');
-    const double v = std::strtod(number.c_str(), nullptr);
-    return -std::fabs(v);
-}
-
 } // namespace
 
-MatchRequest parseRequest(std::string_view raw) {
+int regionOfBand(int band) noexcept {
+    for (int r = 0; r < kRegionCount; ++r)
+        if (band >= kRegions[r].first && band <= kRegions[r].last) return r;
+    return kRegionCount - 1;
+}
+
+MatchRequest requestFromInterpretation(const Interpretation& in) {
     MatchRequest r;
-    const std::string t = normalize(raw);
-    auto note = [&](std::string s) { r.understood.push_back(std::move(s)); };
+    const auto& d = in.desire;
+    r.resemblance = std::clamp(0.5 + d[Axis::Resemblance], 0.2, 0.8);
+    r.loudnessOffsetLu = std::clamp(d[Axis::Loudness], -6.0, 6.0);
+    r.targetLufs = in.lufs;
+    const double clean = d[Axis::Cleanliness];
+    if (clean > 0.0) r.maxTonalDeviationDb = std::max(0.75, 1.5 - 0.5 * clean);
+    if (clean < 0.0) r.maxTonalDeviationDb = std::min(4.0, 1.5 - 1.5 * clean);
 
-    // Ressemblance.
-    if (has(t, {"exactement", "pareil", "identique", "copie", "le plus proche", "a fond comme"})) {
-        r.resemblance = 0.8;
-        note("Ressemblance forte (80 % de l'écart) : jamais une copie, la prod garde ses bornes");
-    } else if (has(t, {"un peu", "legerement", "une touche", "subtil", "leger"})) {
-        r.resemblance = 0.3;
-        note("Ressemblance légère (30 % de l'écart)");
-    } else {
-        note("Ressemblance par défaut (50 % de l'écart)");
+    // Souhaits tonals : une valeur par région, adoucie entre régions voisines.
+    // Les mots donnent une direction, pas une ampleur sans fin : trois
+    // remarques sur les aigus ne font pas +12 dB (±4 dB par région).
+    BandArray mid{}, side{};
+    for (int k = 0; k < kBands; ++k)
+        mid[static_cast<std::size_t>(k)] = std::clamp(d.v[static_cast<std::size_t>(regionOfBand(k))], -kMaxWordDb, kMaxWordDb);
+    mid = smooth(mid);
+    for (int k = 0; k < kBands; ++k) {
+        const double f = hz(k);
+        const double widthShare = f >= 640.0 ? 1.0 : (f >= 226.0 ? 0.5 : 0.0);
+        side[static_cast<std::size_t>(k)] = mid[static_cast<std::size_t>(k)] + widthShare * std::clamp(d[Axis::Width], -kMaxWordDb, kMaxWordDb);
     }
+    r.midBiasDb = mid;
+    r.sideBiasDb = side;
 
-    // Sonie.
-    if (auto lufs = explicitLufs(t)) {
-        r.targetLufs = *lufs;
-        note(format("Sonie demandée : %.1f LUFS", *lufs));
-    } else if (has(t, {"spotify", "streaming", "youtube", "apple music"})) {
-        r.targetLufs = -14.0;
-        note("Sonie streaming : -14 LUFS");
-    } else if (has(t, {"dynamique", "respire", "nuance"})) {
-        r.targetLufs = -12.0;
-        note("Master dynamique : -12 LUFS");
-    } else {
-        note("Sonie : celle de la référence");
+    // Ce qui a été compris, en clair.
+    for (const auto& hit : in.hits) {
+        const Concept* c = Lexicon::builtin().find(hit.conceptId);
+        std::string line = "« " + hit.text + " »";
+        if (hit.protect) {
+            line += " : protégé";
+            if (c)
+                for (int a = 0; a < kAxisCount; ++a)
+                    if (std::fabs(c->effect.v[static_cast<std::size_t>(a)]) > 1e-9) {
+                        if (a < kRegionCount) r.protectedRegions[static_cast<std::size_t>(a)] = true;
+                        if (static_cast<Axis>(a) == Axis::Width) r.widthProtected = true;
+                    }
+            r.understood.push_back(line);
+            continue;
+        }
+        line += format(" (%+.1f) ->", hit.weight);
+        if (c) {
+            bool first = true;
+            for (int a = 0; a < kAxisCount; ++a) {
+                const double v = hit.weight * c->effect.v[static_cast<std::size_t>(a)];
+                if (std::fabs(v) < 1e-9) continue;
+                line += std::string(first ? " " : ", ") + axisLabel(static_cast<Axis>(a)) + format(" %+.1f", v) +
+                        (*axisUnit(static_cast<Axis>(a)) ? std::string(" ") + axisUnit(static_cast<Axis>(a)) : std::string());
+                first = false;
+            }
+            if (c->targetLufs && hit.weight > 0.0) line += format(" sonie %.0f LUFS", *c->targetLufs);
+        }
+        r.understood.push_back(line);
     }
-
-    // Propreté / caractère.
-    if (has(t, {"propre", "clean", "sans disto", "transparent"})) {
-        r.maxTonalDeviationDb = 1.0;
-        note("Propreté prioritaire : tolérance tonale 1.0 dB");
-    } else if (has(t, {"sale", "agressif", "sature", "crade", "disto", "ecrase", "violent"})) {
-        r.maxTonalDeviationDb = 3.0;
-        note("Caractère agressif accepté : tolérance tonale 3.0 dB");
-    }
-
-    // Sub / 808.
-    const bool aboutLow = has(t, {"808", "sub", "basse", "grave"});
-    if (aboutLow && has(t, {"garde", "protege", "touche pas", "conserve", "laisse"})) {
+    if (r.protectedRegions[0]) {
         r.subLimitDb = 1.0;
-        note("Sub / 808 protégés : déplacement limité à ±1 dB sous 100 Hz");
-    } else if (aboutLow && has(t, {"moins de", "moins fort", "baisse", "trop de"})) {
-        r.subLimitDb = 6.0;
-        addBias(r.midBiasDb, 0.0, 100.0, -2.0);
-        note("Moins de sub : -2 dB sous 100 Hz, bornes élargies à ±6 dB");
-    } else if (aboutLow && has(t, {"plus de", "gros", "lourd", "tape", "enorme", "massif"})) {
-        addBias(r.midBiasDb, 0.0, 100.0, 2.0);
-        note("Sub plus présent : +2 dB sous 100 Hz");
+        r.understood.push_back("Sub / 808 protégés : ±1 dB au maximum sous 100 Hz");
     }
-
-    // Couleur.
-    if (has(t, {"brillant", "aerien", "de l'air", "clair", "ouvert"})) {
-        addBias(r.midBiasDb, 7000.0, 21000.0, 1.5);
-        addBias(r.sideBiasDb, 7000.0, 21000.0, 1.5);
-        note("Plus brillant : +1.5 dB au-dessus de 7 kHz");
-    } else if (has(t, {"sombre", "chaud", "moins agressif dans les aigus", "doux"})) {
-        addBias(r.midBiasDb, 5000.0, 21000.0, -1.5);
-        addBias(r.sideBiasDb, 5000.0, 21000.0, -1.5);
-        note("Plus chaud : -1.5 dB au-dessus de 5 kHz");
-    }
-
-    // Largeur.
-    if (has(t, {"large", "wide", "stereo", "ample"})) {
-        addBias(r.sideBiasDb, 1500.0, 21000.0, 1.5);
-        note("Plus large : Side +1.5 dB au-dessus de 1.5 kHz");
-    } else if (has(t, {"mono", "serre", "centre", "etroit"})) {
-        addBias(r.sideBiasDb, 120.0, 21000.0, -1.5);
-        note("Plus serré : Side -1.5 dB");
+    if (in.lufs) r.understood.push_back(format("Sonie demandée : %.1f LUFS", *in.lufs));
+    if (std::fabs(d[Axis::Resemblance]) > 1e-9) r.understood.push_back(format("Ressemblance : %.0f %% de l'écart", 100.0 * r.resemblance));
+    if (std::fabs(clean) > 1e-9) r.understood.push_back(format("Tolérance tonale de la dynamique : %.1f dB", r.maxTonalDeviationDb));
+    for (int a = 0; a < kAxisCount; ++a) {
+        const auto axis = static_cast<Axis>(a);
+        if (!axisApplied(axis) && std::fabs(d[axis]) >= 0.25)
+            r.pending.push_back(std::string(axisLabel(axis)) + format(" %+.1f : noté, appliqué par l'étage dynamique / harmonique à venir", d[axis]));
     }
     return r;
+}
+
+MatchRequest parseRequest(std::string_view text) { return requestFromInterpretation(interpret(text, Lexicon::builtin())); }
+
+Understanding understandRequest(std::string_view text, const Lexicon& lexicon, const ReferenceLibrary& library, bool audioReferenceProvided) {
+    Understanding u;
+    u.interpretation = interpret(text, lexicon);
+    auto& in = u.interpretation;
+
+    const auto addEntries = [&](const ReferenceMatch& m) {
+        for (const auto* e : m.entries)
+            if (std::find(u.referenceEntries.begin(), u.referenceEntries.end(), e) == u.referenceEntries.end()) u.referenceEntries.push_back(e);
+        u.referenceName += (u.referenceName.empty() ? "" : " + ") + m.how;
+    };
+    for (const auto& mention : in.referenceMentions) {
+        const auto m = library.find(mention);
+        if (m.found()) addEntries(m);
+        else u.unknownReferences.push_back(mention);
+    }
+    // Un artiste, un titre ou un genre cité sans « comme » (« un son rage bien propre »).
+    std::vector<std::string> stillUnknown;
+    for (std::size_t i = 0; i < in.unknownWords.size(); ++i) {
+        if (i + 1 < in.unknownWords.size()) {
+            const auto pair = library.find(in.unknownWords[i] + " " + in.unknownWords[i + 1]);
+            if (pair.found() && pair.how.rfind("titre", 0) == 0) {
+                addEntries(pair);
+                ++i;
+                continue;
+            }
+        }
+        const auto m = library.find(in.unknownWords[i]);
+        if (m.found()) addEntries(m);
+        else stillUnknown.push_back(in.unknownWords[i]);
+    }
+    in.unknownWords = stillUnknown;
+
+    u.request = requestFromInterpretation(in);
+    if (!u.referenceName.empty()) u.request.understood.push_back("Référence : " + u.referenceName);
+
+    // Ce qu'il faut demander avant d'agir.
+    std::string known;
+    for (const auto& a : library.artists()) known += (known.empty() ? "" : ", ") + a;
+    if (!u.unknownReferences.empty() && !audioReferenceProvided) {
+        std::string names;
+        for (const auto& n : u.unknownReferences) names += (names.empty() ? "« " : ", « ") + n + " »";
+        u.question = "Je ne connais pas encore " + names +
+                     ". Pour viser juste : cite-moi un artiste proche que je connais (" + (known.empty() ? "base vide" : known) +
+                     "), ou glisse-moi un son de cet artiste : je l'écouterai et je l'ajouterai à la base.";
+    } else if (in.mentionsProvidedReference && !audioReferenceProvided && !u.hasReference()) {
+        u.question = "Tu parles d'une référence : glisse-moi le son, je l'écoute avant de toucher à ta prod.";
+    } else if (in.hits.empty() && !in.lufs && !u.hasReference() && !audioReferenceProvided) {
+        u.question = "Je n'ai pas compris ce que tu veux changer. Donne-moi un artiste ou un titre (je connais : " +
+                     (known.empty() ? "base vide" : known) +
+                     "), ou dis-moi ce qui ne va pas : « ça manque de crispy », « trop de basse », « je veux que ce soit propre »…";
+    }
+    return u;
 }
 
 MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& ref, const MatchRequest& request) {
@@ -209,8 +216,12 @@ MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& re
     for (int k = 0; k < kBands; ++k) {
         const auto i = static_cast<std::size_t>(k);
         const bool sub = hz(k) <= 100.0;
-        const double lo = sub ? -request.subLimitDb : -kMaxCutDb;
+        double lo = sub ? -request.subLimitDb : -kMaxCutDb;
         double hi = sub ? request.subLimitDb : kMaxBoostDb;
+        if (request.protectedRegions[static_cast<std::size_t>(regionOfBand(k))]) {
+            lo = std::max(lo, -1.0);
+            hi = std::min(hi, 1.0);
+        }
         if (prod.relativeMidDb(k) < kEmptyBandDb) hi = 0.0; // rien à faire ressortir
         const double mid = std::clamp(r * intent.gapDb[i], lo, hi);
 
@@ -218,12 +229,16 @@ MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& re
         if (hz(k) >= kMonoBelowHz) {
             double wHi = kSideLimitDb;
             if (prod.widthDb(k) < kEmptyBandDb + 5.0) wHi = 0.0; // bande quasi mono
-            width = std::clamp(r * intent.widthGapDb[i], -kSideLimitDb, wHi);
+            const double wLimit = request.widthProtected ? 1.0 : kSideLimitDb;
+            width = std::clamp(r * intent.widthGapDb[i], -wLimit, std::min(wHi, wLimit));
         }
-        intent.midDb[i] = std::clamp(mid + request.midBiasDb[i], -12.0, 12.0);
-        intent.sideDb[i] = std::clamp(mid + width + request.sideBiasDb[i], -12.0, 12.0);
+        // Une région protégée l'est aussi des souhaits contradictoires (« trop
+        // de basse … mais garde la 808 » : la 808 l'emporte, ±1 dB).
+        const double limit = request.protectedRegions[static_cast<std::size_t>(regionOfBand(k))] ? 1.0 : 12.0;
+        intent.midDb[i] = std::clamp(mid + request.midBiasDb[i], -limit, limit);
+        intent.sideDb[i] = std::clamp(mid + width + request.sideBiasDb[i], -limit, limit);
     }
-    intent.targetLufs = request.targetLufs.value_or(ref.integratedLufs);
+    intent.targetLufs = std::clamp(request.targetLufs.value_or(ref.integratedLufs + loudnessAdjust(request.loudnessOffsetLu)), -16.0, -3.0);
 
     // ---- Explication ----------------------------------------------------------
     for (const auto& region : kRegions) {
@@ -277,6 +292,22 @@ MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& re
                                                     regionMean(intent.gapDb, region), applied));
     }
     intent.protectedTraits.push_back(format("Ressemblance : %.0f %% de l'écart, jamais la totalité", 100.0 * r));
+    return intent;
+}
+
+MatchIntent planFromWords(const SpectralSignature& prod, const MatchRequest& request) {
+    MatchIntent intent;
+    for (int k = 0; k < kBands; ++k) {
+        const auto i = static_cast<std::size_t>(k);
+        double hi = 6.0;
+        if (prod.relativeMidDb(k) < kEmptyBandDb) hi = 0.0; // rien à faire ressortir
+        const double limit = request.protectedRegions[static_cast<std::size_t>(regionOfBand(k))] ? 1.0 : 6.0;
+        intent.midDb[i] = std::clamp(request.midBiasDb[i], -limit, std::min(hi, limit));
+        intent.sideDb[i] = std::clamp(request.sideBiasDb[i], -limit, std::min(hi, limit));
+    }
+    intent.targetLufs = std::clamp(request.targetLufs.value_or(-10.0 + request.loudnessOffsetLu), -16.0, -3.0);
+    intent.referenceTraits.push_back("Pas de référence : je ne change que ce que tu as demandé");
+    intent.protectedTraits.push_back("Tout le reste de ta prod est laissé tel quel");
     return intent;
 }
 

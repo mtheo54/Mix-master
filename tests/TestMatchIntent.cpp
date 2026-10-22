@@ -135,16 +135,17 @@ OMNIS_TEST("intention: jamais de copie (ressemblance bornée à 85 %)") {
     OMNIS_CHECK(intent.midDb[12] < 0.86 * 3.0);
 }
 
-OMNIS_TEST("demande: lecture des mots-clés (808 protégée, sonie explicite, brillance, ressemblance)") {
+OMNIS_TEST("demande: 808 protégée, sonie explicite, brillance, ressemblance") {
     const auto a = ai::parseRequest("Comme la réf mais garde ma 808, très fort");
     OMNIS_CHECK_NEAR(a.subLimitDb, 1.0, 1e-12);
     OMNIS_CHECK_NEAR(a.resemblance, 0.5, 1e-12);
     OMNIS_CHECK(!a.targetLufs.has_value());
 
+    // « un peu » porte sur « brillant » (air +2 × 0.5), pas sur la ressemblance.
     const auto b = ai::parseRequest("un peu plus brillant, -8 LUFS, propre");
-    OMNIS_CHECK_NEAR(b.resemblance, 0.3, 1e-12);
+    OMNIS_CHECK_NEAR(b.resemblance, 0.5, 1e-12);
     OMNIS_CHECK(b.targetLufs.has_value() && std::fabs(*b.targetLufs + 8.0) < 1e-12);
-    OMNIS_CHECK(b.midBiasDb[19] > 1.0);
+    OMNIS_CHECK_NEAR(b.midBiasDb[19], 1.0, 1e-9);
     OMNIS_CHECK_NEAR(b.maxTonalDeviationDb, 1.0, 1e-12);
 
     const auto c = ai::parseRequest("EXACTEMENT pareil que poster boy, -6,5 lufs, sale");

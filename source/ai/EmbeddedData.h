@@ -1,0 +1,19 @@
+// =============================================================================
+//  Abrasion Labs // OMNIS
+//  ai/EmbeddedData.h — Données livrées dans le binaire (générées depuis data/).
+//
+//  data/lexique_fr.txt et data/references.txt sont convertis en tableaux
+//  d'octets à la configuration CMake (cmake/OmnisEmbedData.cmake) : le plug-in
+//  fonctionne sans aucun fichier externe, et les fichiers restent la source
+//  éditable de la base.
+// =============================================================================
+#pragma once
+
+#include <string_view>
+
+namespace omnis::ai::data {
+
+std::string_view lexicon() noexcept;
+std::string_view references() noexcept;
+
+} // namespace omnis::ai::data

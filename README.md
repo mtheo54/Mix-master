@@ -75,6 +75,27 @@ avec des bornes qui protègent son identité, et explique ce qu'il fait.
 
 ```bash
 $B/omnis_match prod.wav reference.wav --demande "comme la réf mais garde ma 808, fort" --render master.wav
+$B/omnis_match prod.wav --demande "comme 2holis, un poil plus crispy" --render master.wav   # référence de la base
+```
+
+### Comprendre la demande, références, apprentissage ([détails](docs/APPRENTISSAGE.md))
+
+- **Fautes comprises** (clé phonétique + Damerau-Levenshtein) : « propr », « crispi »,
+  « jveu ke sa sonne + brilan ».
+- **Nuances** : lexique en données (`data/lexique_fr.txt`, 44 concepts, ~420 expressions) et petite
+  grammaire. Exemples : « ça manque de crispy », « c'est trop brillant », « c'est pas propre »,
+  « pas trop fort », « garde ma 808 », « un poil », « vraiment ».
+- **Base de références** (`data/references.txt`) : signatures mesurées, jamais d'audio. Recherche
+  par titre, artiste, alias ou genre. Si l'artiste est **inconnu**, le plug-in demande un artiste
+  proche ou un son, et ajoute ce son à la base.
+- **Apprentissage** : chaque correction ajuste le sens des mots chez la personne, et un mot inconnu
+  devient un concept. Un export anonyme permet une fusion communautaire, qui ne retient que les
+  tendances confirmées par 10 personnes et plus.
+
+```bash
+$B/omnis_ask "ça manque de crispy, genre slayer" [--log retours.tsv --correction "presence=+1" --note 1]
+$B/omnis_refdb add titre.wav --artiste "2hollis" --titre "poster boy" --genres "rage" --db refs.txt
+$B/omnis_learn local retours.tsv --lexique lexique_utilisateur.txt
 ```
 
 ## Ce que contient le Module 1
@@ -147,14 +168,16 @@ source/
   core/       primitives temps réel (SPSC, triple buffer, lisseur, tampons alignés, FTZ/DAZ)
   dsp/        SVF TPT, crossovers Linkwitz-Riley, FFT, convolution partitionnée stéréo
   stages/     étages de la chaîne (Sub Control, Match EQ, Clipper, Limiteur + banques de noyaux FIR)
-  ai/         intention d'adaptation à une référence et lecture de la demande (précurseur du module 5)
+  ai/         compréhension de la demande (fautes, lexique), base de références, intention
+              d'adaptation, apprentissage (précurseur du module 5)
+data/         lexique_fr.txt, references.txt (compilés dans le plug-in, éditables)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
   params/     table unique des paramètres (DSP, VST3, outils, IA)
   engine/     Engine + interface Stage (chaîne, PDC, bypass, monitoring, mesures)
   plugin/vst3 processeur, contrôleur, état, factory
-tools/        testgen, analyze, render, compare, tune, match (+ WAV I/O, signaux, rapport)
+tools/        testgen, analyze, render, compare, tune, match, ask, refdb, learn (+ WAV I/O, signaux, rapport)
 tests/        tests unitaires sans dépendance
-docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2/3/4.md
+docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2/3/4.md, APPRENTISSAGE.md
 ```
 
 ## Feuille de route
@@ -166,7 +189,9 @@ docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2/3/4.md
    Hard / Soft Knee / Diode à deux bandes, limiteur brickwall true peak à release adaptatif
 4. 🔶 **Match EQ & multibande** : ✅ Match EQ M/S à phase linéaire, signature de référence,
    adaptation partielle bornée et expliquée ; à venir : dynamique multibande (tenue de la 808)
-5. Moteur IA & embeddings — ONNX Runtime C++ / RTNeural, MLP 40–60 paramètres
+5. 🔶 Moteur IA : ✅ compréhension de la demande hors ligne, base de références, apprentissage local
+   et logique communautaire ; à venir : modèle de langage optionnel, prédicteur de paramètres,
+   serveur de mise à jour (consentement, validation, paquets signés)
 6. UI NanoVG — IPlugView OpenGL, oscilloscope phosphore, matrice LED, champ de prompt
 
 Chaque module DSP critique sera calibré sur des fichiers audio réels : voir

@@ -49,7 +49,14 @@ endif()
 # -----------------------------------------------------------------------------
 #  omnis_core : moteur DSP + analyse + paramètres, sans aucune dépendance
 # -----------------------------------------------------------------------------
+include(cmake/OmnisEmbedData.cmake)
+omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
+    lexicon=${CMAKE_SOURCE_DIR}/data/lexique_fr.txt
+    references=${CMAKE_SOURCE_DIR}/data/references.txt
+)
+
 add_library(omnis_core STATIC
+    ${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     source/core/AudioBuffer.h
     source/core/Decibels.h
     source/core/DelayLine.h
@@ -71,8 +78,17 @@ add_library(omnis_core STATIC
     source/dsp/StereoConvolver.cpp
     source/dsp/StereoConvolver.h
     source/dsp/SvfFilter.h
+    source/ai/EmbeddedData.h
+    source/ai/Feedback.cpp
+    source/ai/Feedback.h
+    source/ai/Lexicon.cpp
+    source/ai/Lexicon.h
     source/ai/MatchIntent.cpp
     source/ai/MatchIntent.h
+    source/ai/ReferenceLibrary.cpp
+    source/ai/ReferenceLibrary.h
+    source/ai/TextMatch.cpp
+    source/ai/TextMatch.h
     source/analysis/KWeightingFilter.h
     source/analysis/LoudnessMeter.cpp
     source/analysis/LoudnessMeter.h
@@ -145,6 +161,7 @@ endif()
 # -----------------------------------------------------------------------------
 if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
     add_library(omnis_tools_common STATIC
+        tools/common/AiFiles.h
         tools/common/AnalysisReport.cpp
         tools/common/AnalysisReport.h
         tools/common/DistortionAnalysis.cpp
@@ -163,7 +180,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
-    foreach(tool testgen analyze render compare tune match)
+    foreach(tool testgen analyze render compare tune match refdb ask learn)
         add_executable(omnis_${tool} tools/${tool}/main.cpp)
         target_link_libraries(omnis_${tool} PRIVATE omnis_tools_common omnis_compile_options)
     endforeach()
@@ -185,6 +202,8 @@ if(OMNIS_BUILD_TESTS)
         tests/TestSubControl.cpp
         tests/TestMatchEq.cpp
         tests/TestMatchIntent.cpp
+        tests/TestLanguage.cpp
+        tests/TestLearning.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp
