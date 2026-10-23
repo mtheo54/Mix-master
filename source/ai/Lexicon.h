@@ -24,9 +24,16 @@
 //      « dans l'esprit de »… (résolu par ai/ReferenceLibrary) ; « exactement
 //      comme » / « un peu comme » modulent la ressemblance ;
 //    - sonie explicite : « -8 lufs », « −8,5 LUFS », « 8lufs ».
+//    - un élément (« la 808 », « the vocals ») suivi d'un niveau (« est trop
+//      forte », « need to be louder ») : l'élément monte ou baisse, la sonie du
+//      master ne bouge pas ; « la basse et le kick sont trop forts » : les deux ;
+//    - modificateurs placés après : « propre de ouf », « brighter a bit »,
+//      « turn the bass down » ;
+//    - abréviations, SMS et argot (data/argot.txt) réécrits d'abord ; anglais
+//      courant compris (« more », « less », « too », « a bit », « not enough »).
 //  Les mots non compris sont rendus : ils alimentent la base (apprentissage).
 //  Les mots grammaticaux anglais très courts (« less », « so », « no ») sont
-//  exclus : la tolérance aux fautes les confondait avec « les », « sa »…
+//  comparés exactement : la tolérance aux fautes les confondait avec « les », « sa »…
 // =============================================================================
 #pragma once
 
@@ -118,6 +125,11 @@ struct Interpretation {
 /// Jeton qui remplace un nom de la base de références déjà reconnu
 /// (ai::understandRequest) : ignoré par interpret(), jamais pris pour un mot.
 inline constexpr const char* kReferenceMarker = "omnisrefmark";
+
+/// Abréviations, SMS et argot (data/argot.txt) réécrits en mots que la grammaire
+/// et le lexique connaissent : « tro d bass stp » -> « trop d bass ». Comparaison
+/// exacte des jetons, forme la plus longue d'abord.
+std::vector<std::string> expandShorthand(std::vector<std::string> tokens);
 
 Interpretation interpret(std::string_view text, const Lexicon& lexicon);
 

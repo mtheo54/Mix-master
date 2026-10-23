@@ -198,9 +198,15 @@ l'étape suivante. Elle se calibrera sur de vrais stems.
 
 - **Fautes comprises** (clé phonétique + Damerau-Levenshtein) : « propr », « crispi »,
   « jveu ke sa sonne + brilan ».
-- **Nuances** : lexique en données (`data/lexique_fr.txt`, 44 concepts, ~420 expressions) et petite
-  grammaire. Exemples : « ça manque de crispy », « c'est trop brillant », « c'est pas propre »,
-  « pas trop fort », « garde ma 808 », « un poil », « vraiment ».
+- **Nuances** : lexique en données (`data/lexique_fr.txt`, 48 concepts, ~880 expressions en français
+  et en anglais) et petite grammaire. Exemples : « ça manque de crispy », « c'est trop brillant »,
+  « c'est pas propre », « pas trop fort », « garde ma 808 », « un poil », « vraiment », « make it
+  brighter », « not enough punch », « turn the bass down a bit ».
+- **SMS et argot** (`data/argot.txt`, ~360 formes) : « tro », « bcp », « jveux », « ++ », « de ouf »,
+  « clean af », « wesh », « mdr », « no cap »… réécrits avant la lecture ; les tics et les avis sans
+  direction (« fire », « chanmé ») sont retirés au lieu d'être pris pour des mots inconnus.
+- **Sujet et niveau** : « la 808 est trop forte » baisse la 808 sans toucher la sonie du master ;
+  « the vocals are too quiet » monte la voix ; « la basse et le kick sont trop forts » baisse les deux.
 - **Base de références** (`data/references.txt`) : signatures mesurées, jamais d'audio. Recherche
   par titre, artiste, alias ou genre. Un artiste **connu de nom** utilise le profil de ses genres
   en attendant un son ; s'il est **inconnu**, le plug-in demande un artiste proche ou un son, et
@@ -291,7 +297,7 @@ source/
   stages/     étages de la chaîne (Sub Control, Match EQ, Multibande, Clipper, Limiteur + noyaux FIR)
   ai/         compréhension de la demande (fautes, lexique), base de références, intention
               d'adaptation, apprentissage (précurseur du module 5)
-data/         lexique_fr.txt, references.txt, catalogue.txt (compilés dans le plug-in, éditables),
+data/         lexique_fr.txt, argot.txt, references.txt, catalogue.txt (compilés dans le plug-in, éditables),
               genres_classement.txt (familles de playlists -> mots de genre)
 third_party/  dr_libs (décodeurs MP3 / FLAC, domaine public)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale

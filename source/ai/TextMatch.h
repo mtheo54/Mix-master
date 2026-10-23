@@ -26,7 +26,8 @@ namespace omnis::ai {
 std::string normalizeText(std::string_view text);
 
 /// Mots et ponctuation (« , . ! ? ; : ») comme jetons séparés. Les apostrophes
-/// coupent (« l'air » -> « l », « air »).
+/// coupent (« l'air » -> « l », « air »). « + » devient « plus » (« ++ » :
+/// « beaucoup plus »), « & » devient « et ».
 std::vector<std::string> tokenize(std::string_view text);
 
 std::string phoneticKey(std::string_view word);

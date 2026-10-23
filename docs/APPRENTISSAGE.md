@@ -42,13 +42,18 @@ Faux amis rencontrés en test, puis corrigés :
 |---|---|---|
 | « poli » | « 2hollis » | premier son identique, chiffres exacts |
 | « ça craque » | « ça claque » | une correspondance exacte bat une faute supposée |
-| « less » | « les » | mots anglais très courts retirés de la grammaire |
+| « less » | « les » | mots anglais très courts comparés exactement (« =less » dans la grammaire) |
+| « sounds » | « soupe » | un mot de la grammaire ou un mot outil n'est jamais lu comme une faute |
+| « c » (« c trop fort ») | « hq » | même règle |
 | « aigre » | « aigus » | « aigus », « médiums », « bas-médium » ajoutés comme mots de bande |
 
 ## 2. Les nuances (`ai/Lexicon`, `data/lexique_fr.txt`)
 
 La base de mots est une **donnée** : un fichier texte lisible, compilé dans le plug-in. On l'agrandit
-sans toucher au code. Version 1 : 44 concepts, environ 420 expressions (français, anglais, argot).
+sans toucher au code. Version 2 : 48 concepts, environ 880 expressions (français, anglais, argot).
+Avant la lecture, `data/argot.txt` réécrit les abréviations, le langage SMS et l'argot (environ 360
+formes, comparées exactement) : « tro » -> « trop », « jveux » -> « je veux », « clean af » -> « clean
+as hell » ; les tics (« wesh », « mdr ») et les avis sans direction (« fire », « chanmé ») sont retirés.
 Chaque concept se traduit en axes sonores :
 - tonals : sub, bas, bas-médium, médium, présence, air ;
 - largeur, sonie, propreté, ressemblance ;
@@ -70,6 +75,13 @@ Une petite grammaire lit chaque proposition :
 | « exactement comme » / « un peu comme » | ressemblance 80 % / 30 % |
 | « -8 lufs », « pour spotify » | sonie −8 / −14 LUFS |
 | « jveu ke sa sonne + crispi stp » | crispy + (langage SMS ignoré) |
+| « la 808 est trop forte » | 808 − (sub −2, bas −1), sonie du master inchangée |
+| « the vocals are too quiet », « la voix est trop en retrait » | voix + |
+| « la basse et le kick sont trop forts » | basse − et kick − |
+| « propre de ouf », « clean af » | propre ×1.6 (modificateur placé après) |
+| « make it brighter and less muddy » | brillant +, plainte boueux corrigée |
+| « turn the bass down a bit » | basse −0.5 |
+| « il y a pas de punch », « no punch » | punch + (constat d'un manque) |
 
 Les mots non compris sont gardés : ils servent à l'apprentissage (§4).
 

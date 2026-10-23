@@ -348,3 +348,127 @@ OMNIS_TEST("compréhension: artiste connu de nom -> ses proches écoutés avant 
     OMNIS_CHECK(l.referenceEntries.size() == 2);
     OMNIS_CHECK(l.suggestion.value_or("").find("profil moyen") != std::string::npos);
 }
+
+OMNIS_TEST("demande: un élément suivi d'un niveau baisse ou monte l'élément, pas le master") {
+    const auto a = read("la 808 est trop forte");
+    OMNIS_CHECK(hitOf(a, "basse") && hitOf(a, "basse")->weight < 0.0);
+    OMNIS_CHECK(a.desire[Axis::Sub] < 0.0);
+    OMNIS_CHECK_NEAR(a.desire[Axis::Loudness], 0.0, 1e-9);
+    OMNIS_CHECK(!hitOf(a, "fort"));
+
+    const auto b = read("the kick is too loud");
+    OMNIS_CHECK(hitOf(b, "kick") && hitOf(b, "kick")->weight < 0.0);
+    OMNIS_CHECK_NEAR(b.desire[Axis::Loudness], 0.0, 1e-9);
+
+    const auto c = read("la voix est pas assez forte");
+    OMNIS_CHECK(hitOf(c, "voix") && hitOf(c, "voix")->weight > 0.0);
+
+    const auto d = read("the vocals are too quiet");
+    OMNIS_CHECK(hitOf(d, "voix") && hitOf(d, "voix")->weight > 0.0);
+
+    const auto e = read("la voix est trop en retrait");
+    OMNIS_CHECK(hitOf(e, "voix") && hitOf(e, "voix")->weight > 0.0);
+
+    // Deux sujets reliés par « et » : les deux baissent.
+    const auto f = read("la basse et le kick sont trop forts");
+    OMNIS_CHECK(hitOf(f, "basse") && hitOf(f, "basse")->weight < 0.0);
+    OMNIS_CHECK(hitOf(f, "kick") && hitOf(f, "kick")->weight < 0.0);
+
+    // Sans élément, « trop fort » reste la sonie du master.
+    const auto g = read("c'est trop fort");
+    OMNIS_CHECK(g.desire[Axis::Loudness] < 0.0);
+    const auto h = read("c'est pas fort");
+    OMNIS_CHECK(h.desire[Axis::Loudness] > 0.0);
+}
+
+OMNIS_TEST("demande: anglais courant (more, less, too, a bit, not enough, comparatifs)") {
+    const auto a = read("make it brighter and less muddy");
+    OMNIS_CHECK(a.desire[Axis::Air] > 0.0);
+    OMNIS_CHECK(a.desire[Axis::LowMid] < 0.0);
+    OMNIS_CHECK(a.unknownWords.empty());
+
+    const auto b = read("vocals need to be louder, a bit wider");
+    OMNIS_CHECK(hitOf(b, "voix") && hitOf(b, "voix")->weight > 0.0);
+    OMNIS_CHECK(hitOf(b, "large") && hitOf(b, "large")->weight > 0.0 && hitOf(b, "large")->weight < 1.0);
+
+    const auto c = read("too much bass");
+    OMNIS_CHECK(c.desire[Axis::Sub] < 0.0);
+    const auto d = read("not enough punch");
+    OMNIS_CHECK(d.desire[Axis::Punch] > 0.0);
+    const auto e = read("turn the bass down a bit");
+    OMNIS_CHECK(hitOf(e, "basse") && hitOf(e, "basse")->weight < 0.0 && hitOf(e, "basse")->weight > -1.0);
+    const auto f = read("keep the 808, more vocals");
+    OMNIS_CHECK(hitOf(f, "basse") && hitOf(f, "basse")->protect);
+    OMNIS_CHECK(f.desire[Axis::Mid] > 0.0);
+
+    // « less » et « les », « more » et « mort » ne se confondent pas.
+    const auto g = read("les aigus");
+    OMNIS_CHECK(g.desire[Axis::Air] > 0.0);
+    const auto h = read("the mix sounds muddy");
+    OMNIS_CHECK(hitOf(h, "boueux") && h.hits.size() == 1);
+}
+
+OMNIS_TEST("demande: SMS, abréviations, argot et tics de langage") {
+    const auto a = read("tro de basse");
+    OMNIS_CHECK(a.desire[Axis::Sub] < 0.0);
+    OMNIS_CHECK(a.unknownWords.empty());
+
+    const auto b = read("c propre de ouf mais ++ de basse stp");
+    OMNIS_CHECK(hitOf(b, "propre") && hitOf(b, "propre")->weight > 1.0);
+    OMNIS_CHECK(hitOf(b, "basse") && hitOf(b, "basse")->weight > 1.0);
+    OMNIS_CHECK(!hitOf(b, "moderne")); // « c » n'est pas « hq »
+
+    const auto c = read("wesh frr la voix est trop en retrait mdr");
+    OMNIS_CHECK(hitOf(c, "voix") && hitOf(c, "voix")->weight > 0.0);
+    OMNIS_CHECK(c.unknownWords.empty());
+
+    const auto d = read("clean af and wide");
+    OMNIS_CHECK(hitOf(d, "propre") && hitOf(d, "propre")->weight > 1.0);
+    OMNIS_CHECK(hitOf(d, "large"));
+
+    const auto e = read("ya pas assez d'air");
+    OMNIS_CHECK(e.desire[Axis::Air] > 0.0);
+    const auto f = read("jveux un son qui gifle");
+    OMNIS_CHECK(f.desire[Axis::Punch] > 0.0);
+    const auto g = read("bcp + large");
+    OMNIS_CHECK(hitOf(g, "large") && hitOf(g, "large")->weight > 1.0);
+    const auto h = read("il y a pas de punch");
+    OMNIS_CHECK(h.desire[Axis::Punch] > 0.0);
+    const auto i = read("un ptit peu plus de kick");
+    OMNIS_CHECK(hitOf(i, "kick") && hitOf(i, "kick")->weight > 0.0 && hitOf(i, "kick")->weight < 1.0);
+
+    // Les noms d'artistes passent avant l'argot : « lil » n'est pas « a little ».
+    OMNIS_CHECK(expandShorthand({"lil"}) == std::vector<std::string>({"a", "little"}));
+    OMNIS_CHECK(expandShorthand({"mdr"}).empty());
+    OMNIS_CHECK(tokenize("+ de basse") == std::vector<std::string>({"plus", "de", "basse"}));
+    OMNIS_CHECK(tokenize("+3 db") == std::vector<std::string>({"3", "db"}));
+}
+
+OMNIS_TEST("demande: l'argot ne casse pas les références ni les mots du lexique") {
+    const auto lib = [] {
+        ReferenceLibrary l;
+        l.parse(kLibrary);
+        return l;
+    }();
+    const auto u = understandRequest("genre 2hollis mais plus propre tkt", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(u.hasReference());
+    OMNIS_CHECK(u.interpretation.desire[Axis::Cleanliness] > 0.0);
+    const auto v = understandRequest("travis scott type beat", Lexicon::builtin(), lib, false);
+    OMNIS_CHECK(!has(v.interpretation.referenceMentions, "beat"));
+    // Toutes les lignes de data/argot.txt se lisent.
+    OMNIS_CHECK(expandShorthand({"tro"}) == std::vector<std::string>({"trop"}));
+    OMNIS_CHECK(!data::slang().empty());
+}
+
+OMNIS_TEST("demande: entrées extrêmes (vide, symboles, émojis, très long) lues sans planter") {
+    for (const char* text : {"", " ", "+++", "&&&", "-- --", ",,,,", "😀🔥💯", "trop trop trop trop", "a", "c", "+", "lufs",
+                             "-8", "pas pas pas", "la et et et le", "comme", "comme comme comme"}) {
+        const auto r = read(text);
+        OMNIS_CHECK(std::isfinite(r.desire[Axis::Sub]));
+    }
+    std::string longText;
+    for (int i = 0; i < 400; ++i) longText += "la basse est trop forte mais plus de crispy wesh ";
+    const auto r = read(longText.c_str());
+    OMNIS_CHECK(r.desire[Axis::Sub] < 0.0);
+    OMNIS_CHECK(r.desire[Axis::Presence] > 0.0);
+}

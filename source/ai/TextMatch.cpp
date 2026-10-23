@@ -70,6 +70,16 @@ std::vector<std::string> tokenize(std::string_view raw) {
         const bool sign = c == '-' && current.empty() && i + 1 < text.size() && std::isdigit(static_cast<unsigned char>(text[i + 1]));
         if (isAlnum(c) || numberPart || sign) {
             current += c == ',' ? '.' : c;
+        } else if (c == '+' && !(i + 1 < text.size() && std::isdigit(static_cast<unsigned char>(text[i + 1])))) {
+            // « + de basse », « ++ fort » (écriture SMS) ; « +3 » reste un nombre.
+            flush();
+            std::size_t run = 1;
+            while (i + 1 < text.size() && text[i + 1] == '+') ++run, ++i;
+            if (run >= 2) tokens.emplace_back("beaucoup");
+            tokens.emplace_back("plus");
+        } else if (c == '&') {
+            flush();
+            tokens.emplace_back("et");
         } else {
             flush();
             if (c == ',' || c == '.' || c == '!' || c == '?' || c == ';' || c == ':') tokens.emplace_back(1, c);

@@ -1,0 +1,95 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Abréviations, SMS et façons de parler (version 1)
+#
+#  Une ligne :   forme | forme | ... => remplacement
+#  Les formes sont comparées EXACTEMENT, jeton par jeton, après normalisation
+#  (minuscules, accents retirés, apostrophes coupées, lettres répétées
+#  réduites) : « trooo » est déjà « tro ». La forme la plus longue gagne.
+#  « _ » comme remplacement : la forme est retirée (tics de langage, avis
+#  sans direction comme « fire » ou « chanmé »), elle n'est ni comprise ni
+#  rapportée comme mot inconnu.
+#
+#  Ce fichier est relu AVANT le lexique (data/lexique_fr.txt) : on y met les
+#  façons d'écrire, le lexique garde les sens. Les noms d'artistes sont
+#  reconnus avant cette étape (« Lil Baby » n'est pas « a little baby »).
+# =============================================================================
+
+# ---- SMS français : grammaire de la demande ---------------------------------
+tro | trp | trop trop => trop
+bcp | bcq | bcoup | bocou | boucou | bocoup | bcpp => beaucoup
+pa => pas
+pas asser | pa assez | pa asser | pas assé | pas asez => pas assez
+tjr | tjrs | tjs | toujour => toujours
+tt | tte | ttes => tout
+mm | mme => meme
+ds => dans
+ac | avc | avk | avek => avec
+sns | sanz => sans
+vrmt | vrmnt | vrm | vrmn | vraimen | vraiman => vraiment
+grv | grav => grave
+ptit | pti | ptite | p tit | 1 ptit => petit
+1 peu | 1 pe | un pe | 1 poil | 1 chouia | un chouya | 1 chouya => un peu
+un ptit peu | 1 ptit peu | un pti peu | 1 pti peu => un petit peu
+jveux | jveu | jvx | jve | chveu | chveux | jeveux | je veu => je veux
+jvoudrais | jvoudrai | jvoudré | je voudrai => je voudrais
+jaimerais | jaimerai | jaimrai | jaimrais | jaimeré => j aimerais
+fo | fau | fodrai | fodrait | faudrai | faudré => faudrait
+chui | chuis | jsui | jsuis | chu => je suis
+ya | y a | yaa => il y a
+yapa | yapas => il y a pas
+ct | c t => c etait
+cv | sa va => ca va
+koi | kwa | quoa => quoi
+pk | pq | pcq | psk | paske | pask | parske => parce que
+dc => donc
+qd | qnd | kan | kand => quand
+mtn | mnt | maintnan => maintenant
+pv | peu tu | peux tu | tu peu | tu peux => peux
+dla | d la => de la
+dle => de le
+deouf | 2ouf | dfou | d ouf | 2 ouf | de ouff | 2fou => de ouf
+amort | a mor => a mort
+afond | a fon => a fond
+enlv | enlev | enleve moi => enleve
+rajout | rajoutes | rajoute moi | ajoute moi => rajoute
+mets moi | met moi => mets
+baiss | baisse moi => baisse
+monte moi => monte
+moin | moinss => moins
+plu | pluss => plus
+encor | ancor => encore
+legerment | legermen | legermant => legerement
+genr | jenre => genre
+vnr | vener | venere => vener
+
+# ---- SMS anglais ----------------------------------------------------------------
+u => you
+ur | youre | you re => your
+lil | a lil | a lil bit | lil bit | a lil bitty => a little
+abit | a tad | a touch => a bit
+kinda | sorta | kind of | sort of | lowkey | low key => a bit
+highkey | high key | hella | mad | super duper | crazy | insanely | extremely => really
+wanna | want to | wanna make => want
+gotta | got to | need to be | needs to be | should be | has to be | gotta be => need
+gimme | lemme | give me | let me get => give me
+pls | plz | pleaz | pleaze => please
+thx | thanks | ty | tysm => _
+w o | without any => without
+dont | do not | don t | doesnt | does not | doesn t => dont
+isnt | is not | aint | ain t | isn t => is not
+its | it s | this is | that s | thats | it is => it is
+af | asf | as fuck | as hell | as heck | af fr => as hell
+too too | waaay too | way too => way too
+turn it up | crank it | crank it up => louder
+
+# ---- Tics de langage et avis sans direction (retirés) ----------------------------
+jsp | jsais pas | chais pas | chepa | jsai pas | je sais pas | jsais => _
+mdr | ptdr | lol | xd | xptdr | mdrr | lmao | lmfao | rofl | haha | hahaha | hihi => _
+wesh | wsh | frr | frero | frerot | mec | bro | bruh | broski | sis | fam | gars | les gars | poto | reuf => _
+sah | en sah | wallah | wallahi | jure | je te jure | jte jure | sur ma vie | srx | serieux | srs | fr fr | for real | no cap | nocap => _
+tkt | tqt | inchallah | askip | apparemment | genre genre | en mode | du coup | dcp | bref | voila | vla | jpp | ptn | putain | oklm | tranquille => _
+chanme | chanmax | dinguerie | une dinguerie | pepite | une pepite | masterclass | une masterclass | zinzin | incroyable | magnifique | trop bien => _
+fire | lit | bussin | slay | slays | goated | valid | heat | banger de fou | hits different | it hits different | vibes | vibey | mood | big mood | ngl | tbh | imo | imho | idk | idc | rn | tho | btw | omg | wow | yo | yoo => _
+slt | cc | bjr | bsr | salut | bonjour | bonsoir | hello | hey | hi there => _
+stp | svp | stpp | svpp | sil te plait | s il te plait | s il vous plait | sil vous plait | please => _
+merci | merci bcp | merci beaucoup | thank you => _
