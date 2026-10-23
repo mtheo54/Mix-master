@@ -73,6 +73,18 @@
 
 ## À venir
 
+- **Le cerveau du mix multi-pistes.** Le lien entre instances est fait (le master voit et écoute
+  chaque stem, et un stem applique un gain ordonné). Il reste à décider :
+  - l'équilibre de chaque piste face à la référence ;
+  - la relation kick / 808 (masquage, place de chacun) ;
+  - un EQ et une dynamique par piste, sans latence : en phase minimale, pas en phase linéaire
+    comme sur le master.
+
+  À calibrer sur de vrais stems : l'utilisateur doit exporter une prod en pistes séparées
+  depuis FL Studio, par exemple « Ouais Paul ».
+- **Noms des pistes** : récupérer le nom de la piste de l'hôte (VST3 `IInfoListener`) au lieu du
+  seul type de stem.
+
 - Appliquer la référence écoutée depuis le plug-in : le contrôleur calcule l'intention et écrit
   les paramètres `match_*` / `mb_*` via performEdit. Ça demande l'interface (module 6), pour
   saisir la demande et nommer la référence.

@@ -112,6 +112,12 @@ add_library(omnis_core STATIC
     source/engine/ReferenceCapture.cpp
     source/engine/ReferenceCapture.h
     source/engine/Stage.h
+    source/link/LinkBus.cpp
+    source/link/LinkBus.h
+    source/link/LinkClient.cpp
+    source/link/LinkClient.h
+    source/link/SharedRegion.cpp
+    source/link/SharedRegion.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
     source/stages/LimiterStage.cpp
@@ -131,6 +137,10 @@ target_include_directories(omnis_core PUBLIC source)
 target_compile_features(omnis_core PUBLIC cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(omnis_core PUBLIC Threads::Threads PRIVATE omnis_compile_options)
+if(UNIX AND NOT APPLE)
+    # shm_open (link/SharedRegion) : dans librt avant glibc 2.34.
+    target_link_libraries(omnis_core PUBLIC rt)
+endif()
 
 # -----------------------------------------------------------------------------
 #  Plug-in VST3
@@ -225,6 +235,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestLanguage.cpp
         tests/TestLearning.cpp
         tests/TestReferenceCapture.cpp
+        tests/TestLink.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp
@@ -243,6 +254,7 @@ if(OMNIS_BUILD_TESTS)
             tests/TestFramework.h
             tests/TestMain.cpp
             tests/TestPluginState.cpp
+            tests/TestPluginLink.cpp
             source/plugin/vst3/OmnisProcessor.cpp
             source/plugin/vst3/OmnisState.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/common/memorystream.cpp

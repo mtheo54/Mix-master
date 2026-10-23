@@ -42,6 +42,9 @@ enum class ParamId : std::uint32_t {
     OutputGain = 2,
     Monitor = 3,
     RefCapture = 4, ///< écoute de la référence jouée sur l'entrée auxiliaire
+    LinkRole = 5,     ///< Seul / Stem (piste, sans latence) / Master (bus master)
+    LinkStemKind = 6, ///< ce que porte la piste d'un stem (808, kick, voix…)
+    LinkGroup = 7,    ///< 1 … 8 : deux projets ouverts ne se mélangent pas
 
     // --- Sub Control & Mono Maker (100–199) ----------------------------------
     LowCutFreq = 100,
@@ -96,6 +99,7 @@ enum class ParamId : std::uint32_t {
     MeterLoudnessRange = 1005,
     MeterRefSeconds = 1006, ///< secondes de référence écoutées (non silencieuses)
     MeterRefLufs = 1007,    ///< sonie intégrée de la référence écoutée
+    MeterLinkStems = 1008,  ///< master : stems vivants dans son groupe
 };
 
 enum class ParamKind : std::uint8_t {
@@ -135,6 +139,9 @@ enum class MonitorMode : int { Stereo = 0, Mid = 1, Side = 2 };
 /// Pente du Mono Maker.
 enum class MonoSlope : int { LR4 = 0, LR8 = 1 };
 
+/// Rôle d'une instance liée (même ordre que link::Role).
+enum class LinkRole : int { Alone = 0, Stem = 1, Master = 2 };
+
 /// Phase du Sub Control : FIR à phase linéaire (défaut) ou IIR « analogique ».
 enum class PhaseMode : int { Linear = 0, Analog = 1 };
 
@@ -157,7 +164,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 100;
+inline constexpr std::size_t kParameterCount = 104;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

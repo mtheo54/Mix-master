@@ -119,6 +119,41 @@ identique au bit près à l'analyse séquentielle. Mesures sur 4 cœurs :
 
 Le gros du gain vient de la crête vraie (2.2x plus rapide, un fichier découpé en segments exacts).
 
+### Tilt
+
+Le réglage **Tilt** (−6 à +6 dB) penche tout le spectre d'un seul geste, en Mid et en Side :
+- +T dB à 20 kHz, −T dB à 20 Hz ;
+- une droite en octaves autour de 640 Hz (le milieu de 20 Hz – 20 kHz), constante au-delà.
+
+Il s'ajoute au noyau du Match EQ : aucune latence en plus. C'est un réglage à la main, que
+Match Amount ne dose pas. Attention : un tilt positif baisse aussi le sub (−1.5 dB à 57 Hz pour
++3 dB).
+
+### Instances liées : un master et des stems ([détails](docs/ARCHITECTURE.md#11-instances-liées))
+
+Dans FL Studio :
+1. Mettre OMNIS sur chaque piste du Mixer qui porte un élément : 808, kick, drums, mélodie, voix.
+   Régler **Link Role = Stem**, **Stem Type** selon la piste et **Link Group = 1**.
+2. Mettre OMNIS sur le master : **Link Role = Master**, même groupe.
+3. Le master affiche **Linked Stems**, le nombre de pistes reliées. Pendant la lecture, il écoute
+   chacune (signature : balance, sub, dynamique).
+
+Comment ça marche :
+- **Un stem n'ajoute aucune latence** : rien à phase linéaire sur chaque piste. Il laisse passer
+  le son, au gain que le master lui donne.
+- **Il envoie ce qui part vers le mix** (audio + position dans le projet) dans une mémoire
+  partagée nommée. Ça fonctionne aussi quand l'hôte isole chaque plug-in dans son propre
+  processus.
+- **Le son du mix passe toujours par la console de l'hôte.** Le master s'en sert pour décider ; il
+  ne le ressort pas, sinon il serait compté deux fois.
+- **Les groupes 1 à 8** séparent deux projets ouverts en même temps.
+
+Changer de rôle change la latence : le plug-in demande à l'hôte de le réactiver.
+
+Aujourd'hui, le master **voit et écoute** ses stems, et un stem **applique le gain** que le master
+lui ordonne. La partie qui décide (équilibre 808 / kick / voix, EQ et dynamique par piste) est
+l'étape suivante. Elle se calibrera sur de vrais stems.
+
 ### Comprendre la demande, références, apprentissage ([détails](docs/APPRENTISSAGE.md))
 
 - **Fautes comprises** (clé phonétique + Damerau-Levenshtein) : « propr », « crispi »,
@@ -222,6 +257,7 @@ third_party/  dr_libs (décodeurs MP3 / FLAC, domaine public)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
   params/     table unique des paramètres (DSP, VST3, outils, IA)
   engine/     Engine + interface Stage (chaîne, PDC, bypass, monitoring, mesures)
+  link/       instances liées : mémoire partagée nommée, master et stems d'un groupe
   plugin/vst3 processeur, contrôleur, état, factory
 tools/        testgen, analyze, render, compare, tune, match, ask, refdb, learn (+ WAV I/O, signaux, rapport)
 tests/        tests unitaires sans dépendance

@@ -18,11 +18,21 @@
 //     thread d'analyse). À l'arrêt, la référence entre dans la base de la
 //     personne (core/UserDataDir.h) et ses signatures sont gardées dans l'état
 //     de la session. Aucun audio n'est enregistré.
+//   - Instances liées (link/LinkClient.h), réglage « Link Role » :
+//       Seul   : comme avant ;
+//       Master : la chaîne complète, et l'écoute des stems de son groupe ;
+//       Stem   : sur une piste. AUCUNE latence (pas d'étage à phase linéaire
+//                par piste) : le son passe, multiplié par le gain que le master
+//                lui donne, et part vers le master avec sa position dans le projet.
+//     Le rôle est pris à l'activation : changer de rôle change la latence,
+//     le contrôleur demande à l'hôte de réactiver l'instance.
 // =============================================================================
 #pragma once
 
 #include "engine/Engine.h"
 #include "engine/ReferenceCapture.h"
+#include "core/OnePoleSmoother.h"
+#include "link/LinkClient.h"
 #include "params/Parameters.h"
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
@@ -79,8 +89,15 @@ private:
 
     void onCaptureFinished(const ReferenceCapture::Result& result); ///< thread d'analyse
 
+    [[nodiscard]] double plainOf(params::ParamId id) const noexcept;
+    template <typename Sample>
+    void processStem(Sample** inputs, Sample** outputs, Steinberg::int32 numSamples, const Steinberg::Vst::ProcessContext* context);
+
     Engine engine_;
     ReferenceCapture capture_;
+    link::LinkClient link_;
+    params::LinkRole activeRole_ = params::LinkRole::Alone; ///< pris à l'activation
+    OnePoleSmoother stemGain_;                             ///< gain ordonné par le master
     double sampleRate_ = 48000.0;
     std::mutex captureMutex_;
     std::string capturedText_; ///< signatures de la dernière écoute (état de la session)
@@ -103,7 +120,7 @@ private:
     bool transportWasPlaying_ = false;
     int meterIntervalSamples_ = 1600;
     int meterCountdown_ = 0;
-    std::array<double, 8> lastMeterValues_{};
+    std::array<double, 9> lastMeterValues_{};
 };
 
 } // namespace omnis::vst3

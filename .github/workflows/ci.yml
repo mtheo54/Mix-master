@@ -45,3 +45,4 @@ jobs:
           cmake --build build-tsan --parallel
           ./build-tsan/omnis_tests spsc
           ./build-tsan/omnis_tests triple
+          ./build-tsan/omnis_tests lien

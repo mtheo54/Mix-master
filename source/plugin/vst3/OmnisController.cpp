@@ -73,6 +73,14 @@ tresult PLUGIN_API OmnisController::initialize(FUnknown* context) {
     return kResultOk;
 }
 
+tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue value) {
+    const ParamValue before = getParamNormalized(tag);
+    const tresult result = EditController::setParamNormalized(tag, value);
+    if (result == kResultOk && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value && componentHandler)
+        componentHandler->restartComponent(kLatencyChanged);
+    return result;
+}
+
 tresult PLUGIN_API OmnisController::setComponentState(IBStream* state) {
     // Les paramètres absents de l'état reviennent à leur valeur par défaut,
     // exactement comme côté processeur.

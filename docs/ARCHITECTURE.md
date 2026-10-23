@@ -108,6 +108,8 @@ par paramètre). Les rafales au-delà de la capacité sont réduites au dernier 
 | Analyse de référence → courbe du Match EQ | `ai::planMatch` → 43 paramètres (`match_*`) | ✅ outils ; câblage plug-in module 5–6 |
 | IA → paramètres utilisateur | `beginEdit / performEdit / endEdit` du contrôleur | module 5 |
 | DSP → UI (scope, spectre) | `IDataExchange` (SDK ≥ 3.7.9) | module 6 |
+| Stem (thread audio) → master (thread du lien) | Mémoire partagée nommée, anneau audio d'atomiques + seqlock (`link/LinkBus.h`) | ✅ |
+| Master → stem (ordres) | Même région, seqlock lu par le thread audio du stem (4 essais, sinon ordres précédents) | ✅ gain |
 
 Décision importante : les **réglages** prédits par l'IA passent par le contrôleur
 (`performEdit`), donc par l'hôte. Ils sont ainsi visibles, automatisables et annulables (undo) dans
@@ -147,3 +149,47 @@ deux profils seront proposés :
 - **Safe Audiophile** — plafond True Peak (−1 dBTP par défaut), PLR préservé, aucune ISP.
 
 Le paramètre de mode arrive avec le clipper et le limiteur (module 3).
+
+## 11. Instances liées
+
+Une instance **master** (bus master) et des instances **stem** (une par piste) d'un même groupe
+(1 à 8) partagent une région de mémoire nommée : `link/SharedRegion` (CreateFileMapping « Local\ »
+sous Windows, shm_open ailleurs). On a choisi une région nommée plutôt qu'une variable globale,
+parce que certains hôtes chargent chaque plug-in dans son propre processus. FL Studio en
+« pont » et Bitwig le font.
+
+**Disposition** (`link/LinkBus.h`) :
+- 32 emplacements de taille fixe.
+- Une mémoire neuve, remplie de zéros, vaut « tous libres ».
+- La version de la disposition fait partie du nom de la région : deux versions d'OMNIS ne lisent
+  jamais la même mémoire.
+
+**Un emplacement contient :**
+- son jeton (64 bits aléatoires) et l'heure de son dernier battement de cœur ;
+- son rôle, le type de stem, son nom ;
+- un anneau audio de 2 × 65 536 trames `std::atomic<float>`, marqué de la position projet et des
+  trames exactes de départ et d'arrêt de la lecture ;
+- les ordres du master.
+
+**Atomiques :** tout ce qui est partagé est atomique sans verrou (`is_always_lock_free` vérifié à la
+compilation), donc valide entre processus. La cohérence des petits groupes de champs (position de
+l'anneau, ordres, nom) passe par une séquence « seqlock » à un seul écrivain.
+
+**Vie et mort :**
+- Un emplacement dont le cœur ne bat plus depuis 3 s (hôte planté) est repris par la prochaine
+  instance.
+- L'ancienne instance vérifie son jeton et n'y touche plus.
+
+**Threads :**
+- **Thread audio d'un stem** : écrit son audio et lit ses ordres sans verrou ni appel système.
+  L'Endpoint courant lui est prêté par `LinkClient::RtAccess` : un drapeau « occupé » et un
+  pointeur atomique en séquentiel cohérent. Un changement de groupe remplace l'Endpoint sans jamais
+  le détruire pendant que le thread audio s'en sert.
+- **Thread du lien** (50 ms) : rejoint le groupe, bat le cœur. Côté master, il écoute les stems
+  (`StemListener`, une signature par stem, seulement pendant la lecture).
+- **Retard du master** : s'il a plus de 0.7 s de retard, il saute au plus récent et compte la
+  perte.
+
+**Latence :** un stem annonce 0 échantillon et ne fait passer le son que par un gain lissé
+(30 ms). Le rôle est pris à l'activation. Le contrôleur demande `kLatencyChanged` quand il change.
+

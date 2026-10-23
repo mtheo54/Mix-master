@@ -7,8 +7,8 @@
 - **L'IA.** Il lit ta demande en français, même avec des fautes. Il sait de quel artiste ou de
   quel genre tu parles, il écoute une référence, et il rapproche ta prod de ce son **sans la
   copier ni la détruire**.
-- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 115 tests du
-  moteur, 3 tests du plug-in, le validateur officiel Steinberg (537 tests).
+- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 120 tests du
+  moteur, 4 tests du plug-in, le validateur officiel Steinberg (537 tests).
 - **Ce qui manque surtout :**
   - une version Windows que tu peux installer dans FL Studio ;
   - l'interface : boutons, champ de texte pour ta demande ;
@@ -27,6 +27,8 @@
 | **Multibande « tenue »** | 4 bandes. Tient les coups de la 808 dans le temps (comme les références) sans changer l'équilibre. | ✅ |
 | **Clipper** | Écrêtage propre, suréchantillonné jusqu'à 16x, sub et reste séparés : la 808 n'abîme pas la voix. | ✅ |
 | **Limiteur** | Plafond « true peak », relâchement qui s'adapte. | ✅ |
+| **Tilt** | Penche tout le spectre d'un geste (plus brillant / plus sombre), dans le Match EQ | ✅ |
+| **Instances liées** | Un OMNIS « Master » sur le master et un OMNIS « Stem » par piste (808, kick, voix…) : le master voit et écoute chaque piste, un stem n'ajoute aucune latence et applique le gain que le master lui donne | ✅ le lien ; ❌ le cerveau du mix |
 | Excitation / saturation | Grain, « crispy », 808 saturée | ❌ à faire |
 | Dither | Pour l'export 16 bits | ❌ à faire |
 

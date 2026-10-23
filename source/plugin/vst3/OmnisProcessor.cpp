@@ -28,10 +28,14 @@ using params::ParamKind;
 
 namespace {
 
-constexpr std::array<ParamId, 8> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
+constexpr std::array<ParamId, 9> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
                                            ParamId::MeterIntegrated, ParamId::MeterTruePeak,
                                            ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
-                                           ParamId::MeterRefSeconds, ParamId::MeterRefLufs};
+                                           ParamId::MeterRefSeconds, ParamId::MeterRefLufs,
+                                           ParamId::MeterLinkStems};
+
+/// Gain qu'un master peut donner à un stem : borné, quoi qu'il écrive.
+constexpr double kMinStemGainDb = -24.0, kMaxStemGainDb = 12.0;
 
 
 std::string nowLabel() {
@@ -107,6 +111,7 @@ tresult PLUGIN_API OmnisProcessor::initialize(FUnknown* context) {
 }
 
 tresult PLUGIN_API OmnisProcessor::terminate() {
+    link_.stop();
     capture_.release();
     return AudioEffect::terminate();
 }
@@ -156,14 +161,34 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         capture_.prepare(sampleRate_);
         const int index = params::parameterIndex(ParamId::RefCapture);
         capture_.setCapturing(index >= 0 && normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed) >= 0.5);
+        // Le rôle est pris ici : il fixe la latence annoncée à l'hôte.
+        activeRole_ = static_cast<params::LinkRole>(static_cast<int>(plainOf(ParamId::LinkRole)));
+        stemGain_.prepare(sampleRate_, 30.0);
+        stemGain_.snapTo(1.0);
+        if (activeRole_ != params::LinkRole::Alone)
+            link_.start(static_cast<link::Role>(activeRole_), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
+                        static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
+        else
+            link_.stop();
     } else {
+        link_.stop();
         capture_.release();
     }
     return AudioEffect::setActive(state);
 }
 
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
+    // Un stem ne retarde pas sa piste : l'hôte peut le demander avant
+    // l'activation, on lit donc le réglage plutôt que le rôle actif.
+    if (static_cast<params::LinkRole>(static_cast<int>(plainOf(ParamId::LinkRole))) == params::LinkRole::Stem) return 0;
     return static_cast<uint32>(engine_.latencySamples());
+}
+
+double OmnisProcessor::plainOf(ParamId id) const noexcept {
+    const auto* spec = params::findParameter(id);
+    const int index = params::parameterIndex(id);
+    if (!spec || index < 0 || index >= static_cast<int>(kMaxParams)) return 0.0;
+    return params::toPlain(*spec, normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed));
 }
 
 // -----------------------------------------------------------------------------
@@ -177,6 +202,8 @@ void OmnisProcessor::applyParameter(ParamID id, ParamValue normalized, bool imme
         normalized_[static_cast<std::size_t>(index)].store(normalized, std::memory_order_relaxed);
     const double plain = params::toPlain(*spec, normalized);
     if (spec->id == ParamId::RefCapture) capture_.setCapturing(plain >= 0.5);
+    if (spec->id == ParamId::LinkStemKind) link_.setKind(static_cast<link::StemKind>(static_cast<int>(plain)));
+    if (spec->id == ParamId::LinkGroup) link_.setGroup(static_cast<int>(plain));
     if (immediate)
         engine_.setParameterImmediate(spec->id, plain);
     else
@@ -274,6 +301,7 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
         if (!spec) continue;
         double plain = kMeterIds[i] == ParamId::MeterRefSeconds ? capture_.referenceSeconds()
                        : kMeterIds[i] == ParamId::MeterRefLufs  ? capture_.referenceLufs()
+                       : kMeterIds[i] == ParamId::MeterLinkStems ? static_cast<double>(link_.linkedStems())
                                                                 : meterPlainValue(kMeterIds[i], readout);
         if (!std::isfinite(plain)) plain = spec->minValue; // -inf LUFS -> bas d'échelle
         const double normalized = params::toNormalized(*spec, plain);
@@ -285,6 +313,29 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
             lastMeterValues_[i] = normalized;
         }
     }
+}
+
+template <typename Sample>
+void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSamples, const ProcessContext* context) {
+    // Automation : appliquée en début de bloc (rien à lisser ici à l'échantillon près).
+    for (int i = 0; i < numEvents_; ++i)
+        applyParameter(events_[static_cast<std::size_t>(i)].id, events_[static_cast<std::size_t>(i)].normalized, false);
+    numEvents_ = 0;
+
+    const bool playing = context && (context->state & ProcessContext::kPlaying) != 0;
+    const std::int64_t position = playing ? static_cast<std::int64_t>(context->projectTimeSamples) : link::kNoPosition;
+    link::LinkClient::RtAccess access(link_);
+    link::Endpoint* endpoint = access.endpoint();
+    double gainDb = endpoint ? std::clamp(static_cast<double>(endpoint->readOrders().gainDb), kMinStemGainDb, kMaxStemGainDb) : 0.0;
+    if (plainOf(ParamId::Bypass) >= 0.5) gainDb = 0.0;
+    stemGain_.setTarget(std::pow(10.0, gainDb / 20.0));
+    for (int32 i = 0; i < numSamples; ++i) {
+        const double g = stemGain_.next();
+        outputs[0][i] = static_cast<Sample>(g * inputs[0][i]);
+        outputs[1][i] = static_cast<Sample>(g * inputs[1][i]);
+    }
+    // Ce qui part vers le mix, et donc ce que le master doit entendre.
+    if (endpoint) endpoint->writeAudio(outputs[0], outputs[1], numSamples, position, playing);
 }
 
 tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
@@ -317,6 +368,16 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
             const float* refR = auxChannels > 1 ? data.inputs[1].channelBuffers32[1] : refL;
             capture_.push(refL, refR, data.inputs[0].channelBuffers32[0], data.inputs[0].channelBuffers32[1], data.numSamples);
         }
+    }
+
+    if (activeRole_ == params::LinkRole::Stem) {
+        if (data.symbolicSampleSize == kSample64)
+            processStem(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, data.processContext);
+        else
+            processStem(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, data.processContext);
+        data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
+        publishMeters(data.outputParameterChanges, data.numSamples);
+        return kResultOk;
     }
 
     if (data.symbolicSampleSize == kSample64)

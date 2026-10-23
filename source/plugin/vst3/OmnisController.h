@@ -25,6 +25,9 @@ public:
 
     Steinberg::tresult PLUGIN_API initialize(Steinberg::FUnknown* context) override;
     Steinberg::tresult PLUGIN_API setComponentState(Steinberg::IBStream* state) override;
+    /// « Link Role » : un stem n'a pas de latence, un master si ; l'hôte doit
+    /// relire la latence et réactiver l'instance.
+    Steinberg::tresult PLUGIN_API setParamNormalized(Steinberg::Vst::ParamID tag, Steinberg::Vst::ParamValue value) override;
 };
 
 } // namespace omnis::vst3

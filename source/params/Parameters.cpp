@@ -22,6 +22,9 @@ constexpr std::array<std::string_view, 2> kSlopeLabels{"24 dB/oct", "48 dB/oct"}
 constexpr std::array<std::string_view, 2> kPhaseLabels{"Linear", "Analog"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
+constexpr std::array<std::string_view, 3> kLinkRoleLabels{"Seul", "Stem", "Master"};
+constexpr std::array<std::string_view, 6> kStemKindLabels{"Autre", "808 / basse", "Kick", "Drums", "Mélodie", "Voix"};
+constexpr std::array<std::string_view, 8> kGroupLabels{"1", "2", "3", "4", "5", "6", "7", "8"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
@@ -32,6 +35,10 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::OutputGain,        "output_gain",   "Output Gain",          "Out",    "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::Monitor,           "monitor",       "Monitor",              "Mon",    "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kMonitorLabels, 15.0,   0},
     {ParamId::RefCapture,        "ref_capture",   "Listen Reference",     "Ref",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
+    // Instances liées (link/LinkBus.h) : un master et des stems d'un même groupe.
+    {ParamId::LinkRole,          "link_role",     "Link Role",            "Role",   "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kLinkRoleLabels, 0.0,   0},
+    {ParamId::LinkStemKind,      "link_stem",     "Stem Type",            "Stem",   "",     ParamKind::Choice,     0.0,    5.0,   0.0,   5,    kStemKindLabels, 0.0,   0},
+    {ParamId::LinkGroup,         "link_group",    "Link Group",           "Group",  "",     ParamKind::Choice,     1.0,    8.0,   1.0,   7,    kGroupLabels,   0.0,    0},
 
     // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence
     // (voir docs/CALIBRATION_MODULE2.md).
@@ -141,6 +148,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::MeterLoudnessRange,"meter_lra",     "Loudness Range",       "LRA",    "LU",   ParamKind::Meter,      0.0,    40.0,  0.0,   0,    {},             0.0,    1},
     {ParamId::MeterRefSeconds,   "meter_ref_s",   "Reference Listened",   "RefS",   "s",    ParamKind::Meter,      0.0,    600.0, 0.0,   0,    {},             0.0,    0},
     {ParamId::MeterRefLufs,      "meter_ref_lufs","Reference Loudness",   "RefI",   "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
+    {ParamId::MeterLinkStems,    "meter_stems",   "Linked Stems",         "Stems",  "",     ParamKind::Meter,      0.0,    32.0,  0.0,   0,    {},             0.0,    0},
 }};
 // clang-format on
 static_assert(kParameters.size() == kParameterCount, "kParameterCount doit suivre la table");
@@ -234,7 +242,9 @@ std::string formatValue(const ParamSpec& spec, double plain, bool withUnit) {
         const auto index = static_cast<std::size_t>(clampPlain(spec, plain) - spec.minValue);
         if (index < spec.choices.size()) return std::string(spec.choices[index]);
     }
-    if (spec.kind == ParamKind::Meter && plain <= spec.minValue) return withUnit ? "-inf " + std::string(spec.unit) : "-inf";
+    // Bas d'échelle d'un niveau (LUFS, dBTP) = silence ; pas d'une durée ou d'un compte.
+    if (spec.kind == ParamKind::Meter && plain <= spec.minValue && (spec.unit == "LUFS" || spec.unit == "dBTP"))
+        return withUnit ? "-inf " + std::string(spec.unit) : "-inf";
 
     std::ostringstream out;
     out.imbue(std::locale::classic());
