@@ -4,6 +4,7 @@
 // =============================================================================
 #include "OmnisController.h"
 
+#include "OmnisIds.h"
 #include "OmnisState.h"
 
 #include "params/Parameters.h"
@@ -79,6 +80,19 @@ tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue v
     if (result == kResultOk && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value && componentHandler)
         componentHandler->restartComponent(kLatencyChanged);
     return result;
+}
+
+tresult PLUGIN_API OmnisController::setChannelContextInfos(IAttributeList* list) {
+    if (!list) return kInvalidArgument;
+    String128 name{};
+    if (list->getString(ChannelContext::kChannelNameKey, name, sizeof(name)) != kResultTrue) return kResultOk;
+    const std::string utf8 = StringConvert::convert(name);
+    IPtr<IMessage> message = owned(allocateMessage());
+    if (!message) return kResultOk;
+    message->setMessageID(vst3::kTrackNameMessage);
+    message->getAttributes()->setBinary(vst3::kTrackNameAttribute, utf8.data(), static_cast<uint32>(utf8.size()));
+    sendMessage(message);
+    return kResultOk;
 }
 
 tresult PLUGIN_API OmnisController::setComponentState(IBStream* state) {

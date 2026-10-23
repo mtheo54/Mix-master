@@ -17,5 +17,6 @@ std::string_view lexicon() noexcept;
 std::string_view slang() noexcept;      ///< abréviations, SMS, argot (data/argot.txt)
 std::string_view references() noexcept;
 std::string_view catalogue() noexcept; ///< artistes et titres connus de nom (data/catalogue.txt)
+std::string_view elements() noexcept;  ///< noms de pistes -> éléments des stems (data/elements.txt)
 
 } // namespace omnis::ai::data

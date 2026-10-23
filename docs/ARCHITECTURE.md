@@ -172,7 +172,8 @@ parce que certains hôtes chargent chaque plug-in dans son propre processus. FL 
 
 **Un emplacement contient :**
 - son jeton (64 bits aléatoires) et l'heure de son dernier battement de cœur ;
-- son rôle, le type de stem, son nom ;
+- son rôle, son élément (`stems::Element` : kick, open hat, piano, 808… ; disposition version 2), son nom
+  (celui de la piste dans l'hôte) ;
 - un anneau audio de 2 × 65 536 trames `std::atomic<float>`, marqué de la position projet et des
   trames exactes de départ et d'arrêt de la lecture ;
 - les ordres du master.
@@ -198,4 +199,27 @@ l'anneau, ordres, nom) passe par une séquence « seqlock » à un seul écrivai
 
 **Latence :** un stem annonce 0 échantillon et ne fait passer le son que par un gain lissé
 (30 ms). Le rôle est pris à l'activation. Le contrôleur demande `kLatencyChanged` quand il change.
+
+## 12. Reconnaître l'élément d'un stem (`stems/`)
+
+Chaque stem sait ce qu'il porte : son élément choisit sa chaîne (à venir : drums → compression,
+saturation, espace ; instruments → EQ dynamique ; 808 → saturation, EQ dynamique) et ce que le master
+peut lui demander. Paramètre `link_stem` (« Stem Element ») : **Auto** ou l'un des 21 éléments ;
+afficheur `meter_element` : ce qui a été reconnu.
+
+1. **Le choix de la personne** passe avant tout.
+2. **L'écoute** (`stems/ElementClassifier`, thread du lien, seulement pendant la lecture) : trames de
+   ~46 ms, six bandes, part de l'énergie dans des pics (note ou bruit), largeur, crête / RMS ; puis
+   les coups (montée de 8 dB, ou une bande qui monte de 12 dB, réarmés après une retombée de 3 dB),
+   leur temps de montée, leur décroissance de 20 dB, ce que chaque coup ajoute au son d'avant. Des
+   règles lisibles donnent un score par élément. Les sons saturés restent reconnus : la saturation se
+   lit dans le caractère (crête basse), pas dans l'identité.
+3. **Le nom de la piste** (`data/elements.txt`) : l'hôte le donne par `ChannelContext::IInfoListener`
+   (la norme VST3), le contrôleur le passe au processeur par message (`omnis.trackName`). Les noms de
+   packs sont découpés (« SH_KickHard04 », « ClosedHat », « 808Mafia »). Le nom précise l'écoute dans
+   une famille (guitare plutôt que piano) ; si la famille entendue contredit le nom, une écoute nette
+   l'emporte et le désaccord est noté.
+
+Les seuils sont des points de départ vérifiés sur des sons synthétiques (kick, 808, snare, clap, hats,
+open hat, piano, nappe, voix, boucle, kick et 808 saturés) : à calibrer sur de vrais stems.
 

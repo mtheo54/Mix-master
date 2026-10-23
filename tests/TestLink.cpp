@@ -60,9 +60,9 @@ OMNIS_TEST("lien: un master voit ses stems (rôle, type, nom), pas ceux d'un aut
 
     // Un stem qui part libère sa place ; le type peut changer en route.
     vocal.leave();
-    kick.setKind(StemKind::Drums);
+    kick.setKind(StemKind::DrumLoop);
     const auto after = master.stems();
-    OMNIS_CHECK(after.size() == 1 && after[0].kind == StemKind::Drums);
+    OMNIS_CHECK(after.size() == 1 && after[0].kind == StemKind::DrumLoop);
 }
 
 OMNIS_TEST("lien: le master écoute l'audio d'un stem pendant la lecture (même signature que le fichier)") {
@@ -107,7 +107,7 @@ OMNIS_TEST("lien: ordres du master -> stem (jeton vérifié), reprise d'un empla
     TestNamespace ns("omnistestc");
     Endpoint master, stem;
     OMNIS_CHECK(master.join(4, Role::Master, StemKind::Other, "Master", 44100.0));
-    OMNIS_CHECK(stem.join(4, Role::Stem, StemKind::Melody, "Mélodie", 44100.0));
+    OMNIS_CHECK(stem.join(4, Role::Stem, StemKind::Lead, "Mélodie", 44100.0));
     OMNIS_CHECK(stem.readOrders().version == 0);
     const auto s = master.stems().front();
     OMNIS_CHECK(master.writeOrders(s.slot, s.owner, {-3.0f, 0}));
@@ -186,4 +186,27 @@ OMNIS_TEST("lien: stem qui écrit et master qui écoute en même temps ; changem
     OMNIS_CHECK(blocks.load() > 100);
     stem.stop();
     OMNIS_CHECK(waitFor([&] { return master.linkedStems() == 0; }));
+}
+
+OMNIS_TEST("lien: un stem se reconnaît (nom de piste, puis écoute) et le master le voit") {
+    TestNamespace ns("omnisteste");
+    LinkClient master, stem;
+    master.start(Role::Master, StemKind::Other, 7, 48000.0);
+    stem.start(Role::Stem, StemKind::Auto, 7, 48000.0);
+    stem.setTrackName("PL_ClosedHat_12");
+    const auto waitFor = [](auto condition, int tries = 400) {
+        for (int i = 0; i < tries && !condition(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        return condition();
+    };
+    // Sans rien écouter, le nom suffit à un premier avis.
+    OMNIS_CHECK(waitFor([&] { return stem.identifiedElement() == StemKind::HiHat; }));
+    // Le master voit l'élément et le nom de la piste.
+    OMNIS_CHECK(waitFor([&] {
+        for (const auto& h : master.heard())
+            if (h.view.kind == StemKind::HiHat && h.view.name == "PL_ClosedHat_12") return true;
+        return false;
+    }));
+    // La personne choisit l'élément : il passe avant tout.
+    stem.setKind(StemKind::Snare);
+    OMNIS_CHECK(waitFor([&] { return stem.identifiedElement() == StemKind::Snare; }));
 }

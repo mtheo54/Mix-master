@@ -5,7 +5,10 @@
 //  Le thread du lien (non temps réel, toutes les 50 ms) :
 //    - rejoint le groupe, et le change si la personne choisit un autre groupe ;
 //    - bat le cœur de l'instance ;
-//    - master : écoute les stems (link::StemListener) et compte les vivants.
+//    - master : écoute les stems (link::StemListener) et compte les vivants ;
+//    - stem : s'écoute lui-même (stems::ElementClassifier) et, avec le nom de la
+//      piste donné par l'hôte, reconnaît son élément ; le publie dans son
+//      emplacement (le master sait qui est qui).
 //  Le thread audio n'a qu'un accès sans attente à l'Endpoint courant
 //  (RtAccess) : un changement de groupe remplace l'Endpoint sans jamais le
 //  détruire sous les pieds du thread audio.
@@ -14,9 +17,12 @@
 
 #include "LinkBus.h"
 
+#include "stems/ElementClassifier.h"
+
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -37,7 +43,17 @@ public:
     [[nodiscard]] Role role() const noexcept { return role_; }
 
     /// Temps réel (simples écritures atomiques), pris en compte par le thread.
+    /// Stem : l'élément choisi par la personne (Auto : le reconnaître).
     void setKind(StemKind kind) noexcept { kind_.store(static_cast<std::uint32_t>(kind), std::memory_order_relaxed); }
+    /// Non temps réel : nom de la piste dans l'hôte (VST3 IInfoListener).
+    void setTrackName(std::string name);
+    [[nodiscard]] std::string trackName() const;
+    /// Stem : élément reconnu (Auto tant que rien n'est reconnu), sans attente.
+    [[nodiscard]] StemKind identifiedElement() const noexcept {
+        return static_cast<StemKind>(identified_.load(std::memory_order_relaxed));
+    }
+    /// Stem : dernière reconnaissance complète (copie).
+    [[nodiscard]] stems::Identification identification() const;
     void setGroup(int group) noexcept { group_.store(group, std::memory_order_relaxed); }
 
     /// Master : stems vivants du groupe (mis à jour toutes les 50 ms).
@@ -80,6 +96,13 @@ private:
     std::atomic<bool> rtBusy_{false};
 
     StemListener listener_;
+
+    // Stem : reconnaissance de l'élément.
+    stems::ElementClassifier classifier_;
+    std::atomic<int> identified_{0};
+    mutable std::mutex nameMutex_;
+    std::string trackName_;
+    stems::Identification identification_;
     mutable std::mutex heardMutex_;
     std::vector<StemListener::Heard> heard_;
 };

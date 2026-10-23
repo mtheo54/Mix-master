@@ -66,6 +66,8 @@ public:
     Steinberg::tresult PLUGIN_API setActive(Steinberg::TBool state) override;
     Steinberg::tresult PLUGIN_API process(Steinberg::Vst::ProcessData& data) override;
     Steinberg::uint32 PLUGIN_API getLatencySamples() override;
+    /// Messages du contrôleur : nom de la piste dans l'hôte (kTrackNameMessage).
+    Steinberg::tresult PLUGIN_API notify(Steinberg::Vst::IMessage* message) override;
 
     Steinberg::tresult PLUGIN_API setState(Steinberg::IBStream* state) override;
     Steinberg::tresult PLUGIN_API getState(Steinberg::IBStream* state) override;
@@ -120,7 +122,7 @@ private:
     bool transportWasPlaying_ = false;
     int meterIntervalSamples_ = 1600;
     int meterCountdown_ = 0;
-    std::array<double, 9> lastMeterValues_{};
+    std::array<double, 10> lastMeterValues_{};
 };
 
 } // namespace omnis::vst3

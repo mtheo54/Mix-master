@@ -68,17 +68,6 @@ std::string readName(const Slot& s) {
 
 } // namespace
 
-const char* stemKindName(StemKind kind) noexcept {
-    switch (kind) {
-        case StemKind::Bass808: return "808 / basse";
-        case StemKind::Kick: return "Kick";
-        case StemKind::Drums: return "Drums";
-        case StemKind::Melody: return "Mélodie";
-        case StemKind::Vocal: return "Voix";
-        case StemKind::Other:
-        default: return "Autre";
-    }
-}
 
 std::string regionName(int group) {
     // Court et sans caractère spécial : macOS limite les noms à 31 caractères.
@@ -187,10 +176,45 @@ void Endpoint::setName(std::string_view name) noexcept {
     const std::uint32_t seq = slot_->nameSeq.load(std::memory_order_relaxed);
     slot_->nameSeq.store(seq + 1, std::memory_order_relaxed);
     std::atomic_thread_fence(std::memory_order_release);
-    const std::size_t n = std::min<std::size_t>(name.size(), kNameLength - 1);
+    std::size_t n = std::min<std::size_t>(name.size(), kNameLength - 1);
+    // Pas de caractère UTF-8 coupé en deux (octets de continuation 10xxxxxx).
+    while (n > 0 && n < name.size() && (static_cast<unsigned char>(name[n]) & 0xC0u) == 0x80u) --n;
     for (std::size_t i = 0; i < static_cast<std::size_t>(kNameLength); ++i)
         slot_->name[i].store(i < n ? name[i] : '\0', std::memory_order_relaxed);
     slot_->nameSeq.store(seq + 2, std::memory_order_release);
+}
+
+std::size_t Endpoint::readOwnPlayback(std::uint64_t& readFrame, std::vector<double>& left, std::vector<double>& right) const {
+    left.clear();
+    right.clear();
+    const Slot* s = slot_;
+    RingState ring;
+    if (!s || !readRing(*s, ring)) return 0;
+    if (readFrame == kNoFrame || readFrame > ring.written) readFrame = ring.written;
+    std::uint64_t from = readFrame;
+    // Trop de retard : on garde le plus récent, sans risque d'être rattrapé.
+    if (ring.written - from > static_cast<std::uint64_t>(kRingFrames) / 2) from = ring.written - static_cast<std::uint64_t>(kRingFrames) / 2;
+    // Seulement la lecture : du dernier départ jusqu'à maintenant (ou à l'arrêt).
+    std::uint64_t a = std::max(from, ring.playStart), b = ring.written;
+    if (!ring.playing) b = ring.playStop > ring.playStart ? std::min(b, ring.playStop) : a;
+    readFrame = ring.written;
+    if (b <= a) return 0;
+    const auto n = static_cast<std::size_t>(b - a);
+    left.resize(n);
+    right.resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        const auto k = static_cast<std::size_t>((a + i) & (kRingFrames - 1));
+        left[i] = s->audio[0][k].load(std::memory_order_relaxed);
+        right[i] = s->audio[1][k].load(std::memory_order_relaxed);
+    }
+    // Le thread audio n'a pas réécrit ces trames pendant la copie (demi-anneau d'avance au plus).
+    RingState after;
+    if (!readRing(*s, after) || after.written - a > static_cast<std::uint64_t>(kRingFrames)) {
+        left.clear();
+        right.clear();
+        return 0;
+    }
+    return n;
 }
 
 StemOrders Endpoint::readOrders() const noexcept {

@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <cmath>
 #include <ctime>
+#include <string>
+#include <string_view>
 
 namespace omnis::vst3 {
 
@@ -28,11 +30,11 @@ using params::ParamKind;
 
 namespace {
 
-constexpr std::array<ParamId, 9> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
-                                           ParamId::MeterIntegrated, ParamId::MeterTruePeak,
-                                           ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
-                                           ParamId::MeterRefSeconds, ParamId::MeterRefLufs,
-                                           ParamId::MeterLinkStems};
+constexpr std::array<ParamId, 10> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
+                                            ParamId::MeterIntegrated, ParamId::MeterTruePeak,
+                                            ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
+                                            ParamId::MeterRefSeconds, ParamId::MeterRefLufs,
+                                            ParamId::MeterLinkStems, ParamId::MeterStemElement};
 
 /// Gain qu'un master peut donner à un stem : borné, quoi qu'il écrive.
 constexpr double kMinStemGainDb = -24.0, kMaxStemGainDb = 12.0;
@@ -177,6 +179,17 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
     return AudioEffect::setActive(state);
 }
 
+tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
+    if (message && message->getMessageID() && std::string_view(message->getMessageID()) == kTrackNameMessage) {
+        const void* data = nullptr;
+        uint32 size = 0;
+        if (message->getAttributes() && message->getAttributes()->getBinary(kTrackNameAttribute, data, size) == kResultTrue && data)
+            link_.setTrackName(std::string(static_cast<const char*>(data), size));
+        return kResultOk;
+    }
+    return AudioEffect::notify(message);
+}
+
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
     // Un stem ne retarde pas sa piste : l'hôte peut le demander avant
     // l'activation, on lit donc le réglage plutôt que le rôle actif.
@@ -302,6 +315,7 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
         double plain = kMeterIds[i] == ParamId::MeterRefSeconds ? capture_.referenceSeconds()
                        : kMeterIds[i] == ParamId::MeterRefLufs  ? capture_.referenceLufs()
                        : kMeterIds[i] == ParamId::MeterLinkStems ? static_cast<double>(link_.linkedStems())
+                       : kMeterIds[i] == ParamId::MeterStemElement ? static_cast<double>(static_cast<int>(link_.identifiedElement()))
                                                                 : meterPlainValue(kMeterIds[i], readout);
         if (!std::isfinite(plain)) plain = spec->minValue; // -inf LUFS -> bas d'échelle
         const double normalized = params::toNormalized(*spec, plain);

@@ -55,6 +55,7 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     slang=${CMAKE_SOURCE_DIR}/data/argot.txt
     references=${CMAKE_SOURCE_DIR}/data/references.txt
     catalogue=${CMAKE_SOURCE_DIR}/data/catalogue.txt
+    elements=${CMAKE_SOURCE_DIR}/data/elements.txt
 )
 
 add_library(omnis_core STATIC
@@ -119,6 +120,10 @@ add_library(omnis_core STATIC
     source/link/LinkClient.h
     source/link/SharedRegion.cpp
     source/link/SharedRegion.h
+    source/stems/Element.cpp
+    source/stems/Element.h
+    source/stems/ElementClassifier.cpp
+    source/stems/ElementClassifier.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
     source/stages/ImagerStage.cpp
@@ -242,6 +247,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestLearning.cpp
         tests/TestReferenceCapture.cpp
         tests/TestLink.cpp
+        tests/TestStems.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp
@@ -266,6 +272,8 @@ if(OMNIS_BUILD_TESTS)
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/common/memorystream.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/parameterchanges.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/processdata.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/hostclasses.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/pluginterfacesupport.cpp
         )
         target_include_directories(omnis_plugin_tests PRIVATE source)
         target_link_libraries(omnis_plugin_tests PRIVATE omnis_tools_common omnis_core sdk)

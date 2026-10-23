@@ -9,16 +9,20 @@
 
 #include "link/LinkBus.h"
 #include "params/Parameters.h"
+#include "stems/Element.h"
+#include "plugin/vst3/OmnisIds.h"
 #include "plugin/vst3/OmnisProcessor.h"
 #include "plugin/vst3/OmnisState.h"
 
 #include "public.sdk/source/common/memorystream.h"
+#include "public.sdk/source/vst/hosting/hostclasses.h"
 #include "public.sdk/source/vst/hosting/parameterchanges.h"
 #include "public.sdk/source/vst/hosting/processdata.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <map>
 #include <thread>
@@ -45,7 +49,7 @@ struct Instance {
     HostProcessData data;
     ParameterChanges changes{8}, outChanges{32};
     ProcessContext context{};
-    double lastStems = -1.0;
+    double lastStems = -1.0, lastElement = -1.0;
 
     Instance(std::map<ParamId, double> plain) {
         IPtr<MemoryStream> state = owned(new MemoryStream());
@@ -87,11 +91,14 @@ struct Instance {
         p->process(data);
         for (int32 q = 0; q < outChanges.getParameterCount(); ++q) {
             auto* queue = outChanges.getParameterData(q);
-            if (!queue || queue->getParameterId() != static_cast<ParamID>(ParamId::MeterLinkStems)) continue;
+            if (!queue) continue;
+            const auto id = static_cast<ParamId>(queue->getParameterId());
+            if (id != ParamId::MeterLinkStems && id != ParamId::MeterStemElement) continue;
             int32 offset = 0;
             ParamValue v = 0.0;
-            if (queue->getPoint(queue->getPointCount() - 1, offset, v) == kResultTrue)
-                lastStems = params::toPlain(*params::findParameter(ParamId::MeterLinkStems), v);
+            if (queue->getPoint(queue->getPointCount() - 1, offset, v) != kResultTrue) continue;
+            // Les afficheurs ne sont publiés qu'au changement : on garde la dernière valeur.
+            (id == ParamId::MeterLinkStems ? lastStems : lastElement) = params::toPlain(*params::findParameter(id), v);
         }
     }
     [[nodiscard]] double outputRms() const {
@@ -108,7 +115,7 @@ double db(double x) { return 20.0 * std::log10(std::max(x, 1e-12)); }
 OMNIS_TEST("plug-in lié: le master voit le stem, le stem n'a aucune latence et applique le gain du master") {
     setLinkNamespace("omnistestp");
     Instance master({{ParamId::LinkRole, 2.0}, {ParamId::LinkGroup, 5.0}});
-    Instance stem({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, 2.0}, {ParamId::LinkGroup, 5.0}});
+    Instance stem({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, 1.0}, {ParamId::LinkGroup, 5.0}});
     OMNIS_CHECK(stem.p->getLatencySamples() == 0);
     OMNIS_CHECK(master.p->getLatencySamples() > 0);
 
@@ -142,4 +149,42 @@ OMNIS_TEST("plug-in lié: le master voit le stem, le stem n'a aucune latence et 
     double inSum = 0.0;
     for (int i = 0; i < 512; ++i) inSum += noise.channels[0][static_cast<std::size_t>(pos + i)] * noise.channels[0][static_cast<std::size_t>(pos + i)];
     OMNIS_CHECK_NEAR(db(stem.outputRms() / std::sqrt(inSum / 512.0)), -6.0, 0.05);
+}
+
+OMNIS_TEST("plug-in stem: le nom de piste de l'hôte et l'écoute donnent l'élément reconnu") {
+    setLinkNamespace("omnistestel");
+    // Rôle Stem, élément sur Auto : il doit se reconnaître seul.
+    Instance stem({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, 0.0}, {ParamId::LinkGroup, 6.0}});
+    // Le DAW donne le nom de la piste (un nom de pack).
+    IPtr<HostMessage> message = owned(new HostMessage());
+    message->setMessageID(vst3::kTrackNameMessage);
+    const std::string name = "SH_Kick_Hard_04";
+    message->getAttributes()->setBinary(vst3::kTrackNameAttribute, name.data(), static_cast<uint32>(name.size()));
+    OMNIS_CHECK(stem.p->notify(message) == kResultOk);
+
+    // Un kick toutes les 0,5 s pendant 4 s, au rythme du temps réel (le thread
+    // du lien lit l'anneau toutes les 50 ms).
+    tools::AudioFile kick;
+    kick.sampleRate = 48000.0;
+    kick.channels.assign(2, std::vector<double>(static_cast<std::size_t>(4.5 * 48000.0), 0.0));
+    for (int hit = 0; hit < 9; ++hit)
+        for (int n = 0; n < 20000; ++n) {
+            const double t = n / 48000.0;
+            const double v = 0.8 * std::sin(2.0 * 3.141592653589793 * (45.0 * t + 115.0 * 0.03 * (1.0 - std::exp(-t / 0.03)))) * std::exp(-t / 0.12);
+            const auto i = static_cast<std::size_t>(hit * 24000 + n);
+            if (i < kick.channels[0].size()) kick.channels[0][i] = kick.channels[1][i] = v;
+        }
+    for (int pos = 0; pos + 512 <= static_cast<int>(kick.channels[0].size()); pos += 512) {
+        stem.block(kick, pos);
+        if (pos % (512 * 8) == 0) std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    }
+    // Une seconde de plus pour la reconnaissance, puis un bloc pour publier l'afficheur.
+    std::this_thread::sleep_for(std::chrono::milliseconds(1300));
+    for (int k = 0; k < 200 && static_cast<int>(stem.lastElement) != static_cast<int>(stems::Element::Kick); ++k) {
+        stem.block(kick, 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    const double element = stem.lastElement;
+    std::printf("      élément reconnu : %s\n", params::formatValue(*params::findParameter(ParamId::MeterStemElement), element).c_str());
+    OMNIS_CHECK(static_cast<int>(element) == static_cast<int>(stems::Element::Kick));
 }

@@ -31,6 +31,7 @@
 
 #include "analysis/SpectralSignature.h"
 #include "core/Platform.h"
+#include "stems/Element.h"
 
 #include <algorithm>
 #include <array>
@@ -44,7 +45,7 @@
 
 namespace omnis::link {
 
-inline constexpr std::uint32_t kLayoutVersion = 1;
+inline constexpr std::uint32_t kLayoutVersion = 2; ///< 2 : « kind » est un stems::Element (22 éléments)
 inline constexpr int kSlots = 32;
 inline constexpr int kRingFrames = 1 << 16; ///< ~1.4 s à 48 kHz : le master lit toutes les 50 ms
 inline constexpr int kNameLength = 48;
@@ -53,9 +54,10 @@ inline constexpr std::uint64_t kStaleMs = 3000;
 inline constexpr std::int64_t kNoPosition = std::numeric_limits<std::int64_t>::min();
 
 enum class Role : std::uint32_t { None = 0, Stem = 1, Master = 2 };
-/// Même ordre que le paramètre « Stem » (params::ParamId::LinkStemKind).
-enum class StemKind : std::uint32_t { Other = 0, Bass808 = 1, Kick = 2, Drums = 3, Melody = 4, Vocal = 5 };
-const char* stemKindName(StemKind kind) noexcept;
+/// Ce que porte un stem : l'élément reconnu (ou choisi), même ordre que le
+/// paramètre « Element » (params::ParamId::LinkStemKind).
+using StemKind = stems::Element;
+inline const char* stemKindName(StemKind kind) noexcept { return stems::elementLabel(kind); }
 
 static_assert(std::atomic<float>::is_always_lock_free && std::atomic<std::uint64_t>::is_always_lock_free &&
                   std::atomic<std::int64_t>::is_always_lock_free && std::atomic<std::uint32_t>::is_always_lock_free,
@@ -145,6 +147,13 @@ public:
     void writeAudio(const Sample* left, const Sample* right, int numFrames, std::int64_t projectStart, bool playing) noexcept;
     /// Derniers ordres cohérents (inchangés si le master écrit au même instant).
     [[nodiscard]] StemOrders readOrders() const noexcept;
+
+    // ---- Stem (non temps réel, thread du lien) ------------------------------
+    /// Ce que ce stem a envoyé depuis `readFrame` pendant la lecture, ajouté à
+    /// `left` / `right` (vidés d'abord). Sert à le reconnaître (stems/ElementClassifier).
+    /// `readFrame` avance ; au premier appel, passer kNoFrame pour partir de maintenant.
+    static constexpr std::uint64_t kNoFrame = ~std::uint64_t{0};
+    std::size_t readOwnPlayback(std::uint64_t& readFrame, std::vector<double>& left, std::vector<double>& right) const;
 
     // ---- Master (non temps réel) ----------------------------------------------
     [[nodiscard]] std::vector<StemView> stems() const;

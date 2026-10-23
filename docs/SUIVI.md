@@ -32,6 +32,12 @@
 
 ## Fait récemment
 
+- **Stems, étape 1 : chaque stem reconnaît son élément.** 21 éléments (kick, snare, clap, hi-hat,
+  open hat, cymbale, percu, boucle, 808, basse, piano, guitare, cuivres, cordes, nappe, lead, pluck,
+  voix, backs, FX, autre). Par l'écoute d'abord, parce que les sons de packs ont des noms illisibles ;
+  le nom de la piste (donné par le DAW, norme VST3) précise. Le master voit l'élément et le nom de
+  chaque stem. À calibrer sur de vrais stems.
+
 - **Compréhension v2** : anglais courant, SMS et argot (`data/argot.txt`), modificateurs placés
   après (« propre de ouf », « clean af »), sujet + niveau : « la 808 est trop forte » baisse la
   808 au lieu d'ajouter du sub (défaut corrigé), « the vocals are too quiet » monte la voix.

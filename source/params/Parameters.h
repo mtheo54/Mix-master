@@ -44,7 +44,7 @@ enum class ParamId : std::uint32_t {
     Monitor = 3,
     RefCapture = 4, ///< écoute de la référence jouée sur l'entrée auxiliaire
     LinkRole = 5,     ///< Seul / Stem (piste, sans latence) / Master (bus master)
-    LinkStemKind = 6, ///< ce que porte la piste d'un stem (808, kick, voix…)
+    LinkStemKind = 6, ///< élément de la piste d'un stem (Auto : reconnu à l'écoute et au nom)
     LinkGroup = 7,    ///< 1 … 8 : deux projets ouverts ne se mélangent pas
 
     // --- Sub Control & Mono Maker (100–199) ----------------------------------
@@ -119,6 +119,7 @@ enum class ParamId : std::uint32_t {
     MeterRefSeconds = 1006, ///< secondes de référence écoutées (non silencieuses)
     MeterRefLufs = 1007,    ///< sonie intégrée de la référence écoutée
     MeterLinkStems = 1008,  ///< master : stems vivants dans son groupe
+    MeterStemElement = 1009, ///< stem : élément reconnu (écoute + nom de la piste)
 };
 
 enum class ParamKind : std::uint8_t {
@@ -183,7 +184,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 119;
+inline constexpr std::size_t kParameterCount = 120;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

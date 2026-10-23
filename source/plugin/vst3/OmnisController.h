@@ -10,14 +10,19 @@
 //
 //  createView() renvoie nullptr pour l'instant (éditeur générique de l'hôte) :
 //  l'IPlugView OpenGL + NanoVG arrive au module 6.
+//
+//  Nom de la piste : l'hôte le donne par ChannelContext::IInfoListener (la
+//  norme VST3, quel que soit le DAW qui la suit) ; le contrôleur le passe au
+//  processeur par message, qui s'en sert pour reconnaître l'élément d'un stem.
 // =============================================================================
 #pragma once
 
+#include "pluginterfaces/vst/ivstchannelcontextinfo.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
 
 namespace omnis::vst3 {
 
-class OmnisController : public Steinberg::Vst::EditController {
+class OmnisController : public Steinberg::Vst::EditController, public Steinberg::Vst::ChannelContext::IInfoListener {
 public:
     static Steinberg::FUnknown* createInstance(void*) {
         return static_cast<Steinberg::Vst::IEditController*>(new OmnisController());
@@ -28,6 +33,15 @@ public:
     /// « Link Role » : un stem n'a pas de latence, un master si ; l'hôte doit
     /// relire la latence et réactiver l'instance.
     Steinberg::tresult PLUGIN_API setParamNormalized(Steinberg::Vst::ParamID tag, Steinberg::Vst::ParamValue value) override;
+
+    /// Nom (et couleur…) de la piste où le plug-in est inséré, à chaque changement.
+    Steinberg::tresult PLUGIN_API setChannelContextInfos(Steinberg::Vst::IAttributeList* list) override;
+
+    OBJ_METHODS(OmnisController, EditController)
+    DEFINE_INTERFACES
+        DEF_INTERFACE(Steinberg::Vst::ChannelContext::IInfoListener)
+    END_DEFINE_INTERFACES(EditController)
+    REFCOUNT_METHODS(EditController)
 };
 
 } // namespace omnis::vst3

@@ -1,0 +1,37 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Noms de pistes -> éléments (version 1)
+#
+#  Une ligne :   element : forme | forme | ...
+#  Le nom de la piste (donné par l'hôte, ou tapé) est découpé en mots aux
+#  séparateurs, aux majuscules et aux chiffres : « SH_Kick_Hard_04 », « ClosedHat »,
+#  « 808Mafia » -> « sh kick hard 04 », « closed hat », « 808 mafia ».
+#    - une forme de 3 lettres ou moins (« bd », « oh », « gtr ») doit être un mot entier ;
+#    - une forme plus longue peut aussi être collée à d'autres lettres (« jayykick ») ;
+#    - la forme la plus longue gagne (« bass drum » est un kick, pas une basse).
+#  Le nom n'est qu'un indice : l'écoute (stems/ElementClassifier.h) tranche,
+#  car les sons de packs ont souvent des noms sans rapport avec ce qu'ils jouent.
+#
+#  Éléments : kick snare clap hihat openhat cymbal perc drumloop 808 bass keys
+#  guitar brass strings pad lead pluck vocal backs fx
+# =============================================================================
+
+kick     : kick | kik | kck | kicks | bd | bassdrum | bass drum | grosse caisse | gc | kickdrum | kik drum
+snare    : snare | snr | sd | caisse claire | rimshot | rim | snares
+clap     : clap | clp | claps | clapp | handclap | snap | snaps | finger snap
+hihat    : hihat | hi hat | hh | ch | chh | closed hat | closedhat | hat | hats | charley | hihats | closed | tick
+openhat  : open hat | openhat | oh | ohh | open hh | open hihat | ohat
+cymbal   : crash | ride | cymbal | cymbale | splash | china | cymbals
+perc     : perc | percs | percu | percussion | percussions | tom | toms | conga | congas | bongo | bongos | shaker | shakers | tamb | tambourine | tambourin | cowbell | clave | claves | woodblock | wood block | triangle | guiro | timbale | timbales
+drumloop : drums | drum loop | drumloop | batterie | breaks | break | breakbeat | top loop | toploop | drum bus | drumbus | kit
+808      : 808 | 808s | sub | subbass | sub bass | 8o8 | low end
+bass     : bass | basse | bassline | reese | bass guitar | synth bass | synthbass | slap bass | upright
+keys     : piano | pno | keys | rhodes | ep | e piano | epiano | wurli | wurlitzer | clavier | organ | orgue | clav | keyboard | grand
+guitar   : guitar | guitare | gtr | gt | acoustic | electric | strat | les paul | nylon | guit
+brass    : brass | trumpet | trompette | trp | tpt | sax | saxophone | trombone | horn | horns | cuivres | cuivre | flute | flutes | flûte | clarinet | clarinette | woodwind | woodwinds | tuba
+strings  : strings | string | cordes | violin | violon | violins | viola | cello | violoncelle | orchestra | orchestral | orchestre | pizz | pizzicato | harp | harpe
+pad      : pad | pads | nappe | nappes | atmo | atmos | ambient | ambiance | texture | drone | choir pad
+lead     : lead | synth | synthe | ld | arp | arpeggio | arpege | melody | melodie | melo | mélo | hook synth | saw | supersaw
+pluck    : pluck | plucks | bell | bells | mallet | mallets | marimba | xylophone | vibraphone | glock | glockenspiel | kalimba | music box | celesta
+vocal    : vox | vocal | vocals | voix | voice | lead vox | lead vocal | chant | rap | couplet | verse | hook | refrain | acapella | a capella | vocal chop | chop
+backs    : adlib | adlibs | ad lib | ad libs | backs | bv | bvs | bgv | bgvs | choir | choeur | choeurs | double | dbl | harmonies | harmony | backing | backing vocals
+fx       : fx | sfx | riser | risers | impact | impacts | sweep | uplifter | downlifter | whoosh | noise | transition | reverse | rev | vinyl | foley | tape stop
