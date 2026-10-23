@@ -32,6 +32,12 @@
 
 ## Fait récemment
 
+- **Stems, étape 2 : chaque stem a sa chaîne, sans latence.** « Stem Mode » Off (défaut) / Auto /
+  Manuel. Drums : compression, saturation par la courbe de l'Inflator, espace (mono dans le grave,
+  largeur des hats). 808 : saturation et EQ dynamique. Instruments et voix : EQ dynamique (boue,
+  carton, dureté, sifflantes). Un son déjà saturé, déjà large ou qui joue dans le grave est
+  respecté. Bornes fixes. La reconnaissance écoute le son sec (avant la chaîne). Modèles à
+  calibrer sur de vrais stems.
 - **Stems, étape 1 : chaque stem reconnaît son élément.** 21 éléments (kick, snare, clap, hi-hat,
   open hat, cymbale, percu, boucle, 808, basse, piano, guitare, cuivres, cordes, nappe, lead, pluck,
   voix, backs, FX, autre). Par l'écoute d'abord, parce que les sons de packs ont des noms illisibles ;
@@ -92,17 +98,15 @@
 
 ## À venir
 
-- **Le cerveau du mix multi-pistes.** Le lien entre instances est fait (le master voit et écoute
-  chaque stem, et un stem applique un gain ordonné). Il reste à décider :
-  - l'équilibre de chaque piste face à la référence ;
-  - la relation kick / 808 (masquage, place de chacun) ;
-  - un EQ et une dynamique par piste, sans latence : en phase minimale, pas en phase linéaire
-    comme sur le master.
+- **Stems, étape 3 : le master chef d'orchestre.** Le master voit et écoute chaque stem, et
+  chaque stem a sa chaîne. Il reste :
+  - les conflits entre stems (le piano qui a trop de grave et masque la 808, kick / 808, deux
+    éléments qui se disputent le même endroit du Side) ;
+  - des propositions de retouche, faites seulement si la personne accepte (il faut l'interface) ;
+  - l'équilibre de chaque piste face à la référence.
 
   À calibrer sur de vrais stems : l'utilisateur doit exporter une prod en pistes séparées
   depuis FL Studio, par exemple « Ouais Paul ».
-- **Noms des pistes** : récupérer le nom de la piste de l'hôte (VST3 `IInfoListener`) au lieu du
-  seul type de stem.
 
 - Appliquer la référence écoutée depuis le plug-in : le contrôleur calcule l'intention et écrit
   les paramètres `match_*` / `mb_*` via performEdit. Ça demande l'interface (module 6), pour

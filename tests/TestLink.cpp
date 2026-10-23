@@ -155,9 +155,12 @@ OMNIS_TEST("lien: stem qui écrit et master qui écoute en même temps ; changem
         std::int64_t pos = 0;
         while (!stop.load()) {
             {
+                // Le son sec vers la reconnaissance, l'écoute publiée vers la chaîne.
+                const auto k = static_cast<std::size_t>(pos % (48000 - 512));
+                stem.pushListening(noise.channels[0].data() + k, noise.channels[1].data() + k, 512);
+                (void)stem.rtListening();
                 LinkClient::RtAccess access(stem);
                 if (Endpoint* e = access.endpoint()) {
-                    const auto k = static_cast<std::size_t>(pos % (48000 - 512));
                     e->writeAudio(noise.channels[0].data() + k, noise.channels[1].data() + k, 512, pos, true);
                     (void)e->readOrders();
                 }
@@ -176,6 +179,8 @@ OMNIS_TEST("lien: stem qui écrit et master qui écoute en même temps ; changem
         const auto h = master.heard();
         return !h.empty() && h.front().secondsHeard > 0.5;
     }));
+    // Le stem s'est écouté (son sec) : sa reconnaissance a des secondes entendues.
+    OMNIS_CHECK(waitFor([&] { return stem.identification().secondsHeard > 0.5; }));
     // La piste passe dans un autre groupe pendant que son audio tourne.
     stem.setGroup(7);
     OMNIS_CHECK(waitFor([&] { return master.linkedStems() == 0; }));

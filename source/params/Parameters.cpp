@@ -34,6 +34,7 @@ constexpr std::array<std::string_view, 22> kElementMeterLabels{
     "Percu",          "Drums (boucle)", "808",           "Basse",           "Piano / clavier", "Guitare", "Cuivres / vents",
     "Cordes",         "Nappe",         "Lead / synthé",  "Pluck / cloche",  "Voix lead", "Backs / adlibs", "FX", "Autre"};
 constexpr std::array<std::string_view, 8> kGroupLabels{"1", "2", "3", "4", "5", "6", "7", "8"};
+constexpr std::array<std::string_view, 3> kStemModeLabels{"Off", "Auto", "Manuel"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
@@ -170,6 +171,15 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(811), "img_width_lmid", "Width Low-Mid",       "WLMid",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
     {static_cast<ParamId>(812), "img_width_hmid", "Width High-Mid",      "WHMid",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
     {static_cast<ParamId>(813), "img_width_high", "Width High",          "WHigh",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
+
+    // Stem (stems/StemChain.h) : Off par défaut, la personne choisit.
+    {ParamId::StemMode,          "stem_mode",     "Stem Mode",            "SMode",  "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kStemModeLabels, 0.0,   0},
+    {ParamId::StemHpf,           "stem_hpf",      "Stem Low Cut",         "SHpf",   "Hz",   ParamKind::Continuous, 10.0,   500.0, 20.0,  0,    {},             0.0,    0, kLog},
+    {ParamId::StemComp,          "stem_comp",     "Stem Compression",     "SComp",  "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             0.0,    0},
+    {ParamId::StemSat,           "stem_sat",      "Stem Saturation",      "SSat",   "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             0.0,    0},
+    {ParamId::StemClean,         "stem_clean",    "Stem Dynamic EQ",      "SClean", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             0.0,    0},
+    {ParamId::StemWidth,         "stem_width",    "Stem Width",           "SWidth", "%",    ParamKind::Continuous, 0.0,    150.0, 100.0, 0,    {},             0.0,    0},
+    {ParamId::StemTrim,          "stem_trim",     "Stem Trim",            "STrim",  "dB",   ParamKind::Continuous, -24.0,  12.0,  0.0,   0,    {},             0.0,    1},
 
     {ParamId::MeterMomentary,    "meter_m",       "Momentary Loudness",   "M",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterShortTerm,    "meter_s",       "Short-Term Loudness",  "S",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},

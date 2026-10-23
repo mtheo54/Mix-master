@@ -197,18 +197,19 @@ l'anneau, ordres, nom) passe par une séquence « seqlock » à un seul écrivai
 - **Retard du master** : s'il a plus de 0.7 s de retard, il saute au plus récent et compte la
   perte.
 
-**Latence :** un stem annonce 0 échantillon et ne fait passer le son que par un gain lissé
-(30 ms). Le rôle est pris à l'activation. Le contrôleur demande `kLatencyChanged` quand il change.
+**Latence :** un stem annonce 0 échantillon : sa chaîne (§13) est sans latence, puis un gain lissé
+(30 ms) ordonné par le master. Le rôle est pris à l'activation. Le contrôleur demande
+`kLatencyChanged` quand il change.
 
 ## 12. Reconnaître l'élément d'un stem (`stems/`)
 
-Chaque stem sait ce qu'il porte : son élément choisit sa chaîne (à venir : drums → compression,
-saturation, espace ; instruments → EQ dynamique ; 808 → saturation, EQ dynamique) et ce que le master
-peut lui demander. Paramètre `link_stem` (« Stem Element ») : **Auto** ou l'un des 21 éléments ;
+Chaque stem sait ce qu'il porte : son élément choisit sa chaîne (§13) et ce que le master peut lui
+demander. Paramètre `link_stem` (« Stem Element ») : **Auto** ou l'un des 21 éléments ;
 afficheur `meter_element` : ce qui a été reconnu.
 
 1. **Le choix de la personne** passe avant tout.
-2. **L'écoute** (`stems/ElementClassifier`, thread du lien, seulement pendant la lecture) : trames de
+2. **L'écoute** (`stems/ElementClassifier`, thread du lien, seulement pendant la lecture, sur le son
+   SEC de la piste, avant sa chaîne : ce que la chaîne fait ne change pas ce qui est reconnu) : trames de
    ~46 ms, six bandes, part de l'énergie dans des pics (note ou bruit), largeur, crête / RMS ; puis
    les coups (montée de 8 dB, ou une bande qui monte de 12 dB, réarmés après une retombée de 3 dB),
    leur temps de montée, leur décroissance de 20 dB, ce que chaque coup ajoute au son d'avant. Des
@@ -223,3 +224,51 @@ afficheur `meter_element` : ce qui a été reconnu.
 Les seuils sont des points de départ vérifiés sur des sons synthétiques (kick, 808, snare, clap, hats,
 open hat, piano, nappe, voix, boucle, kick et 808 saturés) : à calibrer sur de vrais stems.
 
+## 13. La chaîne d'un stem (`stems/StemSettings`, `stems/StemChain`)
+
+Sur chaque piste en rôle Stem, sans aucune latence. **« Stem Mode »** (`stem_mode`) :
+- **Off** (défaut) : le son passe au bit près ;
+- **Auto** : OMNIS règle à partir de l'élément reconnu et de ce que l'écoute a mesuré ;
+- **Manuel** : la personne règle les doses (`stem_hpf`, `stem_comp`, `stem_sat`, `stem_clean`,
+  `stem_width`) ; fréquences et temps restent ceux de l'élément. `stem_trim` vaut dans les deux modes.
+
+**Par famille** (modèles de `templateFor`, doses moyennes, à calibrer sur de vrais stems) :
+
+| | passe-haut | EQ dynamique | compression | saturation | M/S |
+|---|---|---|---|---|---|
+| kick | 25 Hz, 24 dB/oct | carton 400 Hz | 3:1, 4 dB, att. 15 ms | 25 % | mono < 150 Hz |
+| snare / clap | 80–120 Hz | 350 / 800 Hz, 5 kHz | 2,5–3:1 | 15–20 % | mono < 150 Hz |
+| hats / open hat / cymbale | 300–350 Hz | dureté 5–7 kHz | open hat 2:1 | — | largeur 110–115 % |
+| 808 | 25 Hz, 24 dB/oct | « boum » 250 Hz | 2:1, 3 dB, att. 30 ms | 30 % | mono < 200 Hz |
+| basse | 30 Hz | 250, 800 Hz | 3:1 | 20 % | mono < 150 Hz |
+| instruments | 60–120 Hz | boue ~250, carton ~600, dureté ~3 k | lead, cuivres 2:1 | — | mono partiel < 120–150 Hz |
+| voix lead | 80 Hz | 250, 3,5 k, sifflantes 7 k | 3:1, 5 dB | — | centrée |
+
+**Ce que l'écoute a mesuré est respecté (Auto)** :
+- crête / RMS basse (son déjà saturé ou écrasé, voulu) : saturation réduite (jusqu'à 20 % de la
+  dose), compression divisée par deux ou retirée ;
+- piste déjà large (Side à moins de 6 dB du Mid) : pas d'élargissement ;
+- instrument qui joue vraiment dans le grave : le passe-haut descend tant que l'octave au-dessus de
+  sa coupure porte plus de 15 % de l'énergie.
+
+**Bornes fixes** (`clampSettings`, quoi qu'il arrive) : passe-haut ≤ 500 Hz, coupe ≤ 6 dB par bande,
+saturation ≤ 50 %, compression ≤ 4:1 et ≤ 8 dB, largeur 0–150 %, trim −24…+12 dB ; NaN neutralisés.
+
+**La chaîne**, dans l'ordre :
+1. trim ;
+2. passe-haut SVF, deux sections Butterworth (en 12 dB/oct la seconde descend à 5 Hz : on glisse
+   d'une pente à l'autre sans changer de topologie ; éteint, il n'est plus traversé) ;
+3. EQ dynamique, 3 bandes : l'énergie d'un passe-bande sur le Mid rapportée à celle du reste de la
+   piste (5 / 80 ms), comparée à celle d'un bruit rose + marge ; 2:1 au-delà, cloche SVF ;
+4. compresseur lié en stéréo, seuil = crête récente (relâche 3 s) − profondeur, genou 6 dB,
+   compensation = réduction moyenne sur 2 s (le niveau de la piste reste le même, le gain staging
+   est l'affaire du master) ;
+5. saturation : courbe de l'Inflator (exposant 3) rapportée à la crête récente. Le bas monte, les
+   crêtes du grave restent en place ; la partie non linéaire passe seule en 2x (repliement mesuré
+   à −108 dB pour un sinus de 9 kHz), le son direct n'a aucun retard ;
+6. M/S : Side séparé en Linkwitz-Riley 24 dB/oct, bas réduit (mono), haut × largeur ; le Mid
+   n'est jamais touché.
+
+Les réglages sont recalculés à chaque bloc (fonction pure, sans allocation) à partir de l'écoute
+publiée par le thread du lien (`LinkClient::rtListening`, triple tampon) et rejoints en ~100 ms ;
+Off ↔ actif en fondu de 30 ms. Coût mesuré : 0,4 à 0,9 % d'un cœur par stem à 48 kHz.

@@ -109,6 +109,7 @@ tresult PLUGIN_API OmnisProcessor::initialize(FUnknown* context) {
     // Sidechain : la référence que la personne joue dans son projet.
     addAudioInput(STR16("Reference"), SpeakerArr::kStereo, BusTypes::kAux, 0);
     addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
+    for (auto& buffer : stemBuffer_) buffer.assign(static_cast<std::size_t>(stems::StemChain::kChunk), 0.0);
     return kResultOk;
 }
 
@@ -167,6 +168,7 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         activeRole_ = static_cast<params::LinkRole>(static_cast<int>(plainOf(ParamId::LinkRole)));
         stemGain_.prepare(sampleRate_, 30.0);
         stemGain_.snapTo(1.0);
+        stemChain_.prepare(sampleRate_);
         if (activeRole_ != params::LinkRole::Alone)
             link_.start(static_cast<link::Role>(activeRole_), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
                         static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
@@ -338,15 +340,38 @@ void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSam
 
     const bool playing = context && (context->state & ProcessContext::kPlaying) != 0;
     const std::int64_t position = playing ? static_cast<std::int64_t>(context->projectTimeSamples) : link::kNoPosition;
+    // La reconnaissance écoute le son sec (l'hôte peut traiter en place : avant tout).
+    if (playing) link_.pushListening(inputs[0], inputs[1], numSamples);
+
+    // La chaîne de l'élément : réglée par ce que l'écoute a reconnu et mesuré.
+    const bool bypass = plainOf(ParamId::Bypass) >= 0.5;
+    const auto& heard = link_.rtListening();
+    const auto mode = bypass ? stems::StemMode::Off : static_cast<stems::StemMode>(static_cast<int>(plainOf(ParamId::StemMode)));
+    const stems::StemMacros macros{plainOf(ParamId::StemHpf),          plainOf(ParamId::StemComp) * 0.01,
+                                   plainOf(ParamId::StemSat) * 0.01,   plainOf(ParamId::StemClean) * 0.01,
+                                   plainOf(ParamId::StemWidth) * 0.01, plainOf(ParamId::StemTrim)};
+    stemChain_.setSettings(stems::settingsFor(mode, heard.element, heard.character, heard.secondsHeard, macros));
+
     link::LinkClient::RtAccess access(link_);
     link::Endpoint* endpoint = access.endpoint();
     double gainDb = endpoint ? std::clamp(static_cast<double>(endpoint->readOrders().gainDb), kMinStemGainDb, kMaxStemGainDb) : 0.0;
-    if (plainOf(ParamId::Bypass) >= 0.5) gainDb = 0.0;
+    if (bypass) gainDb = 0.0;
     stemGain_.setTarget(std::pow(10.0, gainDb / 20.0));
-    for (int32 i = 0; i < numSamples; ++i) {
-        const double g = stemGain_.next();
-        outputs[0][i] = static_cast<Sample>(g * inputs[0][i]);
-        outputs[1][i] = static_cast<Sample>(g * inputs[1][i]);
+    double* l = stemBuffer_[0].data();
+    double* r = stemBuffer_[1].data();
+    const int32 chunk = static_cast<int32>(stemBuffer_[0].size());
+    for (int32 start = 0; start < numSamples; start += chunk) {
+        const int32 n = std::min(chunk, numSamples - start);
+        for (int32 i = 0; i < n; ++i) {
+            l[i] = static_cast<double>(inputs[0][start + i]);
+            r[i] = static_cast<double>(inputs[1][start + i]);
+        }
+        stemChain_.process(l, r, n);
+        for (int32 i = 0; i < n; ++i) {
+            const double g = stemGain_.next();
+            outputs[0][start + i] = static_cast<Sample>(g * l[i]);
+            outputs[1][start + i] = static_cast<Sample>(g * r[i]);
+        }
     }
     // Ce qui part vers le mix, et donc ce que le master doit entendre.
     if (endpoint) endpoint->writeAudio(outputs[0], outputs[1], numSamples, position, playing);

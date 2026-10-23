@@ -109,6 +109,15 @@ enum class ParamId : std::uint32_t {
     ImgSplitHigh = 802,
     ImgWidthFirst = 810, ///< … 813
 
+    // --- Stem (900–999) : la chaîne d'une piste en rôle Stem -------------------
+    StemMode = 900,  ///< Off / Auto / Manuel
+    StemHpf = 901,   ///< manuel : passe-haut (10 Hz = éteint)
+    StemComp = 902,  ///< manuel : compression, 0 … 100 %
+    StemSat = 903,   ///< manuel : saturation (courbe de l'Inflator), 0 … 100 %
+    StemClean = 904, ///< manuel : EQ dynamique, 0 … 100 %
+    StemWidth = 905, ///< manuel : largeur au-dessus du grave, 0 … 150 %
+    StemTrim = 906,  ///< gain d'entrée (Auto et Manuel)
+
     // --- Mesures (lecture seule) ---------------------------------------------
     MeterMomentary = 1000,
     MeterShortTerm = 1001,
@@ -184,7 +193,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 120;
+inline constexpr std::size_t kParameterCount = 127;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

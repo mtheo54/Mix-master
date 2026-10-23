@@ -8,7 +8,11 @@
 //    - master : écoute les stems (link::StemListener) et compte les vivants ;
 //    - stem : s'écoute lui-même (stems::ElementClassifier) et, avec le nom de la
 //      piste donné par l'hôte, reconnaît son élément ; le publie dans son
-//      emplacement (le master sait qui est qui).
+//      emplacement (le master sait qui est qui). Il écoute le son SEC de la
+//      piste (avant sa propre chaîne, pushListening) : ce que la chaîne fait
+//      ne change pas ce qui est reconnu ;
+//    - stem : publie l'élément et son caractère mesuré au thread audio
+//      (rtListening, triple tampon) : la chaîne du stem s'y règle.
 //  Le thread audio n'a qu'un accès sans attente à l'Endpoint courant
 //  (RtAccess) : un changement de groupe remplace l'Endpoint sans jamais le
 //  détruire sous les pieds du thread audio.
@@ -17,7 +21,12 @@
 
 #include "LinkBus.h"
 
+#include "core/SpscRingBuffer.h"
+#include "core/TripleBuffer.h"
 #include "stems/ElementClassifier.h"
+
+#include <algorithm>
+#include <array>
 
 #include <atomic>
 #include <memory>
@@ -54,6 +63,35 @@ public:
     }
     /// Stem : dernière reconnaissance complète (copie).
     [[nodiscard]] stems::Identification identification() const;
+
+    /// Ce que le thread audio d'un stem reçoit pour régler sa chaîne.
+    struct Listening {
+        stems::Element element = stems::Element::Auto;
+        stems::Character character{};
+        double secondsHeard = 0.0;
+    };
+    /// Temps réel, thread audio seulement (un seul lecteur) : dernière écoute publiée.
+    const Listening& rtListening() noexcept {
+        listening_.update();
+        return listening_.readBuffer();
+    }
+    /// Temps réel : le son sec de la piste pendant la lecture (pour la
+    /// reconnaissance). Sans attente ; perdu si le thread du lien est en retard.
+    template <typename Sample>
+    void pushListening(const Sample* left, const Sample* right, int numFrames) noexcept {
+        if (!listenReady_.load(std::memory_order_acquire)) return;
+        std::array<float, 512> chunk;
+        for (int i = 0; i < numFrames;) {
+            const int n = std::min(numFrames - i, static_cast<int>(chunk.size() / 2));
+            for (int k = 0; k < n; ++k) {
+                chunk[static_cast<std::size_t>(2 * k)] = static_cast<float>(left[i + k]);
+                chunk[static_cast<std::size_t>(2 * k + 1)] = static_cast<float>(right[i + k]);
+            }
+            // Jamais une trame coupée en deux : tout le morceau, ou rien.
+            if (dry_.freeSpace() >= static_cast<std::size_t>(2 * n)) dry_.push(chunk.data(), static_cast<std::size_t>(2 * n));
+            i += n;
+        }
+    }
     void setGroup(int group) noexcept { group_.store(group, std::memory_order_relaxed); }
 
     /// Master : stems vivants du groupe (mis à jour toutes les 50 ms).
@@ -103,6 +141,9 @@ private:
     mutable std::mutex nameMutex_;
     std::string trackName_;
     stems::Identification identification_;
+    TripleBuffer<Listening> listening_;
+    SpscRingBuffer<float> dry_;               ///< son sec, entrelacé
+    std::atomic<bool> listenReady_{false};
     mutable std::mutex heardMutex_;
     std::vector<StemListener::Heard> heard_;
 };

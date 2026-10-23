@@ -22,8 +22,11 @@
 //       Seul   : comme avant ;
 //       Master : la chaîne complète, et l'écoute des stems de son groupe ;
 //       Stem   : sur une piste. AUCUNE latence (pas d'étage à phase linéaire
-//                par piste) : le son passe, multiplié par le gain que le master
-//                lui donne, et part vers le master avec sa position dans le projet.
+//                par piste) : le son passe par la chaîne de l'élément
+//                (stems/StemChain.h, « Stem Mode » Off / Auto / Manuel), est
+//                multiplié par le gain que le master lui donne, et part vers le
+//                master avec sa position dans le projet. La reconnaissance
+//                écoute le son sec, avant la chaîne.
 //     Le rôle est pris à l'activation : changer de rôle change la latence,
 //     le contrôleur demande à l'hôte de réactiver l'instance.
 // =============================================================================
@@ -34,6 +37,7 @@
 #include "core/OnePoleSmoother.h"
 #include "link/LinkClient.h"
 #include "params/Parameters.h"
+#include "stems/StemChain.h"
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
 
@@ -100,6 +104,8 @@ private:
     link::LinkClient link_;
     params::LinkRole activeRole_ = params::LinkRole::Alone; ///< pris à l'activation
     OnePoleSmoother stemGain_;                             ///< gain ordonné par le master
+    stems::StemChain stemChain_;
+    std::array<std::vector<double>, 2> stemBuffer_;        ///< bloc du stem en double
     double sampleRate_ = 48000.0;
     std::mutex captureMutex_;
     std::string capturedText_; ///< signatures de la dernière écoute (état de la session)

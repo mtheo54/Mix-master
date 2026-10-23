@@ -188,3 +188,52 @@ OMNIS_TEST("plug-in stem: le nom de piste de l'hôte et l'écoute donnent l'él�
     std::printf("      élément reconnu : %s\n", params::formatValue(*params::findParameter(ParamId::MeterStemElement), element).c_str());
     OMNIS_CHECK(static_cast<int>(element) == static_cast<int>(stems::Element::Kick));
 }
+
+OMNIS_TEST("plug-in stem: la chaîne de l'élément agit sans latence (Auto), Manuel suit les doses") {
+    setLinkNamespace("omnistestch");
+    // Kick choisi par la personne, chaîne en Auto : passe-haut 24 dB/oct à 25 Hz.
+    Instance stem({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, 1.0}, {ParamId::LinkGroup, 3.0}, {ParamId::StemMode, 1.0}});
+    OMNIS_CHECK(stem.p->getLatencySamples() == 0);
+    tools::AudioFile sig;
+    sig.sampleRate = 48000.0;
+    sig.channels.assign(2, std::vector<double>(3 * 48000, 0.0));
+    for (std::size_t i = 0; i < sig.channels[0].size(); ++i) {
+        const double t = static_cast<double>(i) / 48000.0;
+        // Grondement à 10 Hz + médium : seul le grondement doit partir.
+        const double v = 0.3 * std::sin(2.0 * 3.141592653589793 * 10.0 * t) + 0.2 * std::sin(2.0 * 3.141592653589793 * 1000.0 * t);
+        sig.channels[0][i] = sig.channels[1][i] = v;
+    }
+    // Le thread du lien publie l'élément choisi en quelques dizaines de ms.
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::vector<float> out;
+    for (int pos = 0; pos + 512 <= 3 * 48000; pos += 512) {
+        stem.block(sig, pos);
+        for (int i = 0; i < 512; ++i) out.push_back(stem.data.outputs[0].channelBuffers32[0][i]);
+        if (pos == 512 * 10) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    // Sur la dernière seconde : le 10 Hz est retiré, le 1 kHz reste.
+    const auto level = [&](const std::vector<double>& x, double hz) {
+        double re = 0.0, im = 0.0;
+        for (std::size_t i = 2 * 48000; i < 3 * 48000 - 512; ++i) {
+            re += x[i] * std::cos(2.0 * 3.141592653589793 * hz * static_cast<double>(i) / 48000.0);
+            im += x[i] * std::sin(2.0 * 3.141592653589793 * hz * static_cast<double>(i) / 48000.0);
+        }
+        return db(std::hypot(re, im));
+    };
+    std::vector<double> o(out.begin(), out.end());
+    o.resize(sig.channels[0].size(), 0.0);
+    const double rumble = level(o, 10.0) - level(sig.channels[0], 10.0);
+    const double mids = level(o, 1000.0) - level(sig.channels[0], 1000.0);
+    std::printf("      Auto (kick) : 10 Hz %.1f dB, 1 kHz %+.2f dB\n", rumble, mids);
+    OMNIS_CHECK(rumble < -25.0);
+    OMNIS_CHECK(std::fabs(mids) < 0.5);
+
+    // Manuel, largeur 0 % : la piste sort en mono.
+    setLinkNamespace("omnistestch2");
+    Instance manual({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, 1.0}, {ParamId::LinkGroup, 3.0}, {ParamId::StemMode, 2.0}, {ParamId::StemWidth, 0.0}});
+    const auto noise = tools::signals::pinkNoise(48000.0, 1.0, -18.0, 3, true);
+    for (int pos = 0; pos + 512 <= 48000; pos += 512) manual.block(noise, pos);
+    float side = 0.0f;
+    for (int i = 0; i < 512; ++i) side = std::max(side, std::fabs(manual.data.outputs[0].channelBuffers32[0][i] - manual.data.outputs[0].channelBuffers32[1][i]));
+    OMNIS_CHECK(side < 1e-6f);
+}

@@ -19,6 +19,13 @@ void LinkClient::start(Role role, StemKind kind, int group, double sampleRate) {
     linkedStems_.store(0, std::memory_order_relaxed);
     identified_.store(0, std::memory_order_relaxed);
     classifier_.prepare(sampleRate);
+    // ~2,7 s de son sec à 48 kHz (le thread le lit toutes les 50 ms). Le
+    // thread audio est à l'arrêt pendant l'activation : réallouer est sûr.
+    listenReady_.store(false, std::memory_order_release);
+    dry_.allocate(std::size_t{1} << 18);
+    listening_.writeBuffer() = Listening{};
+    listening_.publish();
+    listenReady_.store(role == Role::Stem, std::memory_order_release);
     thread_ = std::thread([this] { run(); });
 }
 
@@ -28,6 +35,7 @@ void LinkClient::stop() {
         thread_.join();
     }
     publish(nullptr);
+    listenReady_.store(false, std::memory_order_release);
     role_ = Role::None;
     linkedStems_.store(0, std::memory_order_relaxed);
     std::lock_guard<std::mutex> lock(heardMutex_);
@@ -69,7 +77,7 @@ void LinkClient::run() {
     // Ce que l'emplacement affiche (élément et nom) : republié quand ça change.
     StemKind shownKind = StemKind::Auto, lastManual = StemKind::Auto;
     std::string shownName;
-    std::uint64_t readFrame = Endpoint::kNoFrame;
+    std::vector<float> interleaved(dry_.capacity());
     std::vector<double> left, right;
     const auto publishedName = [&](StemKind element) {
         std::string name = trackName();
@@ -91,7 +99,6 @@ void LinkClient::run() {
                 joinedGroup = group;
                 shownKind = element;
                 shownName = name;
-                readFrame = Endpoint::kNoFrame;
             } else if (group != joinedGroup) {
                 publish(nullptr);
                 joinedGroup = 0;
@@ -100,15 +107,25 @@ void LinkClient::run() {
         if (endpoint_) {
             endpoint_->heartbeat();
             if (role_ == Role::Stem) {
-                // S'écouter (pendant la lecture), puis se reconnaître chaque seconde,
-                // ou tout de suite quand la personne change l'élément.
-                if (endpoint_->readOwnPlayback(readFrame, left, right) > 0)
-                    classifier_.push(left.data(), right.data(), static_cast<int>(left.size()));
+                // S'écouter (le son sec, pendant la lecture), puis se reconnaître
+                // chaque seconde, ou tout de suite quand la personne change l'élément.
+                const std::size_t got = dry_.pop(interleaved.data(), interleaved.size()) / 2;
+                if (got > 0) {
+                    left.resize(got);
+                    right.resize(got);
+                    for (std::size_t i = 0; i < got; ++i) {
+                        left[i] = interleaved[2 * i];
+                        right[i] = interleaved[2 * i + 1];
+                    }
+                    classifier_.push(left.data(), right.data(), static_cast<int>(got));
+                }
                 if (now - lastIdentify >= std::chrono::seconds(1) || kind != lastManual) {
                     lastIdentify = now;
                     lastManual = kind;
                     stems::Identification id = classifier_.identify(kind, trackName());
                     identified_.store(static_cast<int>(id.element), std::memory_order_relaxed);
+                    listening_.writeBuffer() = Listening{id.element, id.character, id.secondsHeard};
+                    listening_.publish();
                     {
                         std::lock_guard<std::mutex> lock(nameMutex_);
                         identification_ = id;
