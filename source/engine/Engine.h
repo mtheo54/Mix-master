@@ -37,6 +37,7 @@
 #include "../core/Platform.h"
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -98,12 +99,25 @@ public:
     /// Remet à zéro sonie intégrée, LRA et crêtes mémorisées.
     void resetLoudnessHistory() noexcept;
 
+    /// Nombre de fois où un résultat non fini a été intercepté en sortie (états
+    /// vidés, sortie mise à zéro le temps du bloc). 0 en fonctionnement normal.
+    [[nodiscard]] int faultCount() const noexcept { return faults_; }
+
+    /// Entrée de l'hôte : NaN et infinis -> 0, amplitude bornée à ±10 000 (+80 dBFS).
+    /// Un seul NaN venu d'un plug-in précédent empoisonnerait sinon les filtres
+    /// récursifs et la convolution jusqu'à la remise à zéro.
+    static double sanitizeInput(double x) noexcept {
+        constexpr double kLimit = 1.0e4;
+        return std::isfinite(x) ? std::clamp(x, -kLimit, kLimit) : 0.0;
+    }
+
     /// Accès en lecture aux mesureurs (outils hors ligne, tests).
     [[nodiscard]] const analysis::LoudnessMeter& loudnessMeter() const noexcept { return loudness_; }
 
 private:
     void applyParameter(params::ParamId id, double plainValue, bool immediate) noexcept;
     void processChunk(int numSamples) noexcept;
+    void recoverFromFault() noexcept;
     static void applyGain(OnePoleSmoother& gain, double* const* channels, int numSamples) noexcept;
     void applyMonitorMatrix(int numSamples) noexcept;
     void setMonitorTargets(int mode, bool immediate) noexcept;
@@ -111,6 +125,7 @@ private:
     ProcessSpec spec_{};
     bool prepared_ = false;
     int latency_ = 0;
+    int faults_ = 0;
 
     std::vector<std::unique_ptr<Stage>> stages_;
 
@@ -143,7 +158,7 @@ void Engine::process(const Sample* const* inputs, Sample* const* outputs, int nu
             double* w = work_.channel(ch);
             double* d = dry_.channel(ch);
             for (int i = 0; i < n; ++i) {
-                const double x = static_cast<double>(src[i]);
+                const double x = sanitizeInput(static_cast<double>(src[i]));
                 w[i] = x;
                 d[i] = x;
             }
@@ -151,11 +166,17 @@ void Engine::process(const Sample* const* inputs, Sample* const* outputs, int nu
         // L'entrée de ce morceau est entièrement copiée avant toute écriture en
         // sortie : le traitement en place (inputs == outputs) est donc sûr.
         processChunk(n);
+        bool fault = false;
         for (int ch = 0; ch < kNumChannels; ++ch) {
             const double* w = work_.channel(ch);
             Sample* dst = outputs[ch] + offset;
-            for (int i = 0; i < n; ++i) dst[i] = static_cast<Sample>(w[i]);
+            for (int i = 0; i < n; ++i) {
+                const double y = w[i];
+                fault = fault || !std::isfinite(y);
+                dst[i] = static_cast<Sample>(std::isfinite(y) ? y : 0.0);
+            }
         }
+        if (fault) recoverFromFault();
         offset += n;
     }
 }

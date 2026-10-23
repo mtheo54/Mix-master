@@ -106,7 +106,9 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::InflWarmth,        "infl_warmth",   "Inflate Warmth",       "Warmth", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
     {ParamId::InflOutput,        "infl_output",   "Inflate Output",       "InfOut", "dB",   ParamKind::Continuous, -12.0,  6.0,   0.0,   0,    {},             30.0,   1},
     {ParamId::InflSplit,         "infl_split",    "Inflate Split",        "InfSpl", "Hz",   ParamKind::Continuous, 60.0,   300.0, 120.0, 0,    {},             50.0,   0, kLog},
-    {ParamId::InflOversampling,  "infl_os",       "Inflate Oversampling", "InfOS",  "",     ParamKind::Choice,     0.0,    4.0,   2.0,   4,    kOversamplingLabels, 0.0, 0},
+    // 8x par défaut : avec du drive, le coude de la courbe (|u| = 1) replie à
+    // −48 dB sous la fondamentale en 4x (sinus de 13 kHz, drive +12 dB), −76 dB en 8x.
+    {ParamId::InflOversampling,  "infl_os",       "Inflate Oversampling", "InfOS",  "",     ParamKind::Choice,     0.0,    4.0,   3.0,   4,    kOversamplingLabels, 0.0, 0},
 
     // Multibande (docs/CALIBRATION_MODULE4.md §6). Défauts neutres : ratio 1,
     // compensation 0 -> l'étage est un retard pur.

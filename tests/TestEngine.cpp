@@ -9,8 +9,11 @@
 #include "core/Decibels.h"
 #include "core/DelayLine.h"
 #include "engine/Engine.h"
+#include "engine/MasteringChain.h"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <random>
 #include <vector>
 
@@ -170,4 +173,42 @@ OMNIS_TEST("engine: sortie indépendante du découpage en blocs (lissage déterm
     for (int ch = 0; ch < 2; ++ch)
         if (x[static_cast<std::size_t>(ch)] != y[static_cast<std::size_t>(ch)]) identical = false;
     OMNIS_CHECK(identical);
+}
+
+OMNIS_TEST("engine: NaN et infinis de l'hôte interceptés, la chaîne complète continue de jouer") {
+    Engine e;
+    buildMasteringChain(e);
+    e.prepare(44100.0, 512);
+    e.setParameterImmediate(ParamId::InflLowEffect, 50.0);
+    e.setParameterImmediate(ParamId::ClipDrive, 6.0);
+    e.setParameterImmediate(ParamId::LimGain, 6.0);
+    std::vector<double> l(512), r(512);
+    double* io[2] = {l.data(), r.data()};
+    double lastPeak = 0.0;
+    bool allFinite = true;
+    for (int block = 0; block < 400; ++block) {
+        for (int i = 0; i < 512; ++i) {
+            const double t = (block * 512 + i) / 44100.0;
+            l[static_cast<std::size_t>(i)] = 0.3 * std::sin(2.0 * 3.141592653589793 * 220.0 * t);
+            r[static_cast<std::size_t>(i)] = l[static_cast<std::size_t>(i)];
+        }
+        if (block == 50) {
+            l[10] = std::numeric_limits<double>::quiet_NaN();
+            r[20] = std::numeric_limits<double>::infinity();
+            l[30] = -std::numeric_limits<double>::infinity();
+            r[40] = 1e300;
+        }
+        e.process(io, io, 512);
+        double peak = 0.0;
+        for (int i = 0; i < 512; ++i) {
+            allFinite = allFinite && std::isfinite(l[static_cast<std::size_t>(i)]) && std::isfinite(r[static_cast<std::size_t>(i)]);
+            peak = std::max(peak, std::fabs(l[static_cast<std::size_t>(i)]));
+        }
+        lastPeak = peak;
+    }
+    OMNIS_CHECK(allFinite);
+    OMNIS_CHECK(lastPeak > 0.1); // le son est revenu (pas de silence permanent)
+    OMNIS_CHECK(std::isfinite(e.meters().integratedLufs) || e.meters().integratedLufs < -100.0);
+    OMNIS_CHECK(Engine::sanitizeInput(std::numeric_limits<double>::quiet_NaN()) == 0.0);
+    OMNIS_CHECK(Engine::sanitizeInput(0.25) == 0.25);
 }

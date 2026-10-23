@@ -32,8 +32,10 @@
 #include "analysis/SpectralSignature.h"
 #include "core/Platform.h"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -206,10 +208,15 @@ void Endpoint::writeAudio(const Sample* left, const Sample* right, int numFrames
     if (!s || numFrames <= 0) return;
     const std::uint64_t start = s->written.load(std::memory_order_relaxed);
     const bool wasPlaying = s->playing.load(std::memory_order_relaxed) != 0;
+    // Un NaN de la piste ne doit pas atteindre l'analyse du master.
+    const auto clean = [](Sample v) noexcept {
+        const double x = static_cast<double>(v);
+        return std::isfinite(x) ? static_cast<float>(std::clamp(x, -1.0e4, 1.0e4)) : 0.0f;
+    };
     for (int i = 0; i < numFrames; ++i) {
         const auto k = static_cast<std::size_t>((start + static_cast<std::uint64_t>(i)) & (kRingFrames - 1));
-        s->audio[0][k].store(static_cast<float>(left[i]), std::memory_order_relaxed);
-        s->audio[1][k].store(static_cast<float>(right[i]), std::memory_order_relaxed);
+        s->audio[0][k].store(clean(left[i]), std::memory_order_relaxed);
+        s->audio[1][k].store(clean(right[i]), std::memory_order_relaxed);
     }
     const std::uint32_t seq = s->ringSeq.load(std::memory_order_relaxed);
     s->ringSeq.store(seq + 1, std::memory_order_relaxed);

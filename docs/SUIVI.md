@@ -32,6 +32,19 @@
 
 ## Fait récemment
 
+- **Compréhension v2** : anglais courant, SMS et argot (`data/argot.txt`), modificateurs placés
+  après (« propre de ouf », « clean af »), sujet + niveau : « la 808 est trop forte » baisse la
+  808 au lieu d'ajouter du sub (défaut corrigé), « the vocals are too quiet » monte la voix.
+- **Optimisation** : environ 25 % d'instructions en moins sur la chaîne complète, sortie identique
+  au bit près (convolution vectorisée, FFT, demi-bandes, true peak du limiteur, exp/pow évités).
+- **Robustesse** : un NaN ou un infini venu de l'hôte rendait la sortie invalide puis muette
+  jusqu'à la remise à zéro. L'entrée est maintenant nettoyée ; si un étage produit malgré tout un
+  résultat non fini, la sortie est mise à zéro le temps du bloc et les états sont vidés. Même
+  protection sur l'audio qu'un stem envoie au master.
+- **Inflator en 8x par défaut** (au lieu de 4x) : avec du drive, le repliement passe de −48 à
+  −76 dB sous la fondamentale (sinus de 13 kHz, drive +12 dB). Coût : environ +17 % sur la
+  chaîne. Les projets déjà enregistrés gardent leur réglage.
+
 - **Références de l'utilisateur (22/10).**
   - 97 sons ont été mesurés sur son PC (`omnis_refdb scan`, outils compilés sous Windows) : les
     sons restent sur son disque, seules les signatures sont versionnées.

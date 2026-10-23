@@ -89,6 +89,13 @@ void Engine::reset() noexcept {
     stereo_.reset();
 }
 
+void Engine::recoverFromFault() noexcept {
+    // Un étage a produit un résultat non fini : on repart d'un état propre
+    // plutôt que de rester muet (ou de propager des NaN à l'hôte).
+    ++faults_;
+    reset();
+}
+
 void Engine::setMonitorTargets(int mode, bool immediate) noexcept {
     double ll = 1.0, lr = 0.0, rl = 0.0, rr = 1.0;
     switch (static_cast<params::MonitorMode>(mode)) {
