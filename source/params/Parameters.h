@@ -14,11 +14,12 @@
 //       0 –  99  Global (bypass, trims, monitoring)
 //     100 – 199  Sub Control & Mono Maker
 //     200 – 299  Match EQ dynamique & correctif
-//     300 – 399  Excitation harmonique M/S
+//     300 – 399  Inflator (densité, chaleur ; 808 et mix séparés)
 //     400 – 499  Multi-Band Dynamic Processor
 //     500 – 599  Smart Wave-Shaping / Mastering Clipper
 //     600 – 699  Lookahead Brickwall Limiter
 //     700 – 799  Dither TPDF & noise-shaping
+//     800 – 899  Imager (largeur stéréo multibande)
 //    1000 –1099  Mesures (lecture seule, processeur -> contrôleur)
 //
 //  Valeurs « plain » : unités physiques (dB, Hz, index de choix).
@@ -65,6 +66,17 @@ enum class ParamId : std::uint32_t {
     MatchMidFirst = 210,  ///< … 230
     MatchSideFirst = 250, ///< … 270
 
+    // --- Inflator (300–399) ------------------------------------------------------
+    // Densité et chaleur, en parallèle ; la 808 (sous Split) et le mix réglés à part.
+    InflLowEffect = 300,
+    InflHighEffect = 301,
+    InflDrive = 302,
+    InflCurve = 303,
+    InflWarmth = 304,
+    InflOutput = 305,
+    InflSplit = 306,
+    InflOversampling = 307,
+
     // --- Multi-Band Dynamic Processor (400–499) --------------------------------
     // Trois fréquences de séparation, puis par bande (base + 0 … 4) : seuil,
     // ratio, attaque, relâchement, gain de compensation. Bandes : sub 410,
@@ -89,6 +101,13 @@ enum class ParamId : std::uint32_t {
     LimCeiling = 601,
     LimRelease = 602,
     LimAutoRelease = 603,
+
+    // --- Imager (800–899) --------------------------------------------------------
+    // Trois fréquences, puis la largeur de chaque bande (ImgWidthFirst + b).
+    ImgSplitLow = 800,
+    ImgSplitMid = 801,
+    ImgSplitHigh = 802,
+    ImgWidthFirst = 810, ///< … 813
 
     // --- Mesures (lecture seule) ---------------------------------------------
     MeterMomentary = 1000,
@@ -164,7 +183,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 104;
+inline constexpr std::size_t kParameterCount = 119;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

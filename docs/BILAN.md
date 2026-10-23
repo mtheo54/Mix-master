@@ -7,7 +7,7 @@
 - **L'IA.** Il lit ta demande en français, même avec des fautes. Il sait de quel artiste ou de
   quel genre tu parles, il écoute une référence, et il rapproche ta prod de ce son **sans la
   copier ni la détruire**.
-- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 120 tests du
+- **Où on en est.** Le moteur et l'IA « hors ligne » fonctionnent et sont testés : 128 tests du
   moteur, 4 tests du plug-in, le validateur officiel Steinberg (537 tests).
 - **Ce qui manque surtout :**
   - une version Windows que tu peux installer dans FL Studio ;
@@ -24,15 +24,17 @@
 |---|---|---|
 | **Sub Control & Mono Maker** | Coupe l'infra-grave, met le sub en mono, peut renforcer ou synthétiser la 808. Sans rotation de phase. | ✅ |
 | **Match EQ** | Égaliseur Mid/Side en 21 points (20 Hz – 20 kHz). C'est lui qui rapproche ta prod de la référence. | ✅ |
+| **Inflator** | Densité et chaleur : la 808 et le mix réglés à part, crêtes inchangées. Neutre par défaut. | ✅ (l'IA ne s'en sert pas encore) |
+| **Imager** | Largeur stéréo en 4 bandes, sans toucher au centre (voix, 808) | ✅ (l'IA ne s'en sert pas encore) |
 | **Multibande « tenue »** | 4 bandes. Tient les coups de la 808 dans le temps (comme les références) sans changer l'équilibre. | ✅ |
 | **Clipper** | Écrêtage propre, suréchantillonné jusqu'à 16x, sub et reste séparés : la 808 n'abîme pas la voix. | ✅ |
 | **Limiteur** | Plafond « true peak », relâchement qui s'adapte. | ✅ |
 | **Tilt** | Penche tout le spectre d'un geste (plus brillant / plus sombre), dans le Match EQ | ✅ |
 | **Instances liées** | Un OMNIS « Master » sur le master et un OMNIS « Stem » par piste (808, kick, voix…) : le master voit et écoute chaque piste, un stem n'ajoute aucune latence et applique le gain que le master lui donne | ✅ le lien ; ❌ le cerveau du mix |
-| Excitation / saturation | Grain, « crispy », 808 saturée | ❌ à faire |
+| Saturation pilotée par l'IA | « crispy », 808 saturée : l'Inflator existe, l'IA doit apprendre à le doser | ❌ à faire |
 | Dither | Pour l'export 16 bits | ❌ à faire |
 
-Latence totale : 668 ms, compensée automatiquement par FL Studio.
+Latence totale : 767 ms, compensée automatiquement par FL Studio.
 
 ### L'intelligence (sans internet, sans coût)
 

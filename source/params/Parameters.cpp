@@ -98,6 +98,16 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(269), "match_s_14482", "Match Side 14k",      "S14k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(270), "match_s_20480", "Match Side 20k",      "S20k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
 
+    // Inflator (étage 3) : neutre par défaut (effets à 0 %, sortie = entrée).
+    {ParamId::InflLowEffect,     "infl_low",      "Inflate 808",          "Inf808", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    {ParamId::InflHighEffect,    "infl_high",     "Inflate Mix",          "InfMix", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    {ParamId::InflDrive,         "infl_drive",    "Inflate Drive",        "InfDrv", "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             30.0,   1},
+    {ParamId::InflCurve,         "infl_curve",    "Inflate Curve",        "InfCrv", "",     ParamKind::Continuous, -50.0,  50.0,  0.0,   0,    {},             30.0,   0},
+    {ParamId::InflWarmth,        "infl_warmth",   "Inflate Warmth",       "Warmth", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    {ParamId::InflOutput,        "infl_output",   "Inflate Output",       "InfOut", "dB",   ParamKind::Continuous, -12.0,  6.0,   0.0,   0,    {},             30.0,   1},
+    {ParamId::InflSplit,         "infl_split",    "Inflate Split",        "InfSpl", "Hz",   ParamKind::Continuous, 60.0,   300.0, 120.0, 0,    {},             50.0,   0, kLog},
+    {ParamId::InflOversampling,  "infl_os",       "Inflate Oversampling", "InfOS",  "",     ParamKind::Choice,     0.0,    4.0,   2.0,   4,    kOversamplingLabels, 0.0, 0},
+
     // Multibande (docs/CALIBRATION_MODULE4.md §6). Défauts neutres : ratio 1,
     // compensation 0 -> l'étage est un retard pur.
     {ParamId::MbSplitLow,        "mb_split_low",  "MB Split Low",         "MbLo",   "Hz",   ParamKind::Continuous, 60.0,   250.0, 120.0, 0,    {},             50.0,   0, kLog},
@@ -139,6 +149,15 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::LimCeiling,        "lim_ceiling",   "Limiter Ceiling",      "Ceil",   "dB",   ParamKind::Continuous, -6.0,   0.0,   -1.0,  0,    {},             30.0,   1},
     {ParamId::LimRelease,        "lim_release",   "Limiter Release",      "Rel",    "ms",   ParamKind::Continuous, 1.0,    1000.0, 60.0, 0,    {},             0.0,    0, kLog},
     {ParamId::LimAutoRelease,    "lim_auto_release","Limiter Auto Release","Auto", "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             0.0,    0},
+
+    // Imager (étage 4) : largeur du Side par bande, 100 % = inchangé.
+    {ParamId::ImgSplitLow,       "img_split_low", "Imager Split Low",     "ImgSL",  "Hz",   ParamKind::Continuous, 100.0,  1000.0, 250.0, 0,   {},             0.0,    0, kLog},
+    {ParamId::ImgSplitMid,       "img_split_mid", "Imager Split Mid",     "ImgSM",  "Hz",   ParamKind::Continuous, 500.0,  6000.0, 2000.0, 0,  {},             0.0,    0, kLog},
+    {ParamId::ImgSplitHigh,      "img_split_high","Imager Split High",    "ImgSH",  "Hz",   ParamKind::Continuous, 2000.0, 16000.0, 8000.0, 0, {},             0.0,    0, kLog},
+    {static_cast<ParamId>(810), "img_width_low",  "Width Low",           "WLow",   "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
+    {static_cast<ParamId>(811), "img_width_lmid", "Width Low-Mid",       "WLMid",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
+    {static_cast<ParamId>(812), "img_width_hmid", "Width High-Mid",      "WHMid",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
+    {static_cast<ParamId>(813), "img_width_high", "Width High",          "WHigh",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
 
     {ParamId::MeterMomentary,    "meter_m",       "Momentary Loudness",   "M",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterShortTerm,    "meter_s",       "Short-Term Loudness",  "S",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},

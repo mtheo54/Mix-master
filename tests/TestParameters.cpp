@@ -4,6 +4,9 @@
 // =============================================================================
 #include "TestFramework.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "params/Parameters.h"
 
 #include <cmath>
@@ -31,7 +34,8 @@ OMNIS_TEST("params: aller-retour normalisé <-> plain") {
     for (const auto& p : allParameters()) {
         for (double plain : {p.minValue, p.defaultValue, p.maxValue, 0.5 * (p.minValue + p.maxValue)}) {
             const double q = clampPlain(p, plain);
-            OMNIS_CHECK_NEAR(toPlain(p, toNormalized(p, q)), q, 1e-12);
+            // Précision relative du double : 1e-12 Hz à 300 Hz, 2e-12 à 8 kHz.
+            OMNIS_CHECK_NEAR(toPlain(p, toNormalized(p, q)), q, 1e-12 * std::max(1.0, std::fabs(q)));
         }
     }
 }

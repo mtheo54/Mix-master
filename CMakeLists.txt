@@ -120,6 +120,10 @@ add_library(omnis_core STATIC
     source/link/SharedRegion.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
+    source/stages/ImagerStage.cpp
+    source/stages/ImagerStage.h
+    source/stages/InflatorStage.cpp
+    source/stages/InflatorStage.h
     source/stages/LimiterStage.cpp
     source/stages/LimiterStage.h
     source/stages/MatchEqStage.cpp
@@ -231,6 +235,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestSubControl.cpp
         tests/TestMatchEq.cpp
         tests/TestMultiband.cpp
+        tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp
         tests/TestLanguage.cpp
         tests/TestLearning.cpp

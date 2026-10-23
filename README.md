@@ -9,7 +9,22 @@ rétro-futuriste.
 > mesures normalisées, banc de test, filtres TPT/SVF et crossovers, **Sub Control & Mono Maker** à
 > phase linéaire ([calibration](docs/CALIBRATION_MODULE2.md)), **oversampling HIIR, clipper ADAA et
 > limiteur true peak** ([calibration](docs/CALIBRATION_MODULE3.md)), puis **Match EQ, adaptation à
-> une référence et tenue multibande** ([calibration](docs/CALIBRATION_MODULE4.md)).
+> une référence et tenue multibande** ([calibration](docs/CALIBRATION_MODULE4.md)), **Inflator** (densité
+> et chaleur) et **Imager** (largeur stéréo multibande).
+
+Chaîne du master, dans l'ordre :
+
+```
+entrée ─► gain d'entrée
+       ─► 1. Sub Control   coupe l'infra, mono sous 120 Hz
+       ─► 2. Match EQ      couleur spectrale Mid/Side en 21 points, tilt
+       ─► 3. Inflator      densité et chaleur, 808 et mix réglés à part
+       ─► 4. Imager        largeur stéréo en 4 bandes
+       ─► 5. Multibande    4 bandes : tient la 808 et les médiums dans le temps
+       ─► 6. Clipper       écrête les pics restants, sub et reste séparés
+       ─► 7. Limiteur      plafond true peak final
+       ─► gain de sortie ─► mesures (LUFS, crête, stéréo) ─► sortie
+```
 
 ## Module 2 : Sub Control & Mono Maker
 
@@ -118,6 +133,31 @@ identique au bit près à l'analyse séquentielle. Mesures sur 4 cœurs :
 | `omnis_refdb scan`, 4 titres (8 min) | — | **1.0 s** |
 
 Le gros du gain vient de la crête vraie (2.2x plus rapide, un fichier découpé en segments exacts).
+
+### Inflator (étage 3)
+
+Rend un son plus dense et plus plein sans faire monter ses crêtes.
+- **La courbe** donne du gain aux passages faibles et s'aplatit en haut, sans cassure : la crête
+  reste à sa place. **Curve** règle sa forme : à −50, très dense et doux ; à +50, presque
+  linéaire puis franc.
+- **Warmth** décentre la courbe pour ajouter des harmoniques paires (le « chaud »). Le continu
+  qu'elle crée est retiré.
+- **Deux bandes, réglées séparément :** **Inflate 808**, sous **Split** (120 Hz par défaut), et
+  **Inflate Mix**, au-dessus.
+- **Exact au repos :** le son d'origine ne traverse ni la séparation ni l'oversampling. Seul ce
+  que la courbe ajoute y passe. À 0 %, qui est le défaut, la sortie est l'entrée, au bit près.
+- **Mesures, mix à 100 % (courbe par défaut) :**
+  - sinus à pleine échelle : +0.92 dB de RMS, crête inchangée ;
+  - sinus à −20 dBFS : +2.50 dB ;
+  - suréchantillonnage 4x : la 5e harmonique d'un 9 kHz ne se replie pas (< −70 dB).
+
+### Imager (étage 4)
+
+Largeur du Side dans 4 bandes : sous 250 Hz, 250 Hz – 2 kHz, 2 – 8 kHz, au-dessus de 8 kHz.
+- 0 % = mono, 100 % = inchangé, 200 % = Side +6 dB.
+- **Le Mid n'est jamais touché** : élargir n'enlève rien au centre (voix, 808).
+- **Transitions douces** sur ±1/3 d'octave.
+- **Phase linéaire** : le Side reste aligné sur le Mid.
 
 ### Tilt
 

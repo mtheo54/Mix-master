@@ -33,15 +33,16 @@ sortie = sec + mix·(traité − sec)        mix lissé 20 ms : 1 = actif, 0 = b
        ─► conversion vers le format hôte
 ```
 
-Ordre prévu des étages (plages d'identifiants de paramètres réservées entre parenthèses) :
+Ordre des étages (plages d'identifiants de paramètres réservées entre parenthèses) :
 
-1. Sub Control & Mono Maker (100–199)
-2. Match EQ M/S à phase linéaire, courbe d'intention (200–299) ✅
-3. Excitation harmonique M/S (300–399)
-4. Multi-Band Dynamic Processor (400–499) ✅
-5. Smart Wave-Shaping / Mastering Clipper (500–599)
-6. Lookahead Brickwall Limiter (600–699)
-7. Dither TPDF + noise-shaping (700–799)
+1. Sub Control & Mono Maker (100–199) ✅
+2. Match EQ M/S à phase linéaire, courbe d'intention et tilt (200–299) ✅
+3. Inflator : densité et chaleur, 808 et mix séparés (300–399) ✅
+4. Imager : largeur stéréo multibande (800–899) ✅
+5. Multi-Band Dynamic Processor (400–499) ✅
+6. Smart Wave-Shaping / Mastering Clipper (500–599) ✅
+7. Lookahead Brickwall Limiter (600–699) ✅
+8. Dither TPDF + noise-shaping (700–799)
 
 Mesures en lecture seule : 1000–1099. Global : 0–99.
 
@@ -58,9 +59,14 @@ Mesures en lecture seule : 1000–1099. Global : 0–99.
 
 ## 4. Latence (PDC)
 
-Latence actuelle de la chaîne : 29452 échantillons à 44.1 kHz (668 ms), 29744 à 48 kHz, 59456 à
-96 kHz. Elle se décompose ainsi : Sub Control et Match EQ (FIR 16384 taps chacun : N/2 + une
-partition = 8704), multibande (FIR 8192 : 4352, + anticipation 10 ms et fenêtre RMS 50 ms), clipper (séparation sub/reste à phase linéaire, retard de phase de
+Latence actuelle de la chaîne : 33812 échantillons à 44.1 kHz (767 ms), 34104 à 48 kHz, 68168 à
+96 kHz (mesurées). Elle se décompose ainsi :
+- Sub Control et Match EQ : FIR 16384 taps chacun, N/2 + une partition = 8704.
+- Inflator : séparation 808 / mix en FIR 4096, 2176 ; plus le retard de phase de l'oversampling
+  16x, 8.
+- Imager : FIR M/S 4096, 2176. Les bandes sont au-dessus de 100 Hz, une résolution de 12 Hz
+  suffit.
+- Multibande (FIR 8192 : 4352, + anticipation 10 ms et fenêtre RMS 50 ms), clipper (séparation sub/reste à phase linéaire, retard de phase de
 l'oversampling 16x, anticipation du partage de marge) et limiteur (lookahead 10 ms + détecteur
 true peak).
 
