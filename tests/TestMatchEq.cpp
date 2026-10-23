@@ -150,3 +150,27 @@ OMNIS_TEST("match eq: changement de courbe en lecture sans discontinuité") {
     }
     OMNIS_CHECK(maxStep < 0.5 * 2.0 * std::numbers::pi * 1000.0 / kFs * 1.01);
 }
+
+OMNIS_TEST("match eq: tilt +3 dB (pivot 640 Hz) : -2.4 dB à 40 Hz, 0 à 640 Hz, +2.4 dB à 10 kHz, Mid et Side, non dosé") {
+    // Nœud k : T·(k − 10)/10 ; 40 Hz = nœud 2, 10.24 kHz = nœud 18.
+    const auto measure = [](double fm, double fs, double amount) {
+        MatchEqStage st;
+        st.prepare({kFs, 256, 2});
+        st.setParameter(ParamId::MatchTilt, 3.0, true);
+        st.setParameter(ParamId::MatchAmount, amount, true); // le tilt est un réglage à la main
+        Stereo s = midSide(fm, 0.25, fs, 0.25, 3.0);
+        run(st, s);
+        return std::pair{db(amplitudeAt(midOf(s), fm) / 0.25), db(amplitudeAt(sideOf(s), fs) / 0.25)};
+    };
+    const auto [low, pivot] = measure(40.0, 640.0, 100.0);
+    OMNIS_CHECK_NEAR(low, -2.4, 0.05);
+    OMNIS_CHECK_NEAR(pivot, 0.0, 0.03);
+    const auto [mid10k, side10k] = measure(10240.0, 10240.0, 0.0);
+    OMNIS_CHECK_NEAR(mid10k, 2.4, 0.03);
+    OMNIS_CHECK_NEAR(side10k, 2.4, 0.03);
+    // Au-delà de 20.5 kHz, la pente s'arrête : pas d'aigu qui grimpe jusqu'à Nyquist.
+    MatchKernelRequest r;
+    r.tiltDb = 3.0;
+    OMNIS_CHECK_NEAR(r.tiltAt(23000.0), 3.0, 1e-12);
+    OMNIS_CHECK_NEAR(r.tiltAt(10.0), -3.0, 1e-12);
+}

@@ -9,6 +9,11 @@
 //      |H_M(f)| = 10^(a · C_M(f) / 20)      |H_S(f)| = 10^(a · C_S(f) / 20)
 //  avec a = Match Amount. Courbe nulle -> noyau = impulsion exacte au centre
 //  (null-test bit-exact au retard près).
+//
+//  Tilt T (réglage à la main, non dosé par a) : une droite en octaves autour
+//  du nœud central (640 Hz, milieu géométrique de 20 Hz – 20 kHz), −T dB à
+//  20 Hz, +T dB à 20.5 kHz, constante au-delà. Mid et Side ensemble : « plus
+//  brillant / plus sombre » d'un seul geste, sans toucher à l'image stéréo.
 // =============================================================================
 #pragma once
 
@@ -29,7 +34,9 @@ struct MatchKernelRequest {
     MatchCurve midDb{};
     MatchCurve sideDb{};
     double amount = 1.0; ///< 0..1
+    double tiltDb = 0.0; ///< gain à 20 kHz (et opposé à 20 Hz)
 
+    [[nodiscard]] double tiltAt(double frequency) const noexcept;
     [[nodiscard]] bool nearlyEquals(const MatchKernelRequest& o) const noexcept;
     [[nodiscard]] double midMagnitude(double frequency) const noexcept;
     [[nodiscard]] double sideMagnitude(double frequency) const noexcept;

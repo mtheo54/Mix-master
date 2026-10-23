@@ -58,6 +58,7 @@ enum class ParamId : std::uint32_t {
     // et en Side, écrite par l'adaptation à la référence (ou à la main), dosée
     // par MatchAmount. Nœud k : MatchMidFirst + k, MatchSideFirst + k.
     MatchAmount = 200,
+    MatchTilt = 201, ///< pente d'ensemble : +T dB à 20 kHz, −T à 20 Hz, pivot 640 Hz (Mid et Side)
     MatchMidFirst = 210,  ///< … 230
     MatchSideFirst = 250, ///< … 270
 
@@ -156,7 +157,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 99;
+inline constexpr std::size_t kParameterCount = 100;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

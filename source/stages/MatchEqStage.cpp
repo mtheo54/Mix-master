@@ -55,6 +55,8 @@ void MatchEqStage::setParameter(ParamId id, double plain, bool /*immediate*/) no
     constexpr auto bands = static_cast<std::uint32_t>(params::kMatchBands);
     if (id == ParamId::MatchAmount)
         request_.amount = plain * 0.01;
+    else if (id == ParamId::MatchTilt)
+        request_.tiltDb = plain;
     else if (raw >= midFirst && raw < midFirst + bands)
         request_.midDb[raw - midFirst] = plain;
     else if (raw >= sideFirst && raw < sideFirst + bands)

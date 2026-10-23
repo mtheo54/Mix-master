@@ -47,6 +47,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // Match EQ (docs/CALIBRATION_MODULE4.md). Pas de lissage par paramètre : un
     // changement de courbe est fondu sur une trame de convolution.
     {ParamId::MatchAmount,       "match_amount",  "Match Amount",         "Match",  "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             0.0,    0},
+    {ParamId::MatchTilt,         "match_tilt",    "Tilt",                 "Tilt",   "dB",   ParamKind::Continuous, -6.0,   6.0,   0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(210), "match_m_20",    "Match Mid 20",        "M20",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(211), "match_m_28",    "Match Mid 28",        "M28",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(212), "match_m_40",    "Match Mid 40",        "M40",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
