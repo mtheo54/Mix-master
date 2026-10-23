@@ -143,6 +143,7 @@ private:
     dsp::LookaheadGain room_;
     OnePoleSmoother roomAmount_; ///< 0..1
     double roomRelease_ = 0.0;
+    double roomFloorAmount_ = -1.0, roomFloor_ = 1.0; ///< plancher du partage de marge, recalculé quand la dose change
     std::array<std::vector<double>, 2> roomDelayLow_, roomDelayHigh_;
     int roomDelayPos_ = 0;
     int roomLatency_ = 0;

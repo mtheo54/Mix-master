@@ -85,6 +85,7 @@ public:
         u1_ = 0.0;
         fH1_ = fS1_ = fD1_ = 0.0;
         k1_ = -1.0;
+        diodeLive_ = false;
     }
 
     struct Output {
@@ -96,7 +97,13 @@ public:
     Output process(double u, double knee, double wHard, double wSoft, double wDiode) noexcept {
         const double fH = shapes::hardIntegral(u);
         const double fS = shapes::softKneeIntegral(u, knee);
-        const double fD = shapes::diodeIntegral(u);
+        // La courbe Diode (deux exp) n'est calculée que si elle est entendue ; quand
+        // elle revient, son intégrale précédente est recalculée : même résultat
+        // que si elle avait toujours tourné.
+        const bool diodeOn = wDiode != 0.0;
+        if (diodeOn && !diodeLive_) fD1_ = shapes::diodeIntegral(u1_);
+        diodeLive_ = diodeOn;
+        const double fD = diodeOn ? shapes::diodeIntegral(u) : 0.0;
         // Si le genou a changé, l'intégrale précédente doit être recalculée avec
         // le nouveau genou (sinon la différence F(u) − F(u₁) serait incohérente).
         if (knee != k1_) {
@@ -109,13 +116,13 @@ public:
             const double inv = 1.0 / du;
             yH = (fH - fH1_) * inv;
             yS = (fS - fS1_) * inv;
-            yD = (fD - fD1_) * inv;
+            yD = diodeOn ? (fD - fD1_) * inv : 0.0;
         } else {
             // Segment dégénéré : valeur au milieu (limite exacte de la formule).
             const double m = 0.5 * (u + u1_);
             yH = shapes::hard(m);
             yS = shapes::softKnee(m, knee);
-            yD = shapes::diode(m);
+            yD = diodeOn ? shapes::diode(m) : 0.0;
         }
         u1_ = u;
         fH1_ = fH;
@@ -126,6 +133,7 @@ public:
 
 private:
     double u1_ = 0.0, fH1_ = 0.0, fS1_ = 0.0, fD1_ = 0.0, k1_ = -1.0;
+    bool diodeLive_ = false;
 };
 
 } // namespace omnis::dsp

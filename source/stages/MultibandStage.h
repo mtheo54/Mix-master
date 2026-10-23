@@ -100,6 +100,10 @@ private:
 
     struct Band {
         double thresholdDb = 0.0, ratio = 1.0, attackMs = 30.0, releaseMs = 250.0;
+        /// Puissance sous laquelle le gain est exactement 0 dB (début du genou), avec
+        /// une marge de 1e-9 : la comparaison en puissance évite log10 et pow.
+        double kneeStartPower = 0.0;
+        void updateKneeStart() noexcept { kneeStartPower = dbToPower(thresholdDb - 0.5 * kKneeDb) * (1.0 - 1e-9); }
         OnePoleSmoother makeup; ///< gain linéaire
         double attackCoeff = 1.0, releaseCoeff = 0.0;
         std::vector<double> powerRing; ///< fenêtre RMS

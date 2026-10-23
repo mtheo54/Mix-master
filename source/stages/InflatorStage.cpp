@@ -218,8 +218,15 @@ void InflatorStage::process(double* const* channels, int numSamples) noexcept {
         drives_[k] = drive_.next();
         exponents_[k] = exponent_.next();
         biases_[k] = bias_.next();
-        restShape_[k] = InflatorCurve::shape(biases_[k], exponents_[k]);
-        restSlope_[k] = InflatorCurve::slope(biases_[k], exponents_[k]);
+        // Point de repos : recalculé seulement quand la chaleur ou la courbe bougent.
+        if (biases_[k] != restBias_ || exponents_[k] != restExponent_) {
+            restBias_ = biases_[k];
+            restExponent_ = exponents_[k];
+            restShapeValue_ = InflatorCurve::shape(restBias_, restExponent_);
+            restSlopeValue_ = InflatorCurve::slope(restBias_, restExponent_);
+        }
+        restShape_[k] = restShapeValue_;
+        restSlope_[k] = restSlopeValue_;
         outs_[k] = output_.next();
         splitLog_.next();
 

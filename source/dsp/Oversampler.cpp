@@ -51,7 +51,7 @@ double* const* Oversampler::upsample(const double* const* input, int numSamples)
             const double* src = inA ? a : b;
             double* dst = inA ? b : a;
             auto& f = filters_[c][static_cast<std::size_t>(s)];
-            for (int i = 0; i < length; ++i) f.upsample(src[i], dst[2 * i], dst[2 * i + 1]);
+            f.upsampleBlock(src, dst, length);
             length *= 2;
             inA = !inA;
         }
@@ -73,7 +73,7 @@ void Oversampler::downsample(double* const* output, int numSamples) noexcept {
             double* dst = inA ? b : a;
             auto& f = filters_[c][static_cast<std::size_t>(s)];
             length /= 2;
-            for (int i = 0; i < length; ++i) dst[i] = f.downsample(src[2 * i], src[2 * i + 1]);
+            f.downsampleBlock(src, dst, length);
             inA = !inA;
         }
         const double* src = inA ? a : b;

@@ -57,7 +57,10 @@ public:
         return x;
     }
 
+    [[nodiscard]] int count() const noexcept { return count_; }
+
 private:
+    friend class Halfband2x;
     std::array<double, kMaxSections> c_{}, x1_{}, y1_{};
     int count_ = 0;
 };
@@ -79,6 +82,13 @@ public:
         previousOdd_ = in1;
         return y;
     }
+
+    /// Mêmes calculs sur un bloc : `src` (n) -> `dst` (2n), et `src` (2n) -> `dst` (n).
+    /// Pour les tailles de chaînes du suréchantillonneur, l'état reste dans les
+    /// registres le temps du bloc (au lieu d'un aller-retour mémoire par
+    /// section et par échantillon) ; le résultat est identique au bit près.
+    void upsampleBlock(const double* src, double* dst, int n) noexcept;
+    void downsampleBlock(const double* src, double* dst, int n) noexcept;
 
 private:
     AllpassChain up0_, up1_, down0_, down1_;

@@ -119,3 +119,30 @@ OMNIS_TEST("oversampling: retard de phase à 1 kHz faible (< 8 échantillons) et
     }
     OMNIS_CHECK(Oversampler::phaseDelaySamples(0, kFs) == 0.0);
 }
+
+OMNIS_TEST("halfband: traitement par bloc identique au bit près au traitement échantillon par échantillon") {
+    // Chaque étage du suréchantillonneur (6/6, 4/3, 3/3, 3/2 cellules) et une taille hors liste.
+    std::vector<double> transitions(omnis::dsp::Oversampler::kTransitions.begin(), omnis::dsp::Oversampler::kTransitions.end());
+    transitions.push_back(0.05);
+    unsigned seed = 12345u;
+    const auto noise = [&] {
+        seed = seed * 1664525u + 1013904223u;
+        return static_cast<double>(seed >> 8) / 8388608.0 - 1.0;
+    };
+    for (double transition : transitions) {
+        const auto coefs = omnis::dsp::designHalfband(omnis::dsp::Oversampler::kAttenuationDb, transition);
+        omnis::dsp::Halfband2x a, b;
+        a.setCoefficients(coefs);
+        b.setCoefficients(coefs);
+        for (int block : {1, 7, 64, 333}) {
+            std::vector<double> in(static_cast<std::size_t>(block)), up(2 * in.size()), upRef(up.size()), down(in.size()), downRef(in.size());
+            for (auto& v : in) v = noise();
+            a.upsampleBlock(in.data(), up.data(), block);
+            for (int i = 0; i < block; ++i) b.upsample(in[static_cast<std::size_t>(i)], upRef[2 * static_cast<std::size_t>(i)], upRef[2 * static_cast<std::size_t>(i) + 1]);
+            OMNIS_CHECK(up == upRef);
+            a.downsampleBlock(up.data(), down.data(), block);
+            for (int i = 0; i < block; ++i) downRef[static_cast<std::size_t>(i)] = b.downsample(upRef[2 * static_cast<std::size_t>(i)], upRef[2 * static_cast<std::size_t>(i) + 1]);
+            OMNIS_CHECK(down == downRef);
+        }
+    }
+}

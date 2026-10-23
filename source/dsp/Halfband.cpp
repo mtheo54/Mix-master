@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <type_traits>
 
 namespace omnis::dsp {
 
@@ -81,6 +82,91 @@ void Halfband2x::setCoefficients(const std::vector<double>& coefs) noexcept {
     }
     for (AllpassChain* c : {&up0_, &down0_}) c->setCoefficients(even, ne);
     for (AllpassChain* c : {&up1_, &down1_}) c->setCoefficients(odd, no);
+}
+
+namespace {
+
+/// Chaîne de N cellules passe-tout, état local (registres) pendant le bloc.
+template <int N>
+struct LocalChain {
+    double c[N], x1[N], y1[N];
+    explicit LocalChain(const std::array<double, AllpassChain::kMaxSections>& coefs, const std::array<double, AllpassChain::kMaxSections>& sx,
+                        const std::array<double, AllpassChain::kMaxSections>& sy) noexcept {
+        for (int i = 0; i < N; ++i) {
+            c[i] = coefs[static_cast<std::size_t>(i)];
+            x1[i] = sx[static_cast<std::size_t>(i)];
+            y1[i] = sy[static_cast<std::size_t>(i)];
+        }
+    }
+    void store(std::array<double, AllpassChain::kMaxSections>& sx, std::array<double, AllpassChain::kMaxSections>& sy) const noexcept {
+        for (int i = 0; i < N; ++i) {
+            sx[static_cast<std::size_t>(i)] = x1[i];
+            sy[static_cast<std::size_t>(i)] = y1[i];
+        }
+    }
+    double process(double x) noexcept {
+        for (int i = 0; i < N; ++i) {
+            const double y = c[i] * (x - y1[i]) + x1[i];
+            x1[i] = x;
+            y1[i] = y;
+            x = y;
+        }
+        return x;
+    }
+};
+
+} // namespace
+
+void Halfband2x::upsampleBlock(const double* src, double* dst, int n) noexcept {
+    const auto run = [&](auto a, auto b) {
+        constexpr int A = decltype(a)::value, B = decltype(b)::value;
+        LocalChain<A> p0(up0_.c_, up0_.x1_, up0_.y1_);
+        LocalChain<B> p1(up1_.c_, up1_.x1_, up1_.y1_);
+        for (int i = 0; i < n; ++i) {
+            dst[2 * i] = p0.process(src[i]);
+            dst[2 * i + 1] = p1.process(src[i]);
+        }
+        p0.store(up0_.x1_, up0_.y1_);
+        p1.store(up1_.x1_, up1_.y1_);
+    };
+    using I2 = std::integral_constant<int, 2>;
+    using I3 = std::integral_constant<int, 3>;
+    using I4 = std::integral_constant<int, 4>;
+    using I6 = std::integral_constant<int, 6>;
+    const int a = up0_.count_, b = up1_.count_;
+    if (a == 6 && b == 6) run(I6{}, I6{});
+    else if (a == 4 && b == 3) run(I4{}, I3{});
+    else if (a == 3 && b == 3) run(I3{}, I3{});
+    else if (a == 3 && b == 2) run(I3{}, I2{});
+    else
+        for (int i = 0; i < n; ++i) upsample(src[i], dst[2 * i], dst[2 * i + 1]);
+}
+
+void Halfband2x::downsampleBlock(const double* src, double* dst, int n) noexcept {
+    const auto run = [&](auto a, auto b) {
+        constexpr int A = decltype(a)::value, B = decltype(b)::value;
+        LocalChain<A> p0(down0_.c_, down0_.x1_, down0_.y1_);
+        LocalChain<B> p1(down1_.c_, down1_.x1_, down1_.y1_);
+        double odd = previousOdd_;
+        for (int i = 0; i < n; ++i) {
+            dst[i] = 0.5 * (p0.process(src[2 * i]) + p1.process(odd));
+            odd = src[2 * i + 1];
+        }
+        previousOdd_ = odd;
+        p0.store(down0_.x1_, down0_.y1_);
+        p1.store(down1_.x1_, down1_.y1_);
+    };
+    using I2 = std::integral_constant<int, 2>;
+    using I3 = std::integral_constant<int, 3>;
+    using I4 = std::integral_constant<int, 4>;
+    using I6 = std::integral_constant<int, 6>;
+    const int a = down0_.count_, b = down1_.count_;
+    if (a == 6 && b == 6) run(I6{}, I6{});
+    else if (a == 4 && b == 3) run(I4{}, I3{});
+    else if (a == 3 && b == 3) run(I3{}, I3{});
+    else if (a == 3 && b == 2) run(I3{}, I2{});
+    else
+        for (int i = 0; i < n; ++i) dst[i] = downsample(src[2 * i], src[2 * i + 1]);
 }
 
 void Halfband2x::reset() noexcept {

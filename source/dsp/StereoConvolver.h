@@ -22,6 +22,12 @@
 //
 //  Deux noyaux peuvent être appliqués à la même trame (même FDL) : c'est ce qui
 //  permet le fondu enchaîné sans clic lors d'un changement de réglage.
+//
+//  Rangement des spectres : parties réelles et imaginaires dans des tableaux
+//  séparés ([A réel | A imag | B réel | B imag] par partition), pour que la
+//  somme des produits (le cœur du coût, P produits par bin) soit vectorisée
+//  par le compilateur. Mêmes opérations dans le même ordre qu'avec des
+//  nombres complexes entrelacés : résultat identique au bit près.
 // =============================================================================
 #pragma once
 
@@ -36,12 +42,12 @@ class StereoConvolver {
 public:
     using Complex = std::complex<double>;
 
-    /// Spectres des partitions d'un noyau stéréo (P × (B + 1) bins par canal).
+    /// Spectres des partitions d'un noyau stéréo : P × 4 × (B + 1) valeurs,
+    /// [A réel | A imag | B réel | B imag] par partition.
     struct Kernel {
-        std::vector<Complex> a, b;
+        std::vector<double> data;
         void allocate(int partitions, int blockSize) {
-            a.assign(static_cast<std::size_t>(partitions) * static_cast<std::size_t>(blockSize + 1), Complex{});
-            b.assign(a.size(), Complex{});
+            data.assign(static_cast<std::size_t>(partitions) * 4u * static_cast<std::size_t>(blockSize + 1), 0.0);
         }
     };
 
@@ -96,9 +102,9 @@ private:
     int head_ = 0;
     Fft fft_;
     std::vector<double> inputA_, inputB_;   // 2B : trame précédente + courante
-    std::vector<Complex> fdlA_, fdlB_;      // P × (B+1)
+    std::vector<double> fdl_;               // P × 4 × (B+1), même rangement que Kernel
     std::vector<Complex> work_;             // F
-    std::vector<Complex> accA_, accB_;      // B+1
+    std::vector<double> acc_;               // 4 × (B+1)
     std::vector<double> outA_, outB_, out2A_, out2B_;
 };
 

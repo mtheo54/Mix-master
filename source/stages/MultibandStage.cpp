@@ -62,6 +62,7 @@ MultibandStage::MultibandStage() {
     for (int b = 0; b < params::kMbBands; ++b) {
         auto& band = bands_[static_cast<std::size_t>(b)];
         band.thresholdDb = defaultOf(params::mbId(b, MbControl::Threshold));
+        band.updateKneeStart();
         band.ratio = defaultOf(params::mbId(b, MbControl::Ratio));
         band.attackMs = defaultOf(params::mbId(b, MbControl::Attack));
         band.releaseMs = defaultOf(params::mbId(b, MbControl::Release));
@@ -163,7 +164,10 @@ void MultibandStage::setParameter(ParamId id, double plain, bool immediate) noex
     const auto control = static_cast<MbControl>((raw - first) % 10u);
     auto& band = bands_[b];
     switch (control) {
-        case MbControl::Threshold: band.thresholdDb = plain; break;
+        case MbControl::Threshold:
+            band.thresholdDb = plain;
+            band.updateKneeStart();
+            break;
         case MbControl::Ratio: band.ratio = std::max(1.0, plain); break;
         case MbControl::Attack: band.attackMs = plain; updateTimeConstants(band); break;
         case MbControl::Release: band.releaseMs = plain; updateTimeConstants(band); break;
@@ -253,8 +257,11 @@ void MultibandStage::process(double* const* channels, int numSamples) noexcept {
                 for (double v : band.powerRing) exact += v;
                 band.powerSum = exact;
             }
-            const double levelDb = powerToDb(std::max(0.0, band.powerSum) / static_cast<double>(band.powerRing.size()), -200.0);
-            const double required = dbToGain(computeGainDb(band, levelDb));
+            // Sous le début du genou (ou ratio 1:1) le gain est 0 dB : ni log ni pow.
+            const double meanPower = std::max(0.0, band.powerSum) / static_cast<double>(band.powerRing.size());
+            const double required = band.ratio <= 1.0 || meanPower < band.kneeStartPower
+                                        ? 1.0
+                                        : dbToGain(computeGainDb(band, powerToDb(meanPower, -200.0)));
             const double ramped = band.lookahead.process(required, band.releaseCoeff);
             band.gain = ramped < band.gain ? band.gain + band.attackCoeff * (ramped - band.gain) : ramped;
             const double g = band.gain * band.makeup.next();

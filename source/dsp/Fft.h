@@ -6,7 +6,10 @@
 //    1. permutation par inversion de bits (table précalculée) ;
 //    2. log2(N) étages de papillons  u' = u + w·v,  v' = u − w·v,
 //       avec w = e^(−2πi·k/N) lu dans une table précalculée (pas de sin/cos à
-//       l'exécution, précision ~1 ulp par facteur).
+//       l'exécution, précision ~1 ulp par facteur). Les facteurs de chaque
+//       étage sont rangés côte à côte (lecture contiguë) ; le premier étage
+//       (w = 1) n'a pas de multiplication. Mêmes opérations, même résultat
+//       au bit près que la lecture directe de la table e^(−2πi·k/N).
 //  Erreur relative typique ~ 1e-15·log2(N) : négligeable devant le bruit d'un
 //  flottant 32 bits, ce qui permet des null-tests de convolution à 1e-12.
 //
@@ -38,14 +41,16 @@ public:
 
     [[nodiscard]] int size() const noexcept { return size_; }
 
-    void forward(Complex* data) const noexcept { transform(data, false); }
+    void forward(Complex* data) const noexcept { transform<false>(data); }
     void inverse(Complex* data) const noexcept;
 
 private:
-    void transform(Complex* data, bool inverse) const noexcept;
+    template <bool Inverse>
+    void transform(Complex* data) const noexcept;
 
     int size_ = 0;
     std::vector<Complex> twiddles_; ///< e^(−2πi·k/N), k < N/2
+    std::vector<Complex> stages_;   ///< étage de longueur L : L/2 facteurs à partir de l'indice L/2 − 1
     std::vector<int> bitReverse_;
 };
 

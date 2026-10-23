@@ -312,3 +312,48 @@ OMNIS_TEST("clipper: partage de marge — la somme tient le plafond, la bande ha
     const double sub = 2.0 * std::abs(dft(s.l, 47.0, start, 44100)) / 44100.0;
     OMNIS_CHECK(gainToDb(sub / (0.85 * c)) > -6.0 - 0.1);
 }
+
+OMNIS_TEST("clipper ADAA: la courbe Diode calculée à la demande donne le même résultat qu'en continu") {
+    // Référence : les trois intégrales calculées à chaque échantillon (version d'origine).
+    using namespace omnis::dsp;
+    struct Reference {
+        double u1 = 0.0, fH1 = 0.0, fS1 = 0.0, fD1 = 0.0, k1 = -1.0;
+        AdaaClipper::Output process(double u, double knee, double wH, double wS, double wD) {
+            const double fH = shapes::hardIntegral(u), fS = shapes::softKneeIntegral(u, knee), fD = shapes::diodeIntegral(u);
+            if (knee != k1) {
+                fS1 = shapes::softKneeIntegral(u1, knee);
+                k1 = knee;
+            }
+            const double du = u - u1;
+            double yH, yS, yD;
+            if (std::fabs(du) > 1e-9) {
+                const double inv = 1.0 / du;
+                yH = (fH - fH1) * inv;
+                yS = (fS - fS1) * inv;
+                yD = (fD - fD1) * inv;
+            } else {
+                const double m = 0.5 * (u + u1);
+                yH = shapes::hard(m);
+                yS = shapes::softKnee(m, knee);
+                yD = shapes::diode(m);
+            }
+            u1 = u;
+            fH1 = fH;
+            fS1 = fS;
+            fD1 = fD;
+            return {wH * yH + wS * yS, wD * yD};
+        }
+    } ref;
+    AdaaClipper clip;
+    double maxError = 0.0;
+    for (int i = 0; i < 6000; ++i) {
+        const double u = 1.8 * std::sin(0.013 * i) + 0.4 * std::sin(0.37 * i);
+        // Diode coupée, en fondu, pleine, coupée de nouveau, puis revenue.
+        const double wD = i < 1000 ? 0.0 : i < 2000 ? (i - 1000) / 1000.0 : i < 3000 ? 1.0 : i < 4500 ? 0.0 : 0.6;
+        const double wS = 1.0 - wD;
+        const auto a = clip.process(u, 0.5, 0.0, wS, wD);
+        const auto b = ref.process(u, 0.5, 0.0, wS, wD);
+        maxError = std::max({maxError, std::fabs(a.symmetric - b.symmetric), std::fabs(a.diode - b.diode)});
+    }
+    OMNIS_CHECK(maxError == 0.0);
+}

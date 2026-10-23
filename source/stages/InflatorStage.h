@@ -116,6 +116,7 @@ private:
 
     // Paramètres au taux de base pour le bloc courant.
     std::vector<double> eLow_, eHigh_, drives_, exponents_, biases_, restShape_, restSlope_, outs_;
+    double restBias_ = -1.0, restExponent_ = -1.0, restShapeValue_ = 0.0, restSlopeValue_ = 1.0; ///< point de repos en cache
 };
 
 } // namespace omnis

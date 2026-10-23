@@ -82,33 +82,45 @@ void LimiterStage::setParameter(ParamId id, double plain, bool immediate) noexce
 
 double LimiterStage::detect(double l, double r) noexcept {
     // Historique miroir : fenêtre contiguë x[m−N+1 … m] à partir de tpPos_.
+    // Les trois phases interpolées des deux canaux (six sommes indépendantes)
+    // sont menées de front ; chaque somme garde son ordre (k = 0 … N−1) : même
+    // résultat que phase par phase, canal par canal.
     constexpr int kN = TruePeakMeter::kTapsPerPhase;
-    double peak = 0.0;
-    const double in[2] = {l, r};
-    int pos = tpPos_;
-    for (int ch = 0; ch < 2; ++ch) {
-        auto& hist = tpHistory_[static_cast<std::size_t>(ch)];
-        hist[static_cast<std::size_t>(tpPos_)] = in[ch];
-        hist[static_cast<std::size_t>(tpPos_ + kN)] = in[ch];
-        pos = (tpPos_ + 1) % kN;
-        const double* w = hist.data() + pos;
-        double p = std::fabs(w[kN - 1 - TruePeakMeter::kHalfLength]); // échantillon m − D
-        for (int phase = 1; phase < TruePeakMeter::kOversampling; ++phase) {
-            const auto& c = tpCoefficients_[static_cast<std::size_t>(phase)];
-            double acc = 0.0;
-            for (int k = 0; k < kN; ++k) acc += c[static_cast<std::size_t>(k)] * w[kN - 1 - k];
-            p = std::max(p, std::fabs(acc));
-        }
-        peak = std::max(peak, p);
+    static_assert(TruePeakMeter::kOversampling == 4);
+    auto& histL = tpHistory_[0];
+    auto& histR = tpHistory_[1];
+    const auto at = static_cast<std::size_t>(tpPos_);
+    histL[at] = l;
+    histL[at + kN] = l;
+    histR[at] = r;
+    histR[at + kN] = r;
+    const int pos = (tpPos_ + 1) % kN;
+    const double* wl = histL.data() + pos;
+    const double* wr = histR.data() + pos;
+    const double* c1 = tpCoefficients_[1].data();
+    const double* c2 = tpCoefficients_[2].data();
+    const double* c3 = tpCoefficients_[3].data();
+    double l1 = 0.0, l2 = 0.0, l3 = 0.0, r1 = 0.0, r2 = 0.0, r3 = 0.0;
+    for (int k = 0; k < kN; ++k) {
+        const double xl = wl[kN - 1 - k], xr = wr[kN - 1 - k];
+        l1 += c1[k] * xl;
+        l2 += c2[k] * xl;
+        l3 += c3[k] * xl;
+        r1 += c1[k] * xr;
+        r2 += c2[k] * xr;
+        r3 += c3[k] * xr;
     }
+    const double pl = std::max({std::fabs(wl[kN - 1 - TruePeakMeter::kHalfLength]), std::fabs(l1), std::fabs(l2), std::fabs(l3)});
+    const double pr = std::max({std::fabs(wr[kN - 1 - TruePeakMeter::kHalfLength]), std::fabs(r1), std::fabs(r2), std::fabs(r3)});
     tpPos_ = pos;
-    return peak;
+    return std::max(pl, pr);
 }
 
 void LimiterStage::process(double* const* channels, int numSamples) noexcept {
     double* left = channels[0];
     double* right = channels[1];
     const double marginGain = dbToGain(-kTruePeakMarginDb);
+    double lastGain = 1.0;
 
     for (int i = 0; i < numSamples; ++i) {
         const double g = inputGain_.next();
@@ -133,8 +145,9 @@ void LimiterStage::process(double* const* channels, int numSamples) noexcept {
         if (++delayPos_ == latency_) delayPos_ = 0;
         left[i] = dl * gain;
         right[i] = dr * gain;
-        lastGainDb_ = gainToDb(gain);
+        lastGain = gain;
     }
+    if (numSamples > 0) lastGainDb_ = gainToDb(lastGain); // afficheur : la dernière valeur du bloc suffit
 }
 
 } // namespace omnis

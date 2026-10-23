@@ -20,6 +20,7 @@ inline double gainToDb(double gain, double floorDb = kMinusInfinityDb) noexcept 
 
 /// dB -> gain linéaire : 10^(dB/20). dbToGain(0.0) vaut exactement 1.0.
 inline double dbToGain(double db) noexcept {
+    if (db == 0.0) return 1.0; // cas courant (réglage neutre) : pas de pow
     return db <= kMinusInfinityDb ? 0.0 : std::pow(10.0, db * 0.05);
 }
 
