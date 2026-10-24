@@ -31,3 +31,39 @@ ensemble : le mix parfait.
 (Aujourd'hui, un bus de drums est traité comme un tout — « Drums (boucle) ». À venir :
 repérer les éléments dans le bus (coups, bandes, transitoires) et appliquer à chacun son
 traitement : mono sous ~150 Hz pour le kick, largeur dans la bande de la snare, etc.)
+
+## Les éléments d'un bus de drums, nommés
+
+OMNIS doit **détecter chaque élément** d'un bus (kick, snare, clap, hi-hat, open hat,
+percus…) et **afficher leur nom exact** : la personne voit sur quoi il a travaillé et
+comment (« Kick : mono sous 150 Hz », « Snare : +10 % de largeur », « Open hat : dureté à
+7 kHz calmée »). Ne jamais laisser un traitement invisible.
+
+## Dans tous les logiciels
+
+Pas seulement FL Studio : Ableton Live, Logic Pro, Cubase, Reaper (et Studio One, Bitwig…).
+- VST3 (aujourd'hui) : FL Studio, Ableton Live (11 et plus), Cubase, Reaper, Studio One,
+  Bitwig. À vérifier dans chacun : le lien master / stems (mémoire partagée, processus
+  séparés de Bitwig), le nom de piste (IInfoListener), le changement de rôle en route.
+- Logic Pro : il faut une version **Audio Unit** (enveloppe AU du SDK VST3, à construire
+  sous macOS avec Xcode).
+- Pro Tools : **AAX** (SDK Avid et signature PACE) : plus tard.
+
+## Le langage des producteurs
+
+La barre IA doit comprendre le vocabulaire réel du studio, en français, en anglais et en
+argot : boueux / muddy, boxy, harsh, sizzle, silky, gritty, dirty, clipped / éclaté, glue,
+punchy, headroom, wet / mouillé / trop de reverb, ça perce / ça ressort pas, mono
+compatible… (`data/lexique_fr.txt`, `data/argot.txt`). À enrichir à chaque mot
+nouveau entendu.
+
+## Plus tard : la voix et la prod ensemble
+
+Que la voix s'intègre à la prod **sans que l'une prenne le dessus sur l'autre** : propre,
+impactant, sans qu'elles se détruisent. Gros chantier (place de la voix dans la prod, prod
+qui s'efface sous la voix aux bons moments, espace commun) : pour un futur.
+
+## L'ambition
+
+Un plug-in si juste qu'il « devrait être illégal » : qu'il change vraiment le mixage et le
+mastering. On le construit en cherchant ensemble.
