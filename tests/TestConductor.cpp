@@ -144,6 +144,8 @@ OMNIS_TEST("chef d'orchestre: pas de fausse alerte (piano sans grave, ou qui jou
     // Deux victimes du grave ne se jugent pas entre elles (kick / 808 : autre affaire).
     const StemTimeline tBass = timelineOf(makePiano(12.0, true));
     OMNIS_CHECK(Conductor::propose({{1, Element::Bass808, "808", &t808b}, {2, Element::Bass, "Basse", &tBass}}).empty());
+    // Un bus de drums (avec son kick) n'est jamais un gêneur du grave : on ne coupe pas le kick.
+    OMNIS_CHECK(Conductor::propose({{1, Element::Bass808, "808", &t808b}, {2, Element::DrumLoop, "DRUMS", &tBass}}).empty());
 }
 
 OMNIS_TEST("chef d'orchestre: une guitare qui couvre la voix dans sa présence -> la creuser (proposé)") {

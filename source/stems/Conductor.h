@@ -5,7 +5,8 @@
 //
 //  Un masquage, c'est un élément qui occupe la place d'un autre AU MÊME
 //  MOMENT (stems/StemTimeline, blocs alignés sur le temps du projet) :
-//    - le grave d'un instrument, d'une voix, d'un FX, d'un drum (hors kick)
+//    - le grave d'un instrument, d'une voix, d'un FX, d'un drum isolé (ni kick,
+//      ni bus de drums, qui contient le kick)
 //      dans la zone où vit la 808, la basse ou le kick (sous 300 Hz, là où
 //      leur énergie est à moins de 20 dB de leur maximum) ;
 //    - un instrument dans la présence de la voix lead (1,2 … 6 kHz).

@@ -20,7 +20,8 @@ bool isLowVictim(Element e) { return e == Element::Bass808 || e == Element::Bass
 
 /// Une victime du grave ne gêne pas une autre victime du grave (kick / 808 :
 /// une autre affaire, la place de chacun dans le temps).
-bool canMaskLow(Element e) { return !isLowVictim(e) && e != Element::Auto; }
+/// Un bus de drums contient presque toujours le kick : son grave n'est pas à couper.
+bool canMaskLow(Element e) { return !isLowVictim(e) && e != Element::Auto && e != Element::DrumLoop; }
 
 bool canMaskVocal(Element e) {
     const Family f = familyOf(e);
