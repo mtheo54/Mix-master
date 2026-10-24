@@ -119,6 +119,7 @@
 
 ## À venir
 
+**Pratiques des pros et plan du rack : [docs/RECHERCHE_MIX_PRO.md](RECHERCHE_MIX_PRO.md).**
 **Cap du produit : [docs/VISION.md](VISION.md)** (vendu ~150 €, parfait, propre comme un mix
 pro, intuitif ; drums d'un bus travaillés élément par élément).
 
