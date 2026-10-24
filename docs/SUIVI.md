@@ -119,6 +119,23 @@
 
 ## À venir
 
+**Prochaine séance (dans l'ordre) :**
+1. **Plantage de FL Studio en désactivant OMNIS** (signalé le 24/10, cause inconnue, une
+   instance Master et cinq Stems liés). Pistes : setActive pendant que FL appelle encore
+   process() (stemChain_.prepare, réallocation de l'anneau sec, link_.start / stop),
+   arrêt du lien master / stems, minuterie de l'interface après fermeture. Écrire un test
+   qui active / désactive en boucle pendant le traitement, sous TSan / ASan.
+2. **Refaire l'interface proprement** d'après la maquette console v11 (artefact) : modules
+   usinés, colonne Master, courbe de l'Inflator.
+3. **La barre de demande à l'IA** dans le plug-in : texte libre (FR / EN / argot), le master
+   écoute la prod, la demande devient des réglages (Match EQ, multibande, Inflator, limiteur)
+   comme `omnis_match`.
+4. **Tutoriel à la première ouverture** : partie par partie (rôles et groupes, stems,
+   master, chef d'orchestre, barre IA), passable, relançable depuis un bouton « ? ».
+
+Retours d'écoute (24/10, prod 808 / basse / 2 drums / mélo) : Auto jugé bien comme ça
+(discret, respecte les sons déjà travaillés) ; pas de potard d'intensité demandé.
+
 - **Chef d'orchestre, suite.**
   - L'interface complète de la console (tous les étages, la demande en texte, les courbes).
   - Garder les retouches acceptées quand le projet est rouvert (les stems changent d'identifiant
