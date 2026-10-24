@@ -120,17 +120,22 @@
 ## À venir
 
 **Prochaine séance (dans l'ordre) :**
-1. **Plantage de FL Studio en désactivant OMNIS** (signalé le 24/10, cause inconnue, une
-   instance Master et cinq Stems liés). Pistes : setActive pendant que FL appelle encore
+1. **Plantage de FL Studio en désactivant OMNIS avec le bouton rond du slot du mixer**
+   (signalé le 24/10 ; c'est LE geste quotidien des producteurs sous FL, il doit être sûr ;
+   une instance Master et cinq Stems liés). Pistes : setActive pendant que FL appelle encore
    process() (stemChain_.prepare, réallocation de l'anneau sec, link_.start / stop),
    arrêt du lien master / stems, minuterie de l'interface après fermeture. Écrire un test
    qui active / désactive en boucle pendant le traitement, sous TSan / ASan.
-2. **Refaire l'interface proprement** d'après la maquette console v11 (artefact) : modules
-   usinés, colonne Master, courbe de l'Inflator.
+2. **Refaire l'interface proprement** d'après la maquette console v11 (artefact, « juste
+   magnifique » selon l'utilisateur) : modules usinés, colonne Master, courbe de l'Inflator.
+   L'interface actuelle reste la version mini.
 3. **La barre de demande à l'IA** dans le plug-in : texte libre (FR / EN / argot), le master
    écoute la prod, la demande devient des réglages (Match EQ, multibande, Inflator, limiteur)
    comme `omnis_match`.
-4. **Tutoriel à la première ouverture** : partie par partie (rôles et groupes, stems,
+4. **OMNIS seul sur le master, sans stems** : beaucoup le poseront juste en fin de chaîne.
+   Il doit alors masteriser la prod entière tout seul (écoute de la prod, barre IA,
+   références), sans rien exiger des stems. Le mode Stems reste un plus.
+5. **Tutoriel à la première ouverture** : partie par partie (rôles et groupes, stems,
    master, chef d'orchestre, barre IA), passable, relançable depuis un bouton « ? ».
 
 Retours d'écoute (24/10, prod 808 / basse / 2 drums / mélo) : Auto jugé bien comme ça
