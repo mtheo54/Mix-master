@@ -32,6 +32,16 @@
 
 ## Fait récemment
 
+- **Stems calibrés sur une vraie prod (808, DRUMS, MELO, 2 min 49).** Trois défauts que les sons
+  synthétiques cachaient, corrigés :
+  - 808 : le passe-haut à 25 Hz faisait passer la crête de −0,2 à +3,7 dBFS (808 écrêtée, continu
+    dans chaque attaque ; même à 10 Hz : +3 dB). Plus de passe-haut automatique sur kick, 808,
+    basse. Crête après la chaîne : −0,13 dBFS ;
+  - DRUMS (bus sans kick) entendu comme « hi-hat » et coupé à 350 Hz : le nom d'un groupe
+    (« drums », « loop ») l'emporte maintenant ;
+  - MELO (63 % de l'énergie à 150–400 Hz) : l'EQ dynamique coupait son corps 60 % du temps. Il ne
+    coupe plus que ce qui dépasse l'habitude de la piste de 3 dB : 6 % du temps.
+  Outil `omnis_stems` pour refaire ces mesures. L'audio reste chez l'utilisateur.
 - **Stems, étape 2 : chaque stem a sa chaîne, sans latence.** « Stem Mode » Off (défaut) / Auto /
   Manuel. Drums : compression, saturation par la courbe de l'Inflator, espace (mono dans le grave,
   largeur des hats). 808 : saturation et EQ dynamique. Instruments et voix : EQ dynamique (boue,

@@ -277,6 +277,8 @@ OMNIS_TEST("stems: écoute et nom combinés (le nom précise, l'écoute nette l'
     hats[static_cast<std::size_t>(Element::OpenHat)] = 0.7;
     hats[static_cast<std::size_t>(Element::HiHat)] = 0.2;
     OMNIS_CHECK(combine(hats, elementFromName("Hat 04"), Element::Auto, 10.0).element == Element::OpenHat);
+    // Un bus nommé « DRUMS » dont le kick est ailleurs sonne surtout hats : le nom du groupe l'emporte.
+    OMNIS_CHECK(combine(hats, elementFromName("DRUMS"), Element::Auto, 10.0).element == Element::DrumLoop);
 }
 
 OMNIS_TEST("stems: le paramètre « Element » et l'afficheur suivent la liste des éléments") {

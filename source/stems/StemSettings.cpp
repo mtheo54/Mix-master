@@ -58,8 +58,11 @@ StemSettings templateFor(Element element) noexcept {
     // Bandes dynamiques : boue (~250), carton (~400-800), dureté (~3-4 k),
     // sifflantes / grésillement (~7 k).
     switch (element) {
+        // Kick, 808, basse : pas de passe-haut. Sur un son écrêté, retirer le
+        // continu de l'attaque décale la forme d'onde : +3 à +4 dB de crête
+        // mesurés sur une vraie 808, même à 10 Hz (le master gère le grondement).
         case Element::Kick:
-            return Builder().hpf(25.0, true).band(0, 400.0, 1.4, -3.0, 4.0).comp(3.0, 4.0, 15.0, 90.0).sat(0.25).mono(150.0, 1.0).s;
+            return Builder().band(0, 400.0, 1.4, -3.0, 4.0).comp(3.0, 4.0, 15.0, 90.0).sat(0.25).mono(150.0, 1.0).s;
         case Element::Snare:
             return Builder().hpf(80.0, true).band(0, 350.0, 1.2, 3.0, 3.0).band(1, 5000.0, 1.4, 4.0, 3.0).comp(3.0, 4.0, 10.0, 120.0).sat(0.2).mono(150.0, 1.0).s;
         case Element::Clap:
@@ -77,9 +80,9 @@ StemSettings templateFor(Element element) noexcept {
         case Element::Bass808:
             // La 808 : saturation (elle s'entend sur les petits haut-parleurs) et
             // EQ dynamique sur le « boum » au-dessus de la fondamentale.
-            return Builder().hpf(25.0, true).band(0, 250.0, 1.0, -2.0, 4.0).comp(2.0, 3.0, 30.0, 150.0).sat(0.3).mono(200.0, 1.0).s;
+            return Builder().band(0, 250.0, 1.0, -2.0, 4.0).comp(2.0, 3.0, 30.0, 150.0).sat(0.3).mono(200.0, 1.0).s;
         case Element::Bass:
-            return Builder().hpf(30.0, true).band(0, 250.0, 1.0, 3.0, 3.0).band(1, 800.0, 1.4, -2.0, 3.0).comp(3.0, 4.0, 20.0, 120.0).sat(0.2).mono(150.0, 1.0).s;
+            return Builder().band(0, 250.0, 1.0, 3.0, 3.0).band(1, 800.0, 1.4, -2.0, 3.0).comp(3.0, 4.0, 20.0, 120.0).sat(0.2).mono(150.0, 1.0).s;
         case Element::Keys:
             return Builder().hpf(60.0).band(0, 250.0, 1.0, 7.0, 4.0).band(1, 600.0, 1.4, 6.0, 3.0).band(2, 3500.0, 1.4, -2.0, 3.0).mono(120.0, 0.7).s;
         case Element::Guitar:

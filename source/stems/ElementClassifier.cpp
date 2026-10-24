@@ -352,6 +352,12 @@ Identification combine(const std::array<double, kElementCount>& scores, const Na
         return id;
     }
     const Family heardFamily = familyOf(id.heard), nameFamily = familyOf(name.element);
+    // « Drums », « drum bus », « loop » : un groupe. L'écoute n'en entend que
+    // l'élément dominant (les hats, si le kick est sur une autre piste).
+    if (name.element == Element::DrumLoop && heardFamily == Family::Drums) {
+        id.element = Element::DrumLoop;
+        return id;
+    }
     if (heardFamily == nameFamily) {
         // Même famille : le nom précise (« guitare » plutôt que « piano »), sauf
         // pour les drums et les basses, où l'écoute sait mieux (open hat ou hat

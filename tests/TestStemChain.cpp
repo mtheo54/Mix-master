@@ -193,10 +193,20 @@ OMNIS_TEST("stem chaîne: grave en mono, largeur au-dessus, Mid intact") {
     OMNIS_CHECK(midDiff < 1e-12);
 }
 
-OMNIS_TEST("stem chaîne: l'EQ dynamique calme une zone qui prend trop de place, pas un son équilibré") {
+OMNIS_TEST("stem chaîne: l'EQ dynamique calme ce qui déborde par moments, respecte le caractère du son") {
     DynamicBand mud{250.0, 1.0, 3.0, 6.0};
     StemSettings set = only();
     set.dynamic[0] = mud;
+    const auto withBump = [](Stereo s, bool always) {
+        for (std::size_t i = 0; i < s.l.size(); ++i) {
+            const double t = static_cast<double>(i) / kFs;
+            // Une note qui résonne 0,5 s toutes les 2 s (ou tout le temps).
+            const bool on = always || std::fmod(t, 2.0) >= 1.5;
+            s.l[i] += on ? 0.3 * std::sin(2 * kPi * 250.0 * t) : 0.0;
+            s.r[i] = s.l[i];
+        }
+        return s;
+    };
 
     // Bruit rose : rien à corriger.
     {
@@ -208,24 +218,35 @@ OMNIS_TEST("stem chaîne: l'EQ dynamique calme une zone qui prend trop de place,
         std::printf("      bruit rose : coupe %.2f dB\n", chain.dynamicCutDb(0));
         OMNIS_CHECK(chain.dynamicCutDb(0) < 0.5);
     }
-    // Bruit rose + une grosse bosse à 250 Hz (+15 dB) : coupée, le reste intact.
-    StemChain chain;
-    chain.prepare(kFs);
-    chain.setSettings(set);
-    Stereo s = pink(3.0, 0.05, 3);
-    for (std::size_t i = 0; i < s.l.size(); ++i) {
-        const double t = static_cast<double>(i) / kFs;
-        s.l[i] += 0.3 * std::sin(2 * kPi * 250.0 * t);
-        s.r[i] = s.l[i];
+    // La note qui résonne par moments : coupée pendant qu'elle déborde, le reste intact.
+    {
+        StemChain chain;
+        chain.prepare(kFs);
+        chain.setSettings(set);
+        const Stereo in = withBump(pink(12.0, 0.05, 3), false);
+        Stereo s = in;
+        run(chain, s);
+        // Dernière résonance : 11,6 … 12 s.
+        const std::size_t a = static_cast<std::size_t>(11.6 * kFs), b = static_cast<std::size_t>(12.0 * kFs);
+        const double cut = levelAt(s.l, 250.0, a, b) - levelAt(in.l, 250.0, a, b);
+        const double far = bandDb(s.l, 3000.0, 4000.0, a, b) - bandDb(in.l, 3000.0, 4000.0, a, b);
+        std::printf("      résonance par moments, 250 Hz : %.2f dB, 3-4 kHz : %+.2f dB\n", cut, far);
+        OMNIS_CHECK(cut < -2.0 && cut > -6.5);
+        OMNIS_CHECK(std::fabs(far) < 0.3);
     }
-    const Stereo in = s;
-    run(chain, s);
-    const std::size_t a = 96000, b = 144000;
-    const double cut = levelAt(s.l, 250.0, a, b) - levelAt(in.l, 250.0, a, b);
-    const double far = bandDb(s.l, 3000.0, 4000.0, a, b) - bandDb(in.l, 3000.0, 4000.0, a, b);
-    std::printf("      bosse 250 Hz : %.2f dB (coupe %.2f dB), 3-4 kHz : %+.2f dB\n", cut, chain.dynamicCutDb(0), far);
-    OMNIS_CHECK(cut < -2.0 && cut > -6.5);
-    OMNIS_CHECK(std::fabs(far) < 0.3);
+    // La même bosse tout le temps : c'est le son de la piste, il est respecté.
+    {
+        StemChain chain;
+        chain.prepare(kFs);
+        chain.setSettings(set);
+        const Stereo in = withBump(pink(12.0, 0.05, 3), true);
+        Stereo s = in;
+        run(chain, s);
+        const std::size_t a = 10 * 48000, b = 12 * 48000;
+        const double cut = levelAt(s.l, 250.0, a, b) - levelAt(in.l, 250.0, a, b);
+        std::printf("      bosse permanente, 250 Hz : %.2f dB\n", cut);
+        OMNIS_CHECK(cut > -0.5);
+    }
 }
 
 OMNIS_TEST("stem chaîne: compression des drums, coups égalisés, niveau de la piste gardé") {
@@ -352,6 +373,10 @@ OMNIS_TEST("stem réglages: un son déjà saturé ou large est respecté, un gra
     OMNIS_CHECK(k.compRatio > 1.0 && k.saturation > 0.0 && k.monoAmount > 0.0);
     OMNIS_CHECK(b808.saturation > 0.0 && b808.dynamic[0].maxCutDb > 0.0);
     OMNIS_CHECK(piano.dynamic[0].maxCutDb > 0.0 && piano.saturation == 0.0);
+    // Pas de passe-haut automatique sur kick, 808, basse : sur une vraie 808
+    // écrêtée, il faisait monter la crête de +4 dB (continu de l'attaque retiré).
+    for (const Element e : {Element::Kick, Element::Bass808, Element::Bass})
+        OMNIS_CHECK(settingsFor(StemMode::Auto, e, clean, 10.0, {}).hpfHz == 0.0);
 }
 
 OMNIS_TEST("stem réglages: manuel borné (« sans partir dans l'absurde »), valeurs folles neutralisées") {

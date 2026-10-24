@@ -9,8 +9,10 @@
 //       on glisse d'une pente à l'autre) ;
 //    3. EQ dynamique, 3 bandes : détecteur passe-bande sur le Mid, son énergie
 //       rapportée à celle du reste de la piste (mêmes temps d'enveloppe,
-//       5 / 80 ms), comparée à l'équilibre d'un bruit rose + marge. Coupe 2:1
-//       au-delà, en cloche SVF recalculée toutes les 16 échantillons ;
+//       5 / 80 ms). Coupe 2:1 au-delà du plus haut de deux seuils : l'équilibre
+//       d'un bruit rose + marge, et l'habitude de la piste (4 s) + 3 dB — un
+//       moment qui déborde, jamais le caractère permanent du son. Cloche SVF
+//       recalculée toutes les 16 échantillons ;
 //    4. compresseur lié en stéréo, sur le niveau de crête (relâche 25 ms) :
 //       seuil = crête récente (relâche 3 s) −
 //       profondeur, genou 6 dB, attaque / relâche sur la réduction, gain de
@@ -88,6 +90,8 @@ private:
         dsp::SvfState detectState{};
         std::array<dsp::SvfState, 2> bellState{};
         double envelope = 0.0; ///< puissance du passe-bande
+        double habitDb = 0.0;  ///< équilibre habituel (moyenne en dB sur ~4 s)
+        bool habitReady = false;
         double cutDb = 0.0, appliedCutDb = 0.0;
         double appliedHz = 0.0, appliedQ = 0.0;
     };
@@ -111,7 +115,7 @@ private:
     // EQ dynamique.
     std::array<DynBand, kDynamicBands> dyn_{};
     double totalEnvelope_ = 0.0;
-    double envAttack_ = 0.0, envRelease_ = 0.0;
+    double envAttack_ = 0.0, envRelease_ = 0.0, habitCoef_ = 0.0;
 
     // Compresseur.
     double grDb_ = 0.0, avgGrDb_ = 0.0, compPeak_ = 0.0, level_ = 0.0;

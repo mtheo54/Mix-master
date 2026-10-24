@@ -191,8 +191,8 @@ OMNIS_TEST("plug-in stem: le nom de piste de l'hôte et l'écoute donnent l'él�
 
 OMNIS_TEST("plug-in stem: la chaîne de l'élément agit sans latence (Auto), Manuel suit les doses") {
     setLinkNamespace("omnistestch");
-    // Kick choisi par la personne, chaîne en Auto : passe-haut 24 dB/oct à 25 Hz.
-    Instance stem({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, 1.0}, {ParamId::LinkGroup, 3.0}, {ParamId::StemMode, 1.0}});
+    // Piano choisi par la personne, chaîne en Auto : passe-haut à 60 Hz.
+    Instance stem({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, static_cast<double>(stems::Element::Keys)}, {ParamId::LinkGroup, 3.0}, {ParamId::StemMode, 1.0}});
     OMNIS_CHECK(stem.p->getLatencySamples() == 0);
     tools::AudioFile sig;
     sig.sampleRate = 48000.0;
@@ -224,7 +224,7 @@ OMNIS_TEST("plug-in stem: la chaîne de l'élément agit sans latence (Auto), Ma
     o.resize(sig.channels[0].size(), 0.0);
     const double rumble = level(o, 10.0) - level(sig.channels[0], 10.0);
     const double mids = level(o, 1000.0) - level(sig.channels[0], 1000.0);
-    std::printf("      Auto (kick) : 10 Hz %.1f dB, 1 kHz %+.2f dB\n", rumble, mids);
+    std::printf("      Auto (piano) : 10 Hz %.1f dB, 1 kHz %+.2f dB\n", rumble, mids);
     OMNIS_CHECK(rumble < -25.0);
     OMNIS_CHECK(std::fabs(mids) < 0.5);
 

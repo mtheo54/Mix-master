@@ -236,11 +236,11 @@ Sur chaque piste en rôle Stem, sans aucune latence. **« Stem Mode »** (`stem_
 
 | | passe-haut | EQ dynamique | compression | saturation | M/S |
 |---|---|---|---|---|---|
-| kick | 25 Hz, 24 dB/oct | carton 400 Hz | 3:1, 4 dB, att. 15 ms | 25 % | mono < 150 Hz |
+| kick | aucun (voir plus bas) | carton 400 Hz | 3:1, 4 dB, att. 15 ms | 25 % | mono < 150 Hz |
 | snare / clap | 80–120 Hz | 350 / 800 Hz, 5 kHz | 2,5–3:1 | 15–20 % | mono < 150 Hz |
 | hats / open hat / cymbale | 300–350 Hz | dureté 5–7 kHz | open hat 2:1 | — | largeur 110–115 % |
-| 808 | 25 Hz, 24 dB/oct | « boum » 250 Hz | 2:1, 3 dB, att. 30 ms | 30 % | mono < 200 Hz |
-| basse | 30 Hz | 250, 800 Hz | 3:1 | 20 % | mono < 150 Hz |
+| 808 | aucun | « boum » 250 Hz | 2:1, 3 dB, att. 30 ms | 30 % | mono < 200 Hz |
+| basse | aucun | 250, 800 Hz | 3:1 | 20 % | mono < 150 Hz |
 | instruments | 60–120 Hz | boue ~250, carton ~600, dureté ~3 k | lead, cuivres 2:1 | — | mono partiel < 120–150 Hz |
 | voix lead | 80 Hz | 250, 3,5 k, sifflantes 7 k | 3:1, 5 dB | — | centrée |
 
@@ -249,7 +249,12 @@ Sur chaque piste en rôle Stem, sans aucune latence. **« Stem Mode »** (`stem_
   dose), compression divisée par deux ou retirée ;
 - piste déjà large (Side à moins de 6 dB du Mid) : pas d'élargissement ;
 - instrument qui joue vraiment dans le grave : le passe-haut descend tant que l'octave au-dessus de
-  sa coupure porte plus de 15 % de l'énergie.
+  sa coupure porte plus de 15 % de l'énergie ;
+- kick, 808, basse : jamais de passe-haut automatique. Sur une vraie 808 écrêtée (stems de
+  l'utilisateur), retirer le continu de l'attaque décale la forme d'onde : +3 à +4 dB de crête,
+  même à 10 Hz, pour 0,5 % d'énergie sous 25 Hz. Le grondement est l'affaire du master ;
+- l'EQ dynamique ne coupe que ce qui déborde par moments (voir 3. ci-dessous) : un son dont la
+  mélodie vit à 150–400 Hz garde son corps.
 
 **Bornes fixes** (`clampSettings`, quoi qu'il arrive) : passe-haut ≤ 500 Hz, coupe ≤ 6 dB par bande,
 saturation ≤ 50 %, compression ≤ 4:1 et ≤ 8 dB, largeur 0–150 %, trim −24…+12 dB ; NaN neutralisés.
@@ -259,7 +264,10 @@ saturation ≤ 50 %, compression ≤ 4:1 et ≤ 8 dB, largeur 0–150 %, trim �
 2. passe-haut SVF, deux sections Butterworth (en 12 dB/oct la seconde descend à 5 Hz : on glisse
    d'une pente à l'autre sans changer de topologie ; éteint, il n'est plus traversé) ;
 3. EQ dynamique, 3 bandes : l'énergie d'un passe-bande sur le Mid rapportée à celle du reste de la
-   piste (5 / 80 ms), comparée à celle d'un bruit rose + marge ; 2:1 au-delà, cloche SVF ;
+   piste (5 / 80 ms). 2:1 au-delà du plus haut de deux seuils : l'équilibre d'un bruit rose + marge,
+   et l'habitude de la piste (moyenne en dB sur ~4 s) + 3 dB. Une note qui résonne ou une
+   accumulation est calmée ; le caractère permanent du son est respecté (un excès permanent qui gêne
+   un autre stem sera proposé par le master). Cloche SVF ;
 4. compresseur lié en stéréo, seuil = crête récente (relâche 3 s) − profondeur, genou 6 dB,
    compensation = réduction moyenne sur 2 s (le niveau de la piste reste le même, le gain staging
    est l'affaire du master) ;
@@ -272,3 +280,7 @@ saturation ≤ 50 %, compression ≤ 4:1 et ≤ 8 dB, largeur 0–150 %, trim �
 Les réglages sont recalculés à chaque bloc (fonction pure, sans allocation) à partir de l'écoute
 publiée par le thread du lien (`LinkClient::rtListening`, triple tampon) et rejoints en ~100 ms ;
 Off ↔ actif en fondu de 30 ms. Coût mesuré : 0,4 à 0,9 % d'un cœur par stem à 48 kHz.
+
+**Outil** : `omnis_stems fichier.wav [...] [--render dossier]` montre l'élément reconnu, le
+caractère, les réglages Auto, et ce que la chaîne fait sur tout le fichier (niveau, crête, bandes,
+compression et EQ dynamique au fil du morceau).

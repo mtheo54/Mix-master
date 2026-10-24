@@ -18,6 +18,8 @@ constexpr double kFadeMs = 30.0;      ///< fondu Off <-> actif
 constexpr double kControlMs = 100.0;  ///< lissage des réglages (constante de temps)
 constexpr double kKneeDb = 6.0;
 constexpr double kSilence = 1.0e-10;  ///< puissance sous laquelle la piste se tait (−100 dB)
+constexpr double kHabitMs = 4000.0;   ///< équilibre habituel de la piste
+constexpr double kAboveHabitDb = 3.0; ///< une bande ne coupe qu'au-dessus de son habitude
 
 double coefFor(double ms, double rate) noexcept { return 1.0 - std::exp(-1.0 / (ms * 1.0e-3 * rate)); }
 
@@ -36,6 +38,7 @@ void StemChain::prepare(double sampleRate) {
     mixStep_ = 1.0 / (kFadeMs * 1.0e-3 * sampleRate_);
     envAttack_ = coefFor(5.0, sampleRate_);
     envRelease_ = coefFor(80.0, sampleRate_);
+    habitCoef_ = coefFor(kHabitMs, sampleRate_ / kControlInterval);
     avgCoef_ = coefFor(2000.0, sampleRate_);
     slowRelease_ = std::exp(-1.0 / (3.0 * sampleRate_));
     levelRelease_ = std::exp(-1.0 / (0.025 * sampleRate_));
@@ -62,6 +65,8 @@ void StemChain::reset() noexcept {
         b.detectState.reset();
         for (auto& s : b.bellState) s.reset();
         b.envelope = 0.0;
+        b.habitDb = 0.0;
+        b.habitReady = false;
         b.cutDb = b.appliedCutDb = 0.0;
         b.appliedHz = b.appliedQ = 0.0;
     }
@@ -145,12 +150,23 @@ void StemChain::control() noexcept {
         s.bandMaxCut[i] += c * (g.bandMaxCut[i] - s.bandMaxCut[i]);
         if (s.bandMaxCut[i] < 1.0e-3 && g.bandMaxCut[i] <= 0.0) s.bandMaxCut[i] = 0.0;
         d.detect = dsp::SvfCoefficients::make(dsp::SvfType::BandPass, sampleRate_, s.bandHz[i], s.bandQ[i]);
-        // Équilibre bande / reste de la piste, par rapport à un bruit rose.
+        // Équilibre bande / reste de la piste. Il coupe quand il dépasse à la
+        // fois celui d'un bruit rose + marge (la zone prend trop de place) et
+        // l'habitude de la piste de 3 dB (un moment : note qui résonne,
+        // accumulation). Un caractère permanent est respecté : c'est au master
+        // de le proposer, s'il gêne un autre stem.
         double cut = 0.0;
-        if (!silent && s.bandMaxCut[i] > 0.0) {
+        if (!silent) {
             const double rest = std::max(totalEnvelope_ - d.envelope, 1.0e-3 * totalEnvelope_);
-            const double over = powerToDb(d.envelope / rest) - pinkBalanceDb(s.bandQ[i]) - s.bandAllow[i];
-            cut = std::clamp(0.5 * over, 0.0, s.bandMaxCut[i]);
+            // Habitude : moyenne en dB (l'équilibre typique), pas en énergie,
+            // sinon les moments forts la feraient monter eux-mêmes.
+            const double balance = powerToDb(d.envelope / rest);
+            d.habitDb = d.habitReady ? d.habitDb + habitCoef_ * (balance - d.habitDb) : balance;
+            d.habitReady = true;
+            if (s.bandMaxCut[i] > 0.0) {
+                const double over = std::min(balance - pinkBalanceDb(s.bandQ[i]) - s.bandAllow[i], balance - d.habitDb - kAboveHabitDb);
+                cut = std::clamp(0.5 * over, 0.0, s.bandMaxCut[i]);
+            }
         }
         d.cutDb = cut;
         const bool moved = std::fabs(cut - d.appliedCutDb) > 0.01 || s.bandHz[i] != d.appliedHz || s.bandQ[i] != d.appliedQ;
