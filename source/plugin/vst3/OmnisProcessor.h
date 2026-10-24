@@ -102,7 +102,13 @@ private:
     Engine engine_;
     ReferenceCapture capture_;
     link::LinkClient link_;
-    params::LinkRole activeRole_ = params::LinkRole::Alone; ///< pris à l'activation
+    /// Rôle en vigueur : pris à l'activation, ou changé en route (switchRole,
+    /// thread de l'interface). Pendant le changement, le thread audio ne touche
+    /// pas au lien (roleSwitching_ / audioInLink_, ordre séquentiel).
+    std::atomic<int> activeRole_{static_cast<int>(params::LinkRole::Alone)};
+    std::atomic<bool> roleSwitching_{false}, audioInLink_{false}, active_{false};
+    void switchRole(int role);
+    [[nodiscard]] params::LinkRole role() const noexcept { return static_cast<params::LinkRole>(activeRole_.load()); }
     OnePoleSmoother stemGain_;                             ///< gain ordonné par le master
     stems::StemChain stemChain_;
     std::array<std::vector<double>, 2> stemBuffer_;        ///< bloc du stem en double

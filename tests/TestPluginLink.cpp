@@ -355,3 +355,31 @@ OMNIS_TEST("plug-in chef d'orchestre: le master propose, la personne accepte, le
     OMNIS_CHECK(master.lastProposals == 0.0);
     master.p->disconnect(peer);
 }
+
+OMNIS_TEST("plug-in: le rôle changé en route s'applique sans réactivation (FL Studio)") {
+    setLinkNamespace("omnistestrole");
+    // Les deux instances démarrent « Seul », comme insérées puis réglées dans FL.
+    Instance master({{ParamId::LinkGroup, 2.0}});
+    Instance stem({{ParamId::LinkStemKind, static_cast<double>(stems::Element::Bass808)}, {ParamId::LinkGroup, 2.0}});
+    const auto setRole = [](Instance& i, int role) {
+        IPtr<HostMessage> m = owned(new HostMessage());
+        m->setMessageID(vst3::kRoleMessage);
+        m->getAttributes()->setInt(vst3::kRoleAttribute, role);
+        i.p->notify(m);
+    };
+    setRole(master, 2);
+    setRole(stem, 1);
+    const auto noise = tools::signals::pinkNoise(48000.0, 1.0, -18.0, 4, true);
+    for (int i = 0; i < 300 && master.lastStems != 1.0; ++i) {
+        stem.block(noise, (i % 80) * 512);
+        master.block(noise, (i % 80) * 512);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    OMNIS_CHECK(master.lastStems == 1.0);
+    // Et le stem s'est reconnu (808 choisie) : son lien tourne.
+    for (int i = 0; i < 100 && static_cast<int>(stem.lastElement) != static_cast<int>(stems::Element::Bass808); ++i) {
+        stem.block(noise, 0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    OMNIS_CHECK(static_cast<int>(stem.lastElement) == static_cast<int>(stems::Element::Bass808));
+}

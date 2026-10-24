@@ -17,7 +17,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include <cstdio>
+#include <thread>
 #include <ctime>
 #include <string>
 #include <string_view>
@@ -167,16 +169,18 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         const int index = params::parameterIndex(ParamId::RefCapture);
         capture_.setCapturing(index >= 0 && normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed) >= 0.5);
         // Le rôle est pris ici : il fixe la latence annoncée à l'hôte.
-        activeRole_ = static_cast<params::LinkRole>(static_cast<int>(plainOf(ParamId::LinkRole)));
+        activeRole_.store(static_cast<int>(plainOf(ParamId::LinkRole)));
         stemGain_.prepare(sampleRate_, 30.0);
         stemGain_.snapTo(1.0);
         stemChain_.prepare(sampleRate_);
-        if (activeRole_ != params::LinkRole::Alone)
-            link_.start(static_cast<link::Role>(activeRole_), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
+        if (role() != params::LinkRole::Alone)
+            link_.start(static_cast<link::Role>(role()), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
                         static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
         else
             link_.stop();
+        active_.store(true);
     } else {
+        active_.store(false);
         link_.stop();
         capture_.release();
     }
@@ -203,6 +207,12 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
         }
         return kResultOk;
     }
+    if (id == kRoleMessage) {
+        int64 r = 0;
+        if (message->getAttributes() && message->getAttributes()->getInt(kRoleAttribute, r) == kResultTrue && r >= 0 && r <= 2)
+            switchRole(static_cast<int>(r));
+        return kResultOk;
+    }
     if (id == kAnswerMessage) {
         int64 key = 0, answer = -1;
         if (message->getAttributes() && message->getAttributes()->getInt(kAnswerKeyAttribute, key) == kResultTrue &&
@@ -218,6 +228,22 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
         return kResultOk;
     }
     return AudioEffect::notify(message);
+}
+
+void OmnisProcessor::switchRole(int newRole) {
+    if (newRole == activeRole_.load() || !active_.load()) return; // inactif : setActive le prendra
+    // Le thread audio lâche le lien (au plus un bloc), puis on le redémarre ici.
+    roleSwitching_.store(true);
+    for (int i = 0; i < 500 && audioInLink_.load(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    if (newRole == static_cast<int>(params::LinkRole::Alone))
+        link_.stop();
+    else
+        link_.start(static_cast<link::Role>(newRole), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
+                    static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
+    stemGain_.snapTo(1.0);
+    stemChain_.reset();
+    activeRole_.store(newRole);
+    roleSwitching_.store(false);
 }
 
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
@@ -445,16 +471,33 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
         }
     }
 
-    if (activeRole_ == params::LinkRole::Stem) {
+    // Changement de rôle en cours (thread de l'interface) : le lien ne nous
+    // appartient pas, le son passe tel quel le temps d'un bloc ou deux.
+    audioInLink_.store(true);
+    if (roleSwitching_.load()) {
+        audioInLink_.store(false);
+        for (int c = 0; c < kNumChannels; ++c) {
+            if (data.symbolicSampleSize == kSample64) {
+                if (data.outputs[0].channelBuffers64[c] != data.inputs[0].channelBuffers64[c])
+                    std::copy_n(data.inputs[0].channelBuffers64[c], data.numSamples, data.outputs[0].channelBuffers64[c]);
+            } else if (data.outputs[0].channelBuffers32[c] != data.inputs[0].channelBuffers32[c]) {
+                std::copy_n(data.inputs[0].channelBuffers32[c], data.numSamples, data.outputs[0].channelBuffers32[c]);
+            }
+        }
+        return kResultOk;
+    }
+    if (role() == params::LinkRole::Stem) {
         if (data.symbolicSampleSize == kSample64)
             processStem(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, data.processContext);
         else
             processStem(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, data.processContext);
+        audioInLink_.store(false);
         data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
         publishMeters(data.outputParameterChanges, data.numSamples);
         return kResultOk;
     }
 
+    audioInLink_.store(false);
     if (data.symbolicSampleSize == kSample64)
         processSegments(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples);
     else

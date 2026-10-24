@@ -16,6 +16,7 @@
 #include "OmnisEditor.h"
 #endif
 
+#include <cmath>
 #include <cstdlib>
 #include <sstream>
 #include <string>
@@ -84,8 +85,15 @@ tresult PLUGIN_API OmnisController::initialize(FUnknown* context) {
 tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue value) {
     const ParamValue before = getParamNormalized(tag);
     const tresult result = EditController::setParamNormalized(tag, value);
-    if (result == kResultOk && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value && componentHandler)
-        componentHandler->restartComponent(kLatencyChanged);
+    if (result == kResultOk && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value) {
+        // Le processeur change de rôle tout de suite (sans attendre une réactivation).
+        if (IPtr<IMessage> message = owned(allocateMessage())) {
+            message->setMessageID(kRoleMessage);
+            message->getAttributes()->setInt(kRoleAttribute, static_cast<int64>(std::lround(value * 2.0)));
+            sendMessage(message);
+        }
+        if (componentHandler) componentHandler->restartComponent(kLatencyChanged);
+    }
     return result;
 }
 

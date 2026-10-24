@@ -31,6 +31,11 @@ inline constexpr const char* kProposalsRequest = "omnis.getProposals";
 inline constexpr const char* kProposalsMessage = "omnis.proposals";
 inline constexpr const char* kProposalsAttribute = "text";
 inline constexpr const char* kAnswerMessage = "omnis.answer";
+/// Contrôleur -> processeur : le rôle (« Link Role ») a changé ; attribut
+/// entier « role ». Appliqué tout de suite, sans attendre que l'hôte réactive
+/// le plug-in (FL Studio ne le fait pas).
+inline constexpr const char* kRoleMessage = "omnis.role";
+inline constexpr const char* kRoleAttribute = "role";
 inline constexpr const char* kAnswerKeyAttribute = "key";
 inline constexpr const char* kAnswerAttribute = "answer";
 
