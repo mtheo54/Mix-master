@@ -120,3 +120,14 @@ rose, l'impulsion, le balayage aigu et le test inter-échantillons.
 Ozone garde plus de relief dans le sub et l'aigu : à écouter et à étudier (punch du
 limiteur, transitoires). À faire : supprimer le pré-écho (option phase minimale sur le
 master), comparer les choix tonaux sur de vraies prods (Master Assistant contre OMNIS).
+
+Réglage Ozone confirmé (capture de l'utilisateur) : Ozone 12, preset « Modern Hip Hop » =
+Equalizer → Vintage Comp → Maximizer (IRC 2, gain +4 dB, sortie −1,00 dB, **True Peak
+désactivé**, Character 0,47 « very fast », **Transient Emphasis 50 %**, Stereo
+Independence transitoire 20 %). Explique les deux écarts :
+- true peak > 0 : option True Peak éteinte dans le preset (pas un défaut d'Ozone) ;
+- plus de relief sub / aigu : **Transient Emphasis** (le maximizer rend du punch aux
+  attaques après la limitation).
+À ajouter à OMNIS : **« Punch » / accent des transitoires dans le limiteur** (dosable,
+0–100 %), en gardant le true peak honnête ; et l'**indépendance stéréo** du limiteur
+(réduction de gain liée / déliée, transitoires et maintien séparés).
