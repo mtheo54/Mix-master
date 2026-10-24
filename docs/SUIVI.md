@@ -119,6 +119,9 @@
 
 ## À venir
 
+**Cap du produit : [docs/VISION.md](VISION.md)** (vendu ~150 €, parfait, propre comme un mix
+pro, intuitif ; drums d'un bus travaillés élément par élément).
+
 **Prochaine séance (dans l'ordre) :**
 1. **Plantage de FL Studio en désactivant OMNIS avec le bouton rond du slot du mixer**
    (signalé le 24/10 ; c'est LE geste quotidien des producteurs sous FL, il doit être sûr ;
