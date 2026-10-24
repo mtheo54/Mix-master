@@ -128,7 +128,11 @@
    qui active / désactive en boucle pendant le traitement, sous TSan / ASan.
 2. **Refaire l'interface proprement** d'après la maquette console v11 (artefact, « juste
    magnifique » selon l'utilisateur) : modules usinés, colonne Master, courbe de l'Inflator.
-   L'interface actuelle reste la version mini.
+   L'interface actuelle reste la version mini. Modèle de simplicité donné par
+   l'utilisateur : LeMaster (un gros potard par module : Spectral, Comp, Analog, Stereo,
+   EQ, Clip, Limiter ; bouton AUTO ; A/B ; Match ; mesures en bas). Chez OMNIS : un potard
+   par étage (Match, Multibande, Inflator, Imager, Sub/Tilt, Clip, Limiteur), le détail en
+   mode avancé, AUTO + barre IA en haut, A/B.
 3. **La barre de demande à l'IA** dans le plug-in : texte libre (FR / EN / argot), le master
    écoute la prod, la demande devient des réglages (Match EQ, multibande, Inflator, limiteur)
    comme `omnis_match`.
