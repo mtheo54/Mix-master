@@ -99,3 +99,24 @@ dans l'ordre qu'on veut, on les **active / désactive**, on **dose** chacun.
   https://mastering.com/clipper-vs-limiter-know-the-difference/ ,
   https://masteringthemix.com/blogs/learn/how-to-use-a-clipper-when-mastering
 - Préparer un mix pour le mastering (Lu Diaz) : https://www.waves.com/prepare-hip-hop-for-mastering
+
+## 5. Banc d'essai OMNIS contre Ozone (24/10, kit de mesure, même volume ~−9,5 LUFS)
+
+Ozone : réglage de l'utilisateur (exports 16 bits). OMNIS : réglages par défaut, limiteur
++2,8 dB (`omnis_render --set lim_gain=2.8`). Script : sur la boucle trap, le crête de bruit
+rose, l'impulsion, le balayage aigu et le test inter-échantillons.
+
+| Mesure | Ozone | OMNIS |
+|---|---|---|
+| True peak (test inter-échantillons) | **+1,73 dBTP** (dépasse 0) | −1,05 dBTP |
+| True peak (boucle trap) | +0,11 à +0,25 dBTP | −0,99 dBTP |
+| Sons parasites, balayage 1–20 kHz (moyenne) | −40,3 dB | **−53,9 dB** |
+| Pré-écho (impulsion) | aucun | −58,5 dB (étages à phase linéaire) |
+| Courbe sur bruit rose | EQ douce : −1 dB à 4 kHz, +0,9 dB d'air, −0,9 dB à 31 Hz | plate au-dessus de 250 Hz ; −2 à −3 dB par canal sous 125 Hz = mono du grave par défaut (Side retiré d'un bruit décorrélé ; une 808 déjà mono ne change pas) |
+| PLR boucle trap | 9,6 dB (mais true peak > 0) | 8,4 dB |
+| Crête/RMS par bande (sub / aigu) | 9,4 / 24,6 dB : plus de relief | 6,5 / 23,0 dB (comme l'original) |
+
+À retenir : OMNIS gagne en propreté (true peak honnête, ~14 dB de parasites en moins).
+Ozone garde plus de relief dans le sub et l'aigu : à écouter et à étudier (punch du
+limiteur, transitoires). À faire : supprimer le pré-écho (option phase minimale sur le
+master), comparer les choix tonaux sur de vraies prods (Master Assistant contre OMNIS).
