@@ -113,7 +113,7 @@ bool PLUGIN_API OmnisEditor::open(void* parent, const PlatformType& platformType
         k->setColorHandle(kText);
         k->setCoronaInset(2);
         p->addView(k);
-        label(p, CRect(x, y + 50, x + 72, y + 64), name, kDim, 10, false, kCenterText);
+        label(p, CRect(x + 2, y + 50, x + 70, y + 64), name, kDim, 9, true, kCenterText);
         auto* v = label(p, CRect(x, y + 64, x + 72, y + 78), "", kText, 11, false, kCenterText);
         bound_.push_back({k, id(param), 0, v});
     };
@@ -149,10 +149,10 @@ bool PLUGIN_API OmnisEditor::open(void* parent, const PlatformType& platformType
     label(stem, CRect(12, 64, 130, 80), "Reconnu à l'écoute :", kDim, 11);
     meters_.push_back({label(stem, CRect(130, 60, 404, 82), "—", kGreen, 15, true), id(ParamId::MeterStemElement)});
     label(stem, CRect(12, 86, 404, 102), "Doses du mode Manuel (Auto : OMNIS règle seul ; Trim : les deux)", kDim, 10);
-    knob(stem, 0, 108, ParamId::StemHpf, "PASSE-HAUT");
-    knob(stem, 68, 108, ParamId::StemComp, "COMPRESSION");
-    knob(stem, 136, 108, ParamId::StemSat, "SATURATION");
-    knob(stem, 204, 108, ParamId::StemClean, "EQ DYNAMIQUE");
+    knob(stem, 0, 108, ParamId::StemHpf, "LOW CUT");
+    knob(stem, 68, 108, ParamId::StemComp, "COMP");
+    knob(stem, 136, 108, ParamId::StemSat, "SAT");
+    knob(stem, 204, 108, ParamId::StemClean, "EQ DYN");
     knob(stem, 272, 108, ParamId::StemWidth, "LARGEUR");
     knob(stem, 340, 108, ParamId::StemTrim, "TRIM");
 
@@ -195,6 +195,13 @@ bool PLUGIN_API OmnisEditor::open(void* parent, const PlatformType& platformType
     conductor->addView(appliedText_);
     button(conductor, CRect(740, 190, 848, 220), this, kTagUndo, "ANNULER", kAmber);
 
+    // Premier affichage : chaque contrôle reçoit sa valeur (un menu n'affiche
+    // rien tant qu'on ne lui a pas donné son entrée courante).
+    for (const auto& b : bound_) {
+        const double n = omnis()->getParamNormalized(b.param);
+        b.control->setValue(b.steps > 0 ? static_cast<float>(std::lround(n * b.steps)) : static_cast<float>(n));
+        if (auto* m = dynamic_cast<COptionMenu*>(b.control)) m->setCurrent(static_cast<int32_t>(std::lround(n * b.steps)));
+    }
     frame->open(parent, platformType);
     timer_ = new CVSTGUITimer([this](CVSTGUITimer*) { refresh(); }, 100, true);
     omnis()->requestProposals();
@@ -268,12 +275,15 @@ void OmnisEditor::refresh() {
         const float v = b.steps > 0 ? static_cast<float>(std::lround(n * b.steps)) : static_cast<float>(n);
         if (b.control->getValue() != v && !b.control->isEditing()) {
             b.control->setValue(v);
+            if (auto* m = dynamic_cast<COptionMenu*>(b.control)) m->setCurrent(static_cast<int32_t>(v));
             b.control->invalid();
         }
         if (b.value) {
             Vst::String128 text{};
             c->getParamStringByValue(b.param, n, text);
-            const UTF8String s(Vst::StringConvert::convert(text));
+            std::string withUnit = Vst::StringConvert::convert(text);
+            if (const auto* spec = params::findParameter(b.param); spec && !spec->unit.empty()) withUnit += " " + std::string(spec->unit);
+            const UTF8String s(withUnit);
             if (b.value->getText() != s) b.value->setText(s);
         }
     }
