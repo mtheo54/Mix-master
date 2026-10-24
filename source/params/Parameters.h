@@ -129,6 +129,7 @@ enum class ParamId : std::uint32_t {
     MeterRefLufs = 1007,    ///< sonie intégrée de la référence écoutée
     MeterLinkStems = 1008,  ///< master : stems vivants dans son groupe
     MeterStemElement = 1009, ///< stem : élément reconnu (écoute + nom de la piste)
+    MeterProposals = 1010,   ///< master : propositions du chef d'orchestre en attente
 };
 
 enum class ParamKind : std::uint8_t {
@@ -193,7 +194,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 127;
+inline constexpr std::size_t kParameterCount = 128;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

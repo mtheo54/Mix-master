@@ -131,6 +131,7 @@ bool Endpoint::join(int group, Role role, StemKind kind, std::string_view name, 
         s.playStop.store(0, std::memory_order_relaxed);
         s.orderSeq.store(0, std::memory_order_relaxed);
         s.orderGainDb.store(0.0f, std::memory_order_relaxed);
+        for (auto& r : s.orderReserved) r.store(0.0f, std::memory_order_relaxed); // pas de retouche héritée
         s.orderVersion.store(0, std::memory_order_release);
         header_ = h;
         slot_ = &s;
@@ -227,6 +228,14 @@ StemOrders Endpoint::readOrders() const noexcept {
         StemOrders o;
         o.gainDb = s->orderGainDb.load(std::memory_order_relaxed);
         o.version = s->orderVersion.load(std::memory_order_relaxed);
+        for (int c = 0; c < stems::kMaxCorrections; ++c) {
+            const float t = s->orderReserved[4 * c].load(std::memory_order_relaxed);
+            auto& x = o.corrections[static_cast<std::size_t>(c)];
+            x.type = t >= 0.5f && t <= 3.5f ? static_cast<stems::Correction::Type>(static_cast<int>(t + 0.5f)) : stems::Correction::Type::None;
+            x.hz = s->orderReserved[4 * c + 1].load(std::memory_order_relaxed);
+            x.gainDb = s->orderReserved[4 * c + 2].load(std::memory_order_relaxed);
+            x.q = s->orderReserved[4 * c + 3].load(std::memory_order_relaxed);
+        }
         std::atomic_thread_fence(std::memory_order_acquire);
         if (s->orderSeq.load(std::memory_order_relaxed) == a) {
             lastOrders_ = o;
@@ -274,6 +283,13 @@ bool Endpoint::writeOrders(int slot, std::uint64_t owner, const StemOrders& orde
     s.orderSeq.store(seq + 1, std::memory_order_relaxed);
     std::atomic_thread_fence(std::memory_order_release);
     s.orderGainDb.store(orders.gainDb, std::memory_order_relaxed);
+    for (int c = 0; c < stems::kMaxCorrections; ++c) {
+        const auto& x = orders.corrections[static_cast<std::size_t>(c)];
+        s.orderReserved[4 * c].store(static_cast<float>(static_cast<int>(x.type)), std::memory_order_relaxed);
+        s.orderReserved[4 * c + 1].store(x.hz, std::memory_order_relaxed);
+        s.orderReserved[4 * c + 2].store(x.gainDb, std::memory_order_relaxed);
+        s.orderReserved[4 * c + 3].store(x.q, std::memory_order_relaxed);
+    }
     s.orderVersion.store(s.orderVersion.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
     s.orderSeq.store(seq + 2, std::memory_order_release);
     return true;
@@ -282,6 +298,12 @@ bool Endpoint::writeOrders(int slot, std::uint64_t owner, const StemOrders& orde
 // -----------------------------------------------------------------------------
 //  StemListener
 // -----------------------------------------------------------------------------
+const stems::StemTimeline* StemListener::timeline(int slot) const noexcept {
+    if (slot < 0 || slot >= kSlots) return nullptr;
+    const State& st = states_[static_cast<std::size_t>(slot)];
+    return st.owner != 0 ? &st.timeline : nullptr;
+}
+
 void StemListener::poll(const Endpoint& master) {
     heardView_.clear();
     const Header* h = master.header();
@@ -302,6 +324,7 @@ void StemListener::poll(const Endpoint& master) {
             st.accumulator.prepare(v.sampleRate > 0.0 ? v.sampleRate : 48000.0);
             st.heard = {};
             st.signatureSeconds = 0.0;
+            st.timeline.prepare(v.sampleRate > 0.0 ? v.sampleRate : 48000.0);
         }
         if (ring.written < st.readFrame) st.readFrame = ring.written; // emplacement réinitialisé
         std::uint64_t from = st.readFrame;
@@ -330,6 +353,11 @@ void StemListener::poll(const Endpoint& master) {
             if (!ring.playing) b = ring.playStop > ring.playStart ? std::min(b, ring.playStop) : a;
             if (intact && b > a) {
                 st.accumulator.push(left_.data() + (a - from), right_.data() + (a - from), static_cast<int>(b - a));
+                // Rangée au temps du projet : la trame `written` est à `projectEnd`.
+                if (ring.projectEnd != kNoPosition) {
+                    const std::int64_t startPosition = ring.projectEnd - static_cast<std::int64_t>(ring.written - a);
+                    st.timeline.push(left_.data() + (a - from), right_.data() + (a - from), static_cast<int>(b - a), startPosition);
+                }
                 // La signature relit toutes les trames : une fois par seconde écoutée suffit.
                 if (st.accumulator.secondsAnalysed() >= st.signatureSeconds + 1.0) {
                     st.heard.signature = st.accumulator.result();

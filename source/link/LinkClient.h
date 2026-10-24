@@ -12,7 +12,12 @@
 //      piste (avant sa propre chaîne, pushListening) : ce que la chaîne fait
 //      ne change pas ce qui est reconnu ;
 //    - stem : publie l'élément et son caractère mesuré au thread audio
-//      (rtListening, triple tampon) : la chaîne du stem s'y règle.
+//      (rtListening, triple tampon) : la chaîne du stem s'y règle ;
+//    - master : toutes les 2 s, le chef d'orchestre (stems/Conductor) relit
+//      ce qu'il a entendu de chaque stem et fait ses propositions. Une
+//      proposition acceptée (answer) devient une retouche envoyée au stem
+//      dans ses ordres ; refusée, elle n'est plus reproposée ; annulée, la
+//      retouche est retirée.
 //  Le thread audio n'a qu'un accès sans attente à l'Endpoint courant
 //  (RtAccess) : un changement de groupe remplace l'Endpoint sans jamais le
 //  détruire sous les pieds du thread audio.
@@ -23,6 +28,7 @@
 
 #include "core/SpscRingBuffer.h"
 #include "core/TripleBuffer.h"
+#include "stems/Conductor.h"
 #include "stems/ElementClassifier.h"
 
 #include <algorithm>
@@ -99,6 +105,28 @@ public:
     /// Master : ce que le master a entendu de chaque stem (copie).
     [[nodiscard]] std::vector<StemListener::Heard> heard() const;
 
+    /// Master : propositions en attente d'une réponse (copie), la plus gênante d'abord.
+    struct PendingProposal {
+        stems::Proposal proposal;
+        std::string targetName, victimName;
+        int targetSlot = -1;
+        std::uint64_t targetOwner = 0;
+    };
+    [[nodiscard]] std::vector<PendingProposal> proposals() const;
+    [[nodiscard]] int pendingProposals() const noexcept { return pendingCount_.load(std::memory_order_relaxed); }
+    enum class Answer { Accept, Decline, Undo };
+    /// N'importe quel thread (sauf audio) : réponse de la personne, traitée par le thread du lien.
+    void answer(std::uint32_t key, Answer answer);
+    /// Master : retouches acceptées et en place (clé, nom du stem, retouche).
+    struct Applied {
+        std::uint32_t key = 0;
+        std::string targetName;
+        stems::Correction correction;
+    };
+    [[nodiscard]] std::vector<Applied> applied() const;
+    /// Période du chef d'orchestre (tests : plus court).
+    void setConductorPeriodMs(int ms) noexcept { conductorPeriodMs_.store(ms, std::memory_order_relaxed); }
+
     /// Accès du thread audio, sans attente : Endpoint courant (nullptr hors
     /// groupe) valable jusqu'à la destruction de l'objet RtAccess.
     class RtAccess {
@@ -119,6 +147,9 @@ public:
 
 private:
     void run();
+    void conduct();          ///< thread du lien, master
+    void handleAnswers();    ///< thread du lien, master
+    void sendCorrections();  ///< thread du lien, master
     void publish(std::unique_ptr<Endpoint> next); ///< remplace l'Endpoint vu par le thread audio
 
     Role role_ = Role::None;
@@ -146,6 +177,22 @@ private:
     std::atomic<bool> listenReady_{false};
     mutable std::mutex heardMutex_;
     std::vector<StemListener::Heard> heard_;
+
+    // Master : chef d'orchestre.
+    struct StemFixes {
+        int slot = -1;
+        std::uint64_t owner = 0;
+        std::string name;
+        std::array<std::uint32_t, stems::kMaxCorrections> keys{};
+        stems::Corrections corrections{};
+    };
+    mutable std::mutex conductorMutex_;
+    std::vector<PendingProposal> pending_;
+    std::vector<std::pair<std::uint32_t, Answer>> answers_;
+    std::vector<std::uint32_t> decided_; ///< acceptées ou refusées : plus reproposées
+    std::vector<StemFixes> fixes_;
+    std::atomic<int> pendingCount_{0};
+    std::atomic<int> conductorPeriodMs_{2000};
 };
 
 } // namespace omnis::link

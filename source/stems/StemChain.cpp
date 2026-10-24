@@ -76,6 +76,8 @@ void StemChain::reset() noexcept {
     satRunning_ = false;
     for (auto& f : halfband_) f.reset();
     for (auto& s : side_) s.reset();
+    msBlend_ = 0.0;
+    for (auto& f : fixes_) f = MasterFix{};
     controlCountdown_ = 0;
     snapToTarget();
 }
@@ -118,6 +120,17 @@ void StemChain::snapToTarget() noexcept {
     prevSaturation_ = cur_.saturation;
     prevMonoAmount_ = cur_.monoAmount;
     prevWidth_ = cur_.width;
+    // Le fondu depuis le son sec couvre l'entrée : retouches et M/S d'emblée en place.
+    for (int i = 0; i < kMaxCorrections; ++i) {
+        const Correction& want = target_.corrections[static_cast<std::size_t>(i)];
+        MasterFix& f = fixes_[static_cast<std::size_t>(i)];
+        f.type = want.type;
+        f.hz = want.hz;
+        f.gainDb = want.gainDb;
+        f.q = want.q;
+        f.amount = want.type != Correction::Type::None ? 1.0 : 0.0;
+    }
+    msBlend_ = goal_.monoAmount > 0.0 || goal_.width != 1.0 ? 1.0 : 0.0;
     control();
 }
 
@@ -178,6 +191,43 @@ void StemChain::control() noexcept {
         }
     }
 
+    // Retouches du master : une sorte qui change s'efface d'abord, puis la
+    // nouvelle entre en fondu.
+    for (int i = 0; i < kMaxCorrections; ++i) {
+        MasterFix& f = fixes_[static_cast<std::size_t>(i)];
+        const Correction& want = target_.corrections[static_cast<std::size_t>(i)];
+        if (f.type != want.type) {
+            f.amount -= c * f.amount;
+            if (f.amount < 1.0e-3 || f.type == Correction::Type::None) {
+                f.type = want.type;
+                f.hz = want.hz;
+                f.gainDb = want.gainDb;
+                f.q = want.q;
+                f.amount = 0.0;
+                for (auto& st : f.state) st.reset();
+            }
+        } else if (f.type != Correction::Type::None) {
+            f.amount = f.amount > 0.999 ? 1.0 : f.amount + c * (1.0 - f.amount);
+            f.hz = glideLog(f.hz, want.hz, c);
+            f.gainDb += c * (want.gainDb - f.gainDb);
+            f.q += c * (want.q - f.q);
+        }
+        switch (f.type) {
+            case Correction::Type::LowCut:
+                f.coef = dsp::SvfCoefficients::make(dsp::SvfType::HighPass, sampleRate_, kHpfOffHz * std::pow(f.hz / kHpfOffHz, f.amount), 0.7071);
+                break;
+            case Correction::Type::Bell:
+                f.coef = dsp::SvfCoefficients::make(dsp::SvfType::Bell, sampleRate_, f.hz, f.q, f.gainDb * f.amount);
+                break;
+            case Correction::Type::LowShelf:
+                f.coef = dsp::SvfCoefficients::make(dsp::SvfType::LowShelf, sampleRate_, f.hz, 0.7071, f.gainDb * f.amount);
+                break;
+            case Correction::Type::None:
+            default:
+                break;
+        }
+    }
+
     s.ratio += c * (g.ratio - s.ratio);
     s.depthDb += c * (g.depthDb - s.depthDb);
     s.saturation += c * (g.saturation - s.saturation);
@@ -218,6 +268,11 @@ void StemChain::processChunk(double* left, double* right, int n) noexcept {
             l = hpf2State_[0].process(hpf2_, hpf1State_[0].process(hpf1_, l));
             r = hpf2State_[1].process(hpf2_, hpf1State_[1].process(hpf1_, r));
         }
+        for (auto& f : fixes_)
+            if (f.type != Correction::Type::None) {
+                l = f.state[0].process(f.coef, l);
+                r = f.state[1].process(f.coef, r);
+            }
 
         const double mid = 0.5 * (l + r);
         const double p = mid * mid;
@@ -305,15 +360,27 @@ void StemChain::processChunk(double* left, double* right, int n) noexcept {
     prevMonoAmount_ = monoTo;
     prevWidth_ = widthTo;
     const double monoStep = (monoTo - monoFrom) / n, widthStep = (widthTo - widthFrom) / n;
-    for (int i = 0; i < n; ++i) {
-        const double mid = 0.5 * (left[i] + right[i]);
-        const double side = 0.5 * (left[i] - right[i]);
-        const double sideLow = side_[1].process(monoLp_, side_[0].process(monoLp_, side));
-        const double sideHigh = side_[3].process(monoHp_, side_[2].process(monoHp_, side));
-        const double mono = monoFrom + monoStep * (i + 1), width = widthFrom + widthStep * (i + 1);
-        const double s = sideLow * (1.0 - mono) + sideHigh * width;
-        left[i] = mid + s;
-        right[i] = mid - s;
+    // Neutre partout (réglage, valeurs courantes, bloc précédent) : l'étage s'efface.
+    const bool neutral = goal_.monoAmount <= 0.0 && goal_.width == 1.0 && monoFrom <= 1.0e-4 && monoTo <= 1.0e-4 &&
+                         std::fabs(widthFrom - 1.0) <= 1.0e-4 && std::fabs(widthTo - 1.0) <= 1.0e-4;
+    const double blendFrom = msBlend_;
+    const double blendTo = neutral ? std::max(0.0, msBlend_ - mixStep_ * n) : std::min(1.0, msBlend_ + mixStep_ * n);
+    msBlend_ = blendTo;
+    if (blendFrom > 0.0 || blendTo > 0.0) {
+        const double blendStep = (blendTo - blendFrom) / n;
+        for (int i = 0; i < n; ++i) {
+            const double mid = 0.5 * (left[i] + right[i]);
+            const double side = 0.5 * (left[i] - right[i]);
+            const double sideLow = side_[1].process(monoLp_, side_[0].process(monoLp_, side));
+            const double sideHigh = side_[3].process(monoHp_, side_[2].process(monoHp_, side));
+            const double mono = monoFrom + monoStep * (i + 1), width = widthFrom + widthStep * (i + 1);
+            const double blend = blendFrom + blendStep * (i + 1);
+            const double s = side + blend * (sideLow * (1.0 - mono) + sideHigh * width - side);
+            left[i] = mid + s;
+            right[i] = mid - s;
+        }
+    } else {
+        for (auto& st : side_) st.reset();
     }
 
     // ---- Fondu avec le son sec, garde-fou ------------------------------------

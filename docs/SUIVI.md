@@ -32,6 +32,12 @@
 
 ## Fait récemment
 
+- **Stems, étape 3 : le master chef d'orchestre.** Il écoute les stems alignés sur le temps du
+  projet, repère qu'un élément en masque un autre au même moment (grave d'un instrument sur la
+  808 / la basse / le kick, instrument sur la présence de la voix) et propose une retouche en
+  français (« Couper le grave de « Piano » sous 150 Hz ? »). Rien n'est appliqué sans accord ;
+  acceptée, la retouche part au stem et s'ajoute à sa chaîne, sans latence. Sur la prod de
+  l'utilisateur : aucune fausse alerte (la mélo est 28 dB sous la 808 quand elles jouent ensemble).
 - **Stems calibrés sur une vraie prod (808, DRUMS, MELO, 2 min 49).** Trois défauts que les sons
   synthétiques cachaient, corrigés :
   - 808 : le passe-haut à 25 Hz faisait passer la crête de −0,2 à +3,7 dBFS (808 écrêtée, continu
@@ -108,15 +114,14 @@
 
 ## À venir
 
-- **Stems, étape 3 : le master chef d'orchestre.** Le master voit et écoute chaque stem, et
-  chaque stem a sa chaîne. Il reste :
-  - les conflits entre stems (le piano qui a trop de grave et masque la 808, kick / 808, deux
-    éléments qui se disputent le même endroit du Side) ;
-  - des propositions de retouche, faites seulement si la personne accepte (il faut l'interface) ;
-  - l'équilibre de chaque piste face à la référence.
-
-  À calibrer sur de vrais stems : l'utilisateur doit exporter une prod en pistes séparées
-  depuis FL Studio, par exemple « Ouais Paul ».
+- **Chef d'orchestre, suite.**
+  - L'interface : afficher les propositions et les boutons Oui / Non / Annuler (les messages
+    existent déjà).
+  - Garder les retouches acceptées quand le projet est rouvert (les stems changent d'identifiant
+    à chaque activation : les rattacher au nom de la piste dans l'état du master).
+  - Kick / 808 : la place de chacun dans le temps (ducking).
+  - L'équilibre de chaque piste face à la référence.
+  - Calibrer les seuils sur une prod qui a vraiment un masquage.
 
 - Appliquer la référence écoutée depuis le plug-in : le contrôleur calcule l'intention et écrit
   les paramètres `match_*` / `mb_*` via performEdit. Ça demande l'interface (module 6), pour

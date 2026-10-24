@@ -6,7 +6,8 @@
 //    1. trim ;
 //    2. passe-haut SVF, 12 ou 24 dB/oct (deux sections Butterworth ; en
 //       12 dB/oct la seconde descend à 5 Hz : pas de changement de topologie,
-//       on glisse d'une pente à l'autre) ;
+//       on glisse d'une pente à l'autre) ; puis les retouches acceptées du
+//       master (passe-haut, cloche, plateau grave ; stems/Conductor), en fondu ;
 //    3. EQ dynamique, 3 bandes : détecteur passe-bande sur le Mid, son énergie
 //       rapportée à celle du reste de la piste (mêmes temps d'enveloppe,
 //       5 / 80 ms). Coupe 2:1 au-delà du plus haut de deux seuils : l'équilibre
@@ -31,7 +32,9 @@
 //    6. M/S : Side séparé en Linkwitz-Riley 24 dB/oct à `monoBelowHz` (la
 //       somme est un passe-tout : sans latence, un complément exact par
 //       soustraction laisserait passer trop de grave) ; le bas réduit de
-//       `monoAmount`, le haut × `width`. Le Mid n'est jamais touché.
+//       `monoAmount`, le haut × `width`. Le Mid n'est jamais touché. Neutre
+//       (pas de mono, largeur 100 %) : l'étage s'efface en fondu et n'est
+//       plus traversé (le Side reste intact).
 //
 //  Off (réglages inactifs) : la sortie est l'entrée, au bit près. Passage
 //  Off <-> actif et changements de réglages lissés (aucun clic).
@@ -85,6 +88,14 @@ private:
         double saturation = 0.0;
         double monoHz = 120.0, monoAmount = 0.0, width = 1.0;
     };
+    /// Une retouche du master : fondue (amount 0 … 1) à l'entrée, au départ
+    /// et au changement de sorte.
+    struct MasterFix {
+        Correction::Type type = Correction::Type::None;
+        double hz = 1000.0, gainDb = 0.0, q = 0.7071, amount = 0.0;
+        dsp::SvfCoefficients coef{};
+        std::array<dsp::SvfState, 2> state{};
+    };
     struct DynBand {
         dsp::SvfCoefficients detect{}, bell{};
         dsp::SvfState detectState{};
@@ -112,6 +123,9 @@ private:
     std::array<dsp::SvfState, 2> hpf1State_{}, hpf2State_{};
     bool hpfRunning_ = false;
 
+    // Retouches du master.
+    std::array<MasterFix, kMaxCorrections> fixes_{};
+
     // EQ dynamique.
     std::array<DynBand, kDynamicBands> dyn_{};
     double totalEnvelope_ = 0.0;
@@ -133,6 +147,7 @@ private:
     // M/S.
     dsp::SvfCoefficients monoLp_{}, monoHp_{};
     std::array<dsp::SvfState, 4> side_{}; ///< passe-bas ×2, passe-haut ×2
+    double msBlend_ = 0.0;                ///< 0 : Side intact (étage neutre, non traversé)
 
     // Son sec (fondu Off <-> actif).
     std::array<std::vector<double>, 2> dry_;

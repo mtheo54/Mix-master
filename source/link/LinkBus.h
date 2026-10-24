@@ -31,7 +31,9 @@
 
 #include "analysis/SpectralSignature.h"
 #include "core/Platform.h"
+#include "stems/Correction.h"
 #include "stems/Element.h"
+#include "stems/StemTimeline.h"
 
 #include <algorithm>
 #include <array>
@@ -67,6 +69,9 @@ static_assert(std::atomic<float>::is_always_lock_free && std::atomic<std::uint64
 struct StemOrders {
     float gainDb = 0.0f;
     std::uint32_t version = 0; ///< incrémenté à chaque écriture du master
+    /// Retouches acceptées (stems/Conductor), dans orderReserved[0 … 15] :
+    /// sorte, fréquence, gain, q. Bornées par le stem à la lecture.
+    stems::Corrections corrections{};
 };
 
 /// Ce que le master voit d'un stem.
@@ -194,6 +199,9 @@ public:
     void poll(const Endpoint& master);
     [[nodiscard]] const std::vector<Heard>& heard() const noexcept { return heardView_; }
     [[nodiscard]] std::uint64_t overruns() const noexcept { return overruns_; } ///< trames perdues (master trop lent)
+    /// Frise temporelle d'un stem écouté (stems/Conductor), ou nullptr.
+    /// Valable jusqu'au prochain poll().
+    [[nodiscard]] const stems::StemTimeline* timeline(int slot) const noexcept;
 
 private:
     struct State {
@@ -202,6 +210,7 @@ private:
         double sampleRate = 0.0;
         double signatureSeconds = 0.0; ///< écoute au dernier calcul de la signature
         analysis::SignatureAccumulator accumulator;
+        stems::StemTimeline timeline; ///< préparée à l'arrivée du stem
         Heard heard;
     };
     std::array<State, kSlots> states_{};

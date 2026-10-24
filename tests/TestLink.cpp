@@ -181,6 +181,14 @@ OMNIS_TEST("lien: stem qui écrit et master qui écoute en même temps ; changem
     }));
     // Le stem s'est écouté (son sec) : sa reconnaissance a des secondes entendues.
     OMNIS_CHECK(waitFor([&] { return stem.identification().secondsHeard > 0.5; }));
+    // Pendant ce temps, l'interface lit les propositions et répond (chef d'orchestre, période courte).
+    master.setConductorPeriodMs(60);
+    for (int i = 0; i < 20; ++i) {
+        (void)master.proposals();
+        (void)master.applied();
+        master.answer(static_cast<std::uint32_t>(i), i % 2 ? LinkClient::Answer::Decline : LinkClient::Answer::Undo);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     // La piste passe dans un autre groupe pendant que son audio tourne.
     stem.setGroup(7);
     OMNIS_CHECK(waitFor([&] { return master.linkedStems() == 0; }));
@@ -214,4 +222,25 @@ OMNIS_TEST("lien: un stem se reconnaît (nom de piste, puis écoute) et le maste
     // La personne choisit l'élément : il passe avant tout.
     stem.setKind(StemKind::Snare);
     OMNIS_CHECK(waitFor([&] { return stem.identifiedElement() == StemKind::Snare; }));
+}
+
+OMNIS_TEST("lien: les retouches acceptées voyagent dans les ordres ; un nouveau venu n'en hérite pas") {
+    TestNamespace ns("omnistestf");
+    Endpoint master, stem;
+    OMNIS_CHECK(master.join(5, Role::Master, StemKind::Other, "Master", 48000.0));
+    OMNIS_CHECK(stem.join(5, Role::Stem, StemKind::Keys, "Piano", 48000.0));
+    const auto s = master.stems().front();
+    StemOrders o;
+    o.corrections[0] = {stems::Correction::Type::LowCut, 150.0f, 0.0f, 0.7071f};
+    o.corrections[2] = {stems::Correction::Type::Bell, 2500.0f, -3.0f, 1.2f};
+    OMNIS_CHECK(master.writeOrders(s.slot, s.owner, o));
+    const auto got = stem.readOrders();
+    OMNIS_CHECK(got.corrections == o.corrections);
+    // Le piano part, un autre stem reprend l'emplacement : aucune retouche héritée.
+    const int slot = stem.slotIndex();
+    stem.leave();
+    Endpoint next;
+    OMNIS_CHECK(next.join(5, Role::Stem, StemKind::Vocal, "Voix", 48000.0));
+    OMNIS_CHECK(next.slotIndex() == slot);
+    OMNIS_CHECK(!stems::anyCorrection(next.readOrders().corrections));
 }

@@ -124,10 +124,15 @@ add_library(omnis_core STATIC
     source/stems/Element.h
     source/stems/ElementClassifier.cpp
     source/stems/ElementClassifier.h
+    source/stems/Conductor.cpp
+    source/stems/Conductor.h
+    source/stems/Correction.h
     source/stems/StemChain.cpp
     source/stems/StemChain.h
     source/stems/StemSettings.cpp
     source/stems/StemSettings.h
+    source/stems/StemTimeline.cpp
+    source/stems/StemTimeline.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
     source/stages/ImagerStage.cpp
@@ -253,6 +258,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestLink.cpp
         tests/TestStems.cpp
         tests/TestStemChain.cpp
+        tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp

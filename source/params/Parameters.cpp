@@ -191,6 +191,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::MeterRefLufs,      "meter_ref_lufs","Reference Loudness",   "RefI",   "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterLinkStems,    "meter_stems",   "Linked Stems",         "Stems",  "",     ParamKind::Meter,      0.0,    32.0,  0.0,   0,    {},             0.0,    0},
     {ParamId::MeterStemElement,  "meter_element", "Identified Element",   "Heard",  "",     ParamKind::Meter,      0.0,    21.0,  0.0,   21,   kElementMeterLabels, 0.0, 0},
+    {ParamId::MeterProposals,    "meter_proposals","Mix Proposals",       "Props",  "",     ParamKind::Meter,      0.0,    32.0,  0.0,   0,    {},             0.0,    0},
 }};
 // clang-format on
 static_assert(kParameters.size() == kParameterCount, "kParameterCount doit suivre la table");

@@ -48,6 +48,21 @@ struct Builder {
 
 } // namespace
 
+Correction clampCorrection(Correction c) noexcept {
+    if (!std::isfinite(c.hz) || !std::isfinite(c.gainDb) || !std::isfinite(c.q)) return {};
+    switch (c.type) {
+        case Correction::Type::LowCut:
+            return {c.type, std::clamp(c.hz, 20.0f, 300.0f), 0.0f, 0.7071f};
+        case Correction::Type::Bell:
+            return {c.type, std::clamp(c.hz, 20.0f, 16000.0f), std::clamp(c.gainDb, -6.0f, 3.0f), std::clamp(c.q, 0.3f, 4.0f)};
+        case Correction::Type::LowShelf:
+            return {c.type, std::clamp(c.hz, 20.0f, 400.0f), std::clamp(c.gainDb, -6.0f, 3.0f), 0.7071f};
+        case Correction::Type::None:
+        default:
+            return {};
+    }
+}
+
 double pinkBalanceDb(double q) noexcept {
     const double share = std::min(0.95, std::numbers::pi / (2.0 * std::max(q, 1.0e-3) * std::log(1000.0)));
     return 10.0 * std::log10(share / (1.0 - share));
@@ -131,6 +146,7 @@ StemSettings clampSettings(StemSettings s) noexcept {
     s.monoBelowHz = s.monoBelowHz < 40.0 ? 0.0 : std::min(s.monoBelowHz, 300.0);
     s.monoAmount = s.monoBelowHz > 0.0 ? std::clamp(finiteOr(s.monoAmount, 0.0), 0.0, 1.0) : 0.0;
     s.width = std::clamp(finiteOr(s.width, 1.0), 0.0, 1.5);
+    for (auto& c : s.corrections) c = clampCorrection(c);
     return s;
 }
 

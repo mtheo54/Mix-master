@@ -128,7 +128,7 @@ private:
     bool transportWasPlaying_ = false;
     int meterIntervalSamples_ = 1600;
     int meterCountdown_ = 0;
-    std::array<double, 10> lastMeterValues_{};
+    std::array<double, 11> lastMeterValues_{};
 };
 
 } // namespace omnis::vst3

@@ -14,6 +14,7 @@
 #include "plugin/vst3/OmnisProcessor.h"
 #include "plugin/vst3/OmnisState.h"
 
+#include "base/source/fobject.h"
 #include "public.sdk/source/common/memorystream.h"
 #include "public.sdk/source/vst/hosting/hostclasses.h"
 #include "public.sdk/source/vst/hosting/parameterchanges.h"
@@ -24,6 +25,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <thread>
 
@@ -49,9 +51,9 @@ struct Instance {
     HostProcessData data;
     ParameterChanges changes{8}, outChanges{32};
     ProcessContext context{};
-    double lastStems = -1.0, lastElement = -1.0;
+    double lastStems = -1.0, lastElement = -1.0, lastProposals = -1.0;
 
-    Instance(std::map<ParamId, double> plain) {
+    Instance(std::map<ParamId, double> plain, FUnknown* host = nullptr) {
         IPtr<MemoryStream> state = owned(new MemoryStream());
         vst3::writeState(state, [&](std::uint32_t id) {
             const auto* spec = params::findParameter(id);
@@ -59,7 +61,7 @@ struct Instance {
             return params::toNormalized(*spec, it != plain.end() ? it->second : spec->defaultValue);
         });
         state->seek(0, IBStream::kIBSeekSet, nullptr);
-        p->initialize(nullptr);
+        p->initialize(host);
         p->setState(state);
         SpeakerArrangement ins[2] = {SpeakerArr::kStereo, SpeakerArr::kStereo}, outs[1] = {SpeakerArr::kStereo};
         p->setBusArrangements(ins, 2, outs, 1);
@@ -93,12 +95,13 @@ struct Instance {
             auto* queue = outChanges.getParameterData(q);
             if (!queue) continue;
             const auto id = static_cast<ParamId>(queue->getParameterId());
-            if (id != ParamId::MeterLinkStems && id != ParamId::MeterStemElement) continue;
+            if (id != ParamId::MeterLinkStems && id != ParamId::MeterStemElement && id != ParamId::MeterProposals) continue;
             int32 offset = 0;
             ParamValue v = 0.0;
             if (queue->getPoint(queue->getPointCount() - 1, offset, v) != kResultTrue) continue;
             // Les afficheurs ne sont publiés qu'au changement : on garde la dernière valeur.
-            (id == ParamId::MeterLinkStems ? lastStems : lastElement) = params::toPlain(*params::findParameter(id), v);
+            (id == ParamId::MeterLinkStems ? lastStems : id == ParamId::MeterStemElement ? lastElement : lastProposals) =
+                params::toPlain(*params::findParameter(id), v);
         }
     }
     [[nodiscard]] double outputRms() const {
@@ -236,4 +239,119 @@ OMNIS_TEST("plug-in stem: la chaîne de l'élément agit sans latence (Auto), Ma
     float side = 0.0f;
     for (int i = 0; i < 512; ++i) side = std::max(side, std::fabs(manual.data.outputs[0].channelBuffers32[0][i] - manual.data.outputs[0].channelBuffers32[1][i]));
     OMNIS_CHECK(side < 1e-6f);
+}
+
+namespace {
+
+/// Le contrôleur, vu du processeur : reçoit ses messages.
+class Peer : public FObject, public IConnectionPoint {
+public:
+    std::string text;
+    tresult PLUGIN_API connect(IConnectionPoint*) override { return kResultOk; }
+    tresult PLUGIN_API disconnect(IConnectionPoint*) override { return kResultOk; }
+    tresult PLUGIN_API notify(IMessage* message) override {
+        const void* data = nullptr;
+        uint32 size = 0;
+        if (message && std::string_view(message->getMessageID()) == vst3::kProposalsMessage &&
+            message->getAttributes()->getBinary(vst3::kProposalsAttribute, data, size) == kResultTrue)
+            text.assign(static_cast<const char*>(data), size);
+        return kResultOk;
+    }
+    OBJ_METHODS(Peer, FObject)
+    DEFINE_INTERFACES
+        DEF_INTERFACE(IConnectionPoint)
+    END_DEFINE_INTERFACES(FObject)
+    REFCOUNT_METHODS(FObject)
+};
+
+tools::AudioFile stereo(double seconds, const std::function<double(double)>& f) {
+    tools::AudioFile a;
+    a.sampleRate = 48000.0;
+    a.channels.assign(2, std::vector<double>(static_cast<std::size_t>(seconds * 48000.0), 0.0));
+    for (std::size_t i = 0; i < a.channels[0].size(); ++i) a.channels[0][i] = a.channels[1][i] = f(static_cast<double>(i) / 48000.0);
+    return a;
+}
+
+} // namespace
+
+OMNIS_TEST("plug-in chef d'orchestre: le master propose, la personne accepte, le piano est retouché") {
+    setLinkNamespace("omnistestcond");
+    IPtr<HostApplication> host = owned(new HostApplication());
+    Instance master({{ParamId::LinkRole, 2.0}, {ParamId::LinkGroup, 4.0}}, host);
+    Instance b808({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, static_cast<double>(stems::Element::Bass808)}, {ParamId::LinkGroup, 4.0}});
+    Instance piano({{ParamId::LinkRole, 1.0}, {ParamId::LinkStemKind, static_cast<double>(stems::Element::Keys)}, {ParamId::LinkGroup, 4.0}});
+    IPtr<Peer> peer = owned(new Peer());
+    master.p->connect(peer);
+
+    constexpr double pi = 3.141592653589793;
+    const auto sig808 = stereo(10.0, [&](double t) {
+        const double u = std::fmod(t, 1.0);
+        return u < 0.9 ? 0.7 * std::tanh(1.5 * std::sin(2 * pi * 45.0 * u)) * std::exp(-u / 1.2) : 0.0;
+    });
+    // Piano dont la main gauche (98 / 110 Hz) couvre le haut du corps de la 808.
+    const auto sigPiano = stereo(10.0, [&](double t) {
+        const double f = static_cast<int>(t) % 2 ? 110.0 : 98.0;
+        return 0.25 * (0.5 * std::sin(2 * pi * f * t) + 0.17 * std::sin(4 * pi * f * t) + 0.3 * std::sin(2 * pi * 392.0 * t) +
+                       0.3 * std::sin(2 * pi * 493.9 * t) + 0.3 * std::sin(2 * pi * 587.3 * t));
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // les stems rejoignent le groupe
+    for (int pos = 0; pos + 512 <= static_cast<int>(sig808.channels[0].size()); pos += 512) {
+        b808.block(sig808, pos);
+        piano.block(sigPiano, pos);
+        master.block(sig808, pos);
+        std::this_thread::sleep_for(std::chrono::microseconds(2000)); // ~5x le temps réel : le master suit
+    }
+    for (int i = 0; i < 400 && master.lastProposals < 1.0; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        master.block(sig808, 0);
+    }
+    OMNIS_CHECK(master.lastProposals >= 1.0);
+
+    // L'interface demande les propositions, puis accepte la première.
+    IPtr<HostMessage> request = owned(new HostMessage());
+    request->setMessageID(vst3::kProposalsRequest);
+    OMNIS_CHECK(master.p->notify(request) == kResultOk);
+    std::printf("      %s", peer->text.c_str());
+    OMNIS_CHECK(peer->text.rfind("P\t", 0) == 0);
+    const auto tab = peer->text.find('\t', 2);
+    const std::uint32_t key = static_cast<std::uint32_t>(std::stoul(peer->text.substr(2, tab - 2)));
+    OMNIS_CHECK(peer->text.find("Piano") != std::string::npos);
+
+    const auto lowLevel = [&](int from) {
+        double re = 0.0, im = 0.0, reIn = 0.0, imIn = 0.0;
+        for (int b = 0; b < 20; ++b) {
+            piano.block(sigPiano, from + 512 * b);
+            for (int i = 0; i < 512; ++i) {
+                const double t = (from + 512 * b + i) / 48000.0;
+                const double y = piano.data.outputs[0].channelBuffers32[0][i];
+                const double x = sigPiano.channels[0][static_cast<std::size_t>(from + 512 * b + i)];
+                re += y * std::cos(2 * pi * 98.0 * t);
+                im += y * std::sin(2 * pi * 98.0 * t);
+                reIn += x * std::cos(2 * pi * 98.0 * t);
+                imIn += x * std::sin(2 * pi * 98.0 * t);
+            }
+        }
+        return db(std::hypot(re, im) / std::hypot(reIn, imIn));
+    };
+    OMNIS_CHECK(std::fabs(lowLevel(0)) < 0.1); // avant : rien ne bouge sans accord
+
+    IPtr<HostMessage> accept = owned(new HostMessage());
+    accept->setMessageID(vst3::kAnswerMessage);
+    accept->getAttributes()->setInt(vst3::kAnswerKeyAttribute, key);
+    accept->getAttributes()->setInt(vst3::kAnswerAttribute, 0);
+    OMNIS_CHECK(master.p->notify(accept) == kResultOk);
+    double after = 0.0;
+    for (int i = 0; i < 100; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        after = lowLevel(0);
+        if (after < -3.0) break;
+    }
+    std::printf("      piano à 98 Hz après accord : %.1f dB\n", after);
+    OMNIS_CHECK(after < -3.0);
+    for (int i = 0; i < 100 && master.lastProposals != 0.0; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        master.block(sig808, 0);
+    }
+    OMNIS_CHECK(master.lastProposals == 0.0);
+    master.p->disconnect(peer);
 }

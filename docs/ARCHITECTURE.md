@@ -284,3 +284,41 @@ Off ↔ actif en fondu de 30 ms. Coût mesuré : 0,4 à 0,9 % d'un cœur par ste
 **Outil** : `omnis_stems fichier.wav [...] [--render dossier]` montre l'élément reconnu, le
 caractère, les réglages Auto, et ce que la chaîne fait sur tout le fichier (niveau, crête, bandes,
 compression et EQ dynamique au fil du morceau).
+
+## 14. Le master chef d'orchestre (`stems/StemTimeline`, `stems/Conductor`)
+
+Le master repère qu'un stem en gêne un autre et **propose** une retouche ; rien n'est appliqué sans
+l'accord de la personne.
+
+**Écoute alignée sur le temps du projet.** Deux pistes ne se masquent que si elles jouent en même
+temps. Le master range ce qu'il entend de chaque stem par blocs de 8192 trames de temps projet
+(position envoyée par le stem avec son audio) : le bloc k de deux stems est le même instant du
+morceau. Par bloc, une FFT (Hann, ~5 Hz de résolution) : énergie du Mid en 15 bandes serrées dans le
+grave, et du Side sous 150 Hz. Un passage rejoué (boucle) est moyenné.
+
+**Masquages** (toutes les 2 s, thread du lien du master) :
+- grave : un instrument, une voix, un FX ou un drum (hors kick) dans la zone de la 808, de la basse
+  ou du kick (sous 300 Hz, là où elle est à moins de 20 dB de son maximum). Dans son cœur (à 10 dB de
+  son maximum), gêne si le gêneur est à moins de 8 dB d'elle ; dans le haut de son corps (ce qui la
+  fait entendre sur de petites enceintes), s'il y est plus fort qu'elle ;
+- voix lead : un instrument, un FX ou des backs à moins de 3 dB d'elle entre 1,2 et 6 kHz.
+
+Écart mesuré bande par bande, médiane sur les blocs où les deux jouent (au moins 4 s ensemble).
+
+**Retouches proposées**, toujours sur le gêneur : passe-haut 12 dB/oct en haut de la bande gênante
+(plateau −3 dB si ce grave est le cœur du gêneur, ≥ 40 % de son énergie) ; cloche −2 ou −3 dB dans
+la présence de la voix. Chaque proposition a une clé stable (gêneur, victime, sorte) : acceptée ou
+refusée, elle n'est plus reproposée.
+
+**Circuit** :
+1. le processeur du master publie le nombre de propositions (`meter_proposals`) ;
+2. l'interface demande le texte (message `omnis.getProposals` → `omnis.proposals`) et répond
+   (`omnis.answer` : accepter, refuser, annuler) ;
+3. une retouche acceptée part au stem dans ses ordres (`orderReserved[0…15]` : 4 retouches, sans
+   changer la disposition de la mémoire), renvoyés chaque seconde ;
+4. le stem l'ajoute à sa chaîne, juste après le passe-haut, sans latence, en fondu, bornée
+   (`clampCorrection`) ; aussi en mode Off (pas en bypass). Un stem qui reprend un emplacement
+   n'hérite d'aucune retouche.
+
+Sur la prod de l'utilisateur (808, DRUMS, MELO) : aucune proposition, à raison : aux moments où la
+808 joue, la mélo est 28 dB sous elle à 100–150 Hz. `omnis_stems` donne ce bilan bande par bande.

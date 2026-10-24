@@ -20,4 +20,18 @@ static DECLARE_UID(kControllerUID, 0x5C46817C, 0x5DCC4573, 0xB7F4FBA6, 0x3E122B5
 inline constexpr const char* kTrackNameMessage = "omnis.trackName";
 inline constexpr const char* kTrackNameAttribute = "name";
 
+/// Chef d'orchestre (master). Contrôleur -> processeur :
+///  - kProposalsRequest : le processeur répond par kProposalsMessage, texte
+///    UTF-8 (attribut binaire « text »), une ligne par proposition en attente
+///    « P<tab>clé<tab>question », puis par retouche en place
+///    « A<tab>clé<tab>stem<tab>sorte<tab>Hz<tab>dB » ;
+///  - kAnswerMessage : réponse de la personne, attributs entiers « key » (clé
+///    de la proposition) et « answer » (0 accepter, 1 refuser, 2 annuler).
+inline constexpr const char* kProposalsRequest = "omnis.getProposals";
+inline constexpr const char* kProposalsMessage = "omnis.proposals";
+inline constexpr const char* kProposalsAttribute = "text";
+inline constexpr const char* kAnswerMessage = "omnis.answer";
+inline constexpr const char* kAnswerKeyAttribute = "key";
+inline constexpr const char* kAnswerAttribute = "answer";
+
 } // namespace omnis::vst3

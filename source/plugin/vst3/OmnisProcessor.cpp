@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <ctime>
 #include <string>
 #include <string_view>
@@ -30,11 +31,12 @@ using params::ParamKind;
 
 namespace {
 
-constexpr std::array<ParamId, 10> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
+constexpr std::array<ParamId, 11> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
                                             ParamId::MeterIntegrated, ParamId::MeterTruePeak,
                                             ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
                                             ParamId::MeterRefSeconds, ParamId::MeterRefLufs,
-                                            ParamId::MeterLinkStems, ParamId::MeterStemElement};
+                                            ParamId::MeterLinkStems, ParamId::MeterStemElement,
+                                            ParamId::MeterProposals};
 
 /// Gain qu'un master peut donner à un stem : borné, quoi qu'il écrive.
 constexpr double kMinStemGainDb = -24.0, kMaxStemGainDb = 12.0;
@@ -182,7 +184,33 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
 }
 
 tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
-    if (message && message->getMessageID() && std::string_view(message->getMessageID()) == kTrackNameMessage) {
+    const std::string_view id = message && message->getMessageID() ? std::string_view(message->getMessageID()) : std::string_view{};
+    if (id == kProposalsRequest) {
+        // Thread de l'interface : on répond tout de suite.
+        std::string text;
+        for (const auto& p : link_.proposals())
+            text += "P\t" + std::to_string(p.proposal.key) + "\t" + p.proposal.text + "\n";
+        for (const auto& a : link_.applied()) {
+            char values[64];
+            std::snprintf(values, sizeof values, "%d\t%.0f\t%.1f", static_cast<int>(a.correction.type), static_cast<double>(a.correction.hz),
+                          static_cast<double>(a.correction.gainDb));
+            text += "A\t" + std::to_string(a.key) + "\t" + a.targetName + "\t" + values + "\n";
+        }
+        if (IPtr<IMessage> reply = owned(allocateMessage())) {
+            reply->setMessageID(kProposalsMessage);
+            reply->getAttributes()->setBinary(kProposalsAttribute, text.data(), static_cast<uint32>(text.size()));
+            sendMessage(reply);
+        }
+        return kResultOk;
+    }
+    if (id == kAnswerMessage) {
+        int64 key = 0, answer = -1;
+        if (message->getAttributes() && message->getAttributes()->getInt(kAnswerKeyAttribute, key) == kResultTrue &&
+            message->getAttributes()->getInt(kAnswerAttribute, answer) == kResultTrue && answer >= 0 && answer <= 2)
+            link_.answer(static_cast<std::uint32_t>(key), static_cast<link::LinkClient::Answer>(answer));
+        return kResultOk;
+    }
+    if (id == kTrackNameMessage) {
         const void* data = nullptr;
         uint32 size = 0;
         if (message->getAttributes() && message->getAttributes()->getBinary(kTrackNameAttribute, data, size) == kResultTrue && data)
@@ -318,6 +346,7 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
                        : kMeterIds[i] == ParamId::MeterRefLufs  ? capture_.referenceLufs()
                        : kMeterIds[i] == ParamId::MeterLinkStems ? static_cast<double>(link_.linkedStems())
                        : kMeterIds[i] == ParamId::MeterStemElement ? static_cast<double>(static_cast<int>(link_.identifiedElement()))
+                       : kMeterIds[i] == ParamId::MeterProposals ? static_cast<double>(link_.pendingProposals())
                                                                 : meterPlainValue(kMeterIds[i], readout);
         if (!std::isfinite(plain)) plain = spec->minValue; // -inf LUFS -> bas d'échelle
         const double normalized = params::toNormalized(*spec, plain);
@@ -350,12 +379,19 @@ void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSam
     const stems::StemMacros macros{plainOf(ParamId::StemHpf),          plainOf(ParamId::StemComp) * 0.01,
                                    plainOf(ParamId::StemSat) * 0.01,   plainOf(ParamId::StemClean) * 0.01,
                                    plainOf(ParamId::StemWidth) * 0.01, plainOf(ParamId::StemTrim)};
-    stemChain_.setSettings(stems::settingsFor(mode, heard.element, heard.character, heard.secondsHeard, macros));
+    stems::StemSettings settings = stems::settingsFor(mode, heard.element, heard.character, heard.secondsHeard, macros);
 
     link::LinkClient::RtAccess access(link_);
     link::Endpoint* endpoint = access.endpoint();
-    double gainDb = endpoint ? std::clamp(static_cast<double>(endpoint->readOrders().gainDb), kMinStemGainDb, kMaxStemGainDb) : 0.0;
-    if (bypass) gainDb = 0.0;
+    const link::StemOrders orders = endpoint ? endpoint->readOrders() : link::StemOrders{};
+    double gainDb = std::clamp(static_cast<double>(orders.gainDb), kMinStemGainDb, kMaxStemGainDb);
+    if (!std::isfinite(gainDb) || bypass) gainDb = 0.0;
+    // Retouches acceptées sur le master : appliquées aussi en mode Off (pas en bypass).
+    if (!bypass && stems::anyCorrection(orders.corrections)) {
+        settings.corrections = orders.corrections;
+        settings.active = true;
+    }
+    stemChain_.setSettings(settings);
     stemGain_.setTarget(std::pow(10.0, gainDb / 20.0));
     double* l = stemBuffer_[0].data();
     double* r = stemBuffer_[1].data();

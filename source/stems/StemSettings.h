@@ -29,6 +29,7 @@
 // =============================================================================
 #pragma once
 
+#include "Correction.h"
 #include "Element.h"
 #include "ElementClassifier.h"
 
@@ -68,6 +69,9 @@ struct StemSettings {
     double monoBelowHz = 0.0;     ///< 0 : pas de mono dans le grave
     double monoAmount = 0.0;      ///< 0 … 1
     double width = 1.0;           ///< Side au-dessus du grave (0 … 1.5)
+    /// Retouches demandées par le master et acceptées par la personne
+    /// (stems/Conductor) : elles s'appliquent aussi en mode Off.
+    Corrections corrections{};
 };
 
 enum class StemMode : int { Off = 0, Auto = 1, Manual = 2 };

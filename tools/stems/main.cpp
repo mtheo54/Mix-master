@@ -2,20 +2,26 @@
 //  Abrasion Labs // OMNIS
 //  tools/stems — Ce qu'OMNIS reconnaît et fait sur des stems exportés.
 //
-//  Usage : omnis_stems fichier.wav [...] [--render dossier] [--manual element]
+//  Usage : omnis_stems fichier.wav [...] [--render dossier] [--manual element] [--accept]
 //  Pour chaque fichier : l'élément (nom du fichier + écoute), son caractère,
 //  les réglages Auto de sa chaîne, puis la chaîne passée sur tout le fichier
 //  (comme dans le DAW, blocs de 512) : niveau, crête, bandes avant / après,
 //  compression et coupes d'EQ dynamique au fil du morceau.
 //  --render : écrit le stem traité (WAV 32 bits flottants) dans le dossier.
+//  Plusieurs fichiers (les stems d'une même prod, alignés au début) : le chef
+//  d'orchestre (stems/Conductor) les écoute ensemble, après leur chaîne, comme
+//  le master, et fait ses propositions. --accept : les accepte toutes et
+//  refait la chaîne (et le rendu) des stems retouchés.
 // =============================================================================
 #include "AudioRead.h"
 #include "WavFile.h"
 
+#include "stems/Conductor.h"
 #include "stems/Element.h"
 #include "stems/ElementClassifier.h"
 #include "stems/StemChain.h"
 #include "stems/StemSettings.h"
+#include "stems/StemTimeline.h"
 
 #include <algorithm>
 #include <array>
@@ -82,9 +88,19 @@ int main(int argc, char** argv) {
     std::vector<std::string> files;
     std::string renderDir;
     Element manual = Element::Auto;
+    bool acceptAll = false;
+    struct Done {
+        std::string name;
+        AudioFile dry;
+        StemSettings settings;
+        Element element = Element::Auto;
+        StemTimeline timeline;
+    };
+    std::vector<Done> done;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--render" && i + 1 < argc) renderDir = argv[++i];
+        else if (a == "--accept") acceptAll = true;
         else if (a == "--manual" && i + 1 < argc) {
             if (const auto e = elementFromKey(argv[++i])) manual = *e;
         } else files.push_back(a);
@@ -141,6 +157,11 @@ int main(int argc, char** argv) {
         std::puts("");
 
         // 3. La chaîne sur tout le fichier.
+        Done keep;
+        keep.name = name;
+        keep.dry = f;
+        keep.settings = s;
+        keep.element = id.element;
         const Levels before = measure(l, r, fs);
         StemChain chain;
         chain.prepare(fs);
@@ -186,7 +207,65 @@ int main(int argc, char** argv) {
             if (writeWav(out.string(), f, SampleFormat::Float32, error)) std::printf("   rendu : %s\n", out.string().c_str());
             else std::fprintf(stderr, "   rendu impossible : %s\n", error.c_str());
         }
+        // Ce que le master entendrait : le stem après sa chaîne.
+        keep.timeline.prepare(fs);
+        keep.timeline.push(l.data(), r.data(), static_cast<int>(l.size()), 0);
+        keep.timeline.flush();
+        done.push_back(std::move(keep));
         std::puts("");
+    }
+
+    if (done.size() >= 2) {
+        std::vector<ConductorStem> input;
+        for (std::size_t i = 0; i < done.size(); ++i) input.push_back({i + 1, done[i].element, done[i].name, &done[i].timeline});
+        const auto proposals = Conductor::propose(input);
+        std::printf("== Chef d'orchestre (%zu stems) : %zu proposition(s)\n", done.size(), proposals.size());
+        for (const auto& p : proposals) std::printf("   - %s\n", p.text.c_str());
+        if (proposals.empty()) std::puts("   (aucun stem n'en gêne un autre)");
+        for (const auto& p : Conductor::evaluate(input))
+            if (p.correction.type == Correction::Type::None)
+                std::printf("   bilan : %s dans la zone de %s (%.0f-%.0f Hz) : au plus près %+.1f dB du seuil de gêne, %.0f s ensemble\n",
+                            done[static_cast<std::size_t>(p.target)].name.c_str(), done[static_cast<std::size_t>(p.victim)].name.c_str(),
+                            p.zoneLowHz, p.zoneHighHz, p.excessDb, p.sharedSeconds);
+        for (const auto& p : Conductor::evaluate(input))
+            for (const auto& b : p.bands)
+                std::printf("      %s / %s %4.0f-%4.0f Hz : écart %+6.1f dB (seuil %+.0f), %d blocs\n", done[static_cast<std::size_t>(p.target)].name.c_str(),
+                            done[static_cast<std::size_t>(p.victim)].name.c_str(), b.lowHz, b.highHz, b.gapDb, b.thresholdDb, b.blocks);
+        if (acceptAll && !proposals.empty()) {
+            std::puts("\n== Propositions acceptées");
+            for (std::size_t t = 0; t < done.size(); ++t) {
+                StemSettings s = done[t].settings;
+                int count = 0;
+                for (const auto& p : proposals)
+                    if (p.target == static_cast<int>(t) && count < kMaxCorrections) s.corrections[static_cast<std::size_t>(count++)] = p.correction;
+                if (count == 0) continue;
+                s.active = true;
+                AudioFile f = done[t].dry;
+                auto& l = f.channels[0];
+                auto& r = f.channels[1];
+                StemChain chain;
+                chain.prepare(f.sampleRate);
+                chain.setSettings(s);
+                for (std::size_t i = 0; i < l.size(); i += 512)
+                    chain.process(l.data() + i, r.data() + i, static_cast<int>(std::min<std::size_t>(512, l.size() - i)));
+                StemTimeline after;
+                after.prepare(f.sampleRate);
+                after.push(l.data(), r.data(), static_cast<int>(l.size()), 0);
+                after.flush();
+                done[t].timeline = std::move(after);
+                std::printf("   %s : %d retouche(s) appliquée(s)\n", done[t].name.c_str(), count);
+                if (!renderDir.empty()) {
+                    const auto out = std::filesystem::path(renderDir) / (done[t].name + "_omnis_retouche.wav");
+                    std::string error;
+                    if (writeWav(out.string(), f, SampleFormat::Float32, error)) std::printf("   rendu : %s\n", out.string().c_str());
+                }
+            }
+            input.clear();
+            for (std::size_t i = 0; i < done.size(); ++i) input.push_back({i + 1, done[i].element, done[i].name, &done[i].timeline});
+            const auto again = Conductor::propose(input);
+            std::printf("   après : %zu proposition(s) restante(s)\n", again.size());
+            for (const auto& p : again) std::printf("   - %s\n", p.text.c_str());
+        }
     }
     return status;
 }
