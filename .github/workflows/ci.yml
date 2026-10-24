@@ -25,6 +25,16 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
 
+      # Le plug-in prêt à installer (Windows et macOS), téléchargeable depuis
+      # la page de l'exécution : dossier OMNIS.vst3 à copier dans le dossier VST3.
+      - name: Plug-in à télécharger
+        if: runner.os != 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OMNIS-${{ runner.os }}-VST3
+          path: build/VST3/Release/
+          retention-days: 30
+
   sanitizers:
     name: ASan + UBSan / TSan (moteur seul)
     runs-on: ubuntu-24.04
