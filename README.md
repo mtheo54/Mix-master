@@ -239,6 +239,19 @@ Les mesures LUFS M/S/I, True Peak, corrélation et LRA sont exposées comme **pa
 seule** : en attendant l'interface du module 6, l'éditeur générique de n'importe quel DAW les
 affiche déjà en temps réel. La sonie intégrée repart de zéro à chaque lancement du transport.
 
+## Installer dans FL Studio (Windows)
+
+1. Ouvrir la dernière exécution verte de la CI (onglet *Actions* du dépôt), télécharger
+   l'artefact **OMNIS-Windows-VST3** (zip). Clic droit sur le zip → Propriétés → *Débloquer*.
+2. Copier le dossier `OMNIS.vst3` dans `C:\Program Files\Common Files\VST3\`.
+3. FL Studio : *Options → Manage plugins → Find installed plugins*. Si le plug-in ne se charge
+   pas : installer *Microsoft Visual C++ Redistributable 2015–2022 (x64)*.
+4. Master : *Rôle* Master. Pistes : *Rôle* Stem, même *Groupe*, *Mode* Auto.
+
+L'interface (VSTGUI, Windows et macOS) : rôle et groupe, la piste (mode, élément, élément
+reconnu, doses), le master (mesures, réglages principaux) et le chef d'orchestre (propositions
+une à une, Oui / Non, retouches en place, Annuler).
+
 ## Compilation
 
 Prérequis : CMake ≥ 3.28, un compilateur C++20 (GCC 12+, Clang 15+, Apple Clang 15+, MSVC 2022), Git.

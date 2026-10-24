@@ -185,6 +185,15 @@ if(OMNIS_BUILD_VST3)
     target_link_libraries(OMNIS PRIVATE omnis_core sdk)
     # windows.h (inclus par certains en-têtes système) définit min/max en macros.
     target_compile_definitions(OMNIS PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+    if(OMNIS_BUILD_GUI)
+        target_sources(OMNIS PRIVATE source/plugin/vst3/OmnisEditor.cpp source/plugin/vst3/OmnisEditor.h)
+        # vstgui_support (vstguieditor.cpp) appelle pluginfactory.cpp de « sdk » :
+        # « sdk » après lui sur la ligne de liens.
+        target_link_libraries(OMNIS PRIVATE vstgui_support sdk)
+        target_compile_definitions(OMNIS PRIVATE OMNIS_HAS_GUI=1)
+        # Textes accentués de l'interface : sources en UTF-8.
+        target_compile_options(OMNIS PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+    endif()
 
     if(SMTG_MAC)
         smtg_target_set_bundle(OMNIS

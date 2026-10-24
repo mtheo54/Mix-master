@@ -16,7 +16,16 @@ set(OMNIS_VST3_SDK_TAG "v3.8.0_build_66" CACHE STRING "Tag Git du SDK VST3 à t�
 # et exécuté après chaque compilation du plug-in.
 set(SMTG_ENABLE_VST3_PLUGIN_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(SMTG_ENABLE_VSTGUI_SUPPORT OFF CACHE BOOL "" FORCE)
+# Interface : VSTGUI (livré avec le SDK) sous Windows et macOS ; sous Linux
+# seulement sur demande (X11, cairo, pango, gtkmm…). Sans elle, l'éditeur
+# générique de l'hôte.
+if(WIN32 OR APPLE)
+    set(OMNIS_GUI_DEFAULT ON)
+else()
+    set(OMNIS_GUI_DEFAULT OFF)
+endif()
+option(OMNIS_BUILD_GUI "Interface du plug-in (VSTGUI)" ${OMNIS_GUI_DEFAULT})
+set(SMTG_ENABLE_VSTGUI_SUPPORT ${OMNIS_BUILD_GUI} CACHE BOOL "" FORCE)
 set(SMTG_ENABLE_AUV2_BUILDS OFF CACHE BOOL "" FORCE)
 # Pas de lien symbolique automatique dans ~/.vst3 (activable à la main).
 set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "Lien symbolique du plug-in dans le dossier VST3 utilisateur")
@@ -33,7 +42,7 @@ else()
         GIT_REPOSITORY https://github.com/steinbergmedia/vst3sdk.git
         GIT_TAG        ${OMNIS_VST3_SDK_TAG}
         GIT_SHALLOW    TRUE
-        GIT_SUBMODULES base cmake pluginterfaces public.sdk
+        GIT_SUBMODULES base cmake pluginterfaces public.sdk vstgui4
         GIT_PROGRESS   TRUE
         EXCLUDE_FROM_ALL
     )

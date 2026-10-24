@@ -12,7 +12,14 @@
 #include "public.sdk/source/vst/utility/stringconvert.h"
 #include "public.sdk/source/vst/vstparameters.h"
 
+#ifdef OMNIS_HAS_GUI
+#include "OmnisEditor.h"
+#endif
+
+#include <cstdlib>
+#include <sstream>
 #include <string>
+#include <string_view>
 
 namespace omnis::vst3 {
 
@@ -92,6 +99,59 @@ tresult PLUGIN_API OmnisController::setChannelContextInfos(IAttributeList* list)
     message->setMessageID(vst3::kTrackNameMessage);
     message->getAttributes()->setBinary(vst3::kTrackNameAttribute, utf8.data(), static_cast<uint32>(utf8.size()));
     sendMessage(message);
+    return kResultOk;
+}
+
+IPlugView* PLUGIN_API OmnisController::createView(FIDString name) {
+#ifdef OMNIS_HAS_GUI
+    if (name && std::string_view(name) == ViewType::kEditor) return new OmnisEditor(this);
+#else
+    (void)name;
+#endif
+    return nullptr;
+}
+
+void OmnisController::requestProposals() {
+    IPtr<IMessage> message = owned(allocateMessage());
+    if (!message) return;
+    message->setMessageID(kProposalsRequest);
+    sendMessage(message);
+}
+
+void OmnisController::answerProposal(std::uint32_t key, int answer) {
+    IPtr<IMessage> message = owned(allocateMessage());
+    if (!message) return;
+    message->setMessageID(kAnswerMessage);
+    message->getAttributes()->setInt(kAnswerKeyAttribute, static_cast<int64>(key));
+    message->getAttributes()->setInt(kAnswerAttribute, answer);
+    sendMessage(message);
+}
+
+tresult PLUGIN_API OmnisController::notify(IMessage* message) {
+    if (!message || !message->getMessageID() || std::string_view(message->getMessageID()) != kProposalsMessage)
+        return EditController::notify(message);
+    const void* data = nullptr;
+    uint32 size = 0;
+    if (!message->getAttributes() || message->getAttributes()->getBinary(kProposalsAttribute, data, size) != kResultTrue) return kResultOk;
+    pending_.clear();
+    applied_.clear();
+    std::istringstream in(std::string(static_cast<const char*>(data), size));
+    std::string line;
+    static const char* kKinds[] = {"", "passe-haut", "cloche", "plateau grave"};
+    while (std::getline(in, line)) {
+        std::vector<std::string> f;
+        std::size_t start = 0;
+        for (std::size_t tab; (tab = line.find('\t', start)) != std::string::npos; start = tab + 1) f.push_back(line.substr(start, tab - start));
+        f.push_back(line.substr(start));
+        if (f.size() >= 3 && f[0] == "P") {
+            pending_.push_back({static_cast<std::uint32_t>(std::strtoul(f[1].c_str(), nullptr, 10)), f[2], {}});
+        } else if (f.size() >= 6 && f[0] == "A") {
+            const int kind = std::atoi(f[3].c_str());
+            std::string d = "« " + f[2] + " » : " + (kind >= 1 && kind <= 3 ? kKinds[kind] : "retouche") + " " + f[4] + " Hz";
+            if (kind != 1) d += ", " + f[5] + " dB";
+            applied_.push_back({static_cast<std::uint32_t>(std::strtoul(f[1].c_str(), nullptr, 10)), {}, d});
+        }
+    }
     return kResultOk;
 }
 

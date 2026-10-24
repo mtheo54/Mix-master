@@ -32,6 +32,11 @@
 
 ## Fait récemment
 
+- **Interface, première version** (VSTGUI du SDK, dessinée en code, Windows et macOS) : rôle,
+  groupe, bypass ; la piste (mode, élément, élément reconnu, doses du mode Manuel) ; le master
+  (LUFS, true peak, LRA, corrélation, stems liés ; entrée, Inflator, clip, limiteur, plafond,
+  sortie) ; le chef d'orchestre (propositions une à une, Oui / Non, retouches en place, Annuler).
+  Le plug-in prêt à installer est publié par la CI (artefact OMNIS-Windows-VST3).
 - **Stems, étape 3 : le master chef d'orchestre.** Il écoute les stems alignés sur le temps du
   projet, repère qu'un élément en masque un autre au même moment (grave d'un instrument sur la
   808 / la basse / le kick, instrument sur la présence de la voix) et propose une retouche en
@@ -115,8 +120,7 @@
 ## À venir
 
 - **Chef d'orchestre, suite.**
-  - L'interface : afficher les propositions et les boutons Oui / Non / Annuler (les messages
-    existent déjà).
+  - L'interface complète de la console (tous les étages, la demande en texte, les courbes).
   - Garder les retouches acceptées quand le projet est rouvert (les stems changent d'identifiant
     à chaque activation : les rattacher au nom de la piste dans l'état du master).
   - Kick / 808 : la place de chacun dans le temps (ducking).
