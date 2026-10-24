@@ -26,6 +26,10 @@ else()
 endif()
 option(OMNIS_BUILD_GUI "Interface du plug-in (VSTGUI)" ${OMNIS_GUI_DEFAULT})
 set(SMTG_ENABLE_VSTGUI_SUPPORT ${OMNIS_BUILD_GUI} CACHE BOOL "" FORCE)
+# VSTGUI sous macOS : sources Objective-C++ (Cocoa).
+if(OMNIS_BUILD_GUI AND APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
 set(SMTG_ENABLE_AUV2_BUILDS OFF CACHE BOOL "" FORCE)
 # Pas de lien symbolique automatique dans ~/.vst3 (activable à la main).
 set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "Lien symbolique du plug-in dans le dossier VST3 utilisateur")
