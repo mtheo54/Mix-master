@@ -265,3 +265,94 @@ trop pauvre) :
 **Priorités** : inchangées (§6), avec en plus, dans le point « rack + interface » : écoute
 delta par module, Match / A/B / annuler, barre de mesures à verdicts ; et dans « AUTO » :
 capture du passage le plus fort + caractère propre / percutant.
+
+## 8. Ce qu'on retient du manuel d'Ozone 11 — 25/10
+
+(Manuel complet, 199 pages. Comme pour les autres : principes seulement, avec nos mots.)
+
+**L'assistant (Master Assistant).** Il écoute au moins ~8 s du **passage le plus fort**,
+construit une chaîne, puis ne laisse qu'**un curseur par aspect** au-dessus des modules :
+égalisation (0–200 %), sonie (gain du limiteur ±4 dB), voix / musique, dynamique, largeur,
+clarté, stabilisation. Une cible = cinq mesures : **équilibre tonal**, **écart voix /
+musique**, **largeur** (rapport side / mid dans 4 bandes), **micro-dynamique** (sonie très
+court terme comparée à la sonie court terme), **sonie intégrée**. Cibles par genre, ou tirées
+d'un fichier de référence (les 8 s les plus fortes). Deux destinations : « pleine échelle »
+(plafond −0,1 dB, sans true peak) et « streaming » (−1 dB, true peak). Il ne rend pas un grave
+déjà étroit plus large ; il n'ajoute pas de traitement voix si l'écart est déjà bon.
+→ Pour OMNIS : notre AUTO prend la même forme : **capture du passage fort**, cinq mesures
+(nous avons déjà tonal, sonie, largeur ; à ajouter : **micro-dynamique** et **voix /
+musique**), puis des **macros** par aspect au-dessus du rack détaillé (les deux niveaux de
+lecture du §7). Destination pleine échelle / streaming à choisir. Règle reprise dans notre
+esprit : **ne jamais corriger ce qui est déjà bon**, et le dire (« largeur : déjà bonne ✓ »).
+
+**Le limiteur (Maximizer) — là où Ozone avait plus de relief (§5).**
+- Avant la limitation, trois étages optionnels : **compression vers le haut** en parallèle,
+  réglée en dB et **à crête constante** (les crêtes ne bougent pas, seuls les passages calmes
+  montent) ; **soft clip** suréchantillonné ×4 avec trois points de départ (léger, moyen,
+  fort) et un dosage sec / traité ; **accentuation des transitoires** (Transient Emphasis).
+- Un réglage de **caractère** continu (de « clip » à « très lent ») qui pilote ensemble
+  attaque et relâche.
+- **Indépendance stéréo séparée** pour les transitoires et pour le soutenu (limiter chaque
+  canal à part rend plus fort mais rétrécit l'image : d'où deux curseurs).
+- Un mode qui, au-delà de 0 dBFS, **ne limite que les bandes responsables** des crêtes (moins
+  d'intermodulation), et ne touche rien quand il n'y a rien à limiter.
+- Gain et plafond **liés à l'inverse**, delta, apprentissage du gain vers une cible LUFS en
+  5 s, trace de gain (réduction vers le bas, remontée vers le haut).
+→ Pour OMNIS : c'est le chantier « limiteur » du plan : **Punch** = accentuation des
+transitoires avant limitation ; **compression vers le haut à crête constante** ; choix du
+point de départ du clip ; **caractère** unique attaque / relâche ; lien stéréo séparé
+transitoires / soutenu ; et un essai de limitation **par bandes seulement en dépassement**.
+
+**Micro-dynamique (Impact).** Un seul curseur par bande : positif = plus ouvert et punchy,
+négatif = plus dense et collé ; enveloppe en ms ou calée sur le tempo ; compensation de
+niveau par bande ; lien stéréo optionnel (sinon chaque élément garde sa place dans l'image).
+→ Pour OMNIS : un module **Punch / Densité** par bande, et le moyen pour AUTO d'amener la
+micro-dynamique vers celle du style visé.
+
+**Les correcteurs adaptatifs.**
+- **Clarity** : centaines de bandes, ramène le spectre vers un bruit rose (pente réglable :
+  plus clair / plus sombre), ±6 dB max, zone 300 Hz – 20 kHz, attaque / relâche ; augmente la
+  sonie perçue à LUFS égal.
+- **Stabilizer** : EQ adaptative vers une **courbe cible** ; mode « façonner » (monte et
+  coupe, à sonie neutre) ou « couper seulement » (les résonances au-dessus de la cible) ;
+  vitesse, **lissage** (3–4 filtres larges ↔ beaucoup de filtres fins), **sensibilité**
+  (n'agir que sur l'excessif ↔ sur tout écart), réaction instantanée aux transitoires,
+  dosage séparé grave (< 100 Hz) / médium / aigu (> 5,6 kHz).
+- **Spectral Shaper** : atténuation fine des fréquences gênantes, intensité, teinte, temps.
+- **Low End Focus** (20–300 Hz) : **contraste** entre le grave fort et le grave faible
+  (positif = on enlève le flou, plus de punch ; négatif = plus rond, comme une saturation),
+  mode rapide (punchy) ou lent (soutenu).
+→ Pour OMNIS : ça confirme notre module anti-résonances / démasquage (§6–7), avec ces
+réglages précis (lissage, sensibilité, couper seulement / façonner, dosage par zone). Notre
+référence « bruit rose + habitude de la piste » est déjà de la même famille ; ajouter la
+**pente cible** et la **zone d'action**. Et un module **grave net** (contraste 20–300 Hz)
+pour la 808 et le kick.
+
+**Le reste.**
+- **Modes de canal pour presque tous les modules** : stéréo, M/S, gauche / droite, et
+  **transitoires / soutenu** (le signal coupé en attaques et en corps, chaque part traitée à
+  part, recombinaison exacte si rien ne change).
+- **Delta** sur chaque module ; **apprentissage des crossovers** placés aux creux du spectre.
+- **Imager** : élargir un son mono de façon compatible mono ; quand on rétrécit, **récupérer
+  le side** dans le centre au lieu de le perdre ; trois vues de stéréo.
+- **Exciter** : plusieurs couleurs de saturation (impaires « transistor », bande, lampe,
+  paires « chaudes »…), multibande, **filtre après** sur le traité seulement, suréchantillon.
+- **Stem Focus** / **Master Rebalance** : appliquer toute la chaîne **seulement à la voix, à
+  la basse ou aux drums** d'un mix déjà fait, ou monter / baisser l'un d'eux (séparation par
+  apprentissage automatique).
+- **Aperçu codec** (MP3 / AAC à débit choisi) avec écoute des **seuls artefacts**.
+- Gain Match, mono, inversion des canaux, dither, référence, annuler.
+→ Pour OMNIS :
+- le **mode transitoires / soutenu** est la clé de deux de nos chantiers : le **Punch** et
+  les **éléments d'un bus de drums** (attaques du kick / snare d'un côté, queue et
+  ambiance de l'autre) ; les **crossovers aux creux du spectre** aident à séparer kick,
+  snare et hats dans un bus ;
+- « appliquer seulement à la voix / aux drums » est notre vision « OMNIS seul sur le master
+  doit tout faire » : à long terme, une séparation locale (sans internet) ; à court terme,
+  nos stems + chef d'orchestre le font déjà mieux, car on a les vraies pistes ;
+- aperçu MP3 : à étudier (encodeur libre, licence à vérifier) ; sinon, au minimum, un
+  avertissement quand les crêtes inter-échantillons risquent de saturer à l'encodage.
+
+**Priorités** : inchangées, avec dans « limiteur » la liste ci-dessus (Punch, compression
+vers le haut à crête constante, caractère, lien transitoires / soutenu), et dans « AUTO »
+la micro-dynamique et le « ne pas corriger ce qui est déjà bon ».
