@@ -114,6 +114,10 @@ MatchRequest requestFromInterpretation(const Interpretation& in) {
             r.understood.push_back(line);
             continue;
         }
+        if (std::fabs(hit.weight) < 1e-9) {
+            r.understood.push_back(line + " : là où agir");
+            continue;
+        }
         line += format(" (%+.1f) ->", hit.weight);
         if (c) {
             bool first = true;

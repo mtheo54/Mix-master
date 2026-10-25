@@ -716,6 +716,16 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
                     subjects.clear();
                     subjectsLast = false;
                 } else {
+                    // « la 808 est trop dirty » : la 808 dit OÙ, pas « plus de 808 ». Un
+                    // élément sujet d'une qualité qui n'est pas un niveau ne s'ajoute pas.
+                    if (!isElement(*best) && !keep && !subjects.empty() && subjectsLast) {
+                        for (std::size_t k : subjects) {
+                            auto& subject = out.hits[k];
+                            subject.weight = 0.0;
+                            subject.text += " … " + hit.text;
+                        }
+                        subjects.clear();
+                    }
                     if (best->targetLufs && hit.weight > 0.0 && !keep) out.lufs = *best->targetLufs;
                     out.hits.push_back(std::move(hit));
                     if (isElement(*best) && !best->flaw && neutral && !turned && !keep) {

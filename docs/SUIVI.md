@@ -151,9 +151,9 @@ pro, intuitif ; drums d'un bus travaillés élément par élément).
 5. **Tutoriel à la première ouverture** : partie par partie (rôles et groupes, stems,
    master, chef d'orchestre, barre IA), passable, relançable depuis un bouton « ? ».
 
-Compréhension à corriger : dans « la 808 est trop dirty », le sujet (808) reçoit +1
-(du sub en plus) alors que la demande ne porte que sur la saleté. Un élément sujet d'une
-qualité non liée au niveau doit seulement dire OÙ agir, pas s'ajouter lui-même.
+Compréhension corrigée (25/10) : dans « la 808 est trop dirty », la 808 dit seulement OÙ
+agir (« là où agir »), elle ne reçoit plus de sub en plus ; « la 808 est trop forte » la
+baisse toujours, « plus de 808 » la monte toujours (test).
 
 Retours d'écoute (24/10, prod 808 / basse / 2 drums / mélo) : Auto jugé bien comme ça
 (discret, respecte les sons déjà travaillés) ; pas de potard d'intensité demandé.

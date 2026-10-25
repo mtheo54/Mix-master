@@ -472,3 +472,13 @@ OMNIS_TEST("demande: entrées extrêmes (vide, symboles, émojis, très long) lu
     OMNIS_CHECK(r.desire[Axis::Sub] < 0.0);
     OMNIS_CHECK(r.desire[Axis::Presence] > 0.0);
 }
+
+OMNIS_TEST("demande: « la 808 est trop dirty » vise la saleté, pas du sub en plus ; « trop forte » baisse la 808") {
+    const auto dirty = read("la 808 est trop dirty");
+    OMNIS_CHECK(std::fabs(dirty.desire[Axis::Sub]) < 1e-9);
+    OMNIS_CHECK(dirty.desire[Axis::Cleanliness] > 0.5);
+    const auto loud = read("la 808 est trop forte");
+    OMNIS_CHECK(loud.desire[Axis::Sub] < -1.0);
+    const auto more = read("plus de 808");
+    OMNIS_CHECK(more.desire[Axis::Sub] > 1.0);
+}
