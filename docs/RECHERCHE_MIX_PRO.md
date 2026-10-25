@@ -131,3 +131,67 @@ Independence transitoire 20 %). Explique les deux écarts :
 À ajouter à OMNIS : **« Punch » / accent des transitoires dans le limiteur** (dosable,
 0–100 %), en gardant le true peak honnête ; et l'**indépendance stéréo** du limiteur
 (réduction de gain liée / déliée, transitoires et maintien séparés).
+
+## 6. Ce qu'on retient des manuels (Trackspacer, Decapitator, Pro-L 2, Pro-Q 4, schéma façon soothe) — 25/10
+
+Lus pour comprendre les principes ; rien n'est recopié. Reformulé et adapté à OMNIS.
+
+**Faire de la place entre deux sons (Trackspacer).** Un son « prioritaire » est analysé en
+continu sur une trentaine de bandes ; l'autre est creusé en miroir, là où le prioritaire a
+de l'énergie, au moment où il en a. Un seul dosage, une plage de fréquences (coupe-bas /
+coupe-haut de l'analyse), attaque / relâche, L/R ou M/S, et un « figer » qui transforme le
+creux du moment en EQ fixe.
+→ Pour OMNIS : la **place de la voix dans la prod** (la prod se creuse sous la voix, sans
+latence, le master la commande comme les retouches) et la **808 sous le kick** (même
+principe, limité au grave). Notre lien master / stems fait déjà circuler l'audio : pas
+besoin de side-chain à câbler dans le DAW, c'est un vrai avantage d'OMNIS.
+
+**Saturation (Decapitator).** Plusieurs « styles » (bande, console, préampli à transistors,
+lampe triode = harmoniques paires, lampe pentode = impaires), un drive, une tonalité AVANT
+la saturation (ce qui sature change le caractère), un coupe-bas avant (évite le grave mou),
+un petit relief de grave au coupe-bas (« bosse » de la bande), un coupe-aigu APRÈS (retire
+le grésillement), un mélange sec / saturé, et une compensation automatique du volume.
+→ Pour OMNIS : l'Inflator et la saturation des stems gagnent des **styles** (doux pair /
+impair / bande / dur), un **filtre avant** et un **filtre après**, le **mélange** et le
+**volume compensé** (pour comparer sans se faire piéger par le « plus fort = mieux »).
+
+**Limiteur (Pro-L 2).** Plusieurs **styles** de limitation selon l'usage (transparent,
+punchy, dynamique qui accentue les attaques avant de limiter, agressif proche du clip,
+« bus » qui pompe exprès, sûr), un **look-ahead** réglable (court = plus fort mais
+distorsion et crêtes entre échantillons), une étape rapide (transitoires) et une étape lente
+(relâche), un **lien stéréo séparé** pour les transitoires et pour la relâche, le **true
+peak** en deux temps (crêtes d'entrée, puis dépassement résiduel lissé), suréchantillonnage,
+dither, et surtout « jamais au-dessus de 0 dBTP ». Gain et plafond liés pour comparer au même
+volume.
+→ Pour OMNIS : styles de limiteur, lien stéréo transitoires / relâche, **Punch** (déjà noté
+§5), écoute au même volume, et des mesures claires (crêtes, réduction, sonie).
+
+**EQ (Pro-Q 4).** Chaque bande peut devenir **dynamique** (elle ne coupe ou ne monte que
+quand la bande dépasse un seuil, réglé automatiquement par défaut, déclenchement sur la
+bande elle-même ou sur une autre piste) ; l'**EQ spectrale** ne touche, dans une bande, que
+les fréquences précises qui dépassent (idéal pour la dureté des voix et des guitares) ; et
+la **liste des instances** : toutes les EQ de la session dans une seule fenêtre, rangées par
+piste avec leur nom, et les **collisions** (deux pistes qui occupent la même zone) montrées
+par rapport à une piste de référence.
+→ Pour OMNIS : c'est exactement notre **master chef d'orchestre en interface** : depuis le
+master, voir toutes les pistes OMNIS (nom, élément reconnu, rack), régler chacune, et voir
+les collisions que le chef d'orchestre a trouvées. Et un module **EQ dynamique / spectral**
+dans le rack de piste.
+
+**Suppresseur de résonances (schéma façon soothe).** Entrée (option side-chain), passage
+éventuel en M/S, trim, lien entre canaux, **analyse** pilotée par quatre réglages
+(profondeur = combien on retire, netteté = largeur des creux, sélectivité = ce qui compte
+comme résonance, courbes d'EQ = où agir, avec un équilibre par bande), équilibre stéréo,
+application, trim, **mélange** sec / traité, retour en L/R, bypass. Visualisation de ce qui
+est retiré.
+→ Pour OMNIS : le module **anti-résonances** du rack (piste et master), sur la même base que
+notre EQ dynamique (habitude de la piste + seuil), mais en spectral fin, avec ces quatre
+réglages et l'affichage de ce qui est retiré.
+
+**Priorités ajustées** (après le plantage du slot FL) :
+1. rack + interface console (avec la vue « toutes les pistes » depuis le master) ;
+2. barre IA + AUTO ; OMNIS seul sur le master ;
+3. limiteur : styles, Punch, lien stéréo ; saturation : styles, filtres avant / après ;
+4. place entre les sons : voix / prod, 808 / kick (sans side-chain à câbler) ;
+5. anti-résonances spectral ; EQ dynamique / spectral par bande ;
+6. éléments d'un bus de drums ; tutoriel.
