@@ -151,7 +151,7 @@ StemSettings clampSettings(StemSettings s) noexcept {
 }
 
 StemSettings settingsFor(StemMode mode, Element element, const Character& character, double secondsHeard,
-                         const StemMacros& macros) noexcept {
+                         const StemMacros& macros, const DrumContent* drums) noexcept {
     if (mode == StemMode::Off) return StemSettings{};
     const Family family = familyOf(element);
 
@@ -199,6 +199,18 @@ StemSettings settingsFor(StemMode mode, Element element, const Character& charac
         if (s.hpfHz > 40.0)
             while (s.hpfHz > 20.0 && shareBelow(character, 2.0 * s.hpfHz) > 0.15) s.hpfHz /= std::pow(2.0, 1.0 / 6.0);
         if (s.hpfHz < 20.0) s.hpfHz = 0.0;
+    }
+    // Bus de drums : chaque élément reconnu à sa façon (stems/DrumBus.h).
+    if (element == Element::DrumLoop && drums && drums->any()) {
+        if (drums->kick.present) {
+            s.monoBelowHz = std::max(s.monoBelowHz, 150.0); // kick bien mono
+            s.monoAmount = 1.0;
+        }
+        // Snare un peu plus large, sauf si le bus l'est déjà.
+        if (drums->snare.present && finiteOr(character.sideToMidDb, -120.0) <= -6.0) s.width = std::max(s.width, 1.08);
+        // Cymbales : la dureté calmée, seulement quand elle dépasse.
+        if (drums->hat.present || drums->openHat.present)
+            s.dynamic[2] = {drums->hat.present ? 7000.0 : 6500.0, 1.5, 8.0, 3.0};
     }
     return clampSettings(s);
 }

@@ -1328,6 +1328,13 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             }
             text(c, "Élément reconnu : " + valueText(id(ParamId::MeterStemElement)), CRect(plot.left, plot.top + 86, plot.right, plot.top + 102), color::kGood, mono(10));
             text(c, "Mode : " + valueText(id(ParamId::StemMode)) + " · aucune latence ajoutée", CRect(plot.left, plot.top + 104, plot.right, plot.top + 120), color::kText2, mono(10));
+            // Bus de drums : chaque élément nommé, avec ce qu'OMNIS en fait.
+            const auto& drums = omnis()->drumElements();
+            if (!drums.empty()) {
+                engraved(c, "DANS LE BUS", CRect(plot.left, plot.top + 128, plot.right, plot.top + 140));
+                for (std::size_t i = 0; i < drums.size() && i < 4; ++i)
+                    text(c, "• " + drums[i], CRect(plot.left, plot.top + 142 + 16 * i, plot.right, plot.top + 158 + 16 * i), color::kText, mono(9.5));
+            }
             hint("LE MASTER DU MÊME GROUPE ENTEND CETTE PISTE");
             break;
         }
@@ -1610,7 +1617,7 @@ void OmnisEditor::tick() {
     if (!news.empty()) answer_ = news;
     if (const double pr = omnis()->autoProgress(); pr >= 0.0)
         answer_ = pr <= 0.0 ? std::string("AUTO : joue le passage le plus fort (refrain, drop)…") : "AUTO : écoute " + fmt("%.0f %%", 100.0 * pr) + "…";
-    if (++ticks_ % 15 == 0 && (role() == static_cast<int>(params::LinkRole::Master) || page_ == kConductorPage)) omnis()->requestProposals();
+    if (++ticks_ % 15 == 0 && (role() != static_cast<int>(params::LinkRole::Alone) || page_ == kConductorPage)) omnis()->requestProposals();
     const int o = static_cast<int>(std::lround(plain(id(ParamId::ChainOrder)))), rl = role();
     if ((o != lastOrder_ || rl != lastRole_) && dragFrom_ < 0) {
         lastOrder_ = o;

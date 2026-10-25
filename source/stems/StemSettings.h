@@ -31,6 +31,7 @@
 
 #include "Correction.h"
 #include "Element.h"
+#include "DrumBus.h"
 #include "ElementClassifier.h"
 
 #include <array>
@@ -91,8 +92,9 @@ StemSettings templateFor(Element element) noexcept;
 
 /// Réglages appliqués. `character` : ce que l'écoute a mesuré (secondsHeard > 0) ;
 /// sans écoute, le modèle seul (Auto) est appliqué tel quel.
+/// `drums` : ce qui a été reconnu dans un bus de drums (Auto, élément DrumLoop).
 StemSettings settingsFor(StemMode mode, Element element, const Character& character, double secondsHeard,
-                         const StemMacros& macros) noexcept;
+                         const StemMacros& macros, const DrumContent* drums = nullptr) noexcept;
 
 /// Applique les bornes fixes (toujours appelée par settingsFor).
 StemSettings clampSettings(StemSettings s) noexcept;

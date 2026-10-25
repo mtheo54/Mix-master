@@ -18,6 +18,7 @@
 
 #include "stems/Conductor.h"
 #include "stems/Element.h"
+#include "stems/DrumBus.h"
 #include "stems/ElementClassifier.h"
 #include "stems/StemChain.h"
 #include "stems/StemSettings.h"
@@ -127,9 +128,12 @@ int main(int argc, char** argv) {
         // 1. Reconnaissance (comme le thread du lien : par blocs).
         ElementClassifier classifier;
         classifier.prepare(fs);
+        DrumBusAnalyzer drums;
+        drums.prepare(fs);
         for (std::size_t i = 0; i < l.size(); i += 2048) {
             const int n = static_cast<int>(std::min<std::size_t>(2048, l.size() - i));
             classifier.push(l.data() + i, r.data() + i, n);
+            drums.push(l.data() + i, r.data() + i, n);
         }
         const Identification id = classifier.identify(manual, name);
         const Character& c = id.character;
@@ -144,8 +148,15 @@ int main(int argc, char** argv) {
         for (int b = 0; b < kAnalysisBands; ++b) std::printf(" %s %.0f%%", bandName(b), 100.0 * c.bandShare[static_cast<std::size_t>(b)]);
         std::puts("");
 
+        if (id.element == Element::DrumLoop) {
+            const auto& dc = drums.content();
+            std::printf("   dans le bus : kick %d coups, snare / clap %d, hi-hat %d, open hat %d\n", dc.kick.hits, dc.snare.hits, dc.hat.hits,
+                        dc.openHat.hits);
+            for (const auto& line : describeDrumBus(dc)) std::printf("     - %s\n", line.c_str());
+        }
+
         // 2. Réglages Auto.
-        const StemSettings s = settingsFor(StemMode::Auto, id.element, c, id.secondsHeard, {});
+        const StemSettings s = settingsFor(StemMode::Auto, id.element, c, id.secondsHeard, {}, &drums.content());
         const StemSettings t = templateFor(id.element);
         std::printf("   réglages Auto : passe-haut %s", s.hpfHz > 0 ? "" : "aucun");
         if (s.hpfHz > 0) std::printf("%.0f Hz %s%s", s.hpfHz, s.hpfSteep ? "24" : "12", " dB/oct");

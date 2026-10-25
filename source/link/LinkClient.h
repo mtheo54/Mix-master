@@ -29,6 +29,7 @@
 #include "core/SpscRingBuffer.h"
 #include "core/TripleBuffer.h"
 #include "stems/Conductor.h"
+#include "stems/DrumBus.h"
 #include "stems/ElementClassifier.h"
 
 #include <algorithm>
@@ -69,12 +70,15 @@ public:
     }
     /// Stem : dernière reconnaissance complète (copie).
     [[nodiscard]] stems::Identification identification() const;
+    /// Stem : ce qu'il y a dans le bus de drums (copie).
+    [[nodiscard]] stems::DrumContent drumContent() const;
 
     /// Ce que le thread audio d'un stem reçoit pour régler sa chaîne.
     struct Listening {
         stems::Element element = stems::Element::Auto;
         stems::Character character{};
         double secondsHeard = 0.0;
+        stems::DrumContent drums{}; ///< bus de drums : ce qu'il contient
     };
     /// Temps réel, thread audio seulement (un seul lecteur) : dernière écoute publiée.
     const Listening& rtListening() noexcept {
@@ -168,6 +172,8 @@ private:
 
     // Stem : reconnaissance de l'élément.
     stems::ElementClassifier classifier_;
+    stems::DrumBusAnalyzer drumBus_;
+    stems::DrumContent drumContent_;
     std::atomic<int> identified_{0};
     mutable std::mutex nameMutex_;
     std::string trackName_;

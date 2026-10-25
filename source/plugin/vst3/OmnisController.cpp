@@ -383,6 +383,7 @@ tresult PLUGIN_API OmnisController::notify(IMessage* message) {
     if (!message->getAttributes() || message->getAttributes()->getBinary(kProposalsAttribute, data, size) != kResultTrue) return kResultOk;
     pending_.clear();
     applied_.clear();
+    drumLines_.clear();
     std::istringstream in(std::string(static_cast<const char*>(data), size));
     std::string line;
     static const char* kKinds[] = {"", "passe-haut", "cloche", "plateau grave"};
@@ -391,7 +392,9 @@ tresult PLUGIN_API OmnisController::notify(IMessage* message) {
         std::size_t start = 0;
         for (std::size_t tab; (tab = line.find('\t', start)) != std::string::npos; start = tab + 1) f.push_back(line.substr(start, tab - start));
         f.push_back(line.substr(start));
-        if (f.size() >= 3 && f[0] == "P") {
+        if (f.size() >= 2 && f[0] == "D") {
+            drumLines_.push_back(f[1]);
+        } else if (f.size() >= 3 && f[0] == "P") {
             pending_.push_back({static_cast<std::uint32_t>(std::strtoul(f[1].c_str(), nullptr, 10)), f[2], {}});
         } else if (f.size() >= 6 && f[0] == "A") {
             const int kind = std::atoi(f[3].c_str());

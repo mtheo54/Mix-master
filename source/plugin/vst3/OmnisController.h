@@ -63,6 +63,8 @@ public:
     void answerProposal(std::uint32_t key, int answer);
     [[nodiscard]] const std::vector<ProposalLine>& pendingProposals() const noexcept { return pending_; }
     [[nodiscard]] const std::vector<ProposalLine>& appliedCorrections() const noexcept { return applied_; }
+    /// Stem en bus de drums : les éléments reconnus et ce qui en est fait.
+    [[nodiscard]] const std::vector<std::string>& drumElements() const noexcept { return drumLines_; }
 
     /// Interface : demande le flux du processeur (mesures des modules, sortie).
     void requestFeed();
@@ -103,6 +105,7 @@ public:
 
 private:
     std::vector<ProposalLine> pending_, applied_;
+    std::vector<std::string> drumLines_;
     bool loadingState_ = false; ///< dans setComponentState
     std::shared_ptr<UiFeed> feed_;
     // Barre IA / AUTO.

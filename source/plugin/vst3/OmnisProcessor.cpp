@@ -308,6 +308,9 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
                           static_cast<double>(a.correction.gainDb));
             text += "A\t" + std::to_string(a.key) + "\t" + a.targetName + "\t" + values + "\n";
         }
+        // Stem en bus de drums : ce qu'OMNIS y a reconnu et ce qu'il en fait.
+        if (role() == params::LinkRole::Stem && link_.identifiedElement() == link::StemKind::DrumLoop)
+            for (const auto& line : stems::describeDrumBus(link_.drumContent())) text += "D\t" + line + "\n";
         if (IPtr<IMessage> reply = owned(allocateMessage())) {
             reply->setMessageID(kProposalsMessage);
             reply->getAttributes()->setBinary(kProposalsAttribute, text.data(), static_cast<uint32>(text.size()));
@@ -527,7 +530,7 @@ void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSam
     const stems::StemMacros macros{plainOf(ParamId::StemHpf),          plainOf(ParamId::StemComp) * 0.01,
                                    plainOf(ParamId::StemSat) * 0.01,   plainOf(ParamId::StemClean) * 0.01,
                                    plainOf(ParamId::StemWidth) * 0.01, plainOf(ParamId::StemTrim)};
-    stems::StemSettings settings = stems::settingsFor(mode, heard.element, heard.character, heard.secondsHeard, macros);
+    stems::StemSettings settings = stems::settingsFor(mode, heard.element, heard.character, heard.secondsHeard, macros, &heard.drums);
 
     link::LinkClient::RtAccess access(link_);
     link::Endpoint* endpoint = access.endpoint();

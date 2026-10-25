@@ -130,6 +130,7 @@ add_library(omnis_core STATIC
     source/stems/Conductor.h
     source/stems/Correction.h
     source/stems/StemChain.cpp
+    source/stems/DrumBus.cpp
     source/stems/StemChain.h
     source/stems/StemSettings.cpp
     source/stems/StemSettings.h
@@ -286,6 +287,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestStems.cpp
         tests/TestStemChain.cpp
         tests/TestRack.cpp
+        tests/TestDrumBus.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp

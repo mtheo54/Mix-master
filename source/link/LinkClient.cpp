@@ -20,6 +20,7 @@ void LinkClient::start(Role role, StemKind kind, int group, double sampleRate) {
     linkedStems_.store(0, std::memory_order_relaxed);
     identified_.store(0, std::memory_order_relaxed);
     classifier_.prepare(sampleRate);
+    drumBus_.prepare(sampleRate);
     // ~2,7 s de son sec à 48 kHz (le thread le lit toutes les 50 ms). Le
     // thread audio est à l'arrêt pendant l'activation : réallouer est sûr.
     listenReady_.store(false, std::memory_order_release);
@@ -146,6 +147,11 @@ stems::Identification LinkClient::identification() const {
     return identification_;
 }
 
+stems::DrumContent LinkClient::drumContent() const {
+    std::lock_guard<std::mutex> lock(nameMutex_);
+    return drumContent_;
+}
+
 std::vector<StemListener::Heard> LinkClient::heard() const {
     std::lock_guard<std::mutex> lock(heardMutex_);
     return heard_;
@@ -209,17 +215,19 @@ void LinkClient::run() {
                         right[i] = interleaved[2 * i + 1];
                     }
                     classifier_.push(left.data(), right.data(), static_cast<int>(got));
+                    drumBus_.push(left.data(), right.data(), static_cast<int>(got));
                 }
                 if (now - lastIdentify >= std::chrono::seconds(1) || kind != lastManual) {
                     lastIdentify = now;
                     lastManual = kind;
                     stems::Identification id = classifier_.identify(kind, trackName());
                     identified_.store(static_cast<int>(id.element), std::memory_order_relaxed);
-                    listening_.writeBuffer() = Listening{id.element, id.character, id.secondsHeard};
+                    listening_.writeBuffer() = Listening{id.element, id.character, id.secondsHeard, drumBus_.content()};
                     listening_.publish();
                     {
                         std::lock_guard<std::mutex> lock(nameMutex_);
                         identification_ = id;
+                        drumContent_ = drumBus_.content();
                     }
                 }
                 const StemKind element = identifiedElement();
