@@ -287,6 +287,7 @@ if(OMNIS_BUILD_TESTS)
             tests/TestMain.cpp
             tests/TestPluginState.cpp
             tests/TestPluginLink.cpp
+            tests/TestPluginSlotToggle.cpp
             source/plugin/vst3/OmnisProcessor.cpp
             source/plugin/vst3/OmnisState.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/common/memorystream.cpp

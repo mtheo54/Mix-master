@@ -68,6 +68,7 @@ public:
 
 private:
     std::vector<ProposalLine> pending_, applied_;
+    bool loadingState_ = false; ///< dans setComponentState
 };
 
 } // namespace omnis::vst3

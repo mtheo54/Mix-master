@@ -84,6 +84,38 @@ OmnisProcessor::OmnisProcessor() {
 
 OmnisProcessor::~OmnisProcessor() { capture_.release(); }
 
+OmnisProcessor::GateHold::GateHold(OmnisProcessor& p) : p_(p), lock_(p.gateMutex_) {
+    p_.gateClosed_.store(true, std::memory_order_seq_cst);
+    // Un bloc audio dure quelques millisecondes ; au-delà de 2 s, l'hôte a
+    // abandonné son thread audio : on continue plutôt que de geler l'interface.
+    for (int i = 0; i < 2000 && p_.inProcess_.load(std::memory_order_seq_cst); ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
+
+OmnisProcessor::GateHold::~GateHold() { p_.gateClosed_.store(false, std::memory_order_seq_cst); }
+
+void OmnisProcessor::passThrough(ProcessData& data) {
+    if (data.numSamples <= 0 || data.numOutputs < 1 || !data.outputs) return;
+    const AudioBusBuffers& out = data.outputs[0];
+    const bool hasIn = data.numInputs >= 1 && data.inputs;
+    for (int32 c = 0; c < out.numChannels; ++c) {
+        const bool from = hasIn && c < data.inputs[0].numChannels;
+        if (data.symbolicSampleSize == kSample64) {
+            double* dst = out.channelBuffers64 ? out.channelBuffers64[c] : nullptr;
+            const double* src = from && data.inputs[0].channelBuffers64 ? data.inputs[0].channelBuffers64[c] : nullptr;
+            if (!dst || dst == src) continue;
+            if (src) std::copy_n(src, data.numSamples, dst);
+            else std::fill_n(dst, data.numSamples, 0.0);
+        } else {
+            float* dst = out.channelBuffers32 ? out.channelBuffers32[c] : nullptr;
+            const float* src = from && data.inputs[0].channelBuffers32 ? data.inputs[0].channelBuffers32[c] : nullptr;
+            if (!dst || dst == src) continue;
+            if (src) std::copy_n(src, data.numSamples, dst);
+            else std::fill_n(dst, data.numSamples, 0.0f);
+        }
+    }
+}
+
 void OmnisProcessor::onCaptureFinished(const ReferenceCapture::Result& r) {
     // La durée minimale (60 s) est tenue par ReferenceCapture.
     if (r.reference.activeFrames == 0) return;
@@ -118,6 +150,8 @@ tresult PLUGIN_API OmnisProcessor::initialize(FUnknown* context) {
 }
 
 tresult PLUGIN_API OmnisProcessor::terminate() {
+    GateHold hold(*this);
+    active_.store(false);
     link_.stop();
     capture_.release();
     return AudioEffect::terminate();
@@ -140,6 +174,7 @@ tresult PLUGIN_API OmnisProcessor::canProcessSampleSize(int32 symbolicSampleSize
 tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
     const tresult result = AudioEffect::setupProcessing(setup);
     if (result != kResultOk) return result;
+    GateHold hold(*this);
 
     // Toutes les allocations ont lieu ici (thread non temps réel, composant
     // inactif). La latence est connue dès la sortie de cette fonction.
@@ -156,10 +191,23 @@ tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
     sampleRate_ = setup.sampleRate;
     meterIntervalSamples_ = std::max(1, static_cast<int>(setup.sampleRate / 30.0)); // ~30 Hz
     meterCountdown_ = 0;
+    prepared_ = true;
     return kResultOk;
 }
 
 tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
+    GateHold hold(*this);
+    if (state && !prepared_) {
+        // Hôte qui active sans setupProcessing : réglages par défaut plutôt
+        // qu'un moteur sans mémoire.
+        ProcessSetup setup{kRealtime, kSample32, 1024, 44100.0};
+        processSetup = setup;
+        engine_.setRealtimeMode(true);
+        engine_.prepare(setup.sampleRate, setup.maxSamplesPerBlock);
+        sampleRate_ = setup.sampleRate;
+        meterIntervalSamples_ = std::max(1, static_cast<int>(setup.sampleRate / 30.0));
+        prepared_ = true;
+    }
     if (state) {
         engine_.reset();
         transportWasPlaying_ = false;
@@ -232,9 +280,9 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
 
 void OmnisProcessor::switchRole(int newRole) {
     if (newRole == activeRole_.load() || !active_.load()) return; // inactif : setActive le prendra
-    // Le thread audio lâche le lien (au plus un bloc), puis on le redémarre ici.
-    roleSwitching_.store(true);
-    for (int i = 0; i < 500 && audioInLink_.load(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    // Le thread audio sort de process() (au plus un bloc), puis on redémarre le lien ici.
+    GateHold hold(*this);
+    if (!active_.load()) return;
     if (newRole == static_cast<int>(params::LinkRole::Alone))
         link_.stop();
     else
@@ -243,7 +291,6 @@ void OmnisProcessor::switchRole(int newRole) {
     stemGain_.snapTo(1.0);
     stemChain_.reset();
     activeRole_.store(newRole);
-    roleSwitching_.store(false);
 }
 
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
@@ -288,6 +335,10 @@ void OmnisProcessor::applyPendingState() {
         if (!params::isPersistent(all[i])) continue;
         engine_.setParameter(all[i].id, params::toPlain(all[i], normalized_[i].load(std::memory_order_relaxed)));
     }
+    // Réglages hors moteur (simples écritures atomiques).
+    capture_.setCapturing(plainOf(ParamId::RefCapture) >= 0.5);
+    link_.setKind(static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))));
+    link_.setGroup(static_cast<int>(plainOf(ParamId::LinkGroup)));
 }
 
 void OmnisProcessor::collectParameterEvents(IParameterChanges* changes, int32 numSamples) {
@@ -440,12 +491,40 @@ void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSam
 }
 
 tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
+    // Porte : voir l'en-tête. Fermée (activation en cours ailleurs) ou instance
+    // inactive : le son passe tel quel, rien n'est touché.
+    inProcess_.store(true, std::memory_order_seq_cst);
+    struct Leave {
+        std::atomic<bool>& flag;
+        ~Leave() { flag.store(false, std::memory_order_seq_cst); }
+    } leave{inProcess_};
+    if (gateClosed_.load(std::memory_order_seq_cst) || !active_.load(std::memory_order_seq_cst)) {
+        // Les réglages reçus ne sont pas perdus : gardés, appliqués au prochain bloc normal.
+        collectParameterEvents(data.inputParameterChanges, data.numSamples);
+        for (int i = 0; i < numEvents_; ++i) {
+            const auto& e = events_[static_cast<std::size_t>(i)];
+            const auto* spec = params::findParameter(e.id);
+            const int index = spec && spec->kind != ParamKind::Meter ? params::parameterIndex(spec->id) : -1;
+            if (index >= 0 && index < static_cast<int>(kMaxParams))
+                normalized_[static_cast<std::size_t>(index)].store(e.normalized, std::memory_order_relaxed);
+        }
+        if (numEvents_ > 0) pendingState_.store(true, std::memory_order_release);
+        numEvents_ = 0;
+        passThrough(data);
+        return kResultOk;
+    }
     applyPendingState();
     handleTransport(data.processContext);
     collectParameterEvents(data.inputParameterChanges, data.numSamples);
 
-    const bool hasAudio = data.numSamples > 0 && data.numInputs >= 1 && data.numOutputs >= 1 &&
-                          data.inputs[0].numChannels >= kNumChannels && data.outputs[0].numChannels >= kNumChannels;
+    const bool is64 = data.symbolicSampleSize == kSample64;
+    const auto buffersOk = [&](const AudioBusBuffers& b) {
+        if (b.numChannels < kNumChannels) return false;
+        if (is64) return b.channelBuffers64 && b.channelBuffers64[0] && b.channelBuffers64[1];
+        return b.channelBuffers32 && b.channelBuffers32[0] && b.channelBuffers32[1];
+    };
+    const bool hasAudio = data.numSamples > 0 && data.numInputs >= 1 && data.numOutputs >= 1 && data.inputs && data.outputs &&
+                          buffersOk(data.inputs[0]) && buffersOk(data.outputs[0]);
     if (!hasAudio) {
         // Appel de « flush » des paramètres (numSamples == 0) : on applique tout.
         for (int i = 0; i < numEvents_; ++i)
@@ -458,7 +537,9 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
     // Écoute de la référence : copie vers le thread d'analyse AVANT le
     // traitement (l'hôte peut traiter en place). La prod est mesurée en même temps.
     if (capture_.capturing()) {
-        const bool aux = data.numInputs > 1 && data.inputs[1].numChannels > 0;
+        const bool aux = data.numInputs > 1 && data.inputs[1].numChannels > 0 &&
+                         (is64 ? data.inputs[1].channelBuffers64 && data.inputs[1].channelBuffers64[0]
+                               : data.inputs[1].channelBuffers32 && data.inputs[1].channelBuffers32[0]);
         const int auxChannels = aux ? data.inputs[1].numChannels : 0;
         if (data.symbolicSampleSize == kSample64) {
             const double* refL = aux ? data.inputs[1].channelBuffers64[0] : nullptr;
@@ -471,33 +552,16 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
         }
     }
 
-    // Changement de rôle en cours (thread de l'interface) : le lien ne nous
-    // appartient pas, le son passe tel quel le temps d'un bloc ou deux.
-    audioInLink_.store(true);
-    if (roleSwitching_.load()) {
-        audioInLink_.store(false);
-        for (int c = 0; c < kNumChannels; ++c) {
-            if (data.symbolicSampleSize == kSample64) {
-                if (data.outputs[0].channelBuffers64[c] != data.inputs[0].channelBuffers64[c])
-                    std::copy_n(data.inputs[0].channelBuffers64[c], data.numSamples, data.outputs[0].channelBuffers64[c]);
-            } else if (data.outputs[0].channelBuffers32[c] != data.inputs[0].channelBuffers32[c]) {
-                std::copy_n(data.inputs[0].channelBuffers32[c], data.numSamples, data.outputs[0].channelBuffers32[c]);
-            }
-        }
-        return kResultOk;
-    }
     if (role() == params::LinkRole::Stem) {
         if (data.symbolicSampleSize == kSample64)
             processStem(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, data.processContext);
         else
             processStem(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, data.processContext);
-        audioInLink_.store(false);
         data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
         publishMeters(data.outputParameterChanges, data.numSamples);
         return kResultOk;
     }
 
-    audioInLink_.store(false);
     if (data.symbolicSampleSize == kSample64)
         processSegments(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples);
     else

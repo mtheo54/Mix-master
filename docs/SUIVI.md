@@ -124,12 +124,17 @@
 pro, intuitif ; drums d'un bus travaillés élément par élément).
 
 **Prochaine séance (dans l'ordre) :**
-1. **Plantage de FL Studio en désactivant OMNIS avec le bouton rond du slot du mixer**
-   (signalé le 24/10 ; c'est LE geste quotidien des producteurs sous FL, il doit être sûr ;
-   une instance Master et cinq Stems liés). Pistes : setActive pendant que FL appelle encore
-   process() (stemChain_.prepare, réallocation de l'anneau sec, link_.start / stop),
-   arrêt du lien master / stems, minuterie de l'interface après fermeture. Écrire un test
-   qui active / désactive en boucle pendant le traitement, sous TSan / ASan.
+1. ~~**Plantage de FL Studio en désactivant OMNIS avec le bouton rond du slot du mixer**~~
+   **Réglé le 25/10.** Cause reproduite : l'hôte réactive / reprépare l'instance
+   (setActive, setupProcessing) pendant que son thread audio est encore dans process() ;
+   le moteur était réalloué sous ses pieds (use-after-free relevé par ASan dans le
+   clipper). Correctif : une porte entre les threads (`OmnisProcessor::GateHold`) :
+   avant toute réallocation on ferme la porte et on attend la sortie de process() ;
+   porte fermée ou instance inactive, le son passe tel quel et les automations sont
+   gardées. Tampons nuls de l'hôte refusés proprement ; activation sans setupProcessing
+   tolérée ; plus de redémarrage demandé à l'hôte au milieu de setComponentState.
+   Test `tests/TestPluginSlotToggle.cpp` (Seul, master + stem liés, changements de rôle
+   en route) : plante l'ancien code sous ASan, propre avec le correctif sous ASan et TSan.
 2. **Refaire l'interface proprement** d'après la maquette console v11 (artefact, « juste
    magnifique » selon l'utilisateur) : modules usinés, colonne Master, courbe de l'Inflator.
    L'interface actuelle reste la version mini. PAS la simplicité de LeMaster (jugé trop

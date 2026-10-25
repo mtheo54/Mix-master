@@ -29,6 +29,12 @@
 //                écoute le son sec, avant la chaîne.
 //     Le rôle est pris à l'activation : changer de rôle change la latence,
 //     le contrôleur demande à l'hôte de réactiver l'instance.
+//   - Porte entre les threads (AudioGate) : certains hôtes (FL Studio, bouton
+//     du slot du mixer) activent / désactivent l'instance pendant que leur
+//     thread audio est encore dans process(). Avant de réallouer quoi que ce
+//     soit (setupProcessing, setActive, changement de rôle), on ferme la porte
+//     et on attend que process() en soit sorti ; porte fermée ou instance
+//     inactive, process() laisse passer le son tel quel sans toucher à rien.
 // =============================================================================
 #pragma once
 
@@ -103,11 +109,29 @@ private:
     ReferenceCapture capture_;
     link::LinkClient link_;
     /// Rôle en vigueur : pris à l'activation, ou changé en route (switchRole,
-    /// thread de l'interface). Pendant le changement, le thread audio ne touche
-    /// pas au lien (roleSwitching_ / audioInLink_, ordre séquentiel).
+    /// thread de l'interface, derrière la porte du thread audio).
     std::atomic<int> activeRole_{static_cast<int>(params::LinkRole::Alone)};
-    std::atomic<bool> roleSwitching_{false}, audioInLink_{false}, active_{false};
+    std::atomic<bool> active_{false};
     void switchRole(int role);
+
+    /// Porte du thread audio (voir l'en-tête). Ordre séquentiel des deux côtés :
+    /// process() annonce son entrée puis lit la porte ; le reste ferme la porte
+    /// puis attend la sortie de process() : l'un des deux voit toujours l'autre.
+    std::atomic<bool> gateClosed_{false}, inProcess_{false};
+    std::mutex gateMutex_; ///< un seul thread non audio à la fois derrière la porte
+    class GateHold {
+    public:
+        explicit GateHold(OmnisProcessor& p);
+        ~GateHold();
+        GateHold(const GateHold&) = delete;
+        GateHold& operator=(const GateHold&) = delete;
+
+    private:
+        OmnisProcessor& p_;
+        std::unique_lock<std::mutex> lock_;
+    };
+    bool prepared_ = false; ///< setupProcessing a eu lieu (allocations faites)
+    static void passThrough(Steinberg::Vst::ProcessData& data);
     [[nodiscard]] params::LinkRole role() const noexcept { return static_cast<params::LinkRole>(activeRole_.load()); }
     OnePoleSmoother stemGain_;                             ///< gain ordonné par le master
     stems::StemChain stemChain_;

@@ -85,7 +85,9 @@ tresult PLUGIN_API OmnisController::initialize(FUnknown* context) {
 tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue value) {
     const ParamValue before = getParamNormalized(tag);
     const tresult result = EditController::setParamNormalized(tag, value);
-    if (result == kResultOk && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value) {
+    // Pendant setComponentState (projet rechargé), le processeur a déjà son état :
+    // pas de message ni de redémarrage demandé à l'hôte au milieu de son appel.
+    if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value) {
         // Le processeur change de rôle tout de suite (sans attendre une réactivation).
         if (IPtr<IMessage> message = owned(allocateMessage())) {
             message->setMessageID(kRoleMessage);
@@ -166,10 +168,12 @@ tresult PLUGIN_API OmnisController::notify(IMessage* message) {
 tresult PLUGIN_API OmnisController::setComponentState(IBStream* state) {
     // Les paramètres absents de l'état reviennent à leur valeur par défaut,
     // exactement comme côté processeur.
+    loadingState_ = true;
     for (const auto& spec : params::allParameters())
         if (params::isPersistent(spec))
             setParamNormalized(static_cast<ParamID>(spec.id), params::toNormalized(spec, spec.defaultValue));
     const bool ok = readState(state, [this](std::uint32_t id, double value) { setParamNormalized(id, value); });
+    loadingState_ = false;
     return ok ? kResultOk : kResultFalse;
 }
 
