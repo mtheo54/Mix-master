@@ -195,3 +195,73 @@ réglages et l'affichage de ce qui est retiré.
 4. place entre les sons : voix / prod, 808 / kick (sans side-chain à câbler) ;
 5. anti-résonances spectral ; EQ dynamique / spectral par bande ;
 6. éléments d'un bus de drums ; tutoriel.
+
+## 7. Ce qu'on retient des manuels (Gullfoss, KClip, LeMaster) — 25/10
+
+Principes seulement, dits avec nos mots ; rien n'est repris de leur texte ni de leurs
+algorithmes.
+
+**Démasquage perceptif (Gullfoss).** Une EQ qui se recalcule en continu (des centaines de
+fois par seconde) à partir d'un modèle d'audition : elle **remonte** ce qui est caché par
+autre chose et **calme** ce qui prend trop de place, avec un dosage séparé pour chaque côté,
+un curseur qui penche le jugement vers le grave ou l'aigu, des limites de fréquence, et
+surtout une **compensation de sonie** : le résultat est jugé au même volume perçu, sinon
+« plus fort » passe pour « mieux ». Version à faible latence (quelques ms) pour travailler,
+version plus lourde pour l'export ; entrée side-chain pour le travail en stems.
+→ Pour OMNIS : le module **anti-résonances / démasquage** du rack aura deux réglages
+distincts (remonter ce qui est masqué, calmer ce qui domine) au lieu d'un seul « amount »,
+une compensation de sonie intégrée, et le chef d'orchestre lui sert de side-chain sans câble
+(il sait déjà qui gêne qui, §14 de l'architecture).
+
+**Clipper (KClip).** Plusieurs **courbes** de clip (douce, nette, lampe, bande,
+transistors, ampli…) qui changent les harmoniques produites ; un **seuil** et un « adoucir »
+pour arrondir le coude ; **gain d'entrée / sortie liés à l'inverse** pour comparer à volume
+égal ; **multibande** (1 ou 4 bandes, réglages et solo par bande) et **M/S** ; un **mix**
+avec une écoute **delta** (n'entendre que ce que le clip retire) ; un plafond final dur à ne
+pas pousser fort ; une **cible LUFS** qui règle le niveau ; suréchantillonnage plus élevé à
+l'export qu'en temps réel.
+→ Pour OMNIS : **écoute delta** sur chaque module (clip, limiteur, saturation, EQ
+dynamique : « qu'est-ce qu'OMNIS enlève exactement ? ») — c'est la réponse directe à « on
+voit ce qu'OMNIS change » de la vision. Courbes de clip au choix, clip multibande en option,
+lien de gain inverse, cible LUFS, et une qualité d'export supérieure au temps réel.
+
+**Mastering tout-en-un (LeMaster).** Concurrent direct de « OMNIS seul sur le master ». Ce
+qui marche chez lui :
+- **un ou deux gros boutons par module**, toute la complexité cachée (crossovers, temps,
+  seuils) ; chaque module neutre à 0 et avec son interrupteur ;
+- **AUTO** : écoute ~10 s du passage le plus fort (refrain, drop), règle toute la chaîne y
+  compris le gain d'entrée vers une cible « commerciale » ou la signature d'un fichier de
+  référence (sonie, dynamique, largeur, spectre), avec un caractère choisi avant (plus propre
+  / plus percutant) ; tout reste modifiable après ;
+- **calage d'entrée** automatique vers un niveau de travail fixe, avec une transition douce ;
+- **Match** : gain compensé en bout de chaîne, lissé sur quelques secondes, qui clignote pour
+  rappeler qu'il faut l'enlever avant l'export ; **A/B** avec copie A → B ; annuler /
+  rétablir interne ; « enregistrer comme réglage par défaut » ;
+- **écoute simulée** (mono, side seul, portable, téléphone, voiture, home-cinéma), jamais
+  imprimée dans l'export ;
+- **barre de mesures avec verdict coloré** : sonie court terme et intégrée, crête / true
+  peak, dynamique (écart crête – sonie court terme), corrélation de phase, chacune avec un
+  mot clair (calme, bon, fort, trop fort ; plat, dense, punchy ; phase, mono, ok) ;
+- graves en mono sous ~120 Hz, compression « upward » qui remonte les passages calmes,
+  « low end trick » (grave monté + bas-médium légèrement creusé), air en compression
+  parallèle, clip suréchantillonné avant le limiteur, true peak en option, latence affichée
+  en direct et constante.
+→ Pour OMNIS (en gardant **tous** les réglages, que l'utilisateur veut, LeMaster étant jugé
+trop pauvre) :
+- le **rack** affiche par module un gros bouton principal, et les réglages fins se déplient
+  (deux niveaux de lecture : rapide / complet) ;
+- **AUTO** sur le master : capture du passage le plus fort, cible par style (nos signatures
+  de genres) ou fichier de référence, choix propre / percutant ; la barre IA modifie ensuite
+  le résultat avec des mots ;
+- **Match + A/B + annuler** dès la première version de l'interface ; Match qui clignote ;
+- **barre de mesures avec verdicts en mots** (en français, nos propres seuils, calés sur nos
+  mesures de masters) ;
+- **écoute simulée** : mono et side seul tout de suite ; téléphone / portable / voiture par
+  des filtres dessinés par nous (pas de réponses de vrais appareils sans les avoir mesurées
+  légalement nous-mêmes) ;
+- ce que LeMaster n'a pas et qu'OMNIS a : les **stems qui se parlent** (chef d'orchestre),
+  la reconnaissance des éléments, l'explication en mots de chaque retouche, la barre IA.
+
+**Priorités** : inchangées (§6), avec en plus, dans le point « rack + interface » : écoute
+delta par module, Match / A/B / annuler, barre de mesures à verdicts ; et dans « AUTO » :
+capture du passage le plus fort + caractère propre / percutant.
