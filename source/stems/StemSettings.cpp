@@ -167,9 +167,9 @@ StemSettings settingsFor(StemMode mode, Element element, const Character& charac
         s.compRatio = 1.0 + 3.0 * comp;
         s.compDepthDb = 8.0 * comp;
         if (t.compRatio <= 1.0) {
-            const bool drums = family == Family::Drums;
-            s.compAttackMs = drums ? 10.0 : 15.0;
-            s.compReleaseMs = drums ? 100.0 : 150.0;
+            const bool isDrums = family == Family::Drums;
+            s.compAttackMs = isDrums ? 10.0 : 15.0;
+            s.compReleaseMs = isDrums ? 100.0 : 150.0;
         }
         s.saturation = 0.5 * std::clamp(finiteOr(macros.saturation, 0.0), 0.0, 1.0);
         const double clean = std::clamp(finiteOr(macros.clean, 0.0), 0.0, 1.0);
