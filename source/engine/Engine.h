@@ -100,6 +100,11 @@ public:
     template <typename Sample>
     void process(const Sample* const* inputs, Sample* const* outputs, int numSamples) noexcept;
 
+    /// Temps réel : mesure seulement (sonie, crêtes, corrélation) un signal traité
+    /// ailleurs — la sortie d'un stem, qui ne passe pas par la chaîne du master.
+    template <typename Sample>
+    void meterOnly(const Sample* const* channels, int numSamples) noexcept;
+
     /// Latence totale de la chaîne, constante après prepare().
     [[nodiscard]] int latencySamples() const noexcept { return latency_; }
     [[nodiscard]] double sampleRate() const noexcept { return spec_.sampleRate; }
@@ -188,6 +193,23 @@ private:
 };
 
 // -----------------------------------------------------------------------------
+template <typename Sample>
+void Engine::meterOnly(const Sample* const* channels, int numSamples) noexcept {
+    if (!prepared_ || numSamples <= 0) return;
+    for (int offset = 0; offset < numSamples;) {
+        const int n = std::min(numSamples - offset, spec_.maxBlockSize);
+        for (int ch = 0; ch < kNumChannels; ++ch) {
+            double* w = work_.channel(ch);
+            for (int i = 0; i < n; ++i) w[i] = sanitizeInput(static_cast<double>(channels[ch][offset + i]));
+        }
+        double* const* w = work_.channels();
+        loudness_.process(w, n);
+        truePeak_.process(w, n);
+        stereo_.process(w[0], w[1], n);
+        offset += n;
+    }
+}
+
 template <typename Sample>
 void Engine::process(const Sample* const* inputs, Sample* const* outputs, int numSamples) noexcept {
     if (!prepared_ || numSamples <= 0) return;

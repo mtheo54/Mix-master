@@ -207,6 +207,7 @@ void ClipperStage::clipBand(Band& band, const std::vector<double>& gainIn, int n
 
 void ClipperStage::process(double* const* channels, int numSamples) noexcept {
     applyOversamplingChoice();
+    double drivenPeak = 0.0, lastCeiling = 1.0;
 
     for (int i = 0; i < numSamples; ++i) {
         const auto k = static_cast<std::size_t>(i);
@@ -235,6 +236,8 @@ void ClipperStage::process(double* const* channels, int numSamples) noexcept {
         }
         const auto dp = static_cast<std::size_t>(inputDelayPos_);
         const double dl = inputDelay_[0][dp], dr = inputDelay_[1][dp];
+        drivenPeak = std::max(drivenPeak, drive * std::max(std::fabs(dl), std::fabs(dr)));
+        lastCeiling = ceiling;
         inputDelay_[0][dp] = l;
         inputDelay_[1][dp] = r;
         if (++inputDelayPos_ == splitLatency_) inputDelayPos_ = 0;
@@ -282,6 +285,10 @@ void ClipperStage::process(double* const* channels, int numSamples) noexcept {
         if (++roomDelayPos_ == roomLatency_) roomDelayPos_ = 0;
     }
     padding_.process(channels, 2, numSamples);
+    // Afficheur : ce que l'écrêtage a retiré aux crêtes du bloc (approché).
+    double outPeak = 0.0;
+    for (int i = 0; i < numSamples; ++i) outPeak = std::max({outPeak, std::fabs(channels[0][i]), std::fabs(channels[1][i])});
+    lastReductionDb_ = drivenPeak > lastCeiling && outPeak > 0.0 ? std::min(0.0, gainToDb(outPeak / drivenPeak)) : 0.0;
 }
 
 } // namespace omnis

@@ -37,6 +37,11 @@ inline constexpr const char* kAnswerMessage = "omnis.answer";
 inline constexpr const char* kRoleMessage = "omnis.role";
 inline constexpr const char* kRoleAttribute = "role";
 inline constexpr const char* kAnswerKeyAttribute = "key";
+/// Interface : contrôleur -> processeur kFeedRequest ; le processeur répond par
+/// kFeedMessage, attribut entier « token » (plugin/vst3/UiFeed.h).
+inline constexpr const char* kFeedRequest = "omnis.getFeed";
+inline constexpr const char* kFeedMessage = "omnis.feed";
+inline constexpr const char* kFeedAttribute = "token";
 inline constexpr const char* kAnswerAttribute = "answer";
 
 } // namespace omnis::vst3

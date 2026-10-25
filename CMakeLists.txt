@@ -173,6 +173,7 @@ if(OMNIS_BUILD_VST3)
         source/plugin/vst3/OmnisFactory.cpp
         source/plugin/vst3/OmnisIds.h
         source/plugin/vst3/OmnisProcessor.cpp
+        source/plugin/vst3/UiFeed.cpp
         source/plugin/vst3/OmnisProcessor.h
         source/plugin/vst3/OmnisState.cpp
         source/plugin/vst3/OmnisState.h
@@ -186,13 +187,28 @@ if(OMNIS_BUILD_VST3)
     # windows.h (inclus par certains en-têtes système) définit min/max en macros.
     target_compile_definitions(OMNIS PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
     if(OMNIS_BUILD_GUI)
-        target_sources(OMNIS PRIVATE source/plugin/vst3/OmnisEditor.cpp source/plugin/vst3/OmnisEditor.h)
+        target_sources(OMNIS PRIVATE source/plugin/vst3/OmnisEditor.cpp source/plugin/vst3/OmnisEditor.h
+            source/plugin/vst3/gui/Widgets.cpp source/plugin/vst3/gui/Widgets.h source/plugin/vst3/gui/Look.h)
         # vstgui_support (vstguieditor.cpp) appelle pluginfactory.cpp de « sdk » :
         # « sdk » après lui sur la ligne de liens.
         target_link_libraries(OMNIS PRIVATE vstgui_support sdk)
         target_compile_definitions(OMNIS PRIVATE OMNIS_HAS_GUI=1)
         # Textes accentués de l'interface : sources en UTF-8.
         target_compile_options(OMNIS PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+    endif()
+
+    # Rendu de la console hors écran (PNG), pour la vérifier sans DAW (Linux).
+    if(OMNIS_BUILD_GUI AND OMNIS_BUILD_TOOLS AND UNIX AND NOT APPLE)
+        add_executable(omnis_guishot tools/guishot/main.cpp
+            source/plugin/vst3/OmnisProcessor.cpp source/plugin/vst3/OmnisController.cpp source/plugin/vst3/OmnisEditor.cpp
+            source/plugin/vst3/OmnisState.cpp source/plugin/vst3/UiFeed.cpp source/plugin/vst3/gui/Widgets.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/parameterchanges.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/processdata.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/hostclasses.cpp
+            ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/pluginterfacesupport.cpp)
+        target_include_directories(omnis_guishot PRIVATE source)
+        target_compile_definitions(omnis_guishot PRIVATE OMNIS_HAS_GUI=1)
+        target_link_libraries(omnis_guishot PRIVATE omnis_tools_common omnis_core vstgui_support sdk ${CMAKE_DL_LIBS})
     endif()
 
     if(SMTG_MAC)
@@ -290,6 +306,7 @@ if(OMNIS_BUILD_TESTS)
             tests/TestPluginLink.cpp
             tests/TestPluginSlotToggle.cpp
             source/plugin/vst3/OmnisProcessor.cpp
+            source/plugin/vst3/UiFeed.cpp
             source/plugin/vst3/OmnisState.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/common/memorystream.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/parameterchanges.cpp

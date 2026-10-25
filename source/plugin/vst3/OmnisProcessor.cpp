@@ -10,6 +10,9 @@
 #include "ai/ReferenceLibrary.h"
 #include "core/UserDataDir.h"
 #include "engine/MasteringChain.h"
+#include "stages/ClipperStage.h"
+#include "stages/LimiterStage.h"
+#include "stages/MultibandStage.h"
 
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
@@ -80,9 +83,61 @@ OmnisProcessor::OmnisProcessor() {
     for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i)
         normalized_[i].store(params::toNormalized(all[i], all[i].defaultValue), std::memory_order_relaxed);
     lastMeterValues_.fill(-1.0);
+    limiter_ = dynamic_cast<LimiterStage*>(engine_.stage(static_cast<int>(params::Module::Limiter)));
+    clipper_ = dynamic_cast<ClipperStage*>(engine_.stage(static_cast<int>(params::Module::Clipper)));
+    multiband_ = dynamic_cast<MultibandStage*>(engine_.stage(static_cast<int>(params::Module::Multiband)));
+    feedToken_ = registerFeed(feed_);
 }
 
-OmnisProcessor::~OmnisProcessor() { capture_.release(); }
+OmnisProcessor::~OmnisProcessor() {
+    unregisterFeed(feedToken_);
+    capture_.release();
+}
+
+template <typename Sample>
+void OmnisProcessor::feedBlock(Sample** inputs, Sample** outputs, int32 numSamples, bool beforeProcessing) noexcept {
+    if (!feed_->wanted.load(std::memory_order_relaxed)) return;
+    if (beforeProcessing) {
+        for (int c = 0; c < kNumChannels; ++c)
+            for (int32 i = 0; i < numSamples; ++i)
+                inPeak_[static_cast<std::size_t>(c)] = std::max(inPeak_[static_cast<std::size_t>(c)], static_cast<float>(std::fabs(inputs[c][i])));
+        return;
+    }
+    std::array<float, 512> chunk;
+    for (int32 i = 0; i < numSamples;) {
+        const int32 n = std::min<int32>(numSamples - i, static_cast<int32>(chunk.size() / 2));
+        for (int32 k = 0; k < n; ++k) {
+            const auto l = static_cast<float>(outputs[0][i + k]), r = static_cast<float>(outputs[1][i + k]);
+            chunk[static_cast<std::size_t>(2 * k)] = l;
+            chunk[static_cast<std::size_t>(2 * k + 1)] = r;
+            outPeak_[0] = std::max(outPeak_[0], std::fabs(l));
+            outPeak_[1] = std::max(outPeak_[1], std::fabs(r));
+        }
+        if (feed_->scope.freeSpace() >= static_cast<std::size_t>(2 * n)) feed_->scope.push(chunk.data(), static_cast<std::size_t>(2 * n));
+        i += n;
+    }
+}
+
+void OmnisProcessor::publishFeed() noexcept {
+    if (!feed_->wanted.load(std::memory_order_relaxed)) return;
+    UiMeters& m = feed_->meters.writeBuffer();
+    const auto db = [](float g) { return g > 1.0e-6f ? 20.0f * std::log10(g) : -120.0f; };
+    for (int c = 0; c < 2; ++c) {
+        m.inPeakDb[c] = db(inPeak_[static_cast<std::size_t>(c)]);
+        m.outPeakDb[c] = db(outPeak_[static_cast<std::size_t>(c)]);
+    }
+    inPeak_ = {};
+    outPeak_ = {};
+    const bool stem = role() == params::LinkRole::Stem;
+    m.limiterGrDb = limiter_ && !stem ? static_cast<float>(limiter_->gainReductionDb()) : 0.0f;
+    m.clipperGrDb = clipper_ && !stem ? static_cast<float>(clipper_->reductionDb()) : 0.0f;
+    for (int b = 0; b < 4; ++b) m.multibandGrDb[b] = multiband_ && !stem ? static_cast<float>(multiband_->gainReductionDb(b)) : 0.0f;
+    m.gainMatchDb = static_cast<float>(engine_.gainMatchDb());
+    m.latencyMs = static_cast<float>(1000.0 * getLatencySamples() / std::max(1.0, sampleRate_));
+    m.samplePeakMaxDb = static_cast<float>(engine_.meters().samplePeakDb);
+    ++m.sequence;
+    feed_->meters.publish();
+}
 
 OmnisProcessor::GateHold::GateHold(OmnisProcessor& p) : p_(p), lock_(p.gateMutex_) {
     p_.gateClosed_.store(true, std::memory_order_seq_cst);
@@ -189,6 +244,7 @@ tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
     }
     pendingState_.store(false, std::memory_order_relaxed);
     sampleRate_ = setup.sampleRate;
+    feed_->sampleRate.store(setup.sampleRate);
     meterIntervalSamples_ = std::max(1, static_cast<int>(setup.sampleRate / 30.0)); // ~30 Hz
     meterCountdown_ = 0;
     prepared_ = true;
@@ -251,6 +307,14 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
         if (IPtr<IMessage> reply = owned(allocateMessage())) {
             reply->setMessageID(kProposalsMessage);
             reply->getAttributes()->setBinary(kProposalsAttribute, text.data(), static_cast<uint32>(text.size()));
+            sendMessage(reply);
+        }
+        return kResultOk;
+    }
+    if (id == kFeedRequest) {
+        if (IPtr<IMessage> reply = owned(allocateMessage())) {
+            reply->setMessageID(kFeedMessage);
+            reply->getAttributes()->setInt(kFeedAttribute, static_cast<int64>(feedToken_));
             sendMessage(reply);
         }
         return kResultOk;
@@ -414,6 +478,7 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
     if (meterCountdown_ > 0) return;
     meterCountdown_ += meterIntervalSamples_;
     if (meterCountdown_ <= 0) meterCountdown_ = meterIntervalSamples_;
+    publishFeed();
 
     const MeterReadout readout = engine_.meters();
     for (std::size_t i = 0; i < kMeterIds.size(); ++i) {
@@ -488,6 +553,8 @@ void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSam
     }
     // Ce qui part vers le mix, et donc ce que le master doit entendre.
     if (endpoint) endpoint->writeAudio(outputs[0], outputs[1], numSamples, position, playing);
+    // Les mesures de l'interface portent sur la sortie de la piste.
+    engine_.meterOnly(outputs, numSamples);
 }
 
 tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
@@ -552,11 +619,15 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
         }
     }
 
+    if (is64) feedBlock(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, true);
+    else feedBlock(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, true);
     if (role() == params::LinkRole::Stem) {
         if (data.symbolicSampleSize == kSample64)
             processStem(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, data.processContext);
         else
             processStem(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, data.processContext);
+        if (is64) feedBlock(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, false);
+        else feedBlock(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, false);
         data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
         publishMeters(data.outputParameterChanges, data.numSamples);
         return kResultOk;
@@ -566,6 +637,8 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
         processSegments(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples);
     else
         processSegments(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples);
+    if (is64) feedBlock(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, false);
+    else feedBlock(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, false);
 
     // Les étages ont des états (latence, enveloppes) : la sortie n'est jamais
     // déclarée silencieuse même si l'entrée l'est.

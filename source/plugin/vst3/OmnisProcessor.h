@@ -44,6 +44,7 @@
 #include "link/LinkClient.h"
 #include "params/Parameters.h"
 #include "stems/StemChain.h"
+#include "UiFeed.h"
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
 
@@ -52,6 +53,12 @@
 #include <mutex>
 #include <string>
 #include <vector>
+
+namespace omnis {
+class LimiterStage;
+class ClipperStage;
+class MultibandStage;
+} // namespace omnis
 
 namespace omnis::vst3 {
 
@@ -154,6 +161,17 @@ private:
     static constexpr int kMaxEvents = 2048;
     std::array<ParamEvent, kMaxEvents> events_{};
     int numEvents_ = 0;
+
+    // Interface (UiFeed) : mesures des modules et échantillons de sortie.
+    std::shared_ptr<UiFeed> feed_ = std::make_shared<UiFeed>();
+    std::uint64_t feedToken_ = 0;
+    std::array<float, 2> inPeak_{}, outPeak_{};
+    omnis::LimiterStage* limiter_ = nullptr;
+    omnis::ClipperStage* clipper_ = nullptr;
+    omnis::MultibandStage* multiband_ = nullptr;
+    template <typename Sample>
+    void feedBlock(Sample** inputs, Sample** outputs, Steinberg::int32 numSamples, bool beforeProcessing) noexcept;
+    void publishFeed() noexcept;
 
     bool transportWasPlaying_ = false;
     int meterIntervalSamples_ = 1600;

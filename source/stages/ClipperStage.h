@@ -94,6 +94,9 @@ public:
     /// Longueur du FIR de séparation (résolution ~5 Hz) et taille de partition.
     static int splitKernelLengthFor(double sampleRate) noexcept;
 
+    /// Réduction des crêtes du dernier bloc (dB, <= 0), pour les afficheurs.
+    [[nodiscard]] double reductionDb() const noexcept { return lastReductionDb_; }
+
 private:
     using SplitBank = dsp::FirKernelBank<SplitKernelRequest, SplitKernelDesigner>;
 
@@ -109,6 +112,7 @@ private:
     void clipBand(Band& band, const std::vector<double>& gainIn, int numSamples) noexcept;
 
     double sampleRate_ = 48000.0;
+    double lastReductionDb_ = 0.0;
     bool realtime_ = false;
     int latency_ = 0;
     int splitLatency_ = 0;

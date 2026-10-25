@@ -24,11 +24,15 @@
 #include "pluginterfaces/vst/ivstchannelcontextinfo.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
 
+#include <array>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace omnis::vst3 {
+
+class UiFeed;
 
 class OmnisController : public Steinberg::Vst::EditController, public Steinberg::Vst::ChannelContext::IInfoListener {
 public:
@@ -60,6 +64,32 @@ public:
     [[nodiscard]] const std::vector<ProposalLine>& pendingProposals() const noexcept { return pending_; }
     [[nodiscard]] const std::vector<ProposalLine>& appliedCorrections() const noexcept { return applied_; }
 
+    /// Interface : demande le flux du processeur (mesures des modules, sortie).
+    void requestFeed();
+    [[nodiscard]] std::shared_ptr<UiFeed> feed() const { return feed_; }
+
+    /// Réglage d'un paramètre par l'interface (beginEdit / performEdit / endEdit).
+    void editParameter(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue normalized);
+    void beginGesture(Steinberg::Vst::ParamID id) { beginEdit(id); }
+    void performGesture(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue normalized);
+    void endGesture(Steinberg::Vst::ParamID id) { endEdit(id); }
+
+    /// Barre IA : la demande en texte libre ; renvoie ce qu'OMNIS a compris et fait.
+    std::string ask(const std::string& request);
+    /// AUTO : écoute du passage le plus fort, puis réglage de la chaîne.
+    void startAuto();
+    /// Tutoriel : relancer depuis le bouton « ? ».
+    void restartTutorial();
+
+    /// Mémoires A / B : deux réglages complets, gardés avec la session.
+    [[nodiscard]] int abSlot() const noexcept { return abSlot_; }
+    void selectAB(int slot);
+    void copyABToOther();
+
+    /// Contrôleur seul (A / B) : gardé par l'hôte avec la session.
+    Steinberg::tresult PLUGIN_API setState(Steinberg::IBStream* state) override;
+    Steinberg::tresult PLUGIN_API getState(Steinberg::IBStream* state) override;
+
     OBJ_METHODS(OmnisController, EditController)
     DEFINE_INTERFACES
         DEF_INTERFACE(Steinberg::Vst::ChannelContext::IInfoListener)
@@ -69,6 +99,11 @@ public:
 private:
     std::vector<ProposalLine> pending_, applied_;
     bool loadingState_ = false; ///< dans setComponentState
+    std::shared_ptr<UiFeed> feed_;
+    std::array<std::vector<std::pair<std::uint32_t, double>>, 2> ab_;
+    int abSlot_ = 0;
+    [[nodiscard]] std::vector<std::pair<std::uint32_t, double>> snapshot();
+    void apply(const std::vector<std::pair<std::uint32_t, double>>& values);
 };
 
 } // namespace omnis::vst3

@@ -6,16 +6,19 @@
 
 #include "OmnisIds.h"
 #include "OmnisState.h"
+#include "UiFeed.h"
 
 #include "params/Parameters.h"
 
 #include "public.sdk/source/vst/utility/stringconvert.h"
 #include "public.sdk/source/vst/vstparameters.h"
+#include "base/source/fstreamer.h"
 
 #ifdef OMNIS_HAS_GUI
 #include "OmnisEditor.h"
 #endif
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <sstream>
@@ -141,7 +144,105 @@ void OmnisController::answerProposal(std::uint32_t key, int answer) {
     sendMessage(message);
 }
 
+std::string OmnisController::ask(const std::string& request) {
+    (void)request;
+    return "La barre IA arrive : elle lira ta demande et réglera la chaîne.";
+}
+
+void OmnisController::startAuto() {}
+
+void OmnisController::restartTutorial() {}
+
+void OmnisController::requestFeed() {
+    IPtr<IMessage> message = owned(allocateMessage());
+    if (!message) return;
+    message->setMessageID(kFeedRequest);
+    sendMessage(message);
+}
+
+void OmnisController::editParameter(ParamID id, ParamValue normalized) {
+    beginEdit(id);
+    performGesture(id, normalized);
+    endEdit(id);
+}
+
+void OmnisController::performGesture(ParamID id, ParamValue normalized) {
+    setParamNormalized(id, normalized);
+    performEdit(id, getParamNormalized(id));
+}
+
+std::vector<std::pair<std::uint32_t, double>> OmnisController::snapshot() {
+    std::vector<std::pair<std::uint32_t, double>> out;
+    for (const auto& spec : params::allParameters())
+        if (params::isPersistent(spec)) out.emplace_back(static_cast<std::uint32_t>(spec.id), getParamNormalized(static_cast<ParamID>(spec.id)));
+    return out;
+}
+
+void OmnisController::apply(const std::vector<std::pair<std::uint32_t, double>>& values) {
+    for (const auto& [id, v] : values) {
+        // Le rôle et le groupe tiennent à la place de l'instance dans le projet : pas dans A / B.
+        if (id == static_cast<std::uint32_t>(params::ParamId::LinkRole) || id == static_cast<std::uint32_t>(params::ParamId::LinkGroup) ||
+            id == static_cast<std::uint32_t>(params::ParamId::LinkStemKind))
+            continue;
+        if (getParamNormalized(id) != v) editParameter(id, v);
+    }
+}
+
+void OmnisController::selectAB(int slot) {
+    slot = slot != 0 ? 1 : 0;
+    if (slot == abSlot_) return;
+    ab_[static_cast<std::size_t>(abSlot_)] = snapshot();
+    abSlot_ = slot;
+    // Première visite de B : il part du réglage de A.
+    if (ab_[static_cast<std::size_t>(slot)].empty()) ab_[static_cast<std::size_t>(slot)] = ab_[static_cast<std::size_t>(1 - slot)];
+    apply(ab_[static_cast<std::size_t>(slot)]);
+}
+
+void OmnisController::copyABToOther() { ab_[static_cast<std::size_t>(1 - abSlot_)] = snapshot(); }
+
+tresult PLUGIN_API OmnisController::setState(IBStream* state) {
+    if (!state) return kResultFalse;
+    IBStreamer s(state, kLittleEndian);
+    int32 version = 0, slot = 0;
+    if (!s.readInt32(version) || version != 1 || !s.readInt32(slot)) return kResultOk; // ancien état : rien à relire
+    abSlot_ = slot != 0 ? 1 : 0;
+    for (auto& mem : ab_) {
+        mem.clear();
+        int32 count = 0;
+        if (!s.readInt32(count) || count < 0 || count > 4096) return kResultOk;
+        for (int32 i = 0; i < count; ++i) {
+            uint32 id = 0;
+            double v = 0.0;
+            if (!s.readInt32u(id) || !s.readDouble(v)) return kResultOk;
+            if (params::findParameter(id)) mem.emplace_back(id, std::clamp(v, 0.0, 1.0));
+        }
+    }
+    return kResultOk;
+}
+
+tresult PLUGIN_API OmnisController::getState(IBStream* state) {
+    if (!state) return kResultFalse;
+    ab_[static_cast<std::size_t>(abSlot_)] = snapshot();
+    IBStreamer s(state, kLittleEndian);
+    s.writeInt32(1);
+    s.writeInt32(abSlot_);
+    for (const auto& mem : ab_) {
+        s.writeInt32(static_cast<int32>(mem.size()));
+        for (const auto& [id, v] : mem) {
+            s.writeInt32u(id);
+            s.writeDouble(v);
+        }
+    }
+    return kResultOk;
+}
+
 tresult PLUGIN_API OmnisController::notify(IMessage* message) {
+    if (message && message->getMessageID() && std::string_view(message->getMessageID()) == kFeedMessage) {
+        int64 token = 0;
+        if (message->getAttributes() && message->getAttributes()->getInt(kFeedAttribute, token) == kResultTrue)
+            feed_ = findFeed(static_cast<std::uint64_t>(token));
+        return kResultOk;
+    }
     if (!message || !message->getMessageID() || std::string_view(message->getMessageID()) != kProposalsMessage)
         return EditController::notify(message);
     const void* data = nullptr;
