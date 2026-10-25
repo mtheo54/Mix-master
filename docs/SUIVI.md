@@ -135,21 +135,27 @@ pro, intuitif ; drums d'un bus travaillés élément par élément).
    tolérée ; plus de redémarrage demandé à l'hôte au milieu de setComponentState.
    Test `tests/TestPluginSlotToggle.cpp` (Seul, master + stem liés, changements de rôle
    en route) : plante l'ancien code sous ASan, propre avec le correctif sous ASan et TSan.
-2. **Refaire l'interface proprement** d'après la maquette console v11 (artefact, « juste
-   magnifique » selon l'utilisateur) : modules usinés, colonne Master, courbe de l'Inflator.
-   L'interface actuelle reste la version mini. PAS la simplicité de LeMaster (jugé trop
-   pauvre en réglages, « ne fait pas toujours le taf ») : garder TOUS les réglages de la
-   console, module par module, pour choisir précisément ce qu'on modifie. Objectif de
-   l'utilisateur : ~98 % de la qualité d'un vrai mix / master pro. Reprendre de LeMaster
-   seulement : bouton AUTO, A/B, Match, mesures lisibles en bas.
-3. **La barre de demande à l'IA** dans le plug-in : texte libre (FR / EN / argot), le master
-   écoute la prod, la demande devient des réglages (Match EQ, multibande, Inflator, limiteur)
-   comme `omnis_match`.
-4. **OMNIS seul sur le master, sans stems** : beaucoup le poseront juste en fin de chaîne.
-   Il doit alors masteriser la prod entière tout seul (écoute de la prod, barre IA,
-   références), sans rien exiger des stems. Le mode Stems reste un plus.
-5. **Tutoriel à la première ouverture** : partie par partie (rôles et groupes, stems,
-   master, chef d'orchestre, barre IA), passable, relançable depuis un bouton « ? ».
+2. ~~Refaire l'interface~~ **Fait le 25/10** : console v11 complète (rack, tiroir avec TOUS
+   les réglages, écrans, colonne Master, mesures à verdict, A / B, Match, Delta, guide).
+   Moteur : modules ON / OFF, ordre du rack, Delta, Gain Match ; limiteur Punch / upward /
+   lien stéréo (le relief qui manquait face à Ozone : +1 dB de PLR à Punch 100 %).
+3. ~~Barre IA~~ **Fait** : demande -> modules, volume mené par la mesure.
+4. ~~OMNIS seul sur le master~~ **Fait** : AUTO (passage le plus fort, style de la base).
+5. ~~Tutoriel~~ **Fait** : 10 étapes, « ? ».
+6. **Bus de drums** : kick / snare / hats / open hat reconnus, travaillés, nommés (fait).
+
+**À vérifier par l'utilisateur dans FL Studio** (rien de tout ça n'a pu être écouté ici) :
+le bouton du slot (plus de plantage attendu), la console sous Windows (polices Segoe UI /
+Consolas, rendu Direct2D), glisser un module, la barre IA sur une vraie prod, AUTO, le guide,
+et ce qu'OMNIS dit de son bus de drums (est-ce juste ?).
+
+**CI** : en échec depuis le 24/10 au soir en 2 s, sans journal, même pour des commits de
+documentation : minutes GitHub Actions épuisées (pas le code). Elle reviendra avec le
+nouveau mois ; d'ici là, construire sous Windows avec Visual Studio Build Tools (README).
+
+**Encore à faire** : AU pour Logic ; anti-résonances spectral ; EQ dynamique par bande dans le
+rack ; écoute simulée téléphone / voiture ; aperçu MP3 ; la voix et la prod ensemble ; Punch
+réglé à l'oreille sur de vraies prods.
 
 Compréhension corrigée (25/10) : dans « la 808 est trop dirty », la 808 dit seulement OÙ
 agir (« là où agir »), elle ne reçoit plus de sub en plus ; « la 808 est trop forte » la

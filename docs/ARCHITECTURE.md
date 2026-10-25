@@ -353,3 +353,39 @@ mesures portent toujours sur la vraie sortie.
   à −40 dBFS monte de ~6,5 dB avec 8 dB, la crête du refrain ne bouge pas.
 - **Lien stéréo** séparé pour les attaques et le soutenu (`lim_unlink_tr`, `lim_unlink_su`) :
   chaque canal reçoit r·(r_c / r)^u ≤ r_c, la garantie brickwall tient canal par canal.
+
+## 16. La console (`plugin/vst3/OmnisEditor`, `gui/`, `UiFeed`)
+
+**Interface.** VSTGUI dessinée en code d'après la maquette console v11 (1200 × 750) : rubans
+(transport, barre IA), rack de 7 modules au format 500, tiroir (tous les réglages | écran du
+module), écrans (analyseur 1/6 d'octave pente +4,5 dB/oct, goniomètre), colonne Master. Les
+pièces (`gui/Widgets`) lisent leur état par des fonctions et ne se redessinent que quand il
+change (minuterie à 30 Hz). Cercles par chemins : le `drawEllipse` du VSTGUI Linux a la
+mauvaise échelle. `omnis_guishot` rend chaque page en PNG (vrai processeur sur une boucle de
+test, vrai contrôleur) pour vérifier l'interface sans DAW.
+
+**UiFeed.** Le processeur inscrit son flux dans un registre du processus et donne le jeton au
+contrôleur par message : mesures des modules (réductions limiteur / clipper / multibande,
+crêtes, Gain Match, latence) en triple tampon, sortie entrelacée en file SPSC pour le spectre
+et le goniomètre (copiée seulement interface ouverte), et `ProdListener`.
+
+**Barre IA et AUTO.** `engine/ProdListener` écoute l'entrée du master pendant la lecture
+(signature, jamais d'audio) et, pour AUTO, 10 s du passage que la personne joue.
+`ai/ConsoleActions` transforme la demande comprise en réglages (Match EQ, Punch, upward +
+glue, Inflator, clip, Imager) et en sonie à viser ; le contrôleur pousse le limiteur pas à pas
+en lisant la sonie court terme de la sortie jusqu'à la cible (±0,4 LU).
+
+**A / B** dans l'état du contrôleur (rôle, groupe et élément exclus). **Guide** : 10 étapes,
+fichier `tutoriel_vu.txt` dans le dossier de l'utilisateur.
+
+## 17. Le bus de drums (`stems/DrumBus`)
+
+Quatre zones (grave < 120 Hz, corps ~250 Hz, claquement ~2,5 kHz, cymbales > 7 kHz) en
+trames de ~5 ms ; un coup = +6 dB sur les 40 ms d'avant, à moins de 30 dB de la zone la plus
+forte. Chaque coup est jugé sur 15 ms par ce qui MONTE dans chaque zone (la queue d'un kick
+qui sonne encore ne compte pas) : kick (grave dominant, audible : à moins de 24 dB du plus
+fort du bus), snare / clap (corps + claquement), hat (cymbales sans corps ; open s'il met
+plus de 150 ms à retomber de 15 dB). Présent après 4 coups. Chaîne du bus : kick mono sous
+150 Hz, snare +8 % de largeur (sauf bus déjà large), dureté des cymbales calmée vers 7 kHz
+(6,5 kHz pour un open hat). Sur le DRUMS de l'utilisateur : 168 kicks, 363 snares / claps,
+145 hats, 44 open hats ; sur un bus sans grave : pas de kick.

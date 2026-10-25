@@ -248,9 +248,34 @@ affiche déjà en temps réel. La sonie intégrée repart de zéro à chaque lan
    pas : installer *Microsoft Visual C++ Redistributable 2015–2022 (x64)*.
 4. Master : *Rôle* Master. Pistes : *Rôle* Stem, même *Groupe*, *Mode* Auto.
 
-L'interface (VSTGUI, Windows et macOS) : rôle et groupe, la piste (mode, élément, élément
-reconnu, doses), le master (mesures, réglages principaux) et le chef d'orchestre (propositions
-une à une, Oui / Non, retouches en place, Annuler).
+**Sans la CI** (les minutes GitHub Actions du mois épuisées : l'exécution échoue en 2 s sans
+journal), on construit OMNIS soi-même, gratuitement :
+1. Installer *Visual Studio Build Tools 2022* (gratuit, charge « Développement Desktop en C++ »),
+   *CMake* et *Git*.
+2. Dans « x64 Native Tools Command Prompt » :
+   `git clone` du dépôt, puis
+   `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` et
+   `cmake --build build --config Release --target OMNIS`.
+3. Le plug-in est dans `build\VST3\Release\OMNIS.vst3` : le copier comme à l'étape 2.
+
+### La console ([détails](docs/ARCHITECTURE.md#16-la-console))
+
+- **Ruban du haut** : AUTO (joue le passage le plus fort : OMNIS écoute 10 s et règle la
+  chaîne vers ton style), A / B / copie, BYPASS, MATCH (écoute au même volume que l'original,
+  clignote), DELTA (n'entendre que ce que le module ouvert change), Stéréo / Mid / Side, « ? »
+  (le guide), latence.
+- **Barre IA** : écris ta demande (« plus de punch, garde ma 808 », « genre rage », « moins
+  boueux »…). OMNIS écoute la prod, règle les modules, mène le volume à la cible et dit ce
+  qu'il a fait.
+- **Rack** : 7 modules (Sub, Match EQ, Inflator, Imager, Multiband, Clipper, Limiter), chacun
+  avec son gros bouton, son voyant ON et son état. Clic : ouvrir. Glisser par le nom :
+  changer l'ordre.
+- **Tiroir** : TOUS les réglages du module ouvert et son écran (nœuds du Match EQ et
+  séparations du multibande à glisser, courbes, réductions).
+- **Colonne Master** : entrée / sortie, bargraphe, mesures avec leur verdict en mots, rôle,
+  groupe, stems liés, pages Chef d'orchestre et Piste (stem : élément reconnu, et dans un bus
+  de drums chaque élément nommé avec ce qui en est fait).
+- **Guide** à la première ouverture (10 étapes), relancé par « ? ».
 
 ## Compilation
 
