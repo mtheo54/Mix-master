@@ -322,3 +322,34 @@ refusée, elle n'est plus reproposée.
 
 Sur la prod de l'utilisateur (808, DRUMS, MELO) : aucune proposition, à raison : aux moments où la
 808 joue, la mélo est 28 dB sous elle à 100–150 Hz. `omnis_stems` donne ce bilan bande par bande.
+
+## 15. Le rack (`engine/Engine`) et le limiteur complet (`stages/LimiterStage`)
+
+**Modules allumés / éteints.** Chaque étage a son interrupteur (`sub_on`, `match_on`,
+`infl_on`, `img_on`, `mb_on`, `clip_on`, `lim_on`). Éteint, il rend son entrée retardée de
+sa propre latence : la latence totale ne change jamais, et tout éteint = entrée retardée au
+bit près. Le passage se fait en 20 ms, l'étage continue de tourner (il reste chaud).
+
+**Ordre du rack.** `chain_order` est le rang (0 … 5039) d'une permutation des 7 modules
+(code de Lehmer ; 0 = ordre d'origine). Paramètre caché, sans automation : l'interface le
+règle quand on glisse un module. En route : fondu vers le son sec, permutation, attente
+d'une latence complète (les étages oublient l'ancien ordre), retour en 30 ms.
+
+**Écoute Delta.** `delta` = un module : on n'entend que ce qu'il change (sa sortie moins
+son entrée retardée), retardé de la latence des modules qui le suivent pour rester calé.
+**Gain Match.** La sortie écoutée est ramenée à la sonie court terme de l'entrée (lissée
+sur ~1,5 s). Les deux sont des outils d'écoute : jamais gardés dans la session, et les
+mesures portent toujours sur la vraie sortie.
+
+**Limiteur.** Avant la détection, deux étages neutres à 0 :
+- **Punch** : un suiveur rapide (0,3 / 15 ms) et un lent (20 / 120 ms) du niveau lié,
+  chacun maintenu 25 ms avant de relâcher (une 808 tenue n'est pas modulée : distorsion
+  < −60 dB sur un 50 Hz). Gain = (rapide / lent)^(2,5·Punch), borné à ±9 dB : attaques
+  montées, queues baissées. Le limiteur remet les crêtes au plafond : sur la boucle de
+  drums à +9 dB, Punch 100 % donne +1 dB d'écart crête / sonie (le relief qu'Ozone avait
+  de plus, §5 de la recherche), au prix d'autant de sonie.
+- **Upward** : les passages calmes montent jusqu'à `lim_upward` dB, selon leur niveau RMS
+  sous le plafond (rien à moins de 12 dB, tout à 36 dB dessous, rien sous −70) : un couplet
+  à −40 dBFS monte de ~6,5 dB avec 8 dB, la crête du refrain ne bouge pas.
+- **Lien stéréo** séparé pour les attaques et le soutenu (`lim_unlink_tr`, `lim_unlink_su`) :
+  chaque canal reçoit r·(r_c / r)^u ≤ r_c, la garantie brickwall tient canal par canal.

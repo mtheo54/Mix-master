@@ -17,6 +17,16 @@
 //          ──► matrice de monitoring (Stéréo / Mid / Side, lissée)
 //          ──► conversion vers le format hôte
 //
+//  Rack : chaque étage a son interrupteur (paramètre « … Module ») : éteint,
+//  il rend son entrée retardée de sa propre latence (bit-exact, fondu de 20 ms,
+//  l'étage continue de tourner pour rester chaud). L'ordre des étages
+//  (ChainOrder, rang d'une permutation) change en passant brièvement au son
+//  sec : fondu, permutation, attente d'une latence complète, retour.
+//  Écoute Delta d'un module : seulement ce qu'il change (sa sortie moins son
+//  entrée), alignée sur la fin de la chaîne. Gain Match : la sortie écoutée est
+//  ramenée à la sonie court terme de l'entrée (lissée) ; ni l'un ni l'autre
+//  ne touche aux mesures.
+//
 //  Le bypass est donc aligné en temps (null-test parfait entre sec et traité
 //  neutre) et commuté sans clic. Les étages continuent de tourner en bypass :
 //  leurs états (enveloppes, historiques FIR) restent chauds, ce qui évite tout
@@ -62,8 +72,9 @@ public:
     Engine(const Engine&) = delete;
     Engine& operator=(const Engine&) = delete;
 
-    /// Non temps réel, avant prepare(). L'ordre d'ajout est l'ordre de la chaîne.
-    void appendStage(std::unique_ptr<Stage> stage);
+    /// Non temps réel, avant prepare(). L'ordre d'ajout est l'ordre de la chaîne
+    /// par défaut ; `onParameter` : l'interrupteur de l'étage (aucun : toujours allumé).
+    void appendStage(std::unique_ptr<Stage> stage, params::ParamId onParameter = params::ParamId::Bypass);
     [[nodiscard]] int numStages() const noexcept { return static_cast<int>(stages_.size()); }
 
     /// Non temps réel, avant prepare(). Défaut : false (rendu hors ligne
@@ -114,6 +125,12 @@ public:
     /// Accès en lecture aux mesureurs (outils hors ligne, tests).
     [[nodiscard]] const analysis::LoudnessMeter& loudnessMeter() const noexcept { return loudness_; }
 
+    /// Ordre courant des étages (indices d'ajout), et écart de sonie compensé par Gain Match (dB).
+    [[nodiscard]] const std::vector<int>& stageOrder() const noexcept { return order_; }
+    [[nodiscard]] double gainMatchDb() const noexcept { return gainToDbSafe(matchGain_.current()); }
+    /// Un étage par son nom (outils, interface) : nullptr si absent.
+    [[nodiscard]] Stage* stage(int index) noexcept { return index >= 0 && index < numStages() ? stages_[static_cast<std::size_t>(index)].get() : nullptr; }
+
 private:
     void applyParameter(params::ParamId id, double plainValue, bool immediate) noexcept;
     void processChunk(int numSamples) noexcept;
@@ -121,7 +138,33 @@ private:
     static void applyGain(OnePoleSmoother& gain, double* const* channels, int numSamples) noexcept;
     void applyMonitorMatrix(int numSamples) noexcept;
     void setMonitorTargets(int mode, bool immediate) noexcept;
+    void updateReorder(int n) noexcept;
+    void updateDelta() noexcept;
+    static double gainToDbSafe(double g) noexcept { return g > 0.0 ? 20.0 * std::log10(g) : -120.0; }
 
+    /// Un emplacement du rack : l'interrupteur et le chemin sec de l'étage.
+    struct Slot {
+        params::ParamId onId = params::ParamId::Bypass;
+        OnePoleSmoother on;
+        DelayLine dry;
+        int latency = 0;
+    };
+    std::vector<Slot> slots_;
+    std::vector<int> order_;      ///< indices d'étages dans l'ordre de traitement
+    std::vector<int> wantedOrder_;
+    OnePoleSmoother orderMix_;    ///< 0 pendant une permutation
+    int orderHold_ = 0;           ///< échantillons de son sec restants après permutation
+    AudioBuffer stageIn_;         ///< entrée retardée de l'étage courant
+    // Delta : 0 = éteint, sinon 1 + indice d'étage.
+    int deltaWanted_ = 0, deltaActive_ = 0;
+    OnePoleSmoother deltaMix_;
+    AudioBuffer delta_;
+    DelayLine deltaDelay_;
+    // Gain Match.
+    bool gainMatch_ = false;
+    analysis::LoudnessMeter inputLoudness_;
+    OnePoleSmoother matchGain_;
+    OnePoleSmoother matchMix_;
     ProcessSpec spec_{};
     bool prepared_ = false;
     int latency_ = 0;

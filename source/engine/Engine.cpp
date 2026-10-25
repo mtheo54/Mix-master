@@ -6,6 +6,7 @@
 
 #include "../core/Decibels.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
@@ -36,9 +37,15 @@ Engine::Engine() {
 
 Engine::~Engine() = default;
 
-void Engine::appendStage(std::unique_ptr<Stage> stage) {
+void Engine::appendStage(std::unique_ptr<Stage> stage, ParamId onParameter) {
     assert(!prepared_ && "appendStage() doit précéder prepare()");
-    if (stage) stages_.push_back(std::move(stage));
+    if (!stage) return;
+    stages_.push_back(std::move(stage));
+    slots_.emplace_back();
+    slots_.back().onId = onParameter;
+    slots_.back().on.snapTo(onParameter == ParamId::Bypass ? 1.0 : (defaultFor(onParameter) >= 0.5 ? 1.0 : 0.0));
+    order_.push_back(static_cast<int>(stages_.size()) - 1);
+    wantedOrder_ = order_;
 }
 
 void Engine::setRealtimeMode(bool realtime) noexcept {
@@ -52,15 +59,36 @@ void Engine::prepare(double sampleRate, int maxBlockSize) {
     spec_.numChannels = kNumChannels;
 
     latency_ = 0;
-    for (auto& stage : stages_) {
-        stage->prepare(spec_);
-        latency_ += stage->latencySamples();
+    for (std::size_t k = 0; k < stages_.size(); ++k) {
+        stages_[k]->prepare(spec_);
+        Slot& slot = slots_[k];
+        slot.latency = stages_[k]->latencySamples();
+        latency_ += slot.latency;
+        slot.dry.prepare(kNumChannels, slot.latency);
+        slot.dry.setDelay(slot.latency);
+        slot.on.prepare(sampleRate, 20.0);
+        slot.on.snapTo(slot.on.target());
     }
 
     work_.allocate(kNumChannels, spec_.maxBlockSize);
     dry_.allocate(kNumChannels, spec_.maxBlockSize);
+    stageIn_.allocate(kNumChannels, spec_.maxBlockSize);
+    delta_.allocate(kNumChannels, spec_.maxBlockSize);
     dryDelay_.prepare(kNumChannels, latency_);
     dryDelay_.setDelay(latency_);
+    deltaDelay_.prepare(kNumChannels, latency_);
+    orderMix_.prepare(sampleRate, 30.0);
+    orderMix_.snapTo(1.0);
+    orderHold_ = 0;
+    order_ = wantedOrder_;
+    deltaMix_.prepare(sampleRate, 20.0);
+    deltaMix_.snapTo(0.0);
+    deltaActive_ = 0;
+    inputLoudness_.prepare(sampleRate, kNumChannels);
+    matchGain_.prepare(sampleRate, 1500.0);
+    matchGain_.snapTo(1.0);
+    matchMix_.prepare(sampleRate, 50.0);
+    matchMix_.snapTo(gainMatch_ ? 1.0 : 0.0);
 
     const auto prepareSmoother = [&](OnePoleSmoother& s, ParamId id) {
         s.prepare(sampleRate, smoothingMsFor(id));
@@ -84,6 +112,11 @@ void Engine::reset() noexcept {
     dry_.clear();
     dryDelay_.reset();
     for (auto& stage : stages_) stage->reset();
+    for (auto& slot : slots_) slot.dry.reset();
+    stageIn_.clear();
+    delta_.clear();
+    deltaDelay_.reset();
+    inputLoudness_.reset();
     loudness_.reset();
     truePeak_.reset();
     stereo_.reset();
@@ -133,9 +166,31 @@ void Engine::applyParameter(ParamId id, double plainValue, bool immediate) noexc
         case ParamId::InputGain: inputGain_.setTarget(dbToGain(plainValue)); break;
         case ParamId::OutputGain: outputGain_.setTarget(dbToGain(plainValue)); break;
         case ParamId::Monitor: setMonitorTargets(static_cast<int>(plainValue), false); break;
-        default:
-            for (auto& stage : stages_) stage->setParameter(id, plainValue, immediate);
+        case ParamId::ChainOrder: {
+            // L'ordre ne vaut que pour la chaîne complète (7 étages) ; appliqué au son sec.
+            if (static_cast<int>(stages_.size()) != params::kModules) break;
+            const auto order = params::chainOrder(static_cast<int>(plainValue));
+            for (int i = 0; i < params::kModules; ++i) wantedOrder_[static_cast<std::size_t>(i)] = static_cast<int>(order[static_cast<std::size_t>(i)]);
+            if (!prepared_ || immediate) order_ = wantedOrder_;
             break;
+        }
+        case ParamId::DeltaListen: deltaWanted_ = std::clamp(static_cast<int>(plainValue), 0, static_cast<int>(stages_.size())); break;
+        case ParamId::GainMatch:
+            gainMatch_ = plainValue >= 0.5;
+            matchMix_.setTarget(gainMatch_ ? 1.0 : 0.0);
+            break;
+        default: {
+            bool isSwitch = false;
+            for (auto& slot : slots_)
+                if (slot.onId != ParamId::Bypass && slot.onId == id) {
+                    slot.on.setTarget(plainValue >= 0.5 ? 1.0 : 0.0);
+                    if (immediate) slot.on.snapTo(slot.on.target());
+                    isSwitch = true;
+                }
+            if (!isSwitch)
+                for (auto& stage : stages_) stage->setParameter(id, plainValue, immediate);
+            break;
+        }
     }
 }
 
@@ -148,6 +203,7 @@ void Engine::setParameterImmediate(ParamId id, double plainValue) noexcept {
         case ParamId::Monitor:
             for (OnePoleSmoother* m : {&mLL_, &mLR_, &mRL_, &mRR_}) m->snapTo(m->target());
             break;
+        case ParamId::GainMatch: matchMix_.snapTo(matchMix_.target()); break;
         default: break;
     }
 }
@@ -188,40 +244,143 @@ void Engine::applyMonitorMatrix(int numSamples) noexcept {
     }
 }
 
+void Engine::updateReorder(int n) noexcept {
+    if (orderHold_ > 0) {
+        orderHold_ -= n;
+        if (orderHold_ <= 0) orderMix_.setTarget(1.0);
+        return;
+    }
+    if (order_ == wantedOrder_) return;
+    orderMix_.setTarget(0.0);
+    if (orderMix_.current() > 1.0e-4) return;
+    // Au son sec : on permute, et on attend que la chaîne ait vidé son passé.
+    order_ = wantedOrder_;
+    orderMix_.snapTo(0.0);
+    orderHold_ = latency_ + spec_.maxBlockSize;
+    if (deltaActive_ != 0) deltaActive_ = -1; // à recaler sur le nouvel ordre
+}
+
+void Engine::updateDelta() noexcept {
+    if (deltaActive_ == deltaWanted_) return;
+    deltaMix_.setTarget(0.0);
+    if (deltaMix_.current() > 1.0e-4 && deltaActive_ > 0) return;
+    deltaActive_ = deltaWanted_;
+    deltaMix_.snapTo(0.0);
+    deltaDelay_.reset();
+    if (deltaActive_ == 0) return;
+    // Ce que l'étage change doit encore traverser les étages qui le suivent.
+    int after = 0;
+    bool seen = false;
+    for (const int k : order_) {
+        if (seen) after += slots_[static_cast<std::size_t>(k)].latency;
+        if (k == deltaActive_ - 1) seen = true;
+    }
+    deltaDelay_.setDelay(after);
+    deltaMix_.setTarget(1.0);
+}
+
 void Engine::processChunk(int n) noexcept {
     double* const* w = work_.channels();
     double* const* d = dry_.channels();
+    double* const* in = stageIn_.channels();
+    double* const* dl = delta_.channels();
+
+    updateReorder(n);
+    updateDelta();
 
     // 1. Chemin sec retardé de la latence totale de la chaîne (PDC interne).
     dryDelay_.process(d, kNumChannels, n);
+    inputLoudness_.process(d, n);
 
-    // 2. Chaîne de traitement.
+    // 2. Chaîne de traitement, dans l'ordre du rack ; chaque étage éteint
+    //    rend son entrée retardée de sa latence.
     applyGain(inputGain_, w, n);
-    for (auto& stage : stages_) stage->process(w, n);
+    for (const int k : order_) {
+        Slot& slot = slots_[static_cast<std::size_t>(k)];
+        const bool fullyOn = !slot.on.isSmoothing() && slot.on.current() == 1.0;
+        const bool needDry = !fullyOn || deltaActive_ == k + 1;
+        if (needDry || slot.latency > 0) {
+            for (int ch = 0; ch < kNumChannels; ++ch) std::copy_n(w[ch], n, in[ch]);
+            slot.dry.process(in, kNumChannels, n); // tenu à jour même allumé : prêt pour un fondu
+        }
+        stages_[static_cast<std::size_t>(k)]->process(w, n);
+        if (!fullyOn) {
+            for (int ch = 0; ch < kNumChannels; ++ch) {
+                OnePoleSmoother on = slot.on;
+                double* OMNIS_RESTRICT y = w[ch];
+                const double* OMNIS_RESTRICT x = in[ch];
+                for (int i = 0; i < n; ++i) {
+                    const double m = on.next();
+                    y[i] = x[i] + m * (y[i] - x[i]);
+                }
+                if (ch == kNumChannels - 1) slot.on = on;
+            }
+        }
+        if (deltaActive_ == k + 1)
+            for (int ch = 0; ch < kNumChannels; ++ch)
+                for (int i = 0; i < n; ++i) dl[ch][i] = w[ch][i] - in[ch][i];
+    }
     applyGain(outputGain_, w, n);
 
     // 3. Mélange bypass : out = sec + mix·(traité − sec). Crossfade à gain
     //    constant en amplitude : les deux signaux sont alignés et corrélés.
-    if (mix_.isSmoothing() || mix_.current() != 1.0) {
+    //    Une permutation du rack passe par le même chemin (orderMix_).
+    if (mix_.isSmoothing() || mix_.current() != 1.0 || orderMix_.isSmoothing() || orderMix_.current() != 1.0) {
         for (int ch = 0; ch < kNumChannels; ++ch) {
-            // Le lisseur est partagé entre canaux : on rejoue la même rampe.
-            OnePoleSmoother mix = mix_;
+            // Les lisseurs sont partagés entre canaux : on rejoue la même rampe.
+            OnePoleSmoother mix = mix_, order = orderMix_;
             double* OMNIS_RESTRICT y = w[ch];
             const double* OMNIS_RESTRICT x = d[ch];
             for (int i = 0; i < n; ++i) {
-                const double m = mix.next();
+                const double m = mix.next() * order.next();
                 y[i] = x[i] + m * (y[i] - x[i]);
             }
-            if (ch == kNumChannels - 1) mix_ = mix;
+            if (ch == kNumChannels - 1) {
+                mix_ = mix;
+                orderMix_ = order;
+            }
         }
     }
 
-    // 4. Mesures sur la sortie master (avant monitoring).
+    // 4. Mesures sur la sortie master (avant les outils d'écoute et le monitoring).
     loudness_.process(w, n);
     truePeak_.process(w, n);
     stereo_.process(w[0], w[1], n);
 
-    // 5. Monitoring Stéréo / Mid / Side.
+    // 5. Écoute Delta : ce que le module change, à la place de la sortie.
+    if (deltaActive_ > 0 || deltaMix_.isSmoothing()) {
+        if (deltaActive_ > 0) deltaDelay_.process(dl, kNumChannels, n);
+        else
+            for (int ch = 0; ch < kNumChannels; ++ch) std::fill_n(dl[ch], n, 0.0);
+        for (int ch = 0; ch < kNumChannels; ++ch) {
+            OnePoleSmoother dm = deltaMix_;
+            for (int i = 0; i < n; ++i) {
+                const double m = dm.next();
+                w[ch][i] += m * (dl[ch][i] - w[ch][i]);
+            }
+            if (ch == kNumChannels - 1) deltaMix_ = dm;
+        }
+    }
+
+    // 6. Gain Match : la sortie écoutée ramenée à la sonie de l'entrée.
+    if (gainMatch_ || matchMix_.isSmoothing() || matchMix_.current() > 0.0) {
+        const double inLufs = inputLoudness_.shortTermLufs(), outLufs = loudness_.shortTermLufs();
+        if (std::isfinite(inLufs) && std::isfinite(outLufs) && inLufs > -70.0 && outLufs > -70.0)
+            matchGain_.setTarget(dbToGain(std::clamp(inLufs - outLufs, -24.0, 24.0)));
+        for (int ch = 0; ch < kNumChannels; ++ch) {
+            OnePoleSmoother g = matchGain_, mm = matchMix_;
+            for (int i = 0; i < n; ++i) {
+                const double gain = g.next(), m = mm.next();
+                w[ch][i] *= 1.0 + m * (gain - 1.0);
+            }
+            if (ch == kNumChannels - 1) {
+                matchGain_ = g;
+                matchMix_ = mm;
+            }
+        }
+    }
+
+    // 7. Monitoring Stéréo / Mid / Side.
     applyMonitorMatrix(n);
 }
 

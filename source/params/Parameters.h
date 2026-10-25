@@ -28,6 +28,7 @@
 // =============================================================================
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -46,6 +47,9 @@ enum class ParamId : std::uint32_t {
     LinkRole = 5,     ///< Seul / Stem (piste, sans latence) / Master (bus master)
     LinkStemKind = 6, ///< élément de la piste d'un stem (Auto : reconnu à l'écoute et au nom)
     LinkGroup = 7,    ///< 1 … 8 : deux projets ouverts ne se mélangent pas
+    ChainOrder = 8,   ///< ordre des 7 modules du rack (rang d'une permutation, voir chainOrder())
+    GainMatch = 9,    ///< écoute au même volume que l'entrée (jamais gardé dans la session)
+    DeltaListen = 10, ///< écouter seulement ce qu'un module change (jamais gardé)
 
     // --- Sub Control & Mono Maker (100–199) ----------------------------------
     LowCutFreq = 100,
@@ -56,6 +60,7 @@ enum class ParamId : std::uint32_t {
     SubFreq = 105,
     SubSynth = 106,
     SubPhaseMode = 107,
+    SubOn = 199,      ///< module allumé (rack)
 
     // --- Match EQ (200–299) ----------------------------------------------------
     // Courbe d'intention : un gain par nœud (demi-octave, 20 Hz – 20 kHz) en Mid
@@ -65,6 +70,7 @@ enum class ParamId : std::uint32_t {
     MatchTilt = 201, ///< pente d'ensemble : +T dB à 20 kHz, −T à 20 Hz, pivot 640 Hz (Mid et Side)
     MatchMidFirst = 210,  ///< … 230
     MatchSideFirst = 250, ///< … 270
+    MatchOn = 299,
 
     // --- Inflator (300–399) ------------------------------------------------------
     // Densité et chaleur, en parallèle ; la 808 (sous Split) et le mix réglés à part.
@@ -76,6 +82,7 @@ enum class ParamId : std::uint32_t {
     InflOutput = 305,
     InflSplit = 306,
     InflOversampling = 307,
+    InflOn = 399,
 
     // --- Multi-Band Dynamic Processor (400–499) --------------------------------
     // Trois fréquences de séparation, puis par bande (base + 0 … 4) : seuil,
@@ -85,6 +92,7 @@ enum class ParamId : std::uint32_t {
     MbSplitMid = 401,
     MbSplitHigh = 402,
     MbBandFirst = 410, ///< bande b, réglage r : 410 + 10·b + r
+    MbOn = 499,
 
     // --- Smart Wave-Shaping / Mastering Clipper (500–599) ---------------------
     ClipMode = 500,
@@ -95,12 +103,18 @@ enum class ParamId : std::uint32_t {
     ClipSplit = 505,
     ClipSubDrive = 506,
     ClipSubRoom = 507,
+    ClipOn = 599,
 
     // --- Lookahead Brickwall Limiter (600–699) --------------------------------
     LimGain = 600,
     LimCeiling = 601,
     LimRelease = 602,
     LimAutoRelease = 603,
+    LimPunch = 604,         ///< attaques accentuées avant la limitation, 0 … 100 %
+    LimUpward = 605,        ///< compression vers le haut à crête constante, 0 … 12 dB
+    LimUnlinkTransient = 606, ///< indépendance gauche / droite sur les attaques, 0 … 100 %
+    LimUnlinkSustain = 607,   ///< … sur le soutenu
+    LimOn = 699,
 
     // --- Imager (800–899) --------------------------------------------------------
     // Trois fréquences, puis la largeur de chaque bande (ImgWidthFirst + b).
@@ -108,6 +122,7 @@ enum class ParamId : std::uint32_t {
     ImgSplitMid = 801,
     ImgSplitHigh = 802,
     ImgWidthFirst = 810, ///< … 813
+    ImgOn = 899,
 
     // --- Stem (900–999) : la chaîne d'une piste en rôle Stem -------------------
     StemMode = 900,  ///< Off / Auto / Manuel
@@ -190,11 +205,13 @@ struct ParamSpec {
     double smoothingMs;                      ///< temps de lissage à 99 % dans le DSP
     int displayDecimals;
     ParamScale scale = ParamScale::Linear;
+    bool persistent = true;  ///< gardé dans la session (false : outil d'écoute, revient au défaut)
+    bool automatable = true; ///< proposé à l'automation de l'hôte
 };
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 128;
+inline constexpr std::size_t kParameterCount = 142;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;
@@ -210,7 +227,17 @@ double toPlain(const ParamSpec& spec, double normalized) noexcept;
 double toNormalized(const ParamSpec& spec, double plain) noexcept;
 double clampPlain(const ParamSpec& spec, double plain) noexcept;
 
-inline bool isPersistent(const ParamSpec& spec) noexcept { return spec.kind != ParamKind::Meter; }
+inline bool isPersistent(const ParamSpec& spec) noexcept { return spec.kind != ParamKind::Meter && spec.persistent; }
+
+/// Les modules du rack, dans l'ordre par défaut de la chaîne.
+enum class Module : int { Sub = 0, Match = 1, Inflator = 2, Imager = 3, Multiband = 4, Clipper = 5, Limiter = 6 };
+inline constexpr int kModules = 7;
+inline constexpr int kChainOrders = 5040; ///< 7!
+/// Interrupteur du module.
+ParamId moduleOnId(Module m) noexcept;
+/// Ordre des modules : rang (0 … 5039, 0 = ordre par défaut) <-> permutation.
+std::array<Module, kModules> chainOrder(int rank) noexcept;
+int chainOrderRank(const std::array<Module, kModules>& order) noexcept;
 
 /// Formatage pour l'affichage (non temps réel : alloue une std::string).
 std::string formatValue(const ParamSpec& spec, double plain, bool withUnit = false);

@@ -28,6 +28,19 @@
 //  (rampe de 10 ms contre 48 échantillons) : la crête vraie de sortie reste sous
 //  le plafond à quelques centièmes de dB près ; une marge de 0.05 dB est prise.
 //
+//  Avant la détection, deux étages optionnels (neutres à 0, bit-exact) :
+//   - Punch : un suiveur rapide et un suiveur lent du niveau (lié stéréo) ;
+//     gain = (rapide / lent)^(2,5·Punch), borné à ±9 dB : les attaques montent, les
+//     queues qui retombent descendent, le soutenu stable ne bouge pas. Le
+//     limiteur remet les crêtes au plafond : le contraste attaque / corps reste.
+//   - Upward : les passages calmes montent jusqu'à `Upward` dB (niveau RMS lié,
+//     relatif au plafond : rien à moins de 12 dB du plafond, tout le gain à 36 dB
+//     dessous, rien sous le bruit de fond à 70 dB) : les crêtes ne bougent pas.
+//  Lien stéréo : gain requis par canal r_c et lié r = min(r_g, r_d) ; chaque canal
+//  reçoit r·(r_c / r)^u, u = indépendance (Unlink) dosée entre attaques et
+//  soutenu selon le détecteur de Punch. r·(r_c/r)^u <= r_c : la garantie tient
+//  canal par canal. u = 0 : exactement le limiteur lié.
+//
 //  Latence : L + D, constante.
 // =============================================================================
 #pragma once
@@ -60,7 +73,8 @@ public:
     [[nodiscard]] double gainReductionDb() const noexcept { return lastGainDb_; }
 
 private:
-    double detect(double l, double r) noexcept;
+    /// Crêtes vraies des deux canaux.
+    void detect(double l, double r, double& peakL, double& peakR) noexcept;
 
     double sampleRate_ = 48000.0;
     int lookahead_ = 240;
@@ -79,7 +93,15 @@ private:
     std::array<std::array<double, 2 * analysis::TruePeakMeter::kTapsPerPhase>, 2> tpHistory_{};
     int tpPos_ = 0;
 
-    dsp::LookaheadGain gainSmoother_;
+    dsp::LookaheadGain gainSmoother_, gainSmootherRight_;
+
+    // Punch, upward, lien stéréo.
+    OnePoleSmoother punch_, upwardDb_, unlinkTransient_, unlinkSustain_;
+    double fastEnv_ = 0.0, slowEnv_ = 0.0, rmsEnv_ = 0.0, punchGain_ = 1.0, upwardGain_ = 1.0;
+    double fastAttack_ = 0.0, fastRelease_ = 0.0, slowAttack_ = 0.0, slowRelease_ = 0.0;
+    double rmsAttack_ = 0.0, rmsRelease_ = 0.0, gainGlide_ = 0.0, upGlide_ = 0.0;
+    int holdSamples_ = 1200, fastHold_ = 0, slowHold_ = 0;
+    static constexpr double kPunchExponent = 2.5; ///< gain = (rapide / lent)^(2,5 · Punch)
     // Retard du signal.
     std::array<std::vector<double>, 2> delay_;
     int delayPos_ = 0;

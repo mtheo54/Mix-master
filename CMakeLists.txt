@@ -267,6 +267,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestLink.cpp
         tests/TestStems.cpp
         tests/TestStemChain.cpp
+        tests/TestRack.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp

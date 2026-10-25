@@ -51,6 +51,10 @@ public:
             case ParamKind::Continuous:
             default: info.flags = ParameterInfo::kCanAutomate; break;
         }
+        if (spec.kind == ParamKind::Choice && spec.choices.empty()) info.flags &= ~ParameterInfo::kIsList;
+        if (!spec.automatable) info.flags &= ~ParameterInfo::kCanAutomate;
+        // L'ordre du rack se règle dans l'interface (glisser un module), pas en liste.
+        if (spec.id == params::ParamId::ChainOrder) info.flags |= ParameterInfo::kIsHidden;
         setPrecision(spec.displayDecimals);
         valueNormalized = info.defaultNormalizedValue;
     }

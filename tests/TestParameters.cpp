@@ -25,7 +25,8 @@ OMNIS_TEST("params: identifiants et clés uniques, défauts dans les bornes") {
         OMNIS_CHECK(p.defaultValue >= p.minValue && p.defaultValue <= p.maxValue);
         OMNIS_CHECK(p.maxValue > p.minValue);
         if (p.scale == ParamScale::Logarithmic) OMNIS_CHECK(p.minValue > 0.0 && p.stepCount == 0);
-        if (p.kind == ParamKind::Choice || p.kind == ParamKind::Toggle)
+        // L'ordre du rack est un rang de permutation, sans libellés.
+        if ((p.kind == ParamKind::Choice || p.kind == ParamKind::Toggle) && p.id != ParamId::ChainOrder)
             OMNIS_CHECK(static_cast<int>(p.choices.size()) == p.stepCount + 1);
     }
 }

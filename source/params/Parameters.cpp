@@ -35,6 +35,7 @@ constexpr std::array<std::string_view, 22> kElementMeterLabels{
     "Cordes",         "Nappe",         "Lead / synthé",  "Pluck / cloche",  "Voix lead", "Backs / adlibs", "FX", "Autre"};
 constexpr std::array<std::string_view, 8> kGroupLabels{"1", "2", "3", "4", "5", "6", "7", "8"};
 constexpr std::array<std::string_view, 3> kStemModeLabels{"Off", "Auto", "Manuel"};
+constexpr std::array<std::string_view, 8> kDeltaLabels{"Off", "Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
@@ -50,6 +51,11 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // Auto : OMNIS écoute la piste (et lit son nom) pour reconnaître l'élément.
     {ParamId::LinkStemKind,      "link_stem",     "Stem Element",         "Elem",   "",     ParamKind::Choice,     0.0,    21.0,  0.0,   21,   kStemKindLabels, 0.0,   0},
     {ParamId::LinkGroup,         "link_group",    "Link Group",           "Group",  "",     ParamKind::Choice,     1.0,    8.0,   1.0,   7,    kGroupLabels,   0.0,    0},
+    // Rack : ordre des modules (réglé par l'interface, pas d'automation).
+    {ParamId::ChainOrder,        "chain_order",   "Chain Order",          "Order",  "",     ParamKind::Choice,     0.0,    5039.0, 0.0,  5039, {},             0.0,    0, ParamScale::Linear, true, false},
+    // Outils d'écoute : jamais gardés (un export oublié en Match serait faux).
+    {ParamId::GainMatch,         "gain_match",    "Gain Match",           "Match",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0, ParamScale::Linear, false, false},
+    {ParamId::DeltaListen,       "delta",         "Delta Listen",         "Delta",  "",     ParamKind::Choice,     0.0,    7.0,   0.0,   7,    kDeltaLabels,   0.0,    0, ParamScale::Linear, false, false},
 
     // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence
     // (voir docs/CALIBRATION_MODULE2.md).
@@ -61,6 +67,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::SubFreq,           "sub_freq",      "Sub Freq",             "SubF",   "Hz",   ParamKind::Continuous, 30.0,   150.0, 70.0,  0,    {},             50.0,   0, kLog},
     {ParamId::SubSynth,          "sub_synth",     "Sub Synth",            "Synth",  "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
     {ParamId::SubPhaseMode,      "sub_phase",     "Sub Phase",            "Phase",  "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kPhaseLabels,   30.0,   0},
+    {ParamId::SubOn,             "sub_on",        "Sub Module",           "SubOn",  "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Match EQ (docs/CALIBRATION_MODULE4.md). Pas de lissage par paramètre : un
     // changement de courbe est fondu sur une trame de convolution.
@@ -108,6 +115,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(268), "match_s_10240", "Match Side 10k",      "S10k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(269), "match_s_14482", "Match Side 14k",      "S14k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(270), "match_s_20480", "Match Side 20k",      "S20k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    {ParamId::MatchOn,           "match_on",      "Match EQ Module",      "MatchOn","",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Inflator (étage 3) : neutre par défaut (effets à 0 %, sortie = entrée).
     {ParamId::InflLowEffect,     "infl_low",      "Inflate 808",          "Inf808", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
@@ -120,6 +128,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // 8x par défaut : avec du drive, le coude de la courbe (|u| = 1) replie à
     // −48 dB sous la fondamentale en 4x (sinus de 13 kHz, drive +12 dB), −76 dB en 8x.
     {ParamId::InflOversampling,  "infl_os",       "Inflate Oversampling", "InfOS",  "",     ParamKind::Choice,     0.0,    4.0,   3.0,   4,    kOversamplingLabels, 0.0, 0},
+    {ParamId::InflOn,            "infl_on",       "Inflator Module",      "InflOn", "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Multibande (docs/CALIBRATION_MODULE4.md §6). Défauts neutres : ratio 1,
     // compensation 0 -> l'étage est un retard pur.
@@ -146,6 +155,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(442), "mb_high_attack","MB High Attack",      "HAtt",   "ms",   ParamKind::Continuous, 1.0, 300.0, 5.0, 0, {}, 0.0, 0, kLog},
     {static_cast<ParamId>(443), "mb_high_release","MB High Release",     "HRel",   "ms",   ParamKind::Continuous, 10.0, 3000.0, 100.0, 0, {}, 0.0, 0, kLog},
     {static_cast<ParamId>(444), "mb_high_makeup","MB High Makeup",      "HMk",    "dB",   ParamKind::Continuous, -12.0, 12.0, 0.0, 0, {}, 30.0, 1},
+    {ParamId::MbOn,              "mb_on",         "Multiband Module",     "MbOn",   "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Clipper (calibration : docs/CALIBRATION_MODULE3.md).
     {ParamId::ClipMode,          "clip_mode",     "Clip Mode",            "ClipM",  "",     ParamKind::Choice,     0.0,    2.0,   1.0,   2,    kClipModeLabels, 20.0,  0},
@@ -156,12 +166,20 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::ClipSplit,         "clip_split",    "Clip Split",           "Split",  "Hz",   ParamKind::Continuous, 60.0,   300.0, 120.0, 0,    {},             50.0,   0, kLog},
     {ParamId::ClipSubDrive,      "clip_sub_drive","Clip Sub Drive",       "SubDrv", "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::ClipSubRoom,       "clip_sub_room", "Clip Sub Make-Room",   "Room",   "%",    ParamKind::Continuous, 0.0,    100.0, 0.0, 0,    {},             30.0,   0},
+    {ParamId::ClipOn,            "clip_on",       "Clipper Module",       "ClipOn", "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Limiteur.
     {ParamId::LimGain,           "lim_gain",      "Limiter Gain",         "LGain",  "dB",   ParamKind::Continuous, 0.0,    24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::LimCeiling,        "lim_ceiling",   "Limiter Ceiling",      "Ceil",   "dB",   ParamKind::Continuous, -6.0,   0.0,   -1.0,  0,    {},             30.0,   1},
     {ParamId::LimRelease,        "lim_release",   "Limiter Release",      "Rel",    "ms",   ParamKind::Continuous, 1.0,    1000.0, 60.0, 0,    {},             0.0,    0, kLog},
     {ParamId::LimAutoRelease,    "lim_auto_release","Limiter Auto Release","Auto", "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             0.0,    0},
+    // Punch : attaques accentuées avant la limitation (le soutenu juste derrière est plus bas).
+    {ParamId::LimPunch,          "lim_punch",     "Limiter Punch",        "Punch",  "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    // Monte les passages calmes ; les crêtes au plafond ne bougent pas.
+    {ParamId::LimUpward,         "lim_upward",    "Limiter Upward",       "Upward", "dB",   ParamKind::Continuous, 0.0,    12.0,  0.0,   0,    {},             30.0,   1},
+    {ParamId::LimUnlinkTransient,"lim_unlink_tr", "Limiter Unlink Transient", "UnlTr", "%", ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    {ParamId::LimUnlinkSustain,  "lim_unlink_su", "Limiter Unlink Sustain",   "UnlSu", "%", ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             30.0,   0},
+    {ParamId::LimOn,             "lim_on",        "Limiter Module",       "LimOn",  "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Imager (étage 4) : largeur du Side par bande, 100 % = inchangé.
     {ParamId::ImgSplitLow,       "img_split_low", "Imager Split Low",     "ImgSL",  "Hz",   ParamKind::Continuous, 100.0,  1000.0, 250.0, 0,   {},             0.0,    0, kLog},
@@ -171,6 +189,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(811), "img_width_lmid", "Width Low-Mid",       "WLMid",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
     {static_cast<ParamId>(812), "img_width_hmid", "Width High-Mid",      "WHMid",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
     {static_cast<ParamId>(813), "img_width_high", "Width High",          "WHigh",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
+    {ParamId::ImgOn,             "img_on",        "Imager Module",        "ImgOn",  "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Stem (stems/StemChain.h) : Off par défaut, la personne choisit.
     {ParamId::StemMode,          "stem_mode",     "Stem Mode",            "SMode",  "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kStemModeLabels, 0.0,   0},
@@ -231,6 +250,52 @@ std::optional<double> parseNumber(std::string_view s) {
 std::span<const ParamSpec> allParameters() noexcept { return kParameters; }
 
 double matchBandHz(int band) noexcept { return 20.0 * std::exp2(0.5 * band); }
+
+ParamId moduleOnId(Module m) noexcept {
+    switch (m) {
+        case Module::Sub: return ParamId::SubOn;
+        case Module::Match: return ParamId::MatchOn;
+        case Module::Inflator: return ParamId::InflOn;
+        case Module::Imager: return ParamId::ImgOn;
+        case Module::Multiband: return ParamId::MbOn;
+        case Module::Clipper: return ParamId::ClipOn;
+        case Module::Limiter: return ParamId::LimOn;
+    }
+    return ParamId::SubOn;
+}
+
+// Rang d'une permutation (code de Lehmer) : le rang 0 est l'ordre par défaut.
+std::array<Module, kModules> chainOrder(int rank) noexcept {
+    rank = std::clamp(rank, 0, kChainOrders - 1);
+    std::array<int, kModules> pool{0, 1, 2, 3, 4, 5, 6};
+    int left = kModules;
+    std::array<Module, kModules> out{};
+    int factorial = kChainOrders / kModules; // 6!
+    for (int i = 0; i < kModules; ++i) {
+        const int digit = rank / factorial;
+        rank %= factorial;
+        out[static_cast<std::size_t>(i)] = static_cast<Module>(pool[static_cast<std::size_t>(digit)]);
+        for (int k = digit; k < left - 1; ++k) pool[static_cast<std::size_t>(k)] = pool[static_cast<std::size_t>(k) + 1];
+        --left;
+        if (left > 0) factorial /= left;
+    }
+    return out;
+}
+
+int chainOrderRank(const std::array<Module, kModules>& order) noexcept {
+    std::array<bool, kModules> used{};
+    int rank = 0, factorial = kChainOrders / kModules;
+    for (int i = 0; i < kModules; ++i) {
+        const int m = static_cast<int>(order[static_cast<std::size_t>(i)]);
+        if (m < 0 || m >= kModules || used[static_cast<std::size_t>(m)]) return 0; // pas une permutation
+        int smaller = 0;
+        for (int k = 0; k < m; ++k) smaller += used[static_cast<std::size_t>(k)] ? 0 : 1;
+        used[static_cast<std::size_t>(m)] = true;
+        rank += smaller * factorial;
+        if (kModules - 1 - i > 0) factorial /= (kModules - 1 - i);
+    }
+    return rank;
+}
 
 const ParamSpec* findParameter(ParamId id) noexcept {
     for (const auto& p : kParameters)
