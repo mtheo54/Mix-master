@@ -11,6 +11,7 @@
 
 #include "dsp/Fft.h"
 #include "dsp/Waveshaper.h"
+#include "core/UserDataDir.h"
 #include "params/Parameters.h"
 #include "stages/InflatorStage.h"
 
@@ -29,6 +30,8 @@
 #include <cmath>
 #include <complex>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 #include <numbers>
 
@@ -168,6 +171,139 @@ void gridLines(CDrawContext* c, const CRect& r, double lo, double hi, bool label
 } // namespace
 
 // -----------------------------------------------------------------------------
+//  Tutoriel : un calque qui éclaire une zone à la fois
+// -----------------------------------------------------------------------------
+namespace {
+
+struct TutorialStep {
+    CRect focus; ///< zone éclairée (coordonnées du cadre)
+    const char* title;
+    std::array<const char*, 4> lines;
+};
+
+const std::array<TutorialStep, 10> kTutorial{{
+    {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
+     {"OMNIS mixe et masterise ta prod. Deux façons de l'utiliser :", "1. seul sur le master : il masterise la prod entière ;",
+      "2. sur tes pistes (Stem) + un Master : chaque piste est travaillée,", "   et le master écoute tout le monde. Suis le guide (2 minutes)."}},
+    {CRect(942, 560, 1190, 730), "RÔLE ET GROUPE",
+     {"Seul : OMNIS sur le master, rien d'autre à faire.", "Stem : sur une piste (808, drums, voix…), sans aucune latence.",
+      "Master : sur le bus master ; il entend les stems du même groupe.", "Un groupe par projet ouvert (1 à 8)."}},
+    {CRect(10, 106, 932, 306), "LE RACK : 7 MODULES",
+     {"Chaque module a un gros bouton (le réglage principal) et un voyant ON.", "Clique un module pour ouvrir TOUS ses réglages en dessous.",
+      "Glisse un module par son nom pour changer l'ordre de la chaîne.", "La barre d'état montre ce qu'il fait en ce moment."}},
+    {CRect(10, 314, 932, 604), "LE TIROIR : TOUT RÉGLER",
+     {"À gauche, tous les réglages du module ouvert ; à droite, son écran.", "Glisser vers le haut / le bas · Maj : réglage fin · double-clic : défaut.",
+      "Match EQ : glisse les nœuds sur l'écran. Multiband : glisse les traits.", "Rien n'est caché : tu choisis précisément ce que tu changes."}},
+    {CRect(10, 58, 932, 98), "LA BARRE IA",
+     {"Écris ce que tu veux, en français, en anglais ou en argot :", "« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…",
+      "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "Une référence connue : « comme 2hollis » ou un artiste de ta base."}},
+    {CRect(196, 10, 272, 50), "AUTO",
+     {"Clique AUTO, puis joue le passage le plus fort (refrain, drop).", "OMNIS écoute 10 s, règle toute la chaîne vers ton style",
+      "et amène le volume à la bonne sonie. Tout reste réglable après.", "Écris un style dans la barre IA (« rap us », « rage ») pour le choisir."}},
+    {CRect(270, 10, 830, 50), "ÉCOUTER HONNÊTEMENT",
+     {"A / B : deux réglages complets ; A>B copie l'un dans l'autre.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
+      "DELTA : n'entends que ce que le module ouvert change.", "STÉRÉO / MID / SIDE : vérifie le centre et les côtés."}},
+    {CRect(942, 10, 1190, 552), "LES MESURES",
+     {"Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.", "Chaque mesure a son verdict en mots : BON, FORT, DENSE, PUNCHY…",
+      "TRUE PEAK doit rester OK (sous -1 dBTP) pour le streaming.", "PLR = écart crête / sonie : plus il est grand, plus ça respire."}},
+    {CRect(942, 654, 1190, 720), "CHEF D'ORCHESTRE ET PISTE",
+     {"Sur le Master : les propositions quand un son en gêne un autre", "(OUI / NON, rien n'est appliqué sans ton accord).",
+      "Sur un Stem : la page PISTE montre l'élément reconnu et sa chaîne.", ""}},
+    {CRect(796, 10, 830, 50), "C'EST PARTI",
+     {"Le bouton ? relance ce guide quand tu veux.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
+}};
+
+std::filesystem::path tutorialFlag() { return userDataDir() / "tutoriel_vu.txt"; }
+
+} // namespace
+
+class TutorialOverlay : public CView {
+public:
+    TutorialOverlay(const CRect& r, OmnisEditor& editor) : CView(r), editor_(editor) {}
+    void draw(CDrawContext* c) override {
+        c->setDrawMode(kAntiAliasing | kNonIntegralMode);
+        const int step = std::clamp(editor_.tutorialStep_, 0, static_cast<int>(kTutorial.size()) - 1);
+        const TutorialStep& s = kTutorial[static_cast<std::size_t>(step)];
+        const CRect all = getViewSize();
+        const CColor shade(0, 0, 0, 185);
+        c->setFillColor(shade);
+        if (s.focus.getWidth() <= 0) {
+            c->drawRect(all, kDrawFilled);
+        } else {
+            const CRect f = CRect(s.focus).extend(4, 4);
+            c->drawRect(CRect(all.left, all.top, all.right, f.top), kDrawFilled);
+            c->drawRect(CRect(all.left, f.bottom, all.right, all.bottom), kDrawFilled);
+            c->drawRect(CRect(all.left, f.top, f.left, f.bottom), kDrawFilled);
+            c->drawRect(CRect(f.right, f.top, all.right, f.bottom), kDrawFilled);
+            c->setLineWidth(2.0);
+            c->setFrameColor(color::kAccent);
+            c->drawRect(f, kDrawStroked);
+            c->setLineWidth(1.0);
+        }
+        card_ = cardRect(s.focus);
+        inset(c, card_, CColor(20, 21, 24));
+        c->setFrameColor(color::kAccent35);
+        c->drawRect(CRect(card_).inset(0.5, 0.5), kDrawStroked);
+        text(c, s.title, CRect(card_.left + 18, card_.top + 14, card_.right - 90, card_.top + 34), color::kAccent, sans(14, true));
+        text(c, std::to_string(step + 1) + " / " + std::to_string(kTutorial.size()), CRect(card_.right - 90, card_.top + 14, card_.right - 18, card_.top + 34),
+             color::kText3, mono(10), kRightText);
+        for (int i = 0; i < 4; ++i)
+            text(c, s.lines[static_cast<std::size_t>(i)], CRect(card_.left + 18, card_.top + 44 + 20 * i, card_.right - 18, card_.top + 62 + 20 * i), color::kText,
+                 mono(10.5));
+        const bool last = step == static_cast<int>(kTutorial.size()) - 1;
+        next_ = CRect(card_.right - 130, card_.bottom - 40, card_.right - 18, card_.bottom - 14);
+        skip_ = CRect(card_.left + 18, card_.bottom - 40, card_.left + 130, card_.bottom - 14);
+        back_ = CRect(card_.right - 196, card_.bottom - 40, card_.right - 140, card_.bottom - 14);
+        const auto button = [&](const CRect& r, const char* label, bool accent) {
+            inset(c, r, CColor(34, 35, 39));
+            text(c, label, r, accent ? color::kAccent : color::kText2, mono(10.5, accent), kCenterText);
+        };
+        button(next_, last ? "TERMINER" : "SUIVANT", true);
+        if (!last) button(skip_, "PASSER", false);
+        if (step > 0) button(back_, "<", false);
+        setDirty(false);
+    }
+    void onMouseDownEvent(MouseDownEvent& e) override {
+        e.consumed = true; // le guide est modal
+        e.ignoreFollowUpMoveAndUpEvents(true);
+        const CPoint p = e.mousePosition;
+        const int step = editor_.tutorialStep_;
+        if (next_.pointInside(p)) editor_.startTutorial(step + 1 >= static_cast<int>(kTutorial.size()) ? -1 : step + 1);
+        else if (skip_.pointInside(p) && step + 1 < static_cast<int>(kTutorial.size())) editor_.startTutorial(-1);
+        else if (back_.pointInside(p) && step > 0) editor_.startTutorial(step - 1);
+    }
+
+private:
+    CRect cardRect(const CRect& focus) const {
+        const double w = 560, h = 190;
+        const CRect all = getViewSize();
+        if (focus.getWidth() <= 0) return CRect((all.getWidth() - w) / 2, (all.getHeight() - h) / 2, (all.getWidth() + w) / 2, (all.getHeight() + h) / 2);
+        // Sous la zone si la place le permet, sinon au-dessus ; à gauche de la colonne Master.
+        double x = std::clamp(focus.left, 20.0, 930.0 - w);
+        if (focus.left >= 940.0) x = 930.0 - w;
+        double y = focus.bottom + 16;
+        if (y + h > all.bottom - 10) y = std::max(10.0, focus.top - h - 16);
+        if (focus.left >= 940.0) y = std::clamp(focus.top, 20.0, all.bottom - h - 20);
+        return CRect(x, y, x + w, y + h);
+    }
+    OmnisEditor& editor_;
+    CRect card_, next_, skip_, back_;
+};
+
+void OmnisEditor::startTutorial(int step) {
+    tutorialStep_ = step;
+    if (step < 0) {
+        std::error_code ec;
+        std::filesystem::create_directories(tutorialFlag().parent_path(), ec);
+        std::ofstream(tutorialFlag()) << "vu\n";
+    }
+    if (tutorial_) {
+        tutorial_->setVisible(step >= 0);
+        tutorial_->invalid();
+    }
+}
+
+// -----------------------------------------------------------------------------
 //  Analyse du flux (thread de l'interface)
 // -----------------------------------------------------------------------------
 struct OmnisEditor::Analysis {
@@ -304,6 +440,7 @@ void PLUGIN_API OmnisEditor::close() {
     askField_ = nullptr;
     askAnswer_ = nullptr;
     rack_ = nullptr;
+    tutorial_ = nullptr;
     if (frame) {
         frame->forget();
         frame = nullptr;
@@ -328,6 +465,11 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     omnis()->requestFeed();
     omnis()->requestProposals();
     selectPage(role() == static_cast<int>(params::LinkRole::Stem) ? kStemPage : page_);
+    // Le guide, par-dessus tout ; montré tout seul à la toute première ouverture.
+    tutorial_ = new TutorialOverlay(CRect(0, 0, kWidth, kHeight), *this);
+    root->addView(tutorial_);
+    std::error_code ec;
+    startTutorial(std::filesystem::exists(tutorialFlag(), ec) ? -1 : 0);
 }
 
 // -----------------------------------------------------------------------------
@@ -369,7 +511,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
                                [this](int i) { setPlain(id(ParamId::Monitor), i); });
     r1->addView(mon);
     live_.push_back(mon);
-    add(new HwButton(CRect(796, 7, 826, 33), "?", [] { return false; }, [this] { omnis()->restartTutorial(); }, false));
+    add(new HwButton(CRect(796, 7, 826, 33), "?", [] { return false; }, [this] { startTutorial(0); }, false));
     auto* lat = new Screen(CRect(832, 9, 914, 31), [this](CDrawContext* dc, const CRect& r) {
         engraved(dc, "LAT", CRect(r.left + 6, r.top, r.left + 30, r.bottom));
         const double ms = an_->meters.latencyMs;

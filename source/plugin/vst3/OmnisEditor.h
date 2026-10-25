@@ -74,6 +74,9 @@ public:
     void selectPage(int page);
     /// Analyse les échantillons arrivés (spectre, goniomètre) : pour l'outil.
     void pumpFeed();
+    /// Tutoriel : montré à la première ouverture, relancé par « ? ». step < 0 : fermé.
+    void startTutorial(int step = 0);
+    [[nodiscard]] int tutorialStep() const noexcept { return tutorialStep_; }
 
     enum Page : int { kStemPage = 7, kConductorPage = 8 };
 
@@ -113,6 +116,9 @@ private:
     std::vector<std::function<void()>> syncs_; ///< menus relus à chaque minuterie
     std::vector<std::unique_ptr<VSTGUI::IControlListener>> listeners_;
     int lastOrder_ = -1, lastRole_ = -1;
+    int tutorialStep_ = -1;
+    VSTGUI::CView* tutorial_ = nullptr;
+    friend class TutorialOverlay;
     std::array<gui::RackSlot*, 7> slots_{};
     VSTGUI::CViewContainer* rack_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 9> pages_{};

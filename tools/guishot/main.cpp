@@ -144,6 +144,13 @@ int main(int argc, char** argv) {
         auto* editor = new omnis::vst3::OmnisEditor(rig.ctrl);
         auto* frame = new VSTGUI::CFrame(VSTGUI::CRect(0, 0, omnis::vst3::OmnisEditor::kWidth, omnis::vst3::OmnisEditor::kHeight), editor);
         editor->buildInto(frame);
+        for (int step = 0; step < 10; ++step) {
+            editor->startTutorial(step);
+            editor->tick();
+            const std::string path = dir + "/omnis-" + mode + "-tuto-" + std::to_string(step + 1) + ".png";
+            std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
+        }
+        editor->startTutorial(-1);
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
                                                {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-piste"}, {8, "9-chef"}};
         for (const auto& [page, name] : pages) {
