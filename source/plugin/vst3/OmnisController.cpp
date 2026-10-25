@@ -8,6 +8,9 @@
 #include "OmnisState.h"
 #include "UiFeed.h"
 
+#include "ai/ConsoleActions.h"
+#include "core/UserDataDir.h"
+
 #include "params/Parameters.h"
 
 #include "public.sdk/source/vst/utility/stringconvert.h"
@@ -20,7 +23,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -144,12 +149,140 @@ void OmnisController::answerProposal(std::uint32_t key, int answer) {
     sendMessage(message);
 }
 
-std::string OmnisController::ask(const std::string& request) {
-    (void)request;
-    return "La barre IA arrive : elle lira ta demande et réglera la chaîne.";
+namespace {
+
+ai::ReferenceLibrary libraryWithUser() {
+    ai::ReferenceLibrary lib = ai::ReferenceLibrary::builtin();
+    std::ifstream in(userDataDir() / "references_utilisateur.txt");
+    if (in) {
+        std::stringstream text;
+        text << in.rdbuf();
+        ai::ReferenceLibrary user;
+        user.parse(text.str());
+        for (const auto& e : user.entries()) lib.add(e);
+    }
+    return lib;
 }
 
-void OmnisController::startAuto() {}
+std::string joined(const std::vector<std::string>& parts, const char* sep) {
+    std::string s;
+    for (const auto& p : parts) s += (s.empty() ? "" : sep) + p;
+    return s;
+}
+
+} // namespace
+
+double OmnisController::plainOf(std::uint32_t pid) {
+    const auto* spec = params::findParameter(pid);
+    return spec ? params::toPlain(*spec, getParamNormalized(pid)) : 0.0;
+}
+
+void OmnisController::applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings) {
+    for (const auto& [pid, plain] : settings)
+        if (const auto* spec = params::findParameter(pid)) editParameter(pid, params::toNormalized(*spec, params::clampPlain(*spec, plain)));
+}
+
+std::string OmnisController::ask(const std::string& request) {
+    if (!feed_) requestFeed();
+    if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
+    if (std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LinkRole))) == static_cast<long>(params::LinkRole::Stem))
+        return "Cette instance est un stem : écris ta demande sur l'instance Master (ou Seul).";
+    // Un style nommé sert aussi à AUTO.
+    const auto lib = libraryWithUser();
+    for (const auto& g : lib.genres())
+        if (ai::namesMatch(request, g) || request.find(g) != std::string::npos) autoStyle_ = g;
+    const auto snap = feed_->prod.snapshot();
+    if (snap.seconds < 8.0) {
+        pendingAsk_ = request;
+        return "Lance la lecture : OMNIS écoute ta prod quelques secondes, puis applique ta demande.";
+    }
+    return runRequest(request);
+}
+
+std::string OmnisController::runRequest(const std::string& text) {
+    const auto lib = libraryWithUser();
+    const auto u = ai::understandRequest(text, ai::Lexicon::builtin(), lib, false);
+    if (u.question) return *u.question;
+    const auto snap = feed_->prod.snapshot();
+    const auto plan = ai::planRequest(u, snap.signature, [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
+    std::vector<std::pair<std::uint32_t, double>> settings;
+    for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+    applyPlan(settings);
+    if (plan.targetLufs) {
+        loudTarget_ = *plan.targetLufs;
+        pursuing_ = true;
+        pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
+    }
+    std::vector<std::string> understood;
+    for (const auto& h : u.interpretation.hits) understood.push_back(h.text);
+    std::string out = understood.empty() ? std::string() : "Compris : " + joined(understood, ", ") + ". ";
+    out += "Fait : " + joined(plan.said, " · ") + ".";
+    if (!u.interpretation.unknownWords.empty()) out += " (Pas compris : " + joined(u.interpretation.unknownWords, ", ") + ")";
+    return out;
+}
+
+void OmnisController::startAuto() {
+    if (!feed_) requestFeed();
+    if (!feed_) return;
+    feed_->prod.startAuto();
+    autoRunning_ = true;
+}
+
+double OmnisController::autoProgress() const {
+    if (!feed_ || !autoRunning_) return -1.0;
+    return feed_->prod.autoState() == ProdListener::AutoState::Waiting ? 0.0 : feed_->prod.autoProgress();
+}
+
+std::string OmnisController::pollAutomation() {
+    if (!feed_) return {};
+    std::string message;
+    // AUTO terminé : la chaîne vers le style.
+    analysis::SpectralSignature loud;
+    if (autoRunning_ && feed_->prod.takeAutoResult(loud)) {
+        autoRunning_ = false;
+        const auto plan = ai::planAuto(loud, libraryWithUser(), autoStyle_, [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
+        std::vector<std::pair<std::uint32_t, double>> settings;
+        for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+        applyPlan(settings);
+        if (plan.targetLufs) {
+            loudTarget_ = *plan.targetLufs;
+            pursuing_ = true;
+            pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
+        }
+        message = joined(plan.said, " · ") + ". Tout reste réglable à la main.";
+    }
+    // Demande en attente : appliquée dès qu'OMNIS a assez écouté.
+    if (!pendingAsk_.empty() && feed_->prod.snapshot().seconds >= 8.0) {
+        message = runRequest(pendingAsk_);
+        pendingAsk_.clear();
+    }
+    // Le volume mené vers la cible par la mesure (sonie court terme de la sortie).
+    if (pursuing_ && ++pursuitTicks_ % 18 == 0) {
+        const auto lim = static_cast<std::uint32_t>(params::ParamId::LimGain);
+        const double st = plainOf(static_cast<std::uint32_t>(params::ParamId::MeterShortTerm));
+        if (st > -60.0) {
+            const double err = loudTarget_ - st;
+            if (std::fabs(err) < 0.4) {
+                if (++pursuitStable_ >= 3) {
+                    pursuing_ = false;
+                    char b[96];
+                    std::snprintf(b, sizeof b, "Volume atteint : %.1f LUFS (limiteur +%.1f dB).", st, plainOf(lim));
+                    message = b;
+                }
+            } else {
+                pursuitStable_ = 0;
+                const double gain = std::clamp(plainOf(lim) + std::clamp(0.6 * err, -1.5, 1.5), 0.0, 24.0);
+                if (const auto* spec = params::findParameter(lim)) editParameter(lim, params::toNormalized(*spec, gain));
+                if (++pursuitSteps_ > 40 || (gain >= 24.0 && err > 0.0)) {
+                    pursuing_ = false;
+                    message = "Volume : le limiteur est au maximum raisonnable ; pousse l'entrée ou le clip si tu veux plus fort.";
+                }
+            }
+        }
+    }
+    if (!message.empty()) lastMessage_ = message;
+    return message;
+}
 
 void OmnisController::restartTutorial() {}
 

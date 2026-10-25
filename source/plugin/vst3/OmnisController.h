@@ -80,6 +80,11 @@ public:
     void startAuto();
     /// Tutoriel : relancer depuis le bouton « ? ».
     void restartTutorial();
+    /// Interface, à chaque minuterie : AUTO qui termine, demande en attente
+    /// d'écoute, volume mené vers la cible. Renvoie un message nouveau (ou vide).
+    std::string pollAutomation();
+    /// AUTO en cours : 0 … 1 (négatif : pas d'AUTO).
+    [[nodiscard]] double autoProgress() const;
 
     /// Mémoires A / B : deux réglages complets, gardés avec la session.
     [[nodiscard]] int abSlot() const noexcept { return abSlot_; }
@@ -100,6 +105,15 @@ private:
     std::vector<ProposalLine> pending_, applied_;
     bool loadingState_ = false; ///< dans setComponentState
     std::shared_ptr<UiFeed> feed_;
+    // Barre IA / AUTO.
+    std::string pendingAsk_, autoStyle_ = "rap fr", lastMessage_;
+    bool autoRunning_ = false;
+    double loudTarget_ = 0.0;
+    bool pursuing_ = false;
+    int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
+    std::string runRequest(const std::string& text);
+    void applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings);
+    [[nodiscard]] double plainOf(std::uint32_t id);
     std::array<std::vector<std::pair<std::uint32_t, double>>, 2> ab_;
     int abSlot_ = 0;
     [[nodiscard]] std::vector<std::pair<std::uint32_t, double>> snapshot();

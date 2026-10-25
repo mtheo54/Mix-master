@@ -1464,6 +1464,10 @@ void OmnisEditor::pumpFeed() {
 
 void OmnisEditor::tick() {
     pumpFeed();
+    const std::string news = omnis()->pollAutomation();
+    if (!news.empty()) answer_ = news;
+    if (const double pr = omnis()->autoProgress(); pr >= 0.0)
+        answer_ = pr <= 0.0 ? std::string("AUTO : joue le passage le plus fort (refrain, drop)…") : "AUTO : écoute " + fmt("%.0f %%", 100.0 * pr) + "…";
     if (++ticks_ % 15 == 0 && (role() == static_cast<int>(params::LinkRole::Master) || page_ == kConductorPage)) omnis()->requestProposals();
     const int o = static_cast<int>(std::lround(plain(id(ParamId::ChainOrder)))), rl = role();
     if ((o != lastOrder_ || rl != lastRole_) && dragFrom_ < 0) {

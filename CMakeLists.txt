@@ -89,6 +89,7 @@ add_library(omnis_core STATIC
     source/ai/Lexicon.cpp
     source/ai/Lexicon.h
     source/ai/MatchIntent.cpp
+    source/ai/ConsoleActions.cpp
     source/ai/MatchIntent.h
     source/ai/ReferenceLibrary.cpp
     source/ai/ReferenceLibrary.h
@@ -112,6 +113,7 @@ add_library(omnis_core STATIC
     source/engine/MasteringChain.cpp
     source/engine/MasteringChain.h
     source/engine/ReferenceCapture.cpp
+    source/engine/ProdListener.cpp
     source/engine/ReferenceCapture.h
     source/engine/Stage.h
     source/link/LinkBus.cpp
@@ -305,6 +307,8 @@ if(OMNIS_BUILD_TESTS)
             tests/TestPluginState.cpp
             tests/TestPluginLink.cpp
             tests/TestPluginSlotToggle.cpp
+            tests/TestPluginAi.cpp
+            source/plugin/vst3/OmnisController.cpp
             source/plugin/vst3/OmnisProcessor.cpp
             source/plugin/vst3/UiFeed.cpp
             source/plugin/vst3/OmnisState.cpp

@@ -208,6 +208,7 @@ tresult PLUGIN_API OmnisProcessor::terminate() {
     GateHold hold(*this);
     active_.store(false);
     link_.stop();
+    feed_->prod.release();
     capture_.release();
     return AudioEffect::terminate();
 }
@@ -277,6 +278,8 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         stemGain_.prepare(sampleRate_, 30.0);
         stemGain_.snapTo(1.0);
         stemChain_.prepare(sampleRate_);
+        if (role() != params::LinkRole::Stem) feed_->prod.prepare(sampleRate_);
+        else feed_->prod.release();
         if (role() != params::LinkRole::Alone)
             link_.start(static_cast<link::Role>(role()), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
                         static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
@@ -287,6 +290,7 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         active_.store(false);
         link_.stop();
         capture_.release();
+        feed_->prod.release();
     }
     return AudioEffect::setActive(state);
 }
@@ -354,6 +358,8 @@ void OmnisProcessor::switchRole(int newRole) {
                     static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
     stemGain_.snapTo(1.0);
     stemChain_.reset();
+    if (newRole == static_cast<int>(params::LinkRole::Stem)) feed_->prod.release();
+    else feed_->prod.prepare(sampleRate_);
     activeRole_.store(newRole);
 }
 
@@ -633,6 +639,11 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
         return kResultOk;
     }
 
+    // La prod entendue (barre IA, AUTO) : l'entrée, avant tout traitement, pendant la lecture.
+    if (data.processContext && (data.processContext->state & ProcessContext::kPlaying) != 0) {
+        if (is64) feed_->prod.push(data.inputs[0].channelBuffers64[0], data.inputs[0].channelBuffers64[1], data.numSamples);
+        else feed_->prod.push(data.inputs[0].channelBuffers32[0], data.inputs[0].channelBuffers32[1], data.numSamples);
+    }
     if (data.symbolicSampleSize == kSample64)
         processSegments(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples);
     else

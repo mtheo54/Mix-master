@@ -20,6 +20,7 @@
 #pragma once
 
 #include "core/SpscRingBuffer.h"
+#include "engine/ProdListener.h"
 #include "core/TripleBuffer.h"
 
 #include <array>
@@ -48,6 +49,8 @@ public:
     SpscRingBuffer<float> scope; ///< sortie entrelacée L, R
     std::atomic<bool> wanted{false};
     std::atomic<double> sampleRate{48000.0};
+    /// Ce que le master a entendu de la prod (barre IA, AUTO) ; tourne même interface fermée.
+    ProdListener prod;
 };
 
 /// Registre du processus (non temps réel, protégé par un verrou).
