@@ -17,7 +17,10 @@
 
 #include "public.sdk/source/vst/utility/stringconvert.h"
 
+#include "vstgui/lib/cbitmap.h"
 #include "vstgui/lib/cframe.h"
+#include "vstgui/lib/coffscreencontext.h"
+#include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/lib/cvstguitimer.h"
 #include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/lib/controls/ctextedit.h"
@@ -33,6 +36,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <map>
 #include <numbers>
 
 using namespace VSTGUI;
@@ -145,19 +149,22 @@ private:
 /// dont la face montre le choix en cours, pas l'entrée du menu principal.
 class RefMenu : public COptionMenu {
 public:
-    RefMenu(const CRect& r, IControlListener* l, std::function<std::string()> label)
-        : COptionMenu(r, l, -1), label_(std::move(label)) {}
+    using Thumb = std::function<void(CDrawContext*, const CRect&)>;
+    RefMenu(const CRect& r, IControlListener* l, std::function<std::string()> label, Thumb thumb)
+        : COptionMenu(r, l, -1), label_(std::move(label)), thumb_(std::move(thumb)) {}
     void draw(CDrawContext* c) override {
         const CRect r = getViewSize();
         c->setFillColor(color::kScreen);
         c->setFrameColor(CColor(0, 0, 0, 255));
         c->setLineWidth(1.0);
         c->drawRect(r, kDrawFilledAndStroked);
-        engraved(c, "RÉF", CRect(r.left + 7, r.top, r.left + 36, r.bottom));
         std::string name = label_();
         const auto font = mono(10, !name.empty());
+        // Choisie : sa pochette à la place de « RÉF ».
+        if (name.empty()) engraved(c, "RÉF", CRect(r.left + 7, r.top, r.left + 36, r.bottom));
+        else thumb_(c, CRect(r.left + 3, r.top + 3, r.left + 3 + r.getHeight() - 6, r.bottom - 3));
         // Un titre long est coupé (« … ») avant le triangle.
-        const CRect area(r.left + 36, r.top, r.right - 18, r.bottom);
+        const CRect area(r.left + (name.empty() ? 36 : r.getHeight() + 2), r.top, r.right - 18, r.bottom);
         c->setFont(font);
         const bool none = name.empty();
         if (!none && c->getStringWidth(name.c_str()) > area.getWidth()) {
@@ -187,6 +194,7 @@ public:
 
 private:
     std::function<std::string()> label_;
+    Thumb thumb_;
 };
 
 double clamp01(double v) { return std::clamp(v, 0.0, 1.0); }
@@ -369,6 +377,8 @@ struct OmnisEditor::Analysis {
     std::array<int, 2> holdTicks{};
     double sampleRate = 48000.0;
     std::uint32_t lastSequence = 0;
+    std::map<std::string, SharedPointer<CBitmap>> pictures; ///< images/ : chargées une fois (nullptr : illisible)
+    std::map<std::string, SharedPointer<CBitmap>> icons;    ///< icônes du menu RÉF
     Analysis() { spectrum.fill(-120.0f); }
     void push(const float* x, std::size_t frames) {
         for (std::size_t i = 0; i < frames; ++i) {
@@ -483,7 +493,7 @@ void PLUGIN_API OmnisEditor::close() {
     slots_ = {};
     pages_ = {};
     pageScreens_ = {};
-    spectrum_ = scope_ = meter_ = readouts_ = stemBanner_ = nullptr;
+    spectrum_ = scope_ = meter_ = readouts_ = stemBanner_ = cardScreen_ = nullptr;
     matchButton_ = nullptr;
     askField_ = nullptr;
     askAnswer_ = nullptr;
@@ -599,67 +609,201 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     (void)autoButton;
 }
 
+struct OmnisEditor::Card {
+    std::string key = "\x01";
+    OmnisController::ReferenceCard data;
+};
+
+CBitmap* OmnisEditor::picture(const std::string& path) {
+    if (path.empty()) return nullptr;
+    auto it = an_->pictures.find(path);
+    if (it == an_->pictures.end()) {
+        SharedPointer<CBitmap> b;
+        if (auto platform = getPlatformFactory().createBitmapFromPath(path.c_str())) b = makeOwned<CBitmap>(platform);
+        it = an_->pictures.emplace(path, b).first;
+    }
+    return it->second;
+}
+
+void OmnisEditor::paintCover(CDrawContext* c, const CRect& r, const std::string& imagePath, const analysis::SpectralSignature& sig,
+                             const std::string& seed) {
+    if (CBitmap* b = picture(imagePath)) {
+        // L'image remplit le carré (recadrée au centre).
+        const CPoint size = b->getSize();
+        if (size.x > 0 && size.y > 0) {
+            const double k = std::max(r.getWidth() / size.x, r.getHeight() / size.y);
+            CRect clip;
+            c->getClipRect(clip);
+            CRect inside = r;
+            inside.bound(clip);
+            c->setClipRect(inside);
+            {
+                CDrawContext::Transform t(*c, CGraphicsTransform()
+                                                  .scale(k, k)
+                                                  .translate(r.left + (r.getWidth() - size.x * k) / 2.0, r.top + (r.getHeight() - size.y * k) / 2.0));
+                c->drawBitmap(b, CRect(0, 0, size.x, size.y));
+            }
+            c->setClipRect(clip);
+            return;
+        }
+    }
+    // Pochette dessinée d'après la fiche : la teinte suit la tonalité (cercle des
+    // quintes ; mineur plus sombre), la silhouette est la courbe Mid du titre, le
+    // grain suit le nombre d'attaques. Deux titres différents ne se ressemblent pas.
+    std::uint32_t h = 2166136261u;
+    for (unsigned char ch : seed) h = (h ^ ch) * 16777619u;
+    const auto& m = sig.music;
+    const double hue = m.keyRoot >= 0 ? std::fmod(m.keyRoot * 7.0 * 30.0 + (h % 24), 360.0) : static_cast<double>(h % 360);
+    CColor bg, fg, line;
+    bg.fromHSV(hue, 0.55, m.keyMinor ? 0.15 : 0.22);
+    fg.fromHSV(std::fmod(hue + 28.0, 360.0), 0.80, 1.0);
+    line.fromHSV(hue, 0.30, 0.85);
+    c->setFillColor(bg);
+    c->drawRect(r, kDrawFilled);
+    const double top = *std::max_element(sig.midDb.begin(), sig.midDb.end());
+    const double cy = r.getCenter().y, half = r.getHeight() * 0.42;
+    if (auto path = VSTGUI::owned(c->createGraphicsPath())) {
+        const int n = static_cast<int>(sig.midDb.size());
+        const auto x = [&](int k) { return r.left + r.getWidth() * (k + 0.5) / n; };
+        const auto v = [&](int k) { return std::clamp((sig.midDb[static_cast<std::size_t>(k)] - (top - 30.0)) / 30.0, 0.04, 1.0); };
+        path->beginSubpath(CPoint(r.left, cy));
+        for (int k = 0; k < n; ++k) path->addLine(CPoint(x(k), cy - half * v(k)));
+        path->addLine(CPoint(r.right, cy));
+        for (int k = n - 1; k >= 0; --k) path->addLine(CPoint(x(k), cy + half * v(k)));
+        path->closeSubpath();
+        c->setFillColor(withAlpha(fg, 0.85));
+        c->drawGraphicsPath(path, CDrawContext::kPathFilled);
+    }
+    const int grain = std::clamp(static_cast<int>(std::lround(m.onsetsPerSecond)), 2, 12);
+    c->setLineWidth(1.0);
+    c->setFrameColor(withAlpha(line, 0.18));
+    for (int i = 1; i <= grain; ++i) {
+        const double y = std::round(r.top + r.getHeight() * i / (grain + 1.0)) + 0.5;
+        c->drawLine(CPoint(r.left, y), CPoint(r.right, y));
+    }
+    c->setFrameColor(color::kEdgeLo);
+    c->drawRect(r, kDrawStroked);
+}
+
+void OmnisEditor::paintReferenceCard(CDrawContext* c, const CRect& r) {
+    if (!card_) return;
+    const auto& d = card_->data;
+    if (d.name.empty()) {
+        engraved(c, "RÉFÉRENCE VISÉE", CRect(r.left + 10, r.top + 6, r.right - 10, r.top + 20));
+        text(c, "Aucune : choisis un style, un artiste ou un titre dans RÉF.", CRect(r.left + 10, r.top + 26, r.right - 10, r.top + 42),
+             color::kText3, mono(9.5));
+        return;
+    }
+    const double side = r.getHeight() - 12;
+    CRect cover(r.left + 6, r.top + 6, r.left + 6 + side, r.top + 6 + side);
+    paintCover(c, cover, d.cover, d.signature, d.name);
+    double x = cover.right + 8;
+    if (!d.photo.empty()) {
+        const CRect photo(x, cover.top, x + side, cover.bottom);
+        paintCover(c, photo, d.photo, d.signature, d.name);
+        x = photo.right + 10;
+    }
+    engraved(c, "RÉFÉRENCE VISÉE", CRect(x, r.top + 6, r.right - 8, r.top + 20));
+    text(c, d.name, CRect(x, r.top + 22, r.right - 8, r.top + 40), color::kAccent, mono(11, true));
+    text(c, d.detail, CRect(x, r.top + 42, r.right - 8, r.top + 56), color::kText2, mono(9.5));
+    // Une photo libre ne se montre qu'avec son auteur et sa licence.
+    if (!d.credit.empty()) text(c, d.credit, CRect(x, r.bottom - 20, r.right - 8, r.bottom - 6), color::kText3, mono(8.5));
+}
+
 void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     using Kind = OmnisController::RefKind;
     auto* c = omnis();
-    const auto choices = c ? c->referenceChoices() : OmnisController::ReferenceChoices{};
-    // Ce que chaque entrée choisit, sous-menu par sous-menu.
+    const auto tree = c ? c->referenceTree() : OmnisController::ReferenceTree{};
+    card_ = std::make_shared<Card>();
+    // Ce que chaque entrée choisit, menu par menu (l'indice compte les séparateurs).
     struct Pick {
         Kind kind;
         std::string name;
     };
-    auto picks = std::make_shared<std::vector<std::pair<COptionMenu*, std::vector<Pick>>>>();
+    auto picks = std::make_shared<std::map<COptionMenu*, std::map<int32_t, Pick>>>();
     auto* menu = new RefMenu(r, listen([this, picks](CControl* ctl) {
         auto* m = dynamic_cast<COptionMenu*>(ctl);
         if (!m || !omnis()) return;
         int32_t idx = -1;
         COptionMenu* from = m->getLastItemMenu(idx);
-        for (const auto& [sub, list] : *picks)
-            if (sub == from && idx >= 0 && idx < static_cast<int32_t>(list.size())) {
-                answer_ = omnis()->chooseReference(list[static_cast<std::size_t>(idx)].kind, list[static_cast<std::size_t>(idx)].name);
-                return;
-            }
+        const auto list = picks->find(from);
+        if (list == picks->end()) return;
+        const auto pick = list->second.find(idx);
+        if (pick != list->second.end()) answer_ = omnis()->chooseReference(pick->second.kind, pick->second.name);
     }), [this] {
         auto* oc = omnis();
         return oc && oc->referenceKind() != Kind::None ? oc->referenceName() : std::string();
-    });
+    }, [this](CDrawContext* dc, const CRect& rr) { paintCover(dc, rr, card_->data.cover, card_->data.signature, card_->data.name); });
     menu->setFont(mono(10.5));
     menu->setFontColor(color::kText);
     menu->setBackColor(color::kScreen);
-    // Menu principal : aucune, puis les trois familles.
-    menu->addEntry("Aucune (OMNIS suit tes mots)");
-    picks->push_back({menu, {Pick{Kind::None, {}}}});
-    menu->addSeparator();
-    const auto submenu = [&](const char* title, Kind kind, const std::vector<std::pair<std::string, int>>& named,
-                             const std::vector<std::string>& plain) {
+    const auto add = [picks](COptionMenu* to, const std::string& label, Kind kind, const std::string& name) {
+        auto* item = to->addEntry(UTF8String(label));
+        (*picks)[to][to->getNbEntries() - 1] = Pick{kind, name};
+        return item;
+    };
+    // Petite icône de menu : la pochette (ou la photo), dessinée hors écran.
+    const auto icon = [this](const std::string& path, const analysis::SpectralSignature& sig, const std::string& seed) -> CBitmap* {
+        const std::string key = seed + "\x1f" + path;
+        auto it = an_->icons.find(key);
+        if (it == an_->icons.end()) {
+            SharedPointer<CBitmap> b;
+            if (auto ctx = COffscreenContext::create(CPoint(20, 20))) {
+                ctx->beginDraw();
+                paintCover(ctx, CRect(0, 0, 20, 20), path, sig, seed);
+                ctx->endDraw();
+                b = ctx->getBitmap();
+            }
+            it = an_->icons.emplace(key, b).first;
+        }
+        return it->second;
+    };
+    const auto plural = [](std::size_t n) { return std::to_string(n) + (n > 1 ? " titres" : " titre"); };
+    // Un artiste : tous ses titres, puis chacun (pochette en icône).
+    const auto artistMenu = [&](COptionMenu* to, const OmnisController::ReferenceArtist& a) {
         auto* sub = new COptionMenu();
         sub->setNbItemsPerColumn(30);
-        std::vector<Pick> list;
-        for (const auto& [n, count] : named) {
-            sub->addEntry(UTF8String(n + "  (" + std::to_string(count) + (count > 1 ? " titres)" : " titre)")));
-            list.push_back({kind, n});
-        }
-        for (const auto& n : plain) {
-            sub->addEntry(UTF8String(n));
-            list.push_back({kind, n});
-        }
-        if (list.empty()) sub->addEntry("(rien de mesuré)", -1, CMenuItem::kDisabled);
-        menu->addEntry(sub, title);
-        picks->push_back({sub, std::move(list)});
+        add(sub, "Tous les titres de " + a.name + " (" + plural(a.titles.size()) + ")", Kind::Artist, a.name);
+        sub->addSeparator();
+        for (const auto& t : a.titles)
+            if (auto* item = add(sub, t.title, Kind::Title, t.name)) item->setIcon(icon(t.cover, t.signature, t.name));
+        auto* item = to->addEntry(sub, UTF8String(a.name + "  (" + std::to_string(a.titles.size()) + ")"));
+        if (item && !a.titles.empty()) item->setIcon(icon(a.photo, a.titles.front().signature, a.name));
         sub->forget();
     };
-    submenu("Styles", Kind::Style, choices.styles, {});
-    submenu("Artistes", Kind::Artist, choices.artists, {});
-    submenu("Titres", Kind::Title, {}, choices.titles);
+    add(menu, "Aucune (OMNIS suit tes mots)", Kind::None, {});
+    menu->addSeparator();
+    auto* styles = new COptionMenu();
+    styles->setNbItemsPerColumn(30);
+    for (const auto& st : tree.styles) {
+        auto* sub = new COptionMenu();
+        sub->setNbItemsPerColumn(30);
+        add(sub, "Tout le style " + st.name + " (" + plural(st.titleCount()) + ")", Kind::Style, st.name);
+        sub->addSeparator();
+        for (const auto& a : st.artists) artistMenu(sub, a);
+        styles->addEntry(sub, UTF8String(st.name + "  (" + std::to_string(st.titleCount()) + ")"));
+        sub->forget();
+    }
+    if (tree.styles.empty()) styles->addEntry("(rien de mesuré)", -1, CMenuItem::kDisabled);
+    menu->addEntry(styles, "Styles");
+    styles->forget();
+    auto* artists = new COptionMenu();
+    artists->setNbItemsPerColumn(30);
+    for (const auto& a : tree.artists) artistMenu(artists, a);
+    if (tree.artists.empty()) artists->addEntry("(rien de mesuré)", -1, CMenuItem::kDisabled);
+    menu->addEntry(artists, "Artistes de A à Z");
+    artists->forget();
     parent->addView(menu);
-    // La face suit le choix (fait ici, par AUTO ou relu avec la session).
-    auto shown = std::make_shared<std::string>("\x01");
-    syncs_.push_back([this, menu, shown] {
+    // La face et la carte suivent le choix (fait ici, par AUTO ou relu avec la session).
+    syncs_.push_back([this, menu] {
         auto* oc = omnis();
         const std::string now = oc ? std::to_string(static_cast<int>(oc->referenceKind())) + oc->referenceName() : std::string();
-        if (now != *shown) {
-            *shown = now;
+        if (now != card_->key) {
+            card_->key = now;
+            card_->data = oc ? oc->referenceCard() : OmnisController::ReferenceCard{};
             menu->invalid();
+            if (pageScreens_[1]) pageScreens_[1]->markDirty();
+            if (cardScreen_) cardScreen_->markDirty();
         }
     });
 }
@@ -983,8 +1127,13 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         }, false);
         p->addView(flat);
         live_.push_back(flat);
-        p->addView(new Caption(CRect(12, row2 + 4, W - 14, row2 + 20), "21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).", color::kText3, mono(9)));
-        p->addView(new Caption(CRect(12, row2 + 22, W - 14, row2 + 38), "La barre IA et les références les écrivent ; ici tu les retouches.", color::kText3, mono(9)));
+        // La référence visée : pochette, photo (avec son crédit), tempo, tonalité, sonie.
+        cardScreen_ = new Screen(CRect(12, row2, W - 14, row2 + 72), [this](CDrawContext* dc, const CRect& r) { paintReferenceCard(dc, r); }, false);
+        cardScreen_->setMouseEnabled(false);
+        p->addView(cardScreen_);
+        live_.push_back(cardScreen_);
+        p->addView(new Caption(CRect(12, row2 + 80, W - 14, row2 + 94), "21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).", color::kText3, mono(9)));
+        p->addView(new Caption(CRect(12, row2 + 96, W - 14, row2 + 110), "La barre IA et les références les écrivent ; ici tu les retouches.", color::kText3, mono(9)));
     }
     {
         auto* p = page(drawer, 2, "3", "INFLATOR", "Densité et chaleur, la 808 et le mix à part.");

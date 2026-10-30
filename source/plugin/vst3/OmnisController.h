@@ -21,6 +21,8 @@
 // =============================================================================
 #pragma once
 
+#include "analysis/SpectralSignature.h"
+
 #include "pluginterfaces/vst/ivstchannelcontextinfo.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
 
@@ -89,12 +91,37 @@ public:
     [[nodiscard]] double autoProgress() const;
 
     /// Menu RÉFÉRENCE : ce que la base propose (seulement ce qui est mesuré),
-    /// base fournie + références_utilisateur.txt, de A à Z.
-    struct ReferenceChoices {
-        std::vector<std::pair<std::string, int>> styles, artists; ///< nom, nombre de titres mesurés
-        std::vector<std::string> titles;                          ///< « Artiste - Titre »
+    /// base fournie + references_utilisateur.txt : style -> artiste -> ses titres,
+    /// et les artistes de A à Z. Les images sont des chemins de fichiers présents
+    /// (vides sinon : la console dessine une pochette tirée de la fiche).
+    struct ReferenceTitle {
+        std::string name;  ///< « Artiste - Titre » (ce que chooseReference attend)
+        std::string title; ///< le titre seul (menu)
+        std::string cover; ///< pochette : chemin du fichier
+        analysis::SpectralSignature signature;
     };
-    [[nodiscard]] ReferenceChoices referenceChoices() const;
+    struct ReferenceArtist {
+        std::string name;
+        std::string photo, credit; ///< photo libre et son crédit (jamais l'une sans l'autre)
+        std::vector<ReferenceTitle> titles;
+    };
+    struct ReferenceStyle {
+        std::string name;
+        std::vector<ReferenceArtist> artists;
+        [[nodiscard]] std::size_t titleCount() const;
+    };
+    struct ReferenceTree {
+        std::vector<ReferenceStyle> styles;
+        std::vector<ReferenceArtist> artists; ///< A – Z, tous styles
+    };
+    [[nodiscard]] ReferenceTree referenceTree() const;
+    /// La référence choisie, de quoi la montrer (vide : aucune).
+    struct ReferenceCard {
+        std::string name, credit, photo, cover, detail; ///< detail : « 111 BPM · Mi · -3,7 LUFS »
+        analysis::SpectralSignature signature;           ///< moyenne des titres (pochette dessinée)
+        int titles = 0;
+    };
+    [[nodiscard]] ReferenceCard referenceCard() const;
     enum class RefKind : int { None = 0, Style, Artist, Title };
     /// Choisit la référence : appliquée tout de suite (ou dès qu'OMNIS a assez
     /// écouté) ; AUTO la vise ensuite. None : AUTO revient au style des mots.

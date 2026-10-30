@@ -41,8 +41,13 @@ class CTextLabel;
 class CVSTGUITimer;
 class COptionMenu;
 class CControl;
+class CBitmap;
 class IControlListener;
 } // namespace VSTGUI
+
+namespace omnis::analysis {
+struct SpectralSignature;
+}
 
 namespace omnis::vst3 {
 
@@ -103,6 +108,13 @@ private:
     void drop(int module, double frameX);
     void askAi();
     void buildReferenceMenu(VSTGUI::CViewContainer* parent, const VSTGUI::CRect& r);
+    /// Une image du dossier images/ (chargée une fois) ; nullptr si illisible.
+    VSTGUI::CBitmap* picture(const std::string& path);
+    /// Pochette d'un titre (ou photo d'un artiste) : l'image si elle existe,
+    /// sinon une pochette dessinée d'après la fiche ; aussi en petite icône de menu.
+    void paintCover(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r, const std::string& imagePath, const analysis::SpectralSignature& signature,
+                    const std::string& seed);
+    void paintReferenceCard(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
 
     void paintModuleScreen(int module, VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
     void paintSpectrum(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
@@ -129,6 +141,7 @@ private:
     gui::Screen* meter_ = nullptr;
     gui::Screen* readouts_ = nullptr;
     gui::Screen* stemBanner_ = nullptr;
+    gui::Screen* cardScreen_ = nullptr; ///< page Match EQ : la référence visée
     gui::HwButton* matchButton_ = nullptr;
     VSTGUI::CTextEdit* askField_ = nullptr;
     VSTGUI::CTextLabel* askAnswer_ = nullptr;
@@ -140,6 +153,8 @@ private:
     double matchStartY_ = 0.0, matchStartDb_ = 0.0;
     int proposalIndex_ = 0, ticks_ = 0;
     std::string answer_;
+    struct Card;
+    std::shared_ptr<Card> card_; ///< la référence choisie, relue quand elle change
 
     // Ce que le processeur montre (UiFeed), analysé ici (thread de l'interface).
     std::shared_ptr<UiFeed> feed_;

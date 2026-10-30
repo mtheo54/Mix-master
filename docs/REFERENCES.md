@@ -14,6 +14,31 @@ complète, plus OMNIS en tire : chaque champ ci-dessous dit ce qu'il mesure et �
 | `genres` | `rage \| hyperpop` | **ta** classification (elle gagne toujours) | AUTO vers un style, « genre rage » |
 | `proches` | `2hollis \| Nettspend` | artistes proches | un artiste inconnu -> ses proches mesurés |
 | `traits` | `808 saturée, voix autotune` | ce qui fait le son, en mots | expliquer pourquoi la réf sonne ainsi |
+| `image`, `image_credit` | `2hollis.png`, `Photo : Auteur, CC BY-SA 4.0` | photo de l'artiste **sous licence libre** et son crédit | menu RÉF et carte « Référence visée » ; sans crédit, la photo n'est pas montrée |
+| `pochette` | `2hollis_poster_boy.png` | pochette du titre | idem ; absente : OMNIS dessine une pochette d'après la fiche |
+
+## Les images (photo d'artiste, pochette)
+
+La base ne contient que des **noms de fichiers** ; les images sont dans le dossier `images/`
+d'OMNIS (`%APPDATA%\Abrasion Labs\OMNIS\images` sous Windows, `~/Library/Application
+Support/Abrasion Labs/OMNIS/images` sur Mac). PNG conseillé (JPG lu sous Windows et Mac).
+
+```
+omnis_refdb image photo.png --artiste "2hollis" --credit "Photo : Auteur, CC BY-SA 4.0" --db references_utilisateur.txt
+omnis_refdb pochette pochette.png --artiste "2hollis" --titre "poster boy" --db references_utilisateur.txt
+```
+
+L'outil copie l'image dans `images/` sous un nom propre et l'écrit dans la fiche.
+
+**Rester réglo :**
+- **Photo d'artiste** : seulement une photo sous licence libre (Wikimedia Commons : CC BY,
+  CC BY-SA, CC0), avec l'auteur et la licence dans `image_credit`. OMNIS l'affiche toujours
+  sous la photo ; l'outil refuse une photo sans crédit. Garder le lien de la page source dans
+  un fichier à part (`images/sources.txt`) pour pouvoir le prouver.
+- **Pochette** : elle n'est **pas** sous licence libre, elle appartient au label / à
+  l'artiste. Pour ton usage, sur ton PC : oui. **Livrée avec le plug-in vendu : non**, sauf
+  accord écrit du label. Sans pochette, OMNIS dessine la sienne à partir de la fiche (teinte
+  = tonalité, silhouette = courbe du titre, grain = attaques) : aucune question de droits.
 
 ## Le spectre et la sonie (fiche v1)
 

@@ -376,7 +376,12 @@ glue, Inflator, clip, Imager) et en sonie à viser ; le contrôleur pousse le li
 en lisant la sonie court terme de la sortie jusqu'à la cible (±0,4 LU).
 
 **Menu RÉF.** Base fournie + `references_utilisateur.txt`, entrées mesurées seulement :
-styles (avec leur nombre de titres), artistes, titres (A – Z, 30 par colonne). Le choix passe
+Styles → style → artiste → titres (« tout le style », « tous les titres de… » en tête), et
+Artistes de A à Z → titres ; 30 par colonne. Icônes 20 px dessinées hors écran : la pochette
+(fichier de `images/`) ou une pochette tirée de la fiche (teinte = tonalité, silhouette =
+courbe Mid, grain = attaques). La photo d'artiste n'est lue que si `image_credit` existe. La
+page Match EQ montre la carte « Référence visée » (pochette, photo, crédit, tempo, tonalité,
+sonie). Le choix passe
 par `planReference` (courbe du Match EQ vers la moyenne des titres, `applyMusic` sur la fiche
 complète, sonie de la réf bornée à −14 … −5 LUFS comme AUTO) ; si la prod n'a pas encore été
 entendue 8 s, il attend la lecture. AUTO vise la référence choisie avant le style deviné des

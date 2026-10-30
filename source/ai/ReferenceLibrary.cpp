@@ -155,6 +155,9 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
         else if (key == "genres") current.genres = splitList(value);
         else if (key == "proches") current.similar = splitList(value);
         else if (key == "traits") current.traits = value;
+        else if (key == "image") current.image = value;
+        else if (key == "image_credit") current.imageCredit = value;
+        else if (key == "pochette") current.cover = value;
         else if (key == "lufs") number_(s.integratedLufs);
         else if (key == "lra") number_(s.loudnessRangeLu);
         else if (key == "tp") number_(s.truePeakDb);
@@ -213,6 +216,9 @@ std::string ReferenceLibrary::serialize() const {
             out += "\n";
         }
         if (!e.traits.empty()) out += "traits = " + e.traits + "\n";
+        if (!e.image.empty()) out += "image = " + e.image + "\n";
+        if (!e.imageCredit.empty()) out += "image_credit = " + e.imageCredit + "\n";
+        if (!e.cover.empty()) out += "pochette = " + e.cover + "\n";
         if (!e.measured) {
             out += "# connu de nom : en attente d'un son pour le mesurer\n";
             continue;
@@ -283,6 +289,8 @@ void ReferenceLibrary::add(ReferenceEntry entry) {
             for (const auto& a : from.similar)
                 if (std::none_of(to.similar.begin(), to.similar.end(), [&](const std::string& x) { return namesMatch(x, a); })) to.similar.push_back(a);
             if (to.traits.empty()) to.traits = from.traits;
+            if (to.image.empty()) to.image = from.image, to.imageCredit = from.imageCredit;
+            if (to.cover.empty()) to.cover = from.cover;
         };
         if (!entry.measured && e.measured) {
             mergeInto(e, entry);

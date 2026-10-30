@@ -249,24 +249,86 @@ std::string OmnisController::runRequest(const std::string& text) {
     return out;
 }
 
-OmnisController::ReferenceChoices OmnisController::referenceChoices() const {
-    const auto lib = libraryWithUser();
-    ReferenceChoices c;
-    for (const auto& g : lib.genres())
-        if (const auto n = lib.measuredWithGenre(g).size(); n > 0) c.styles.emplace_back(g, static_cast<int>(n));
-    for (const auto& e : lib.entries()) {
-        if (!playable(e)) continue;
-        c.titles.push_back(e.displayName());
-        auto it = std::find_if(c.artists.begin(), c.artists.end(), [&](const auto& a) { return a.first == e.artist; });
-        if (it == c.artists.end()) c.artists.emplace_back(e.artist, 1);
-        else ++it->second;
+std::size_t OmnisController::ReferenceStyle::titleCount() const {
+    std::size_t n = 0;
+    for (const auto& a : artists) n += a.titles.size();
+    return n;
+}
+
+namespace {
+
+/// Une image de la fiche : un fichier du dossier images/ de l'utilisateur, s'il existe.
+std::string imagePath(const std::string& file) {
+    if (file.empty() || file.find("..") != std::string::npos) return {};
+    std::error_code ec;
+    const std::u8string name(reinterpret_cast<const char8_t*>(file.data()), file.size());
+    const auto path = userDataDir() / "images" / std::filesystem::path(name);
+    if (!std::filesystem::is_regular_file(path, ec)) return {};
+    const auto utf8 = path.u8string();
+    return std::string(reinterpret_cast<const char*>(utf8.data()), utf8.size());
+}
+
+/// Les titres mesurés regroupés par artiste (photo : la première fiche qui en a une, avec son crédit).
+std::vector<OmnisController::ReferenceArtist> byArtist(const std::vector<const ai::ReferenceEntry*>& entries) {
+    std::vector<OmnisController::ReferenceArtist> out;
+    for (const auto* e : entries) {
+        auto it = std::find_if(out.begin(), out.end(), [&](const auto& a) { return a.name == e->artist; });
+        if (it == out.end()) {
+            out.push_back({e->artist, {}, {}, {}});
+            it = out.end() - 1;
+        }
+        if (it->photo.empty() && !e->imageCredit.empty()) {
+            it->photo = imagePath(e->image);
+            if (!it->photo.empty()) it->credit = e->imageCredit;
+        }
+        if (std::none_of(it->titles.begin(), it->titles.end(), [&](const auto& t) { return t.name == e->displayName(); }))
+            it->titles.push_back({e->displayName(), e->title.empty() ? e->artist : e->title, imagePath(e->cover), e->signature});
     }
-    const auto byName = [](const auto& a, const auto& b) { return lessNoCase(a.first, b.first); };
-    std::sort(c.styles.begin(), c.styles.end(), byName);
-    std::sort(c.artists.begin(), c.artists.end(), byName);
-    std::sort(c.titles.begin(), c.titles.end(), lessNoCase);
-    c.titles.erase(std::unique(c.titles.begin(), c.titles.end()), c.titles.end());
-    return c;
+    std::sort(out.begin(), out.end(), [](const auto& a, const auto& b) { return lessNoCase(a.name, b.name); });
+    for (auto& a : out) std::sort(a.titles.begin(), a.titles.end(), [](const auto& x, const auto& y) { return lessNoCase(x.title, y.title); });
+    return out;
+}
+
+} // namespace
+
+OmnisController::ReferenceTree OmnisController::referenceTree() const {
+    const auto lib = libraryWithUser();
+    ReferenceTree tree;
+    for (const auto& g : lib.genres())
+        if (auto entries = lib.measuredWithGenre(g); !entries.empty()) tree.styles.push_back({g, byArtist(entries)});
+    std::sort(tree.styles.begin(), tree.styles.end(), [](const auto& a, const auto& b) { return lessNoCase(a.name, b.name); });
+    std::vector<const ai::ReferenceEntry*> all;
+    for (const auto& e : lib.entries())
+        if (playable(e)) all.push_back(&e);
+    tree.artists = byArtist(all);
+    return tree;
+}
+
+OmnisController::ReferenceCard OmnisController::referenceCard() const {
+    ReferenceCard card;
+    if (refKind_ == RefKind::None) return card;
+    const auto lib = libraryWithUser();
+    const auto refs = referenceEntries(lib, refKind_, refName_);
+    if (refs.empty()) return card;
+    card.name = refName_;
+    card.titles = static_cast<int>(refs.size());
+    card.signature = ai::aggregateSignature(refs);
+    // Photo : un artiste (ou le titre d'un seul artiste) ; pochette : un titre.
+    const auto artists = byArtist(refs);
+    if (artists.size() == 1) {
+        card.photo = artists.front().photo;
+        card.credit = artists.front().credit;
+    }
+    if (refKind_ == RefKind::Title) card.cover = imagePath(refs.front()->cover);
+    char b[96];
+    const auto& m = refs.front()->signature.music;
+    if (refs.size() == 1 && m.valid) {
+        std::snprintf(b, sizeof b, "%.0f BPM · %s · %.1f LUFS", m.bpm, m.keyRoot >= 0 ? m.keyName().c_str() : "tonalité ?", refs.front()->signature.integratedLufs);
+    } else {
+        std::snprintf(b, sizeof b, "%d titre%s · %.1f LUFS en moyenne", card.titles, card.titles > 1 ? "s" : "", card.signature.integratedLufs);
+    }
+    card.detail = b;
+    return card;
 }
 
 std::string OmnisController::chooseReference(RefKind kind, const std::string& name) {

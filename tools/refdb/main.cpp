@@ -22,6 +22,12 @@
 //                lui-même n'a pas été écouté)
 //    omnis_refdb scan dossier/ --titres liste.txt --db base.txt
 //                (chaque son est reconnu dans la liste et prend ses genres)
+//    omnis_refdb image photo.jpg --artiste "2hollis" --credit "Photo : X, CC BY-SA 4.0" --db base.txt
+//                (photo d'artiste SOUS LICENCE LIBRE : le crédit est obligatoire et
+//                montré dans la console ; copiée dans le dossier images/ d'OMNIS)
+//    omnis_refdb pochette pochette.jpg --artiste "2hollis" --titre "poster boy" --db base.txt
+//                (pochette du titre : droits du label, pour ton usage ; à ne pas
+//                livrer avec le plug-in sans leur accord)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
@@ -31,6 +37,7 @@
 #include "WavFile.h"
 
 #include "analysis/SpectralSignature.h"
+#include "core/UserDataDir.h"
 
 #include <algorithm>
 #include <atomic>
@@ -202,12 +209,14 @@ int main(int argc, char** argv) {
                   "  omnis_refdb noms liste.txt --db base.txt   (« Artiste ; genre, genre ; alias »)\n"
                   "  omnis_refdb artistes liens.txt --db base.txt   (« Artiste ; famille ; styles ; proches : A, B ; traits : … »)\n"
                   "  omnis_refdb fiche titre.wav   (la fiche complète d'un son, sans rien écrire)\n"
+                  "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
+                  "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T --db base.txt\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
         return 1;
     }
     const std::string command = argv[1];
-    std::string db, artist, title, genres, aliases, input;
+    std::string db, artist, title, genres, aliases, input, credit;
     for (int i = 2; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--db" && i + 1 < argc) db = argv[++i];
@@ -215,8 +224,62 @@ int main(int argc, char** argv) {
         else if (a == "--titre" && i + 1 < argc) title = argv[++i];
         else if (a == "--genres" && i + 1 < argc) genres = argv[++i];
         else if (a == "--alias" && i + 1 < argc) aliases = argv[++i];
+        else if (a == "--credit" && i + 1 < argc) credit = argv[++i];
         else if ((a == "--classes" || a == "--titres") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
+    }
+
+    if (command == "image" || command == "pochette") {
+        const bool photo = command == "image";
+        if (db.empty() || input.empty() || artist.empty() || (!photo && title.empty())) {
+            std::fprintf(stderr, "%s : fichier, --artiste%s et --db\n", command.c_str(), photo ? " --credit" : " --titre");
+            return 1;
+        }
+        if (photo && credit.empty()) {
+            std::fprintf(stderr, "image : le crédit est obligatoire (« Photo : Auteur, CC BY-SA 4.0 ») : une photo libre se montre avec son auteur et sa licence\n");
+            return 1;
+        }
+        std::string ext = std::filesystem::path(input).extension().string();
+        for (char& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg") {
+            std::fprintf(stderr, "%s : PNG ou JPG\n", command.c_str());
+            return 1;
+        }
+        auto user = openDb(db);
+        std::vector<ai::ReferenceEntry> touched;
+        for (const auto& e : user.entries())
+            if (ai::namesMatch(e.artist, artist) && (photo || ai::namesMatch(e.title, title))) touched.push_back(e);
+        if (touched.empty()) {
+            std::fprintf(stderr, "%s : « %s%s » n'est pas dans %s\n", command.c_str(), artist.c_str(), photo ? "" : (" - " + title).c_str(), db.c_str());
+            return 1;
+        }
+        // Nom de fichier stable, sans espaces ni accents : « 2hollis.jpg », « 2hollis_poster_boy.png ».
+        const auto slug = [](const std::string& text) {
+            std::string out;
+            for (unsigned char c : text) {
+                if (std::isalnum(c)) out += static_cast<char>(std::tolower(c));
+                else if (!out.empty() && out.back() != '_') out += '_';
+            }
+            while (!out.empty() && out.back() == '_') out.pop_back();
+            return out.empty() ? std::string("image") : out;
+        };
+        const std::string name = slug(touched.front().artist) + (photo ? "" : "_" + slug(touched.front().title)) + ext;
+        const auto dir = userDataDir() / "images";
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+        std::filesystem::copy_file(input, dir / name, std::filesystem::copy_options::overwrite_existing, ec);
+        if (ec) {
+            std::fprintf(stderr, "%s : copie impossible vers %s (%s)\n", command.c_str(), utf8Path(dir / name).c_str(), ec.message().c_str());
+            return 1;
+        }
+        for (auto e : touched) {
+            if (photo) e.image = name, e.imageCredit = credit;
+            else e.cover = name;
+            user.add(e);
+        }
+        if (!writeTextFile(db, user.serialize())) return 1;
+        std::printf("%s -> %s (%zu fiche(s))\n", command.c_str(), utf8Path(dir / name).c_str(), touched.size());
+        return 0;
     }
 
     if (command == "fiche") {
@@ -331,6 +394,7 @@ int main(int argc, char** argv) {
                     if (merged.aliases.empty()) merged.aliases = old.aliases;
                     if (merged.similar.empty()) merged.similar = old.similar;
                     if (merged.traits.empty()) merged.traits = old.traits;
+                    merged.image = old.image, merged.imageCredit = old.imageCredit, merged.cover = old.cover;
                     for (const auto& g : old.genres)
                         if (std::find(merged.genres.begin(), merged.genres.end(), g) == merged.genres.end()) merged.genres.push_back(g);
                     break;

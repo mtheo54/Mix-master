@@ -317,6 +317,26 @@ OMNIS_TEST("références: liens entre artistes (« proches ») lus depuis une re
     ReferenceLibrary again;
     OMNIS_CHECK(again.parse(lib.serialize()));
     OMNIS_CHECK(again.entries().front().similar.size() == 2 && again.entries().front().traits == "808 saturée");
+
+    // Images : photo libre avec son crédit, pochette ; gardées par la base texte et
+    // par une nouvelle mesure du même titre.
+    ReferenceLibrary pics;
+    pics.parse(kLibrary);
+    ReferenceEntry p = pics.entries().front();
+    p.image = "2hollis.jpg";
+    p.imageCredit = "Photo : Auteur, CC BY-SA 4.0";
+    p.cover = "2hollis_poster_boy.png";
+    pics.add(p);
+    ReferenceLibrary reread;
+    OMNIS_CHECK(reread.parse(pics.serialize()));
+    const auto& r = reread.entries().front();
+    OMNIS_CHECK(r.image == "2hollis.jpg" && r.imageCredit == "Photo : Auteur, CC BY-SA 4.0" && r.cover == "2hollis_poster_boy.png");
+    ReferenceEntry name;
+    name.artist = r.artist;
+    name.title = r.title;
+    name.measured = false;
+    reread.add(name);
+    OMNIS_CHECK(reread.entries().front().cover == "2hollis_poster_boy.png");
 }
 
 OMNIS_TEST("compréhension: artiste connu de nom -> ses proches écoutés avant le profil de son genre") {

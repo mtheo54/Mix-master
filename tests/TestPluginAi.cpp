@@ -170,13 +170,20 @@ OMNIS_TEST("plug-in AUTO: écoute 10 s du passage joué, règle la chaîne vers 
 
 OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un titre choisi règle la chaîne et reste avec la session") {
     Host h;
-    const auto choices = h.ctrl->referenceChoices();
-    std::printf("      %zu styles, %zu artistes, %zu titres mesurés\n", choices.styles.size(), choices.artists.size(), choices.titles.size());
-    OMNIS_CHECK(!choices.styles.empty() && !choices.artists.empty() && !choices.titles.empty());
+    const auto tree = h.ctrl->referenceTree();
+    std::size_t titles = 0;
+    for (const auto& a : tree.artists) titles += a.titles.size();
+    std::printf("      %zu styles, %zu artistes, %zu titres mesurés\n", tree.styles.size(), tree.artists.size(), titles);
+    OMNIS_CHECK(!tree.styles.empty() && !tree.artists.empty() && titles > 0);
+    // Style -> artiste -> ses titres : « rage » contient 2hollis, qui contient poster boy.
     std::string title;
-    for (const auto& t : choices.titles)
-        if (t.find("poster boy") != std::string::npos) title = t;
-    OMNIS_CHECK(!title.empty());
+    for (const auto& st : tree.styles)
+        if (st.name == "rage")
+            for (const auto& a : st.artists)
+                if (a.name == "2hollis")
+                    for (const auto& t : a.titles)
+                        if (t.title == "poster boy") title = t.name;
+    OMNIS_CHECK(title == "2hollis - poster boy");
     // Pas encore écouté : le choix attend la lecture.
     const std::string early = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Title, title);
     std::printf("      %s\n", early.c_str());
@@ -195,7 +202,10 @@ OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un t
     std::printf("      courbe du Match EQ : %.1f dB cumulés\n", curve());
     OMNIS_CHECK(curve() > 0.1); // la courbe vers le titre est écrite
     // Choisi une fois que la prod est entendue : appliqué tout de suite.
-    const std::string now = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Style, choices.styles.front().first);
+    const auto card = h.ctrl->referenceCard();
+    std::printf("      carte : %s · %s\n", card.name.c_str(), card.detail.c_str());
+    OMNIS_CHECK(card.name == title && card.titles == 1 && card.detail.find("BPM") != std::string::npos);
+    const std::string now = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Style, tree.styles.front().name);
     std::printf("      %s\n", now.c_str());
     OMNIS_CHECK(now.find("Fait : vers ") == 0);
     // Gardé avec la session (état du contrôleur).
@@ -206,7 +216,7 @@ OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un t
     stream.seek(0, IBStream::kIBSeekSet, nullptr);
     OMNIS_CHECK(other->setState(&stream) == kResultOk);
     OMNIS_CHECK(other->referenceKind() == vst3::OmnisController::RefKind::Style);
-    OMNIS_CHECK(other->referenceName() == choices.styles.front().first);
+    OMNIS_CHECK(other->referenceName() == tree.styles.front().name);
     other->terminate();
     // Aucune : AUTO revient au style des mots.
     OMNIS_CHECK(h.ctrl->chooseReference(vst3::OmnisController::RefKind::None, {}).find("Pas de référence") == 0);
