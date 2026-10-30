@@ -47,6 +47,26 @@ bool fill(AudioFile& out, const float* interleaved, unsigned long long frames, u
 
 } // namespace
 
+std::vector<EmbeddedPicture> readFlacPictures(const unsigned char* data, std::size_t size) {
+    std::vector<EmbeddedPicture> out;
+    const auto onMeta = [](void* user, drflac_metadata* meta) {
+        if (!meta || meta->type != DRFLAC_METADATA_BLOCK_TYPE_PICTURE || !meta->data.picture.pPictureData) return;
+        // Les octets ne vivent que pendant l'appel : copiés.
+        auto& list = *static_cast<std::vector<EmbeddedPicture>*>(user);
+        list.push_back({std::string(reinterpret_cast<const char*>(meta->data.picture.pPictureData), meta->data.picture.pictureDataSize),
+                        meta->data.picture.type});
+    };
+    if (drflac* f = drflac_open_memory_with_metadata(data, size, onMeta, &out, nullptr)) drflac_close(f);
+    return out;
+}
+
+std::vector<EmbeddedPicture> readEmbeddedPictures(const std::filesystem::path& path) {
+    if (extensionOf(path) != "flac") return {};
+    std::vector<unsigned char> data;
+    if (!readBytes(path, data)) return {};
+    return readFlacPictures(data.data(), data.size());
+}
+
 bool isReadableAudio(const std::filesystem::path& path) {
     const std::string e = extensionOf(path);
     return e == "wav" || e == "mp3" || e == "flac";

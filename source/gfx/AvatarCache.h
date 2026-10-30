@@ -15,10 +15,13 @@
 
 #include "core/UserDataDir.h"
 
+#include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <string_view>
 
@@ -57,6 +60,29 @@ inline std::filesystem::path artistPath(std::string_view artist) {
 /// La pochette d'un titre (l'artiste et le titre la désignent).
 inline std::filesystem::path coverPath(std::string_view artist, std::string_view title) {
     return root() / "covers" / (hashName("cover:" + reduced(artist) + "|" + reduced(title)) + ".png");
+}
+
+/// Les deux couleurs dominantes d'une illustration (monogramme du mode promo),
+/// à côté du PNG : « <hash>.couleurs », « r g b r g b ».
+struct Colors {
+    std::array<std::array<std::uint8_t, 3>, 2> rgb{};
+    bool valid = false;
+};
+inline std::filesystem::path colorsPath(std::filesystem::path png) { return png.replace_extension(".couleurs"); }
+inline bool writeColors(const std::filesystem::path& png, const std::array<std::array<std::uint8_t, 3>, 2>& rgb) {
+    std::ofstream out(colorsPath(png), std::ios::trunc);
+    for (const auto& c : rgb) out << int(c[0]) << ' ' << int(c[1]) << ' ' << int(c[2]) << '\n';
+    return static_cast<bool>(out);
+}
+inline Colors readColors(const std::filesystem::path& png) {
+    Colors c;
+    std::ifstream in(colorsPath(png));
+    int v[6];
+    for (int& x : v)
+        if (!(in >> x)) return c;
+    for (int i = 0; i < 6; ++i) c.rgb[static_cast<std::size_t>(i / 3)][static_cast<std::size_t>(i % 3)] = static_cast<std::uint8_t>(std::clamp(v[i], 0, 255));
+    c.valid = true;
+    return c;
 }
 
 /// Chemin UTF-8 d'un fichier présent, vide sinon.

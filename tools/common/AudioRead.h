@@ -12,6 +12,7 @@
 #include "WavFile.h"
 
 #include <string>
+#include <vector>
 
 namespace omnis::tools {
 
@@ -21,5 +22,15 @@ bool readAudioFile(const std::filesystem::path& path, AudioFile& out, std::strin
 
 /// Extensions lisibles (pour le parcours de dossiers).
 bool isReadableAudio(const std::filesystem::path& path);
+
+/// Une image intégrée à un FLAC (bloc METADATA_BLOCK_PICTURE) : ses octets (JPG /
+/// PNG) et son type (3 : pochette avant, 8 : artiste, …).
+struct EmbeddedPicture {
+    std::string bytes;
+    unsigned type = 0;
+};
+/// Les images d'un fichier FLAC (aucune pour un autre format).
+std::vector<EmbeddedPicture> readEmbeddedPictures(const std::filesystem::path& path);
+std::vector<EmbeddedPicture> readFlacPictures(const unsigned char* data, std::size_t size);
 
 } // namespace omnis::tools

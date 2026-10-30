@@ -115,6 +115,12 @@ private:
     void paintCover(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r, const std::string& imagePath, const analysis::SpectralSignature& signature,
                     const std::string& seed);
     void paintReferenceCard(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
+    /// Mode promo : monogramme vectoriel (initiales + couronne des 21 bandes de la
+    /// fiche) dans les deux couleurs dominantes de la vraie image ; aucune image.
+    void paintMonogram(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r, const std::string& imagePath, const analysis::SpectralSignature& signature,
+                       const std::string& seed);
+    /// Mode promo basculé (« /fbi », Maj + Alt + 5 clics sur le logo) : icônes et carte redessinées.
+    void refreshPromo();
 
     void paintModuleScreen(int module, VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
     void paintSpectrum(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);

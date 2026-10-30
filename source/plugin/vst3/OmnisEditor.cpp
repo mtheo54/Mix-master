@@ -7,6 +7,7 @@
 #include "OmnisController.h"
 #include "UiFeed.h"
 #include "gui/Look.h"
+#include "gfx/AvatarCache.h"
 #include "gui/OpenUrl.h"
 #include "gui/Widgets.h"
 
@@ -31,6 +32,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <complex>
 #include <cstdio>
@@ -197,6 +199,29 @@ public:
 private:
     std::function<std::string()> label_;
     Thumb thumb_;
+};
+
+/// Le logo : Maj + Alt + 5 clics rapides basculent le mode promo (sans menu
+/// visible : rien ne trahit la commande à l'écran pendant une vidéo).
+class LogoSecret : public CView {
+public:
+    LogoSecret(const CRect& r, std::function<void()> toggle) : CView(r), toggle_(std::move(toggle)) {}
+    void draw(CDrawContext*) override { setDirty(false); }
+    void onMouseDownEvent(MouseDownEvent& e) override {
+        if (!e.buttonState.isLeft() || !e.modifiers.has(ModifierKey::Shift) || !e.modifiers.has(ModifierKey::Alt)) return;
+        e.consumed = true;
+        const auto now = std::chrono::steady_clock::now();
+        if (clicks_ == 0 || now - first_ > std::chrono::milliseconds(2500)) clicks_ = 0, first_ = now;
+        if (++clicks_ >= 5) {
+            clicks_ = 0;
+            if (toggle_) toggle_();
+        }
+    }
+
+private:
+    std::function<void()> toggle_;
+    std::chrono::steady_clock::time_point first_{};
+    int clicks_ = 0;
 };
 
 double clamp01(double v) { return std::clamp(v, 0.0, 1.0); }
@@ -381,6 +406,15 @@ struct OmnisEditor::Analysis {
     std::uint32_t lastSequence = 0;
     std::map<std::string, SharedPointer<CBitmap>> pictures; ///< images/ : chargées une fois (nullptr : illisible)
     std::map<std::string, SharedPointer<CBitmap>> icons;    ///< icônes du menu RÉF
+    std::map<std::string, gfx::avatars::Colors> colors;     ///< couleurs dominantes des avatars
+    struct IconRef {
+        CMenuItem* item;
+        std::string path;
+        analysis::SpectralSignature signature;
+        std::string seed;
+    };
+    std::vector<IconRef> iconRefs; ///< pour redessiner les icônes quand le mode promo change
+    int promoShown = -1;
     Analysis() { spectrum.fill(-120.0f); }
     void push(const float* x, std::size_t frames) {
         for (std::size_t i = 0; i < frames; ++i) {
@@ -492,6 +526,7 @@ void PLUGIN_API OmnisEditor::close() {
     feed_.reset();
     live_.clear();
     syncs_.clear();
+    an_->iconRefs.clear();
     slots_ = {};
     pages_ = {};
     pageScreens_ = {};
@@ -515,6 +550,7 @@ IControlListener* OmnisEditor::listen(std::function<void(CControl*)> f) {
 void OmnisEditor::buildInto(CViewContainer* root) {
     live_.clear();
     syncs_.clear();
+    an_->iconRefs.clear();
     auto* face = new Face(CRect(0, 0, kWidth, kHeight));
     root->addView(face);
     buildRibbons(face);
@@ -540,6 +576,12 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     root->addView(r1);
     r1->addView(new Caption(CRect(10, 8, 110, 32), "OMNIS", color::kText, sans(18, true)));
     r1->addView(new Caption(CRect(96, 13, 190, 29), "ABRASION LABS", color::kText3, mono(8.5)));
+    r1->addView(new LogoSecret(CRect(10, 6, 190, 34), [this] {
+        if (!omnis()) return;
+        omnis()->setPromoMode(!omnis()->promoMode());
+        answer_ = omnis()->promoMode() ? "Mode promo : monogrammes à la place des avatars." : "Mode promo désactivé : les avatars reviennent.";
+        refreshPromo();
+    }));
     OmnisController* c = omnis();
     const auto add = [&](HwButton* b) {
         r1->addView(b);
@@ -629,6 +671,10 @@ CBitmap* OmnisEditor::picture(const std::string& path) {
 
 void OmnisEditor::paintCover(CDrawContext* c, const CRect& r, const std::string& imagePath, const analysis::SpectralSignature& sig,
                              const std::string& seed) {
+    if (omnis() && omnis()->promoMode()) {
+        paintMonogram(c, r, imagePath, sig, seed);
+        return;
+    }
     if (CBitmap* b = picture(imagePath)) {
         // L'image remplit le carré (recadrée au centre).
         const CPoint size = b->getSize();
@@ -687,6 +733,114 @@ void OmnisEditor::paintCover(CDrawContext* c, const CRect& r, const std::string&
     c->drawRect(r, kDrawStroked);
 }
 
+namespace {
+
+/// « La Fève - CINÉMA » -> « LF » ; « GRY » -> « GR » (lettres latines, en majuscules).
+std::string initialsOf(const std::string& seed) {
+    std::string name = seed.substr(0, seed.find(" - "));
+    std::vector<std::string> words;
+    std::string word;
+    for (std::size_t i = 0; i <= name.size(); ++i) {
+        const unsigned char ch = i < name.size() ? static_cast<unsigned char>(name[i]) : ' ';
+        if (std::isalnum(ch) || ch >= 0x80) word += static_cast<char>(ch);
+        else if (!word.empty()) words.push_back(word), word.clear();
+    }
+    const auto firstLetter = [](const std::string& w) {
+        std::size_t n = 1;
+        while (n < w.size() && (static_cast<unsigned char>(w[n]) & 0xC0) == 0x80) ++n; // un caractère UTF-8 entier
+        std::string out = w.substr(0, n);
+        if (out.size() == 1) out[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(out[0])));
+        return out;
+    };
+    if (words.empty()) return "?";
+    if (words.size() == 1) {
+        std::string w = words.front();
+        const std::string a = firstLetter(w);
+        w.erase(0, a.size());
+        return w.empty() ? a : a + firstLetter(w);
+    }
+    return firstLetter(words[0]) + firstLetter(words[1]);
+}
+
+CColor fromRgb(const std::array<std::uint8_t, 3>& v) { return CColor(v[0], v[1], v[2]); }
+double lumOf(const CColor& col) { return (0.299 * col.red + 0.587 * col.green + 0.114 * col.blue) / 255.0; }
+
+} // namespace
+
+void OmnisEditor::paintMonogram(CDrawContext* c, const CRect& r, const std::string& imagePath, const analysis::SpectralSignature& sig,
+                                const std::string& seed) {
+    // Les deux couleurs dominantes de la vraie image (calculées quand l'avatar a été
+    // fait), sinon une teinte tirée de la tonalité / du nom.
+    gfx::avatars::Colors colors;
+    if (!imagePath.empty()) {
+        auto it = an_->colors.find(imagePath);
+        if (it == an_->colors.end()) it = an_->colors.emplace(imagePath, gfx::avatars::readColors(std::filesystem::path(std::u8string(imagePath.begin(), imagePath.end())))).first;
+        colors = it->second;
+    }
+    CColor a, b;
+    if (colors.valid) {
+        a = fromRgb(colors.rgb[0]);
+        b = fromRgb(colors.rgb[1]);
+    } else {
+        std::uint32_t h = 2166136261u;
+        for (unsigned char ch : seed) h = (h ^ ch) * 16777619u;
+        const double hue = sig.music.keyRoot >= 0 ? std::fmod(sig.music.keyRoot * 210.0, 360.0) : static_cast<double>(h % 360);
+        a.fromHSV(hue, 0.6, 0.35);
+        b.fromHSV(std::fmod(hue + 30.0, 360.0), 0.7, 0.95);
+    }
+    // Fond : la plus sombre, assombrie ; trait et lettres : la plus claire, éclaircie
+    // (lisible même compressé en vidéo).
+    CColor dark = lumOf(a) <= lumOf(b) ? a : b, light = lumOf(a) <= lumOf(b) ? b : a;
+    const auto scale = [](CColor col, double k) {
+        return CColor(static_cast<uint8_t>(std::clamp(col.red * k, 0.0, 255.0)), static_cast<uint8_t>(std::clamp(col.green * k, 0.0, 255.0)),
+                      static_cast<uint8_t>(std::clamp(col.blue * k, 0.0, 255.0)));
+    };
+    dark = scale(dark, 0.45);
+    if (lumOf(light) < 0.65) light = scale(light, 0.65 / std::max(0.05, lumOf(light)));
+    c->setFillColor(dark);
+    c->drawRect(r, kDrawFilled);
+    const double side = std::min(r.getWidth(), r.getHeight());
+    const CPoint mid = r.getCenter();
+    if (side >= 32) {
+        // Couronne : les 21 bandes Mid de la fiche, en rayons autour des initiales.
+        const double top = *std::max_element(sig.midDb.begin(), sig.midDb.end());
+        const int n = static_cast<int>(sig.midDb.size());
+        c->setFrameColor(withAlpha(light, 0.85));
+        c->setLineWidth(std::max(1.5, side / 40.0));
+        c->setLineStyle(kLineSolid);
+        for (int k = 0; k < n; ++k) {
+            const double v = std::clamp((sig.midDb[static_cast<std::size_t>(k)] - (top - 30.0)) / 30.0, 0.08, 1.0);
+            const double ang = -std::numbers::pi / 2 + 2.0 * std::numbers::pi * k / n;
+            const double r0 = side * 0.31, r1 = r0 + side * 0.15 * v;
+            c->drawLine(CPoint(mid.x + r0 * std::cos(ang), mid.y + r0 * std::sin(ang)), CPoint(mid.x + r1 * std::cos(ang), mid.y + r1 * std::sin(ang)));
+        }
+    }
+    std::string letters = initialsOf(seed);
+    if (side < 32) letters = letters.substr(0, letters.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 1) == std::string::npos ? letters.size() : 1);
+    text(c, letters, CRect(mid.x - side / 2, mid.y - side * 0.2, mid.x + side / 2, mid.y + side * 0.2), light, sans(std::max(9.0, side * (side < 32 ? 0.55 : 0.26)), true),
+         kCenterText);
+}
+
+void OmnisEditor::refreshPromo() {
+    if (!omnis()) return;
+    const int now = omnis()->promoMode() ? 1 : 0;
+    if (now == an_->promoShown) return;
+    an_->promoShown = now;
+    an_->icons.clear(); // les icônes changent de nature (image <-> monogramme)
+    for (const auto& ref : an_->iconRefs) {
+        SharedPointer<CBitmap> b;
+        if (auto ctx = COffscreenContext::create(CPoint(20, 20))) {
+            ctx->beginDraw();
+            paintCover(ctx, CRect(0, 0, 20, 20), ref.path, ref.signature, ref.seed);
+            ctx->endDraw();
+            b = ctx->getBitmap();
+        }
+        if (ref.item) ref.item->setIcon(b);
+    }
+    if (cardScreen_) cardScreen_->markDirty();
+    if (frame) frame->invalid();
+}
+
 void OmnisEditor::paintReferenceCard(CDrawContext* c, const CRect& r) {
     if (!card_) return;
     const auto& d = card_->data;
@@ -709,11 +863,12 @@ void OmnisEditor::paintReferenceCard(CDrawContext* c, const CRect& r) {
     text(c, d.name, CRect(x, r.top + 20, r.right - 8, r.top + 36), color::kAccent, mono(11, true));
     text(c, d.detail, CRect(x, r.top + 38, r.right - 8, r.top + 50), color::kText2, mono(9.5));
     // Une image ne se montre qu'avec sa source (auteur et licence, ou Deezer).
-    std::string credits = d.credit;
-    if (!d.coverCredit.empty() && d.coverCredit != d.credit) credits += (credits.empty() ? "" : " · ") + d.coverCredit;
+    const bool promo = omnis() && omnis()->promoMode();
+    std::string credits = promo ? std::string() : d.credit; // mode promo : aucune image, rien à créditer
+    if (!promo && !d.coverCredit.empty() && d.coverCredit != d.credit) credits += (credits.empty() ? "" : " · ") + d.coverCredit;
     if (!credits.empty()) text(c, credits, CRect(x, r.bottom - 17, r.right - 8, r.bottom - 5), color::kText3, mono(8.5));
     // La musique en ligne : un clic sur la carte l'ouvre dans le navigateur.
-    if (!d.link.empty()) {
+    if (!promo && !d.link.empty()) {
         std::string shown = d.link;
         for (const char* prefix : {"https://", "www."})
             if (shown.rfind(prefix, 0) == 0) shown.erase(0, std::strlen(prefix));
@@ -755,7 +910,7 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     };
     // Petite icône de menu : la pochette (ou la photo), dessinée hors écran.
     const auto icon = [this](const std::string& path, const analysis::SpectralSignature& sig, const std::string& seed) -> CBitmap* {
-        const std::string key = seed + "\x1f" + path;
+        const std::string key = seed + "\x1f" + path + (omnis() && omnis()->promoMode() ? "\x1fpromo" : "");
         auto it = an_->icons.find(key);
         if (it == an_->icons.end()) {
             SharedPointer<CBitmap> b;
@@ -777,9 +932,15 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
         add(sub, "Tous les titres de " + a.name + " (" + plural(a.titles.size()) + ")", Kind::Artist, a.name);
         sub->addSeparator();
         for (const auto& t : a.titles)
-            if (auto* item = add(sub, t.title, Kind::Title, t.name)) item->setIcon(icon(t.cover, t.signature, t.name));
+            if (auto* item = add(sub, t.title, Kind::Title, t.name)) {
+                item->setIcon(icon(t.cover, t.signature, t.name));
+                an_->iconRefs.push_back({item, t.cover, t.signature, t.name});
+            }
         auto* item = to->addEntry(sub, UTF8String(a.name + "  (" + std::to_string(a.titles.size()) + ")"));
-        if (item && !a.titles.empty()) item->setIcon(icon(a.photo, a.titles.front().signature, a.name));
+        if (item && !a.titles.empty()) {
+            item->setIcon(icon(a.photo, a.titles.front().signature, a.name));
+            an_->iconRefs.push_back({item, a.photo, a.titles.front().signature, a.name});
+        }
         sub->forget();
     };
     add(menu, "Aucune (OMNIS suit tes mots)", Kind::None, {});
@@ -805,8 +966,11 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     menu->addEntry(artists, "Artistes de A à Z");
     artists->forget();
     parent->addView(menu);
-    // La face et la carte suivent le choix (fait ici, par AUTO ou relu avec la session).
+    an_->promoShown = c && c->promoMode() ? 1 : 0; // icônes faites dans le mode courant
+    // La face et la carte suivent le choix (fait ici, par AUTO ou relu avec la session),
+    // et le mode promo (« /fbi » passe par la barre IA).
     syncs_.push_back([this, menu] {
+        refreshPromo();
         auto* oc = omnis();
         const std::string now = oc ? std::to_string(static_cast<int>(oc->referenceKind())) + oc->referenceName() : std::string();
         if (now != card_->key) {

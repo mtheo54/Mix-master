@@ -1,37 +1,32 @@
 // =============================================================================
 //  Abrasion Labs // OMNIS
 //  gfx/OmnisAvatarStylizer.h — Une photo d'artiste ou une pochette (octets JPG /
-//  PNG tels que téléchargés) devient une illustration peinte 256 × 256 RGBA,
-//  la même recette pour tous les artistes :
+//  PNG : API publique interrogée par le poste de la personne, ou image intégrée
+//  à un FLAC qu'elle a scanné) devient l'avatar 256 × 256 RGBA de la console.
 //
-//    1. cadrage : 18 % retirés sur chaque bord, cadre un peu remonté (visage,
-//       buste) : le macaron « Parental Advisory » des coins et les textes de
-//       bordure partent avec ; un carré centré sur le sujet reste ;
-//    2. peinture : bilatéral léger (bruit JPEG), puis filtre de Kuwahara lissé
-//       (moyenne des quadrants pondérée par leur calme), 2 passes (la 2e deux
-//       fois plus fine) : plus de grain photo, des aplats doux, bords nets ;
-//    3. étalonnage : contraste automatique (1 % / 99 % de la luminance), hautes
-//       lumières brûlées adoucies, ombres densifiées (gamma 1,15) ; la teinte de
-//       chaque image est gardée (YCbCr : seule la luminance bouge) ;
-//    4. cel-shading doux : luminance sur 12 paliers reliés par smoothstep (un
-//       tiers de l'éclairage d'origine gardé : du volume, pas d'escalier) ;
-//    5. encre : Sobel sur la luminance peinte (un peu floutée), seuil adapté, trait
-//       fin multiplié (presque noir, à peine bleuté) ;
-//    6. détourage : alpha radial (opaque au centre, transparent aux bords) :
-//       le sujet sort du fond de la console sans cadre carré.
+//  Style « HD » (par défaut) : l'artiste et l'album se reconnaissent au premier
+//  coup d'œil.
+//    1. cadrage léger : 9 % retirés sur chaque bord, la composition reste ;
+//    2. blocs de texte noir et blanc des coins (macaron « Parental Advisory »,
+//       mentions) repérés et comblés par les pixels voisins ;
+//    3. bilatéral léger (rayon 2) : le bruit de compression part, les traits
+//       restent nets ;
+//    4. 90 % de l'image d'origine gardés (10 % d'étalonnage pour le thème
+//       sombre : hautes lumières adoucies, ombres un peu denses) ;
+//    5. alpha fondu sur les 10 derniers pixels du bord seulement.
 //
-//  L'image d'origine n'existe qu'en mémoire, le temps de stylize() : elle
-//  n'est ni écrite ni rendue ; seule l'illustration sort (cache utilisateur,
-//  gfx/AvatarCache.h). Une illustration tirée d'une photo ou d'une pochette
-//  reste une œuvre dérivée : pour la version vendue, l'accord de l'artiste ou
-//  du label reste nécessaire (docs/REFERENCES.md).
+//  Style « Peint » (option) : Kuwahara, cel-shading, encre, détourage radial.
 //
-//  Sans dépendance hors stb_image / stb_image_write. L'interface d'OMNIS est
-//  en VSTGUI : la console lit le PNG du cache. toNanoVG() existe pour une
-//  interface NanoVG (OMNIS_HAS_NANOVG).
+//  Aucune image n'est livrée avec le plug-in : celles-ci vivent dans le cache
+//  de la personne (gfx/AvatarCache.h), comme la pochette d'un lecteur de
+//  musique. En vidéo / promo, le mode monogramme (« /fbi ») n'en montre aucune.
+//
+//  Sans dépendance hors stb_image / stb_image_write. La console (VSTGUI) lit le
+//  PNG ; toNanoVG() existe pour une interface NanoVG (OMNIS_HAS_NANOVG).
 // =============================================================================
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -53,16 +48,23 @@ struct RgbaImage {
 
 class OmnisAvatarStylizer {
 public:
+    enum class Style { HD, Painted };
     struct Options {
-        int size = 256;            ///< côté de l'illustration
-        float crop = 0.18f;        ///< part retirée sur chaque bord
-        float focusUp = 0.05f;     ///< cadre remonté (part de la hauteur) : visage, buste
+        Style style = Style::HD;
+        int size = 256;            ///< côté de l'avatar
+        float crop = 0.09f;        ///< part retirée sur chaque bord (8 … 10 %)
+        float focusUp = 0.0f;      ///< cadre remonté (part de la hauteur)
+        bool removeCornerText = true; ///< macaron « Parental Advisory », mentions des coins
+        float keep = 0.90f;        ///< HD : part de l'image d'origine gardée
+        int featherPx = 10;        ///< HD : fondu alpha sur le bord (pixels de sortie)
         int workSize = 512;        ///< côté de travail des filtres
+        // Style « Peint » seulement :
         int kuwaharaRadius = 6;    ///< 1re passe ; les suivantes deux fois plus fines
         int kuwaharaPasses = 2;
         int levels = 12;           ///< paliers de luminance (10 … 12)
         float shadowGamma = 1.15f; ///< > 1 : ombres plus denses
         float highlightKnee = 0.80f;
+        // Style « Peint » seulement :
         float ink = 0.85f;         ///< force du trait (0 : aucun)
         float vignetteInner = 0.62f, vignetteOuter = 0.98f; ///< rayons (1 = bord) du détourage
     };
@@ -80,6 +82,13 @@ public:
     };
     /// Cadre (bords retirés, remonté), carré centré, réduit à `side` (moyenne de surface).
     static Rgb cropCenter(const std::uint8_t* rgba, int width, int height, float crop, float focusUp, int side);
+    /// Un bloc de texte noir et blanc dans un coin (macaron, mention), en pixels.
+    struct Box {
+        int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    };
+    static std::vector<Box> findCornerText(const Rgb& image);
+    /// Comble un rectangle par diffusion depuis son pourtour.
+    static void inpaint(Rgb& image, const Box& box);
     static void denoise(Rgb& image);
     static void kuwahara(Rgb& image, int radius);
     static void grade(Rgb& image, float shadowGamma, float highlightKnee);
@@ -88,6 +97,12 @@ public:
     static std::vector<float> inkMask(const Rgb& image);
     /// Trait multiplié, réduction à `size`, alpha radial.
     RgbaImage finish(const Rgb& image, const std::vector<float>& ink) const;
+
+    /// HD : réduction à `size`, 90 % d'origine, fondu alpha du bord.
+    RgbaImage finishHd(const Rgb& image) const;
+
+    /// Les deux couleurs dominantes (peuplées et distinctes) : monogramme du mode promo.
+    static std::array<std::array<std::uint8_t, 3>, 2> dominantColors(const RgbaImage& image);
 
     static bool savePng(const std::filesystem::path& path, const RgbaImage& image, std::string* error = nullptr);
 

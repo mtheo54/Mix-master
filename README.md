@@ -279,7 +279,9 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
   ajoutés (`references_utilisateur.txt`). Chaque son a sa pochette (la vraie si tu l'as mise,
   sinon dessinée d'après sa fiche), l'artiste sa photo libre avec son crédit ; la page Match EQ
   montre la **référence visée** (un clic ouvre le titre en ligne). Photo, pochettes et liens
-  d'un artiste en une commande : `omnis_refdb deezer --artiste "La Fève"`
+  d'un artiste en une commande : `omnis_refdb deezer --artiste "La Fève"` (ou la pochette
+  intégrée à tes FLAC, via `scan`). **Mode promo** pour filmer la console : `/fbi` dans la barre
+  IA (ou Maj + Alt + 5 clics sur le logo) remplace toutes les images par des monogrammes
   ([images et droits](docs/REFERENCES.md#les-images-photo-dartiste-pochette)). Elle s'applique tout de suite (courbe du Match EQ, punch,
   grave mono, écart couplet / refrain, écrêtage, volume) et AUTO la vise ensuite. Le choix est
   gardé avec le projet ; « Aucune » rend la main aux mots.

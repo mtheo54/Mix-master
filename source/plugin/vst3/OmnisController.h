@@ -123,6 +123,12 @@ public:
         int titles = 0;
     };
     [[nodiscard]] ReferenceCard referenceCard() const;
+
+    /// Mode promo (« /fbi » dans la barre IA, ou Maj + Alt + 5 clics sur le logo) :
+    /// des monogrammes à la place des avatars, pour filmer la console sans montrer
+    /// d'image. Gardé d'une session à l'autre (dossier de l'utilisateur).
+    [[nodiscard]] bool promoMode() const;
+    void setPromoMode(bool on);
     enum class RefKind : int { None = 0, Style, Artist, Title };
     /// Choisit la référence : appliquée tout de suite (ou dès qu'OMNIS a assez
     /// écouté) ; AUTO la vise ensuite. None : AUTO revient au style des mots.
@@ -152,6 +158,7 @@ private:
     std::shared_ptr<UiFeed> feed_;
     // Barre IA / AUTO.
     std::string pendingAsk_, autoStyle_ = "rap fr", lastMessage_;
+    mutable int promo_ = -1; ///< -1 : pas encore lu
     RefKind refKind_ = RefKind::None;
     std::string refName_;
     bool pendingRef_ = false;

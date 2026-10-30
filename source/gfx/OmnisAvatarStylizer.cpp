@@ -286,6 +286,181 @@ RgbaImage OmnisAvatarStylizer::finish(const Rgb& img, const std::vector<float>& 
     return out;
 }
 
+std::vector<OmnisAvatarStylizer::Box> OmnisAvatarStylizer::findCornerText(const Rgb& img) {
+    // Cellules de 8 px « texte noir et blanc » : surtout du noir ou du blanc sans
+    // couleur, et des passages francs de l'un à l'autre (les lettres). Les amas de
+    // cellules collés à un coin, de la taille d'un macaron, sont retenus.
+    const int w = img.width, h = img.height, cell = 8;
+    const int gw = w / cell, gh = h / cell;
+    std::vector<std::uint8_t> text(static_cast<std::size_t>(gw * gh), 0);
+    const auto lum = [&](int x, int y) { return luma(&img.c[static_cast<std::size_t>(3 * (y * w + x))]); };
+    for (int cy = 0; cy < gh; ++cy)
+        for (int cx = 0; cx < gw; ++cx) {
+            const float fx = (cx + 0.5f) / static_cast<float>(gw), fy = (cy + 0.5f) / static_cast<float>(gh);
+            const bool corner = (fx < 0.32f || fx > 0.68f) && (fy < 0.22f || fy > 0.70f);
+            if (!corner) continue;
+            int extreme = 0, edges = 0;
+            for (int y = cy * cell; y < (cy + 1) * cell; ++y)
+                for (int x = cx * cell; x < (cx + 1) * cell; ++x) {
+                    const float* p = &img.c[static_cast<std::size_t>(3 * (y * w + x))];
+                    const float chroma = std::max({p[0], p[1], p[2]}) - std::min({p[0], p[1], p[2]}), l = luma(p);
+                    if (chroma < 0.14f && (l < 0.2f || l > 0.8f)) ++extreme;
+                    if (x + 1 < w && std::fabs(lum(x + 1, y) - l) > 0.35f) ++edges;
+                    if (y + 1 < h && std::fabs(lum(x, y + 1) - l) > 0.35f) ++edges;
+                }
+            const float n = static_cast<float>(cell * cell);
+            if (extreme >= 0.6f * n && edges >= 0.08f * n) text[static_cast<std::size_t>(cy * gw + cx)] = 1;
+        }
+    // Amas (cellules voisines, un trou d'une cellule toléré entre lettres).
+    std::vector<int> label(text.size(), -1);
+    std::vector<Box> found;
+    for (int start = 0; start < gw * gh; ++start) {
+        if (!text[static_cast<std::size_t>(start)] || label[static_cast<std::size_t>(start)] >= 0) continue;
+        std::vector<int> stack{start};
+        label[static_cast<std::size_t>(start)] = start;
+        int x0 = gw, y0 = gh, x1 = -1, y1 = -1, cells = 0;
+        while (!stack.empty()) {
+            const int c = stack.back();
+            stack.pop_back();
+            const int cx = c % gw, cy = c / gw;
+            x0 = std::min(x0, cx), y0 = std::min(y0, cy), x1 = std::max(x1, cx), y1 = std::max(y1, cy), ++cells;
+            for (int dy = -2; dy <= 2; ++dy)
+                for (int dx = -2; dx <= 2; ++dx) {
+                    const int nx = cx + dx, ny = cy + dy;
+                    if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+                    const auto k = static_cast<std::size_t>(ny * gw + nx);
+                    if (text[k] && label[k] < 0) label[k] = start, stack.push_back(ny * gw + nx);
+                }
+        }
+        const int bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+        const double area = static_cast<double>(bw * bh) / (gw * gh);
+        const bool nearSide = x0 <= gw * 0.12 || x1 >= gw * 0.88 - 1;
+        const bool nearEdge = y0 <= gh * 0.12 || y1 >= gh * 0.88 - 1;
+        if (cells >= 4 && bw >= 3 && bh >= 2 && area >= 0.002 && area <= 0.08 && nearSide && nearEdge)
+            found.push_back({std::max(0, (x0 - 1) * cell), std::max(0, (y0 - 1) * cell), std::min(w, (x1 + 2) * cell), std::min(h, (y1 + 2) * cell)});
+    }
+    return found;
+}
+
+void OmnisAvatarStylizer::inpaint(Rgb& img, const Box& b) {
+    // Chaque pixel du rectangle : moyenne des bords voisins disponibles, pondérée
+    // par la distance (un bord collé à l'image n'existe pas), puis lissage.
+    const int w = img.width, h = img.height;
+    const int x0 = std::clamp(b.x0, 0, w), x1 = std::clamp(b.x1, 0, w), y0 = std::clamp(b.y0, 0, h), y1 = std::clamp(b.y1, 0, h);
+    if (x1 - x0 < 2 || y1 - y0 < 2) return;
+    const auto at = [&](int x, int y) { return &img.c[static_cast<std::size_t>(3 * (y * w + x))]; };
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) {
+            float acc[3] = {0, 0, 0}, wsum = 0;
+            const auto add = [&](int sx, int sy, float dist) {
+                const float* p = at(sx, sy);
+                const float k = 1.0f / std::max(1.0f, dist);
+                for (int c = 0; c < 3; ++c) acc[c] += k * p[c];
+                wsum += k;
+            };
+            if (x0 > 0) add(x0 - 1, y, static_cast<float>(x - x0 + 1));
+            if (x1 < w) add(x1, y, static_cast<float>(x1 - x));
+            if (y0 > 0) add(x, y0 - 1, static_cast<float>(y - y0 + 1));
+            if (y1 < h) add(x, y1, static_cast<float>(y1 - y));
+            if (wsum > 0)
+                for (int c = 0; c < 3; ++c) at(x, y)[c] = acc[c] / wsum;
+        }
+    for (int it = 0; it < 40; ++it)
+        for (int y = y0; y < y1; ++y)
+            for (int x = x0; x < x1; ++x) {
+                const float* l = at(std::max(0, x - 1), y);
+                const float* r = at(std::min(w - 1, x + 1), y);
+                const float* u = at(x, std::max(0, y - 1));
+                const float* d = at(x, std::min(h - 1, y + 1));
+                for (int c = 0; c < 3; ++c) at(x, y)[c] = 0.25f * (l[c] + r[c] + u[c] + d[c]);
+            }
+}
+
+RgbaImage OmnisAvatarStylizer::finishHd(const Rgb& img) const {
+    // 90 % d'origine, 10 % d'étalonnage (thème sombre de la console).
+    Rgb graded = img;
+    grade(graded, o_.shadowGamma, o_.highlightKnee);
+    std::vector<float> mixed(img.c.size());
+    const float keep = std::clamp(o_.keep, 0.0f, 1.0f);
+    for (std::size_t i = 0; i < mixed.size(); ++i) mixed[i] = keep * img.c[i] + (1 - keep) * graded.c[i];
+    const int s = std::max(16, o_.size);
+    const auto small = img.width == s ? mixed : resample(mixed, img.width, img.height, 3, s, s);
+    RgbaImage out;
+    out.width = out.height = s;
+    out.pixels.resize(static_cast<std::size_t>(s * s * 4));
+    const float feather = static_cast<float>(std::max(1, o_.featherPx));
+    for (int y = 0; y < s; ++y)
+        for (int x = 0; x < s; ++x) {
+            const auto i = static_cast<std::size_t>(y * s + x);
+            // Fondu seulement sur les derniers pixels du bord.
+            const float d = static_cast<float>(std::min({x, y, s - 1 - x, s - 1 - y})) + 0.5f;
+            for (std::size_t c = 0; c < 3; ++c) out.pixels[4 * i + c] = static_cast<std::uint8_t>(std::lround(std::clamp(small[3 * i + c], 0.0f, 1.0f) * 255.0f));
+            out.pixels[4 * i + 3] = static_cast<std::uint8_t>(std::lround(smoothstep(0.0f, feather, d) * 255.0f));
+        }
+    return out;
+}
+
+std::array<std::array<std::uint8_t, 3>, 2> OmnisAvatarStylizer::dominantColors(const RgbaImage& img) {
+    // k-moyennes (5 groupes) sur les pixels visibles ; on garde le groupe le plus
+    // peuplé (les couleurs vives comptent un peu plus), puis le plus fort qui en
+    // diffère vraiment.
+    std::vector<std::array<float, 3>> px;
+    const std::size_t n = img.pixels.size() / 4, step = std::max<std::size_t>(1, n / 6000);
+    for (std::size_t i = 0; i < n; i += step)
+        if (img.pixels[4 * i + 3] > 128) px.push_back({img.pixels[4 * i] / 255.0f, img.pixels[4 * i + 1] / 255.0f, img.pixels[4 * i + 2] / 255.0f});
+    std::array<std::array<std::uint8_t, 3>, 2> out{{{40, 44, 52}, {255, 170, 0}}};
+    if (px.size() < 8) return out;
+    std::sort(px.begin(), px.end(), [](const auto& a, const auto& b) { return luma(a.data()) < luma(b.data()); });
+    constexpr int k = 5;
+    std::array<std::array<float, 3>, k> centers{};
+    for (int c = 0; c < k; ++c) centers[static_cast<std::size_t>(c)] = px[(px.size() - 1) * static_cast<std::size_t>(2 * c + 1) / (2 * k)];
+    std::array<int, k> count{};
+    const auto d2 = [](const std::array<float, 3>& a, const std::array<float, 3>& b) {
+        return (a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]) + (a[2] - b[2]) * (a[2] - b[2]);
+    };
+    for (int it = 0; it < 10; ++it) {
+        std::array<std::array<double, 3>, k> acc{};
+        count.fill(0);
+        for (const auto& p : px) {
+            int best = 0;
+            for (int c = 1; c < k; ++c)
+                if (d2(p, centers[static_cast<std::size_t>(c)]) < d2(p, centers[static_cast<std::size_t>(best)])) best = c;
+            for (int ch = 0; ch < 3; ++ch) acc[static_cast<std::size_t>(best)][static_cast<std::size_t>(ch)] += p[static_cast<std::size_t>(ch)];
+            ++count[static_cast<std::size_t>(best)];
+        }
+        for (int c = 0; c < k; ++c)
+            if (count[static_cast<std::size_t>(c)] > 0)
+                for (int ch = 0; ch < 3; ++ch)
+                    centers[static_cast<std::size_t>(c)][static_cast<std::size_t>(ch)] =
+                        static_cast<float>(acc[static_cast<std::size_t>(c)][static_cast<std::size_t>(ch)] / count[static_cast<std::size_t>(c)]);
+    }
+    const auto score = [&](int c) {
+        const auto& v = centers[static_cast<std::size_t>(c)];
+        const float sat = std::max({v[0], v[1], v[2]}) - std::min({v[0], v[1], v[2]});
+        return static_cast<float>(count[static_cast<std::size_t>(c)]) * (0.35f + sat);
+    };
+    int first = 0;
+    for (int c = 1; c < k; ++c)
+        if (score(c) > score(first)) first = c;
+    int second = -1;
+    for (int c = 0; c < k; ++c)
+        if (c != first && d2(centers[static_cast<std::size_t>(c)], centers[static_cast<std::size_t>(first)]) > 0.04f && (second < 0 || score(c) > score(second))) second = c;
+    const auto toByte = [](const std::array<float, 3>& v) {
+        return std::array<std::uint8_t, 3>{static_cast<std::uint8_t>(std::lround(std::clamp(v[0], 0.0f, 1.0f) * 255)),
+                                           static_cast<std::uint8_t>(std::lround(std::clamp(v[1], 0.0f, 1.0f) * 255)),
+                                           static_cast<std::uint8_t>(std::lround(std::clamp(v[2], 0.0f, 1.0f) * 255))};
+    };
+    out[0] = toByte(centers[static_cast<std::size_t>(first)]);
+    if (second >= 0) out[1] = toByte(centers[static_cast<std::size_t>(second)]);
+    else { // une seule couleur : sa version claire (ou sombre)
+        auto v = centers[static_cast<std::size_t>(first)];
+        const bool dark = luma(v.data()) < 0.5f;
+        for (auto& x : v) x = dark ? 0.35f + 0.65f * x : 0.4f * x;
+        out[1] = toByte(v);
+    }
+    return out;
+}
+
 bool OmnisAvatarStylizer::stylize(const std::uint8_t* data, std::size_t size, RgbaImage& out, std::string* error) const {
     out = {};
     int w = 0, h = 0, channels = 0;
@@ -300,7 +475,13 @@ bool OmnisAvatarStylizer::stylize(const std::uint8_t* data, std::size_t size, Rg
         }
         work = cropCenter(raw.get(), w, h, o_.crop, o_.focusUp, std::max(64, o_.workSize));
     }
-    denoise(work); // bruit JPEG et grain fin d'abord : le Kuwahara ne le grossit pas en taches
+    if (o_.removeCornerText)
+        for (const auto& box : findCornerText(work)) inpaint(work, box);
+    denoise(work); // bruit de compression d'abord (et, en « Peint », avant le Kuwahara)
+    if (o_.style == Style::HD) {
+        out = finishHd(work);
+        return true;
+    }
     // Première passe large (texture de peau, tissu), les suivantes deux fois plus
     // fines : les petits détails (yeux, reflets) ne se fondent pas dans leur voisinage.
     for (int pass = 0, r = o_.kuwaharaRadius; pass < std::max(1, o_.kuwaharaPasses); ++pass, r = std::max(2, r / 2)) kuwahara(work, r);

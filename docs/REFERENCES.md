@@ -14,8 +14,8 @@ complète, plus OMNIS en tire : chaque champ ci-dessous dit ce qu'il mesure et �
 | `genres` | `rage \| hyperpop` | **ta** classification (elle gagne toujours) | AUTO vers un style, « genre rage » |
 | `proches` | `2hollis \| Nettspend` | artistes proches | un artiste inconnu -> ses proches mesurés |
 | `traits` | `808 saturée, voix autotune` | ce qui fait le son, en mots | expliquer pourquoi la réf sonne ainsi |
-| `image_credit` | `Illustration OMNIS d'après Deezer` | d'où vient l'avatar (illustration du cache) | carte « Référence visée » ; `image` : ancienne image (avant le cache) |
-| `pochette_credit` | `Illustration OMNIS d'après la pochette (Deezer)` | d'où vient l'illustration de la pochette | idem ; absente : OMNIS dessine une pochette d'après la fiche |
+| `image_credit` | `Avatar OMNIS d'après Deezer` | d'où vient l'avatar (illustration du cache) | carte « Référence visée » ; `image` : ancienne image (avant le cache) |
+| `pochette_credit` | `Pochette du fichier (avatar OMNIS)` | d'où vient l'illustration de la pochette | idem ; absente : OMNIS dessine une pochette d'après la fiche |
 | `lien` | `https://www.deezer.com/track/…` | la musique en ligne | carte « Référence visée » : un clic ouvre le navigateur |
 
 ## Les images (photo d'artiste, pochette)
@@ -30,7 +30,7 @@ omnis_refdb image photo.png --artiste "2hollis" --credit "Photo : Auteur, CC BY-
 omnis_refdb pochette pochette.png --artiste "2hollis" --titre "poster boy" --db references_utilisateur.txt
 ```
 
-L'outil en fait l'illustration (cache) ; le fichier d'origine n'est pas copié.
+L'outil en fait l'avatar (cache) ; le fichier d'origine n'est pas copié.
 
 **Depuis Deezer, d'un coup** (API publique, sans clé ni compte ; il faut internet et `curl`,
 présent dans Windows 10 et 11) :
@@ -70,33 +70,40 @@ omnis_refdb discographie playlist.csv --artistes "euhZ|Gry" --proches 1 --sortie
 - Ne contient que des noms et des liens, jamais d'audio. Les titres d'artistes absents de
   Deezer (SoundCloud seulement…) n'y sont pas.
 
-**Illustrations OMNIS** (`gfx/OmnisAvatarStylizer`) : toute photo d'artiste ou pochette devient une
-illustration peinte 256 × 256, la même recette pour tous les artistes :
+**Avatars OMNIS** (`gfx/OmnisAvatarStylizer`) : chaque photo d'artiste et chaque pochette devient
+un avatar 256 × 256 que l'on **reconnaît au premier coup d'œil** :
 
-1. cadrage : 18 % retirés sur chaque bord, cadre un peu remonté (visage, buste) : le macaron
-   « Parental Advisory » des coins et les textes de bordure partent avec ;
-2. peinture : filtre de Kuwahara lissé, 2 passes (la 2ᵉ plus fine) : plus de grain photo ;
-3. étalonnage : contraste automatique doux, hautes lumières adoucies, ombres densifiées
-   (gamma 1,15) ; la teinte de chaque image est gardée ;
-4. cel-shading doux : luminance sur 11 paliers reliés par smoothstep ;
-5. encre : Sobel sur la luminance peinte, trait fin presque noir ;
-6. détourage : alpha radial, le sujet sort du fond de la console sans cadre.
+1. cadrage léger : 9 % retirés sur chaque bord, la composition reste ;
+2. blocs de texte noir et blanc des coins (macaron « Parental Advisory », mentions) repérés et
+   comblés par les pixels voisins (le cadrage seul ne suffit pas : sur FINIS-LES le macaron va
+   jusqu'à 12 % du bord) ;
+3. bilatéral léger (rayon 2) : le bruit de compression part, les traits restent nets ;
+4. 90 % de l'image d'origine gardés, 10 % d'étalonnage pour le thème sombre ;
+5. alpha fondu sur les 10 derniers pixels du bord.
 
-L'image d'origine n'existe qu'**en mémoire** (curl -> tube -> RAM, aucun fichier) le temps du
-calcul ; seule l'illustration est écrite, dans le cache de l'utilisateur :
-`<dossier OMNIS>/cache/avatars/<hash>.png` (artistes) et `cache/covers/<hash>.png` (titres),
-le hash venant du nom réduit (« La Fève » = « la feve »). Rien dans le plug-in ni dans
-l'installateur ; le plug-in lit ce cache, et sans illustration il dessine sa pochette d'après la
-courbe de la fiche. `omnis_refdb deezer`, `image` et `pochette` passent tous par là.
+Le style « peint » (Kuwahara, cel-shading, encre) reste une option du code.
+
+D'où viennent les images, toujours côté poste de la personne :
+- l'image **intégrée à ses FLAC** (bloc `METADATA_BLOCK_PICTURE`) : `omnis_refdb add` et `scan`
+  en font l'avatar du titre (pochette) et, s'il y en a une, de l'artiste ;
+- l'**API publique de Deezer** : `omnis_refdb deezer` (en mémoire, aucune image d'origine écrite).
+
+Rangement : `<dossier OMNIS>/cache/avatars/<hash>.png` (artistes), `cache/covers/<hash>.png`
+(titres), et à côté `<hash>.couleurs` (les deux couleurs dominantes). Rien dans le `.vst3` ni
+dans l'installateur : comme la pochette affichée par un lecteur de musique, l'image vient des
+fichiers et de la connexion de la personne. Sans avatar, la console dessine une pochette d'après
+la courbe de la fiche.
+
+**Mode promo** (`/fbi` dans la barre IA, ou Maj + Alt + 5 clics rapides sur le logo Abrasion
+Labs) : plus aucune image, des **monogrammes** à la place (initiales, couronne des 21 bandes de
+la fiche, dans les deux couleurs dominantes de la vraie image) ; crédits et liens cachés. Pour
+filmer la console (démo, pub, réseaux) sans montrer une seule pochette. Gardé d'une session à
+l'autre ; `/fbi` à nouveau pour revenir.
 
 ```
-omnis_refdb cartoon photo.jpg --sortie illustration.png   (une image, pour essayer)
+omnis_refdb cartoon photo.jpg --sortie avatar.png         (une image, pour essayer)
 omnis_refdb cartoon --db references_utilisateur.txt        (anciennes images de images/ -> cache)
 ```
-
-Une illustration tirée d'une photo ou d'une pochette **reste une œuvre dérivée** : aucune image
-brute n'est gardée ni montrée, mais pour la version vendue, l'accord de l'artiste ou du label
-reste nécessaire.
 
 **Rester réglo :**
 - **Photo d'artiste** : seulement une photo sous licence libre (Wikimedia Commons : CC BY,

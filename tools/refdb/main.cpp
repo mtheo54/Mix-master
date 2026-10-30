@@ -121,11 +121,36 @@ bool readBinaryFile(const std::string& path, std::string& out) {
     return !out.empty();
 }
 
-/// Octets d'une image -> illustration OMNIS au chemin donné (cache).
+/// Octets d'une image -> avatar OMNIS au chemin donné (cache), avec ses deux
+/// couleurs dominantes (monogramme du mode promo).
 bool illustrate(const std::string& bytes, const std::filesystem::path& target, std::string& error) {
     gfx::RgbaImage art;
     if (!gfx::OmnisAvatarStylizer().stylize(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size(), art, &error)) return false;
-    return gfx::OmnisAvatarStylizer::savePng(target, art, &error);
+    if (!gfx::OmnisAvatarStylizer::savePng(target, art, &error)) return false;
+    gfx::avatars::writeColors(target, gfx::OmnisAvatarStylizer::dominantColors(art));
+    return true;
+}
+
+/// Les images intégrées à un FLAC scanné : pochette (type 3, sinon la première)
+/// -> avatar du titre ; image d'artiste (types 7, 8) -> avatar de l'artiste.
+void illustrateEmbedded(const std::filesystem::path& file, ai::ReferenceEntry& e) {
+    const auto pictures = readEmbeddedPictures(file);
+    if (pictures.empty()) return;
+    std::string error;
+    const EmbeddedPicture* front = &pictures.front();
+    for (const auto& p : pictures)
+        if (p.type == 3) front = &p;
+    std::error_code ec;
+    const auto cover = gfx::avatars::coverPath(e.artist, e.title);
+    if (!e.title.empty() && (std::filesystem::exists(cover, ec) || illustrate(front->bytes, cover, error))) {
+        if (e.coverCredit.empty()) e.coverCredit = "Pochette du fichier (avatar OMNIS)";
+    }
+    for (const auto& p : pictures)
+        if (p.type == 7 || p.type == 8) {
+            const auto face = gfx::avatars::artistPath(e.artist);
+            if ((std::filesystem::exists(face, ec) || illustrate(p.bytes, face, error)) && e.imageCredit.empty()) e.imageCredit = "Image du fichier (avatar OMNIS)";
+            break;
+        }
 }
 
 ai::ReferenceLibrary openDb(const std::string& db) {
@@ -351,7 +376,7 @@ int main(int argc, char** argv) {
             return 1;
         }
         std::printf("Deezer : %s (%lld fans) %s\n", found->name.c_str(), found->fans, found->link.c_str());
-        // L'image téléchargée reste en mémoire : seule son illustration est écrite.
+        // L'image téléchargée reste en mémoire : seul l'avatar (256 px, cache) est écrit.
         std::map<std::string, std::string> fetched; // adresse -> octets (une pochette sert à tout l'album)
         const auto illustrateUrl = [&](const std::string& url, const std::filesystem::path& target) {
             std::string error;
@@ -386,7 +411,7 @@ int main(int argc, char** argv) {
         int covers = 0;
         for (auto& e : touched) {
             e.artist = e.artist.empty() ? found->name : e.artist;
-            if (hasPhoto) e.image.clear(), e.imageCredit = "Illustration OMNIS d'après Deezer";
+            if (hasPhoto) e.image.clear(), e.imageCredit = "Avatar OMNIS d'après Deezer";
             if (e.title.empty()) {
                 if (e.link.empty()) e.link = found->link;
                 continue;
@@ -404,7 +429,7 @@ int main(int argc, char** argv) {
             }
             if (illustrateUrl(t->cover, gfx::avatars::coverPath(e.artist, e.title))) {
                 e.cover.clear();
-                e.coverCredit = "Illustration OMNIS d'après la pochette (Deezer)";
+                e.coverCredit = "Avatar OMNIS d'après la pochette (Deezer)";
                 ++covers;
             }
             e.link = t->link;
@@ -413,7 +438,7 @@ int main(int argc, char** argv) {
         for (auto& e : touched) user.add(e);
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%zu fiche(s) complétée(s), %d pochette(s) illustrée(s) -> %s\n", touched.size(), covers, utf8Path(gfx::avatars::root()).c_str());
-        std::printf("Aucune image d'origine n'est gardée. Les illustrations restent tirées de Deezer : pour la version vendue, accord des artistes / labels.\n");
+        std::printf("Avatars dans ton cache (comme la pochette d'un lecteur de musique) : rien n'est livré avec le plug-in. En vidéo : /fbi (monogrammes).\n");
         return 0;
     }
 
@@ -816,6 +841,7 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "%s\n", error.c_str());
             return 1;
         }
+        illustrateEmbedded(std::filesystem::path(std::u8string(input.begin(), input.end())), e);
         auto user = openDb(db);
         user.add(e);
         if (!writeTextFile(db, user.serialize())) {
@@ -898,6 +924,7 @@ int main(int argc, char** argv) {
                         if (std::find(merged.genres.begin(), merged.genres.end(), g) == merged.genres.end()) merged.genres.push_back(g);
                     break;
                 }
+            illustrateEmbedded(files[i], merged); // pochette intégrée au FLAC
             user.add(merged);
             ++added;
         }

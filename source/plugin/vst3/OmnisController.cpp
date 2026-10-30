@@ -211,7 +211,37 @@ void OmnisController::applyPlan(const std::vector<std::pair<std::uint32_t, doubl
         if (const auto* spec = params::findParameter(pid)) editParameter(pid, params::toNormalized(*spec, params::clampPlain(*spec, plain)));
 }
 
+bool OmnisController::promoMode() const {
+    if (promo_ < 0) {
+        std::error_code ec;
+        promo_ = std::filesystem::exists(userDataDir() / "mode_promo.txt", ec) ? 1 : 0;
+    }
+    return promo_ == 1;
+}
+
+void OmnisController::setPromoMode(bool on) {
+    promo_ = on ? 1 : 0;
+    std::error_code ec;
+    const auto flag = userDataDir() / "mode_promo.txt";
+    if (on) {
+        std::filesystem::create_directories(flag.parent_path(), ec);
+        std::ofstream(flag) << "monogrammes à la place des avatars\n";
+    } else {
+        std::filesystem::remove(flag, ec);
+    }
+}
+
 std::string OmnisController::ask(const std::string& request) {
+    {
+        std::string command = request;
+        while (!command.empty() && std::isspace(static_cast<unsigned char>(command.back()))) command.pop_back();
+        while (!command.empty() && std::isspace(static_cast<unsigned char>(command.front()))) command.erase(0, 1);
+        if (command == "/fbi") {
+            setPromoMode(!promoMode());
+            return promoMode() ? "Mode promo : des monogrammes à la place des avatars (rien à flouter en vidéo). /fbi pour revenir."
+                               : "Mode promo désactivé : les avatars reviennent.";
+        }
+    }
     if (!feed_) requestFeed();
     if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
     if (std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LinkRole))) == static_cast<long>(params::LinkRole::Stem))
