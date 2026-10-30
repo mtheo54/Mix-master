@@ -102,6 +102,7 @@ add_library(omnis_core STATIC
     source/analysis/LoudnessMeter.h
     source/analysis/SignalStatistics.h
     source/analysis/SpectralSignature.cpp
+    source/analysis/MusicDescriptors.cpp
     source/analysis/SpectralSignature.h
     source/analysis/StereoMeter.h
     source/analysis/TruePeakMeter.cpp
@@ -288,6 +289,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestStemChain.cpp
         tests/TestRack.cpp
         tests/TestDrumBus.cpp
+        tests/TestMusic.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp

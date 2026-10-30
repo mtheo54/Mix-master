@@ -82,6 +82,7 @@ private:
 
     // Thread d'analyse.
     analysis::SignatureAccumulator all_, auto_;
+    analysis::MusicAnalyzer allMusic_, autoMusic_; ///< la fiche complète (tempo, punch, stéréo…)
     double activeSamples_ = 0.0, autoActive_ = 0.0;
 
     mutable std::mutex mutex_;

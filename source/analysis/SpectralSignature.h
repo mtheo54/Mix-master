@@ -35,6 +35,7 @@
 #pragma once
 
 #include "LoudnessMeter.h"
+#include "MusicDescriptors.h"
 #include "TruePeakMeter.h"
 
 #include "dsp/Fft.h"
@@ -62,6 +63,9 @@ struct SpectralSignature {
     /// (MP3 faible, YouTube) est coupé vers 16 kHz ; son nœud 20 kHz décrit
     /// l'encodeur, pas le mix (voir detectCutoff).
     int trustedBands = params::kMatchBands;
+    /// Fiche complète (tempo, tonalité, 808, sections, punch, stéréo…) :
+    /// `music.valid` faux pour une fiche mesurée avant cette version.
+    MusicDescriptors music;
 
     /// Coupure d'encodeur : le nœud 20 kHz plus de 20 dB sous celui de 10 kHz
     /// (un master sans perte : −9 à −13 dB, même les plus sombres > −20 ;

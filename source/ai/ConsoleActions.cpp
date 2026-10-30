@@ -5,6 +5,7 @@
 #include "ConsoleActions.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 
@@ -96,6 +97,94 @@ void applyAxes(ConsolePlan& p, const Descriptor& d, const MatchRequest& request,
     }
 }
 
+/// La fiche moyenne de plusieurs références (celles qui ont la fiche complète).
+analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>& refs) {
+    analysis::MusicDescriptors m;
+    int n = 0;
+    std::array<int, 24> keys{};
+    for (const auto* e : refs) {
+        const auto& x = e->signature.music;
+        if (!x.valid) continue;
+        ++n;
+        for (int z = 0; z < 4; ++z) m.microDb[static_cast<std::size_t>(z)] += x.microDb[static_cast<std::size_t>(z)];
+        for (int i = 0; i < 3; ++i) m.shortTermLufs[static_cast<std::size_t>(i)] += x.shortTermLufs[static_cast<std::size_t>(i)];
+        m.lowCorrelation += x.lowCorrelation;
+        m.correlation += x.correlation;
+        m.clipPercent += x.clipPercent;
+        m.bpm += x.bpm;
+        m.subHz += x.subHz;
+        if (x.keyRoot >= 0) ++keys[static_cast<std::size_t>(x.keyRoot + (x.keyMinor ? 12 : 0))];
+    }
+    if (n == 0) return m;
+    m.valid = true;
+    for (auto& v : m.microDb) v /= n;
+    for (auto& v : m.shortTermLufs) v /= n;
+    m.lowCorrelation /= n;
+    m.correlation /= n;
+    m.clipPercent /= n;
+    if (n == 1) {
+        m.bpm /= n;
+        m.subHz /= n;
+        const auto k = std::max_element(keys.begin(), keys.end()) - keys.begin();
+        if (keys[static_cast<std::size_t>(k)] > 0) {
+            m.keyRoot = static_cast<int>(k % 12);
+            m.keyMinor = k >= 12;
+        }
+    } else {
+        m.bpm = m.subHz = 0.0; // une moyenne de tempos ou de notes ne veut rien dire
+    }
+    return m;
+}
+
+/// Ce que la fiche complète de la référence apprend, comparée à celle de la prod :
+/// le punch, le grave mono, l'écart couplet / refrain, l'écrêtage voulu.
+void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const analysis::MusicDescriptors& prod, const CurrentValue& cur,
+                bool punchAsked) {
+    if (!ref.valid || !prod.valid) return;
+    // Punch : la crête des attaques au-dessus du niveau, du bas-médium à l'aigu.
+    const double refPunch = (ref.microDb[1] + ref.microDb[2] + ref.microDb[3]) / 3.0;
+    const double prodPunch = (prod.microDb[1] + prod.microDb[2] + prod.microDb[3]) / 3.0;
+    const double gap = refPunch - prodPunch;
+    if (gap > 0.8 && !punchAsked) {
+        const double v = std::clamp(cur(ParamId::LimPunch) + 15.0 * gap, 0.0, 80.0);
+        put(p, ParamId::LimPunch, v);
+        p.said.push_back(format("la réf attaque plus (+%.1f dB) : Punch ", gap) + format("%.0f %%", v));
+    } else if (gap < -1.5 && !punchAsked) {
+        const double up = std::clamp(cur(ParamId::LimUpward) + std::min(4.0, -gap), 0.0, 9.0);
+        put(p, ParamId::LimUpward, up);
+        p.said.push_back(format("la réf est plus dense (%.1f dB d'attaque en moins) : upward ", -gap) + format("%.1f dB", up));
+    }
+    // Grave : mono dans la réf, pas dans la prod.
+    if (ref.lowCorrelation >= 0.97 && prod.lowCorrelation < 0.92) {
+        put(p, ParamId::MonoFreq, std::max(120.0, cur(ParamId::MonoFreq)));
+        put(p, ParamId::MonoAmount, 100.0);
+        p.said.push_back(format("grave mono comme la réf (le tien : corrélation %.2f)", prod.lowCorrelation));
+    }
+    // Couplet / refrain : un écart bien plus grand que la réf -> on remonte le calme.
+    const double refSpread = ref.shortTermLufs[2] - ref.shortTermLufs[0], prodSpread = prod.shortTermLufs[2] - prod.shortTermLufs[0];
+    if (prodSpread > refSpread + 4.0) {
+        const double up = std::clamp(cur(ParamId::LimUpward) + std::min(6.0, 0.5 * (prodSpread - refSpread)), 0.0, 9.0);
+        put(p, ParamId::LimUpward, up);
+        p.said.push_back(format("ton calme est %.0f dB sous ton refrain, ", prodSpread) + format("la réf %.0f : upward ", refSpread) +
+                         format("%.1f dB", up));
+    }
+    // Une réf écrêtée exprès (rage) : du clip assumé.
+    if (ref.clipPercent > 0.5 && prod.clipPercent < 0.1) {
+        const double drive = std::clamp(cur(ParamId::ClipDrive) + 3.0, 0.0, 8.0);
+        put(p, ParamId::ClipDrive, drive);
+        p.said.push_back(format("la réf est écrêtée exprès (%.1f %% des échantillons) : clip ", ref.clipPercent) + format("%.1f dB", drive));
+    }
+    // Pour info : tempo, tonalité, note de la 808.
+    std::string info;
+    if (ref.bpm > 0.0 && prod.bpm > 0.0) info += format("réf %.0f BPM", ref.bpm) + format(" / toi %.0f", prod.bpm);
+    if (ref.keyRoot >= 0 && prod.keyRoot >= 0 && ref.keyCode() != prod.keyCode())
+        info += (info.empty() ? "" : " · ") + std::string("réf en ") + ref.keyName() + ", toi en " + prod.keyName();
+    if (ref.subHz > 0.0 && prod.subHz > 0.0 && std::fabs(12.0 * std::log2(ref.subHz / prod.subHz)) >= 1.0)
+        info += (info.empty() ? "" : " · ") + std::string("808 réf ") + analysis::MusicDescriptors::noteName(ref.subHz) + ", la tienne " +
+                analysis::MusicDescriptors::noteName(prod.subHz);
+    if (!info.empty()) p.said.push_back(info);
+}
+
 } // namespace
 
 std::vector<std::pair<ParamId, double>> glueSettings(double t) {
@@ -120,7 +209,10 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
     if (tonal) {
         const MatchIntent intent = u.hasReference() ? planMatch(prod, aggregateSignature(u.referenceEntries), u.request) : planFromWords(prod, u.request);
         writeCurve(p, intent);
-        if (u.hasReference()) p.said.insert(p.said.begin(), "vers " + u.referenceName);
+        if (u.hasReference()) {
+            p.said.insert(p.said.begin(), "vers " + u.referenceName);
+            applyMusic(p, averageMusic(u.referenceEntries), prod.music, cur, std::fabs(d[Axis::Punch]) >= 0.25);
+        }
         if (u.hasReference() || u.request.targetLufs || std::fabs(u.request.loudnessOffsetLu) > 1e-9) p.targetLufs = intent.targetLufs;
     } else if (u.request.targetLufs || std::fabs(u.request.loudnessOffsetLu) > 1e-9) {
         // Seulement plus fort / moins fort : partir de la sonie qu'on a.
@@ -162,6 +254,13 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const ReferenceLib
     put(p, ParamId::LimCeiling, -1.0);
     p.targetLufs = std::clamp(intent.targetLufs, -14.0, -5.0);
     p.said.push_back("punch, Inflator et clip doux ; plafond -1 dBTP");
+    // La fiche complète des références (punch, grave mono, sections, écrêtage) passe
+    // après la base : elle la précise.
+    applyMusic(p, averageMusic(refs), loud.music, [&](ParamId id) {
+        for (const auto& [k, v] : p.settings)
+            if (k == id) return v;
+        return cur(id);
+    }, false);
     p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs));
     return p;
 }

@@ -19,6 +19,8 @@ void ProdListener::prepare(double sampleRate) {
         sampleRate_ = sampleRate;
         all_.prepare(sampleRate);
         auto_.prepare(sampleRate);
+        allMusic_.prepare(sampleRate);
+        autoMusic_.prepare(sampleRate);
         activeSamples_ = 0.0;
         std::lock_guard<std::mutex> lock(mutex_);
         snapshot_ = {};
@@ -58,6 +60,7 @@ void ProdListener::loop() {
     while (running_.load(std::memory_order_acquire)) {
         if (forget_.exchange(false)) {
             all_.reset();
+            allMusic_.reset();
             activeSamples_ = 0.0;
             std::lock_guard<std::mutex> lock(mutex_);
             snapshot_ = {};
@@ -73,6 +76,7 @@ void ProdListener::loop() {
             const bool active = power / static_cast<double>(got) > kSilencePower;
             if (active) {
                 all_.push(l.data(), r.data(), static_cast<int>(got));
+                allMusic_.push(l.data(), r.data(), static_cast<int>(got));
                 activeSamples_ += static_cast<double>(got);
                 changed = true;
             }
@@ -80,15 +84,18 @@ void ProdListener::loop() {
             const auto state = autoState();
             if (state == AutoState::Waiting && active) {
                 auto_.reset();
+                autoMusic_.reset();
                 autoActive_ = 0.0;
                 autoState_.store(static_cast<int>(AutoState::Listening), std::memory_order_release);
             }
             if (autoState() == AutoState::Listening && active) {
                 auto_.push(l.data(), r.data(), static_cast<int>(got));
+                autoMusic_.push(l.data(), r.data(), static_cast<int>(got));
                 autoActive_ += static_cast<double>(got);
                 autoProgress_.store(std::min(1.0, autoActive_ / (kAutoSeconds * sampleRate_)), std::memory_order_relaxed);
                 if (autoActive_ >= kAutoSeconds * sampleRate_) {
-                    const auto result = auto_.result();
+                    auto result = auto_.result();
+                    result.music = autoMusic_.result();
                     {
                         std::lock_guard<std::mutex> lock(mutex_);
                         autoResult_ = result;
@@ -102,6 +109,7 @@ void ProdListener::loop() {
             lastSnapshot = now;
             changed = false;
             Snapshot s{all_.result(), activeSamples_ / sampleRate_};
+            s.signature.music = allMusic_.result();
             std::lock_guard<std::mutex> lock(mutex_);
             snapshot_ = std::move(s);
         }

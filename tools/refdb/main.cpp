@@ -82,6 +82,7 @@ bool measure(const std::filesystem::path& path, ai::ReferenceEntry& e, std::stri
     if (!readAudioFile(path, f, error)) return false;
     const auto& r = f.channels[std::min<std::size_t>(1, f.channels.size() - 1)];
     e.signature = analysis::SignatureAccumulator::analyzeParallel(f.channels[0].data(), r.data(), f.numFrames(), f.sampleRate, threads);
+    e.signature.music = analysis::analyzeMusic(f.channels[0].data(), r.data(), f.numFrames(), f.sampleRate);
     e.measured = true;
     return true;
 }
@@ -200,6 +201,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb nom --artiste NOM --genres \"a|b\" [--alias \"x|y\"] --db base.txt\n"
                   "  omnis_refdb noms liste.txt --db base.txt   (« Artiste ; genre, genre ; alias »)\n"
                   "  omnis_refdb artistes liens.txt --db base.txt   (« Artiste ; famille ; styles ; proches : A, B ; traits : … »)\n"
+                  "  omnis_refdb fiche titre.wav   (la fiche complète d'un son, sans rien écrire)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
         return 1;
@@ -217,6 +219,27 @@ int main(int argc, char** argv) {
         else if (input.empty()) input = a;
     }
 
+    if (command == "fiche") {
+        std::string error;
+        ai::ReferenceEntry e;
+        e.artist = artist.empty() ? std::filesystem::path(input).stem().string() : artist;
+        if (input.empty() || !measure(input, e, error)) {
+            std::fprintf(stderr, "%s\n", input.empty() ? "fiche : un fichier audio" : error.c_str());
+            return 1;
+        }
+        const auto& m = e.signature.music;
+        std::printf("%s (%.0f s)\n", e.artist.c_str(), m.seconds);
+        std::printf("  sonie %.1f LUFS, LRA %.1f LU, true peak %.1f dBTP, PLR %.1f dB\n", e.signature.integratedLufs, e.signature.loudnessRangeLu,
+                    e.signature.truePeakDb, e.signature.plrDb);
+        std::printf("  tempo %.1f BPM · tonalité %s (confiance %.2f) · 808 / grave tenu %s\n", m.bpm, m.keyName().c_str(), m.keyConfidence,
+                    analysis::MusicDescriptors::noteName(m.subHz).c_str());
+        std::printf("  sections (sonie 3 s) : calme %.1f · médiane %.1f · fort %.1f LUFS\n", m.shortTermLufs[0], m.shortTermLufs[1], m.shortTermLufs[2]);
+        std::printf("  punch (crête 10 ms − niveau 400 ms) : grave %.1f · bas-médium %.1f · médium %.1f · aigu %.1f dB\n", m.microDb[0], m.microDb[1],
+                    m.microDb[2], m.microDb[3]);
+        std::printf("  stéréo : corrélation %.2f, grave %.2f, perte en mono %.1f dB\n", m.correlation, m.lowCorrelation, m.monoLossDb);
+        std::printf("  %.1f coups/s · brillance %.0f Hz · crête %.2f dBFS · écrêtage %.2f %%\n", m.onsetsPerSecond, m.centroidHz, m.samplePeakDb, m.clipPercent);
+        return 0;
+    }
     if (command == "add") {
         if (input.empty() || artist.empty() || db.empty()) {
             std::fputs("add : fichier, --artiste et --db requis\n", stderr);
@@ -296,9 +319,23 @@ int main(int argc, char** argv) {
                 std::printf("  ignoré : %s (%s)\n", utf8Path(files[i].filename()).c_str(), job.error.c_str());
                 continue;
             }
-            std::printf("  %-44s %6.1f LUFS  LRA %4.1f\n", job.entry.displayName().c_str(), job.entry.signature.integratedLufs,
-                        job.entry.signature.loudnessRangeLu);
-            user.add(job.entry);
+            std::printf("  %-44s %6.1f LUFS  LRA %4.1f  %5.1f BPM  %s\n", job.entry.displayName().c_str(), job.entry.signature.integratedLufs,
+                        job.entry.signature.loudnessRangeLu, job.entry.signature.music.bpm, job.entry.signature.music.keyName().c_str());
+            // Déjà dans la base (re-mesure) : on garde ce que la fiche savait déjà
+            // (alias, proches, traits, genres), seules les mesures sont refaites.
+            ai::ReferenceEntry merged = job.entry;
+            for (const auto& old : user.entries())
+                if (ai::namesMatch(old.artist, merged.artist) && ai::namesMatch(old.title, merged.title)) {
+                    merged.artist = old.artist;
+                    merged.title = old.title;
+                    if (merged.aliases.empty()) merged.aliases = old.aliases;
+                    if (merged.similar.empty()) merged.similar = old.similar;
+                    if (merged.traits.empty()) merged.traits = old.traits;
+                    for (const auto& g : old.genres)
+                        if (std::find(merged.genres.begin(), merged.genres.end(), g) == merged.genres.end()) merged.genres.push_back(g);
+                    break;
+                }
+            user.add(merged);
             ++added;
         }
         std::printf("Mesuré en %.1f s sur %u cœur(s)\n", seconds, workers);

@@ -258,6 +258,13 @@ journal), on construit OMNIS soi-même, gratuitement :
    `cmake --build build --config Release --target OMNIS`.
 3. Le plug-in est dans `build\VST3\Release\OMNIS.vst3` : le copier comme à l'étape 2.
 
+### La base de références ([la fiche de chaque titre](docs/REFERENCES.md))
+
+Chaque titre de référence a sa fiche en nombres : spectre Mid / Side, sonie, et (fiche complète)
+tempo, tonalité, note de la 808, écart couplet / refrain, punch par zone, grave mono, attaques,
+brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb.exe` (artefact
+*OMNIS-Windows-outils*), ou la référence écoutée dans FL.
+
 ### La console ([détails](docs/ARCHITECTURE.md#16-la-console))
 
 - **Ruban du haut** : AUTO (joue le passage le plus fort : OMNIS écoute 10 s et règle la

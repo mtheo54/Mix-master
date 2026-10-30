@@ -57,6 +57,14 @@ bool parseBands(const std::string& value, analysis::BandArray& out) {
     return true;
 }
 
+bool parseNumbers(const std::string& value, double* out, int count) {
+    std::istringstream in(value);
+    in.imbue(std::locale::classic());
+    for (int i = 0; i < count; ++i)
+        if (!(in >> out[i])) return false;
+    return true;
+}
+
 std::string formatBands(const analysis::BandArray& v) {
     std::string s;
     char buf[32];
@@ -158,6 +166,23 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
         }
         else if (key == "side") ok = parseBands(value, s.sideDb) && ok;
         else if (key == "dyn") ok = parseBands(value, s.midSpreadDb) && ok;
+        // Fiche complète (analysis/MusicDescriptors.h).
+        else if (key == "duree") number_(s.music.seconds), s.music.valid = true;
+        else if (key == "bpm") number_(s.music.bpm);
+        else if (key == "cle") {
+            if (!s.music.parseKeyCode(value)) ok = false;
+        }
+        else if (key == "cle_confiance") number_(s.music.keyConfidence);
+        else if (key == "sub_hz") number_(s.music.subHz);
+        else if (key == "lufs_court") ok = parseNumbers(value, s.music.shortTermLufs.data(), 3) && ok;
+        else if (key == "micro") ok = parseNumbers(value, s.music.microDb.data(), 4) && ok;
+        else if (key == "correlation") number_(s.music.correlation);
+        else if (key == "correlation_grave") number_(s.music.lowCorrelation);
+        else if (key == "perte_mono") number_(s.music.monoLossDb);
+        else if (key == "coups_par_s") number_(s.music.onsetsPerSecond);
+        else if (key == "brillance") number_(s.music.centroidHz);
+        else if (key == "crete") number_(s.music.samplePeakDb);
+        else if (key == "ecretage") number_(s.music.clipPercent);
         else if (error) *error += "ligne " + std::to_string(number) + " : clé inconnue « " + key + " » ignorée\n";
     }
     close();
@@ -200,6 +225,29 @@ std::string ReferenceLibrary::serialize() const {
         out += "mid = " + formatBands(s.midDb) + "\n";
         out += "side = " + formatBands(s.sideDb) + "\n";
         out += "dyn = " + formatBands(s.midSpreadDb) + "\n";
+        const auto& m = s.music;
+        if (m.valid) {
+            const auto line = [&](const char* fmt, auto... v) {
+                std::snprintf(buf, sizeof(buf), fmt, v...);
+                out += buf;
+            };
+            line("duree = %.1f\n", m.seconds);
+            if (m.bpm > 0.0) line("bpm = %.1f\n", m.bpm);
+            if (m.keyRoot >= 0) {
+                out += "cle = " + m.keyCode() + "\n";
+                line("cle_confiance = %.2f\n", m.keyConfidence);
+            }
+            if (m.subHz > 0.0) line("sub_hz = %.1f\n", m.subHz);
+            line("lufs_court = %.2f %.2f %.2f\n", m.shortTermLufs[0], m.shortTermLufs[1], m.shortTermLufs[2]);
+            line("micro = %.2f %.2f %.2f %.2f\n", m.microDb[0], m.microDb[1], m.microDb[2], m.microDb[3]);
+            line("correlation = %.3f\n", m.correlation);
+            line("correlation_grave = %.3f\n", m.lowCorrelation);
+            line("perte_mono = %.2f\n", m.monoLossDb);
+            line("coups_par_s = %.2f\n", m.onsetsPerSecond);
+            line("brillance = %.0f\n", m.centroidHz);
+            line("crete = %.2f\n", m.samplePeakDb);
+            line("ecretage = %.3f\n", m.clipPercent);
+        }
     }
     return out;
 }

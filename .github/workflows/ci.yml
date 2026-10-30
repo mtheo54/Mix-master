@@ -40,6 +40,16 @@ jobs:
           path: build/VST3/Release/
           retention-days: 30
 
+      # L'outil qui mesure les références sur le PC de l'utilisateur
+      # (docs/REFERENCES.md) : omnis_refdb scan dossier/ --db references.txt
+      - name: Outil de mesure des références
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OMNIS-Windows-outils
+          path: build/bin/**/omnis_refdb.exe
+          retention-days: 30
+
   sanitizers:
     name: ASan + UBSan / TSan (moteur seul)
     runs-on: ubuntu-24.04

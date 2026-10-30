@@ -95,6 +95,7 @@ private:
 
     // Thread d'analyse uniquement.
     analysis::SignatureAccumulator refAcc_, prodAcc_;
+    analysis::MusicAnalyzer refMusic_, prodMusic_; ///< la fiche complète (tempo, tonalité, punch…)
     std::vector<Frame> chunkRef_, chunkProd_;
     std::vector<double> l_, r_, pl_, pr_;
     double activeSamples_ = 0.0;

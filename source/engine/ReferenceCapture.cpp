@@ -25,6 +25,8 @@ void ReferenceCapture::prepare(double sampleRate, double ringSeconds) {
     prodRing_.allocate(capacity);
     refAcc_.prepare(sampleRate);
     prodAcc_.prepare(sampleRate);
+    refMusic_.prepare(sampleRate);
+    prodMusic_.prepare(sampleRate);
     chunkRef_.resize(kChunk);
     chunkProd_.resize(kChunk);
     for (auto* v : {&l_, &r_, &pl_, &pr_}) v->resize(kChunk);
@@ -63,6 +65,8 @@ std::size_t ReferenceCapture::drain(bool& sawSignal) {
     }
     refAcc_.push(l_.data(), r_.data(), static_cast<int>(n));
     prodAcc_.push(pl_.data(), pr_.data(), static_cast<int>(n));
+    refMusic_.push(l_.data(), r_.data(), static_cast<int>(n));
+    prodMusic_.push(pl_.data(), pr_.data(), static_cast<int>(n));
     if (power / static_cast<double>(n) > kSilencePower) {
         activeSamples_ += static_cast<double>(n);
         sawSignal = true;
@@ -78,6 +82,8 @@ void ReferenceCapture::workerLoop() {
         if (now && !wasCapturing && fresh_) {
             refAcc_.reset();
             prodAcc_.reset();
+            refMusic_.reset();
+            prodMusic_.reset();
             activeSamples_ = 0.0;
             refSeconds_.store(0.0, std::memory_order_relaxed);
             refLufs_.store(-70.0, std::memory_order_relaxed);
@@ -97,6 +103,8 @@ void ReferenceCapture::workerLoop() {
             Result r;
             r.reference = refAcc_.result();
             r.prod = prodAcc_.result();
+            r.reference.music = refMusic_.result();
+            r.prod.music = prodMusic_.result();
             r.referenceSeconds = activeSamples_ / sampleRate_;
             {
                 std::lock_guard<std::mutex> lock(resultMutex_);
