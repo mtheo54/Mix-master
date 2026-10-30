@@ -88,7 +88,51 @@ struct Integral {
     }
 };
 
+/// Flou gaussien séparable d'un plan.
+std::vector<float> blur(const std::vector<float>& in, int w, int h, float sigma) {
+    const int r = std::max(1, static_cast<int>(std::ceil(3.0f * sigma)));
+    std::vector<float> k(static_cast<std::size_t>(2 * r + 1));
+    float sum = 0;
+    for (int i = -r; i <= r; ++i) sum += k[static_cast<std::size_t>(i + r)] = std::exp(-static_cast<float>(i * i) / (2 * sigma * sigma));
+    for (auto& v : k) v /= sum;
+    std::vector<float> tmp(in.size()), out(in.size());
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            float acc = 0;
+            for (int i = -r; i <= r; ++i) acc += k[static_cast<std::size_t>(i + r)] * in[static_cast<std::size_t>(y * w + std::clamp(x + i, 0, w - 1))];
+            tmp[static_cast<std::size_t>(y * w + x)] = acc;
+        }
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            float acc = 0;
+            for (int i = -r; i <= r; ++i) acc += k[static_cast<std::size_t>(i + r)] * tmp[static_cast<std::size_t>(std::clamp(y + i, 0, h - 1) * w + x)];
+            out[static_cast<std::size_t>(y * w + x)] = acc;
+        }
+    return out;
+}
+
 } // namespace
+
+void OmnisAvatarStylizer::denoise(Rgb& img) {
+    // Bilatéral léger (rayon 2) : efface le bruit sans toucher aux bords.
+    const int w = img.width, h = img.height, r = 2;
+    std::vector<float> out(img.c.size());
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            const float* c = &img.c[static_cast<std::size_t>(3 * (y * w + x))];
+            float acc[3] = {0, 0, 0}, wsum = 0;
+            for (int dy = -r; dy <= r; ++dy)
+                for (int dx = -r; dx <= r; ++dx) {
+                    const float* p = &img.c[static_cast<std::size_t>(3 * (std::clamp(y + dy, 0, h - 1) * w + std::clamp(x + dx, 0, w - 1)))];
+                    const float d2 = (p[0] - c[0]) * (p[0] - c[0]) + (p[1] - c[1]) * (p[1] - c[1]) + (p[2] - c[2]) * (p[2] - c[2]);
+                    const float wgt = std::exp(-static_cast<float>(dx * dx + dy * dy) / 4.5f - d2 / 0.0128f);
+                    for (int k = 0; k < 3; ++k) acc[k] += wgt * p[k];
+                    wsum += wgt;
+                }
+            for (int k = 0; k < 3; ++k) out[static_cast<std::size_t>(3 * (y * w + x) + k)] = acc[k] / wsum;
+        }
+    img.c.swap(out);
+}
 
 OmnisAvatarStylizer::Rgb OmnisAvatarStylizer::cropCenter(const std::uint8_t* rgba, int width, int height, float crop, float focusUp, int side) {
     // Cadre : bords retirés, remonté vers le visage ; puis le plus grand carré centré.
@@ -136,7 +180,7 @@ void OmnisAvatarStylizer::kuwahara(Rgb& img, int r) {
                 const double n = static_cast<double>((qx1 - qx0 + 1) * (qy1 - qy0 + 1));
                 const double mean = ly.sum(qx0, qy0, qx1, qy1) / n;
                 const double var = std::max(0.0, ly2.sum(qx0, qy0, qx1, qy1) / n - mean * mean);
-                const double wgt = 1.0 / ((var + 1e-4) * (var + 1e-4));
+                const double wgt = 1.0 / (var + 4e-4); // mélange doux : pas de taches « camouflage »
                 for (int c = 0; c < 3; ++c) acc[c] += wgt * col[static_cast<std::size_t>(c)]->sum(qx0, qy0, qx1, qy1) / n;
                 wsum += wgt;
             }
@@ -186,8 +230,8 @@ void OmnisAvatarStylizer::celShade(Rgb& img, int levels) {
         const float pos = y * n, base = std::floor(pos);
         // Palier, relié au suivant par un smoothstep court ; un peu de l'original
         // garde le volume (cel-shading doux, pas d'escalier brut).
-        const float stepped = (base + smoothstep(0.35f, 0.65f, pos - base)) / n;
-        fromYcc(0.85f * stepped + 0.15f * y, cb, cr, &img.c[3 * i]);
+        const float stepped = (base + smoothstep(0.25f, 0.75f, pos - base)) / n;
+        fromYcc(0.65f * stepped + 0.35f * y, cb, cr, &img.c[3 * i]);
     }
 }
 
@@ -196,6 +240,7 @@ std::vector<float> OmnisAvatarStylizer::inkMask(const Rgb& img) {
     const auto count = static_cast<std::size_t>(w * h);
     std::vector<float> y(count), mag(count, 0.0f);
     for (std::size_t i = 0; i < count; ++i) y[i] = luma(&img.c[3 * i]);
+    y = blur(y, w, h, 1.2f); // le trait suit les formes, pas le grain qui reste
     const auto at = [&](int xx, int yy) { return y[static_cast<std::size_t>(std::clamp(yy, 0, h - 1) * w + std::clamp(xx, 0, w - 1))]; };
     for (int yy = 0; yy < h; ++yy)
         for (int xx = 0; xx < w; ++xx) {
@@ -206,11 +251,11 @@ std::vector<float> OmnisAvatarStylizer::inkMask(const Rgb& img) {
     // Seuil adapté : seuls les ~10 % de bords les plus francs encrent (une photo
     // douce et une pochette contrastée gardent un trait comparable).
     std::vector<float> sorted(mag);
-    const auto p90 = sorted.begin() + static_cast<std::ptrdiff_t>(0.90 * static_cast<double>(count));
-    std::nth_element(sorted.begin(), p90, sorted.end());
-    const float ref = std::max(*p90, 0.08f); // image presque unie : pas de trait parasite
+    const auto p94 = sorted.begin() + static_cast<std::ptrdiff_t>(0.94 * static_cast<double>(count));
+    std::nth_element(sorted.begin(), p94, sorted.end());
+    const float ref = std::max(*p94, 0.10f); // image presque unie : pas de trait parasite
     std::vector<float> ink(count);
-    for (std::size_t i = 0; i < count; ++i) ink[i] = smoothstep(0.9f, 1.8f, mag[i] / ref);
+    for (std::size_t i = 0; i < count; ++i) ink[i] = smoothstep(1.0f, 2.2f, mag[i] / ref);
     return ink;
 }
 
@@ -255,9 +300,10 @@ bool OmnisAvatarStylizer::stylize(const std::uint8_t* data, std::size_t size, Rg
         }
         work = cropCenter(raw.get(), w, h, o_.crop, o_.focusUp, std::max(64, o_.workSize));
     }
-    // Première passe large (grain, texture de peau), les suivantes plus fines : les
-    // petits détails (yeux, reflets) ne se fondent pas dans leur voisinage.
-    for (int pass = 0; pass < std::max(1, o_.kuwaharaPasses); ++pass) kuwahara(work, std::max(2, o_.kuwaharaRadius - 2 * pass));
+    denoise(work); // bruit JPEG et grain fin d'abord : le Kuwahara ne le grossit pas en taches
+    // Première passe large (texture de peau, tissu), les suivantes deux fois plus
+    // fines : les petits détails (yeux, reflets) ne se fondent pas dans leur voisinage.
+    for (int pass = 0, r = o_.kuwaharaRadius; pass < std::max(1, o_.kuwaharaPasses); ++pass, r = std::max(2, r / 2)) kuwahara(work, r);
     const auto ink = inkMask(work); // sur la peinture : le trait suit les formes, pas le grain
     grade(work, o_.shadowGamma, o_.highlightKnee);
     celShade(work, o_.levels);

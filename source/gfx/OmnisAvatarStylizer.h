@@ -7,13 +7,15 @@
 //    1. cadrage : 18 % retirés sur chaque bord, cadre un peu remonté (visage,
 //       buste) : le macaron « Parental Advisory » des coins et les textes de
 //       bordure partent avec ; un carré centré sur le sujet reste ;
-//    2. peinture : filtre de Kuwahara lissé (moyenne des quadrants pondérée par
-//       leur calme), 2 passes : plus de grain photo, des aplats doux, bords nets ;
+//    2. peinture : bilatéral léger (bruit JPEG), puis filtre de Kuwahara lissé
+//       (moyenne des quadrants pondérée par leur calme), 2 passes (la 2e deux
+//       fois plus fine) : plus de grain photo, des aplats doux, bords nets ;
 //    3. étalonnage : contraste automatique (1 % / 99 % de la luminance), hautes
 //       lumières brûlées adoucies, ombres densifiées (gamma 1,15) ; la teinte de
 //       chaque image est gardée (YCbCr : seule la luminance bouge) ;
-//    4. cel-shading doux : luminance sur 11 paliers reliés par smoothstep ;
-//    5. encre : Sobel sur la luminance peinte, seuil adapté à l'image, trait
+//    4. cel-shading doux : luminance sur 12 paliers reliés par smoothstep (un
+//       tiers de l'éclairage d'origine gardé : du volume, pas d'escalier) ;
+//    5. encre : Sobel sur la luminance peinte (un peu floutée), seuil adapté, trait
 //       fin multiplié (presque noir, à peine bleuté) ;
 //    6. détourage : alpha radial (opaque au centre, transparent aux bords) :
 //       le sujet sort du fond de la console sans cadre carré.
@@ -55,10 +57,10 @@ public:
         int size = 256;            ///< côté de l'illustration
         float crop = 0.18f;        ///< part retirée sur chaque bord
         float focusUp = 0.05f;     ///< cadre remonté (part de la hauteur) : visage, buste
-        int workSize = 384;        ///< côté de travail des filtres
-        int kuwaharaRadius = 5;
+        int workSize = 512;        ///< côté de travail des filtres
+        int kuwaharaRadius = 6;    ///< 1re passe ; les suivantes deux fois plus fines
         int kuwaharaPasses = 2;
-        int levels = 11;           ///< paliers de luminance (10 … 12)
+        int levels = 12;           ///< paliers de luminance (10 … 12)
         float shadowGamma = 1.15f; ///< > 1 : ombres plus denses
         float highlightKnee = 0.80f;
         float ink = 0.85f;         ///< force du trait (0 : aucun)
@@ -78,6 +80,7 @@ public:
     };
     /// Cadre (bords retirés, remonté), carré centré, réduit à `side` (moyenne de surface).
     static Rgb cropCenter(const std::uint8_t* rgba, int width, int height, float crop, float focusUp, int side);
+    static void denoise(Rgb& image);
     static void kuwahara(Rgb& image, int radius);
     static void grade(Rgb& image, float shadowGamma, float highlightKnee);
     static void celShade(Rgb& image, int levels);
