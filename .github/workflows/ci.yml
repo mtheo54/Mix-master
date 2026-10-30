@@ -37,7 +37,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: OMNIS-${{ runner.os }}-VST3
-          path: build/VST3/Release/
+          path: |
+            build/VST3/Release/
+            LICENSE_NOTICES.md
           retention-days: 30
 
       # L'outil qui mesure les références sur le PC de l'utilisateur
@@ -47,7 +49,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: OMNIS-Windows-outils
-          path: build/bin/**/omnis_refdb.exe
+          path: |
+            build/bin/**/omnis_refdb.exe
+            LICENSE_NOTICES.md
           retention-days: 30
 
   sanitizers:

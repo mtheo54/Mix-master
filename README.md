@@ -387,4 +387,6 @@ Chaque module DSP critique sera calibré sur des fichiers audio réels : voir
 
 Code OMNIS : © 2026 Abrasion Labs. SDK VST3 : licence MIT (Steinberg Media Technologies GmbH),
 téléchargé à la compilation, non redistribué dans ce dépôt. VST est une marque déposée de
-Steinberg Media Technologies GmbH.
+Steinberg Media Technologies GmbH. Le détail (VSTGUI, stb, dr_libs, avatars et données en ligne,
+aucune image livrée, mode promo) et les textes de licence : [LICENSE_NOTICES.md](LICENSE_NOTICES.md),
+joint aux paquets produits par la CI.

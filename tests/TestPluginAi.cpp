@@ -19,6 +19,8 @@
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 
 #include <chrono>
+#include <cstdlib>
+#include <filesystem>
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -221,4 +223,38 @@ OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un t
     // Aucune : AUTO revient au style des mots.
     OMNIS_CHECK(h.ctrl->chooseReference(vst3::OmnisController::RefKind::None, {}).find("Pas de référence") == 0);
     OMNIS_CHECK(h.ctrl->referenceKind() == vst3::OmnisController::RefKind::None);
+}
+
+OMNIS_TEST("plug-in mode promo: « /fbi » bascule les monogrammes, gardé dans le dossier de l'utilisateur") {
+    // Un dossier d'utilisateur à part : le vrai n'est pas touché.
+    const auto dir = std::filesystem::temp_directory_path() / "omnis_test_promo";
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    const std::string dirText = dir.string();
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", dirText.c_str());
+#else
+    setenv("OMNIS_USER_DATA_DIR", dirText.c_str(), 1);
+#endif
+    {
+        Host h;
+        OMNIS_CHECK(!h.ctrl->promoMode());
+        const std::string on = h.ctrl->ask("  /fbi ");
+        std::printf("      %s\n", on.c_str());
+        OMNIS_CHECK(h.ctrl->promoMode() && on.find("monogrammes") != std::string::npos);
+        OMNIS_CHECK(std::filesystem::exists(dir / "mode_promo.txt"));
+        // Une autre instance (session suivante) le retrouve.
+        IPtr<vst3::OmnisController> other = owned(new vst3::OmnisController());
+        other->initialize(&h.app);
+        OMNIS_CHECK(other->promoMode());
+        other->terminate();
+        OMNIS_CHECK(!h.ctrl->ask("/fbi").empty() && !h.ctrl->promoMode());
+        OMNIS_CHECK(!std::filesystem::exists(dir / "mode_promo.txt"));
+    }
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", "");
+#else
+    unsetenv("OMNIS_USER_DATA_DIR");
+#endif
+    std::filesystem::remove_all(dir, ec);
 }

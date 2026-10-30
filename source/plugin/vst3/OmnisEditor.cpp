@@ -659,7 +659,8 @@ struct OmnisEditor::Card {
 };
 
 CBitmap* OmnisEditor::picture(const std::string& path) {
-    if (path.empty()) return nullptr;
+    // Mode promo : aucune image du cache n'est même ouverte (seuls les monogrammes).
+    if (path.empty() || (omnis() && omnis()->promoMode())) return nullptr;
     auto it = an_->pictures.find(path);
     if (it == an_->pictures.end()) {
         SharedPointer<CBitmap> b;
@@ -826,7 +827,8 @@ void OmnisEditor::refreshPromo() {
     const int now = omnis()->promoMode() ? 1 : 0;
     if (now == an_->promoShown) return;
     an_->promoShown = now;
-    an_->icons.clear(); // les icônes changent de nature (image <-> monogramme)
+    an_->icons.clear();    // les icônes changent de nature (image <-> monogramme)
+    an_->pictures.clear(); // promo : plus aucune image du cache gardée en mémoire
     for (const auto& ref : an_->iconRefs) {
         SharedPointer<CBitmap> b;
         if (auto ctx = COffscreenContext::create(CPoint(20, 20))) {
@@ -1305,7 +1307,7 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         // La référence visée : pochette, photo (avec son crédit), tempo, tonalité, sonie.
         cardScreen_ = new Screen(CRect(12, row2 - 4, W - 14, row2 + 80), [this](CDrawContext* dc, const CRect& r) { paintReferenceCard(dc, r); }, false);
         cardScreen_->setMouse([this](const CPoint&, int phase, bool) {
-            if (!card_ || card_->data.link.empty()) return false;
+            if (!card_ || card_->data.link.empty() || (omnis() && omnis()->promoMode())) return false; // promo : pas de lien
             if (phase == 0) gui::openUrl(card_->data.link);
             return true;
         });

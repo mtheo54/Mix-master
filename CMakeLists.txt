@@ -352,5 +352,8 @@ if(OMNIS_BUILD_TESTS)
     if(OMNIS_BUILD_VST3 AND TARGET validator)
         get_target_property(OMNIS_PLUGIN_PACKAGE OMNIS SMTG_PLUGIN_PACKAGE_PATH)
         add_test(NAME vst3_validator COMMAND validator "${OMNIS_PLUGIN_PACKAGE}")
+        # Aucune image ne part avec le plug-in (avatars : cache de l'utilisateur seulement).
+        add_test(NAME omnis_no_images COMMAND ${CMAKE_COMMAND} -DPACKAGE=${OMNIS_PLUGIN_PACKAGE} -DSOURCE=${CMAKE_SOURCE_DIR}
+                 -P ${CMAKE_SOURCE_DIR}/cmake/OmnisCheckNoImages.cmake)
     endif()
 endif()
