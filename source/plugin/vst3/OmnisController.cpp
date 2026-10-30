@@ -22,10 +22,12 @@
 #endif
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -164,6 +166,32 @@ ai::ReferenceLibrary libraryWithUser() {
     return lib;
 }
 
+bool playable(const ai::ReferenceEntry& e) { return e.measured; }
+
+/// Les titres mesurés derrière un choix du menu RÉFÉRENCE.
+std::vector<const ai::ReferenceEntry*> referenceEntries(const ai::ReferenceLibrary& lib, OmnisController::RefKind kind, const std::string& name) {
+    std::vector<const ai::ReferenceEntry*> out;
+    switch (kind) {
+    case OmnisController::RefKind::Style: return lib.measuredWithGenre(name);
+    case OmnisController::RefKind::Artist:
+        for (const auto& e : lib.entries())
+            if (playable(e) && e.artist == name) out.push_back(&e);
+        break;
+    case OmnisController::RefKind::Title:
+        for (const auto& e : lib.entries())
+            if (playable(e) && e.displayName() == name) out.push_back(&e);
+        break;
+    case OmnisController::RefKind::None: break;
+    }
+    return out;
+}
+
+bool lessNoCase(const std::string& a, const std::string& b) {
+    return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](unsigned char x, unsigned char y) {
+        return std::tolower(x) < std::tolower(y);
+    });
+}
+
 std::string joined(const std::vector<std::string>& parts, const char* sep) {
     std::string s;
     for (const auto& p : parts) s += (s.empty() ? "" : sep) + p;
@@ -221,6 +249,63 @@ std::string OmnisController::runRequest(const std::string& text) {
     return out;
 }
 
+OmnisController::ReferenceChoices OmnisController::referenceChoices() const {
+    const auto lib = libraryWithUser();
+    ReferenceChoices c;
+    for (const auto& g : lib.genres())
+        if (const auto n = lib.measuredWithGenre(g).size(); n > 0) c.styles.emplace_back(g, static_cast<int>(n));
+    for (const auto& e : lib.entries()) {
+        if (!playable(e)) continue;
+        c.titles.push_back(e.displayName());
+        auto it = std::find_if(c.artists.begin(), c.artists.end(), [&](const auto& a) { return a.first == e.artist; });
+        if (it == c.artists.end()) c.artists.emplace_back(e.artist, 1);
+        else ++it->second;
+    }
+    const auto byName = [](const auto& a, const auto& b) { return lessNoCase(a.first, b.first); };
+    std::sort(c.styles.begin(), c.styles.end(), byName);
+    std::sort(c.artists.begin(), c.artists.end(), byName);
+    std::sort(c.titles.begin(), c.titles.end(), lessNoCase);
+    c.titles.erase(std::unique(c.titles.begin(), c.titles.end()), c.titles.end());
+    return c;
+}
+
+std::string OmnisController::chooseReference(RefKind kind, const std::string& name) {
+    if (std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LinkRole))) == static_cast<long>(params::LinkRole::Stem))
+        return "Cette instance est un stem : choisis la référence sur l'instance Master (ou Seul).";
+    pendingRef_ = false;
+    if (kind == RefKind::None || name.empty()) {
+        refKind_ = RefKind::None;
+        refName_.clear();
+        return "Pas de référence : OMNIS suit tes mots, AUTO vise le style " + autoStyle_ + ".";
+    }
+    if (referenceEntries(libraryWithUser(), kind, name).empty()) return name + " : aucun titre mesuré dans la base.";
+    refKind_ = kind;
+    refName_ = name;
+    if (kind == RefKind::Style) autoStyle_ = name;
+    if (!feed_) requestFeed();
+    if (!feed_ || feed_->prod.snapshot().seconds < 8.0) {
+        pendingRef_ = true;
+        return "Référence " + name + " : lance la lecture, OMNIS écoute ta prod quelques secondes puis règle vers elle.";
+    }
+    return runReference();
+}
+
+std::string OmnisController::runReference() {
+    const auto lib = libraryWithUser();
+    const auto refs = referenceEntries(lib, refKind_, refName_);
+    const auto plan = ai::planReference(feed_->prod.snapshot().signature, refs, refName_,
+                                        [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
+    std::vector<std::pair<std::uint32_t, double>> settings;
+    for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+    applyPlan(settings);
+    if (plan.targetLufs) {
+        loudTarget_ = *plan.targetLufs;
+        pursuing_ = true;
+        pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
+    }
+    return "Fait : " + joined(plan.said, " · ") + ".";
+}
+
 void OmnisController::startAuto() {
     if (!feed_) requestFeed();
     if (!feed_) return;
@@ -240,7 +325,11 @@ std::string OmnisController::pollAutomation() {
     analysis::SpectralSignature loud;
     if (autoRunning_ && feed_->prod.takeAutoResult(loud)) {
         autoRunning_ = false;
-        const auto plan = ai::planAuto(loud, libraryWithUser(), autoStyle_, [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
+        const auto lib = libraryWithUser();
+        const auto current = [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); };
+        // La référence choisie au menu passe avant le style deviné des mots.
+        const auto chosen = referenceEntries(lib, refKind_, refName_);
+        const auto plan = chosen.empty() ? ai::planAuto(loud, lib, autoStyle_, current) : ai::planAuto(loud, chosen, refName_, current);
         std::vector<std::pair<std::uint32_t, double>> settings;
         for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
         applyPlan(settings);
@@ -255,6 +344,11 @@ std::string OmnisController::pollAutomation() {
     if (!pendingAsk_.empty() && feed_->prod.snapshot().seconds >= 8.0) {
         message = runRequest(pendingAsk_);
         pendingAsk_.clear();
+    }
+    // Référence choisie au menu, en attente d'écoute.
+    if (pendingRef_ && feed_->prod.snapshot().seconds >= 8.0) {
+        pendingRef_ = false;
+        message = runReference();
     }
     // Le volume mené vers la cible par la mesure (sonie court terme de la sortie).
     if (pursuing_ && ++pursuitTicks_ % 18 == 0) {
@@ -337,7 +431,7 @@ tresult PLUGIN_API OmnisController::setState(IBStream* state) {
     if (!state) return kResultFalse;
     IBStreamer s(state, kLittleEndian);
     int32 version = 0, slot = 0;
-    if (!s.readInt32(version) || version != 1 || !s.readInt32(slot)) return kResultOk; // ancien état : rien à relire
+    if (!s.readInt32(version) || version < 1 || version > 2 || !s.readInt32(slot)) return kResultOk; // état inconnu : rien à relire
     abSlot_ = slot != 0 ? 1 : 0;
     for (auto& mem : ab_) {
         mem.clear();
@@ -350,6 +444,16 @@ tresult PLUGIN_API OmnisController::setState(IBStream* state) {
             if (params::findParameter(id)) mem.emplace_back(id, std::clamp(v, 0.0, 1.0));
         }
     }
+    // Version 2 : la référence choisie au menu (gardée avec la session).
+    int32 kind = 0;
+    if (version >= 2 && s.readInt32(kind)) {
+        std::unique_ptr<char8[]> name(s.readStr8());
+        if (kind > 0 && kind <= static_cast<int32>(RefKind::Title) && name && *name.get()) {
+            refKind_ = static_cast<RefKind>(kind);
+            refName_ = name.get();
+            if (refKind_ == RefKind::Style) autoStyle_ = refName_;
+        }
+    }
     return kResultOk;
 }
 
@@ -357,7 +461,7 @@ tresult PLUGIN_API OmnisController::getState(IBStream* state) {
     if (!state) return kResultFalse;
     ab_[static_cast<std::size_t>(abSlot_)] = snapshot();
     IBStreamer s(state, kLittleEndian);
-    s.writeInt32(1);
+    s.writeInt32(2);
     s.writeInt32(abSlot_);
     for (const auto& mem : ab_) {
         s.writeInt32(static_cast<int32>(mem.size()));
@@ -366,6 +470,8 @@ tresult PLUGIN_API OmnisController::getState(IBStream* state) {
             s.writeDouble(v);
         }
     }
+    s.writeInt32(static_cast<int32>(refKind_));
+    s.writeStr8(refName_.c_str());
     return kResultOk;
 }
 

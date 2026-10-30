@@ -12,12 +12,14 @@
 #include "plugin/vst3/OmnisController.h"
 #include "plugin/vst3/OmnisProcessor.h"
 
+#include "public.sdk/source/common/memorystream.h"
 #include "public.sdk/source/vst/hosting/hostclasses.h"
 #include "public.sdk/source/vst/hosting/parameterchanges.h"
 #include "public.sdk/source/vst/hosting/processdata.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -164,4 +166,49 @@ OMNIS_TEST("plug-in AUTO: écoute 10 s du passage joué, règle la chaîne vers 
     OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
     OMNIS_CHECK(h.plain(ParamId::LimGain) > 3.0);
     OMNIS_CHECK(st > -14.5 && st < -4.5);
+}
+
+OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un titre choisi règle la chaîne et reste avec la session") {
+    Host h;
+    const auto choices = h.ctrl->referenceChoices();
+    std::printf("      %zu styles, %zu artistes, %zu titres mesurés\n", choices.styles.size(), choices.artists.size(), choices.titles.size());
+    OMNIS_CHECK(!choices.styles.empty() && !choices.artists.empty() && !choices.titles.empty());
+    std::string title;
+    for (const auto& t : choices.titles)
+        if (t.find("poster boy") != std::string::npos) title = t;
+    OMNIS_CHECK(!title.empty());
+    // Pas encore écouté : le choix attend la lecture.
+    const std::string early = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Title, title);
+    std::printf("      %s\n", early.c_str());
+    OMNIS_CHECK(early.find("lecture") != std::string::npos);
+    OMNIS_CHECK(h.ctrl->referenceName() == title);
+    h.run(12.0, true);
+    const auto curve = [&h] {
+        double sum = 0.0;
+        for (int k = 0; k < params::kMatchBands; ++k) sum += std::fabs(h.plain(params::matchMidId(k)));
+        return sum;
+    };
+    for (int i = 0; i < 80 && curve() < 0.1; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    std::printf("      courbe du Match EQ : %.1f dB cumulés\n", curve());
+    OMNIS_CHECK(curve() > 0.1); // la courbe vers le titre est écrite
+    // Choisi une fois que la prod est entendue : appliqué tout de suite.
+    const std::string now = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Style, choices.styles.front().first);
+    std::printf("      %s\n", now.c_str());
+    OMNIS_CHECK(now.find("Fait : vers ") == 0);
+    // Gardé avec la session (état du contrôleur).
+    MemoryStream stream;
+    OMNIS_CHECK(h.ctrl->getState(&stream) == kResultOk);
+    IPtr<vst3::OmnisController> other = owned(new vst3::OmnisController());
+    other->initialize(&h.app);
+    stream.seek(0, IBStream::kIBSeekSet, nullptr);
+    OMNIS_CHECK(other->setState(&stream) == kResultOk);
+    OMNIS_CHECK(other->referenceKind() == vst3::OmnisController::RefKind::Style);
+    OMNIS_CHECK(other->referenceName() == choices.styles.front().first);
+    other->terminate();
+    // Aucune : AUTO revient au style des mots.
+    OMNIS_CHECK(h.ctrl->chooseReference(vst3::OmnisController::RefKind::None, {}).find("Pas de référence") == 0);
+    OMNIS_CHECK(h.ctrl->referenceKind() == vst3::OmnisController::RefKind::None);
 }

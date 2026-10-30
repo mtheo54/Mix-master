@@ -274,6 +274,11 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
 - **Barre IA** : écris ta demande (« plus de punch, garde ma 808 », « genre rage », « moins
   boueux »…). OMNIS écoute la prod, règle les modules, mène le volume à la cible et dit ce
   qu'il a fait.
+- **Menu RÉF** (à côté de la barre IA) : choisis une référence dans la base — un **style**
+  (rap fr, rage…), un **artiste** ou un **titre** précis, y compris ceux que tu as ajoutés
+  (`references_utilisateur.txt`). Elle s'applique tout de suite (courbe du Match EQ, punch,
+  grave mono, écart couplet / refrain, écrêtage, volume) et AUTO la vise ensuite. Le choix est
+  gardé avec le projet ; « Aucune » rend la main aux mots.
 - **Rack** : 7 modules (Sub, Match EQ, Inflator, Imager, Multiband, Clipper, Limiter), chacun
   avec son gros bouton, son voyant ON et son état. Clic : ouvrir. Glisser par le nom :
   changer l'ordre.

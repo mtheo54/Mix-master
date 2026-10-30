@@ -375,6 +375,13 @@ et le goniomètre (copiée seulement interface ouverte), et `ProdListener`.
 glue, Inflator, clip, Imager) et en sonie à viser ; le contrôleur pousse le limiteur pas à pas
 en lisant la sonie court terme de la sortie jusqu'à la cible (±0,4 LU).
 
+**Menu RÉF.** Base fournie + `references_utilisateur.txt`, entrées mesurées seulement :
+styles (avec leur nombre de titres), artistes, titres (A – Z, 30 par colonne). Le choix passe
+par `planReference` (courbe du Match EQ vers la moyenne des titres, `applyMusic` sur la fiche
+complète, sonie de la réf bornée à −14 … −5 LUFS comme AUTO) ; si la prod n'a pas encore été
+entendue 8 s, il attend la lecture. AUTO vise la référence choisie avant le style deviné des
+mots. Le choix est gardé dans l'état du contrôleur (version 2 : genre + nom).
+
 **A / B** dans l'état du contrôleur (rôle, groupe et élément exclus). **Guide** : 10 étapes,
 fichier `tutoriel_vu.txt` dans le dossier de l'utilisateur.
 

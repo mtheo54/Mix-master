@@ -102,6 +102,7 @@ private:
     void dragMove(int module, double frameX);
     void drop(int module, double frameX);
     void askAi();
+    void buildReferenceMenu(VSTGUI::CViewContainer* parent, const VSTGUI::CRect& r);
 
     void paintModuleScreen(int module, VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
     void paintSpectrum(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);

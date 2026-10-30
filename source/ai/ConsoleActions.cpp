@@ -227,16 +227,39 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
     return p;
 }
 
-ConsolePlan planAuto(const analysis::SpectralSignature& loud, const ReferenceLibrary& library, const std::string& style, const CurrentValue& cur) {
+ConsolePlan planReference(const analysis::SpectralSignature& prod, const std::vector<const ReferenceEntry*>& refs, const std::string& name,
+                          const CurrentValue& cur) {
     ConsolePlan p;
+    if (refs.empty()) {
+        p.said.push_back(name + " : aucun titre mesuré, rien à viser");
+        return p;
+    }
+    const MatchIntent intent = planMatch(prod, aggregateSignature(refs), MatchRequest{});
+    writeCurve(p, intent);
+    p.said.insert(p.said.begin(), "vers " + name + format(" (%.0f titre", static_cast<double>(refs.size())) + (refs.size() > 1 ? "s)" : ")"));
+    applyMusic(p, averageMusic(refs), prod.music, cur, false);
+    // Même garde qu'AUTO : au-delà de -5 LUFS, le limiteur seul écraserait la prod.
+    p.targetLufs = std::clamp(intent.targetLufs, -14.0, -5.0);
+    p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs) +
+                     (intent.targetLufs > *p.targetLufs + 0.05 ? format(" (la réf est à %.1f : pousse le clip pour aller plus loin)", intent.targetLufs) : ""));
+    return p;
+}
+
+ConsolePlan planAuto(const analysis::SpectralSignature& loud, const ReferenceLibrary& library, const std::string& style, const CurrentValue& cur) {
     std::vector<const ReferenceEntry*> refs;
     if (!style.empty()) refs = library.measuredWithGenre(style);
     std::string from = style;
     if (refs.empty()) {
         for (const auto& e : library.entries())
-            if (e.measured && e.signature.activeFrames > 0) refs.push_back(&e);
+            if (e.measured) refs.push_back(&e);
         from = "toute la base";
     }
+    return planAuto(loud, refs, from, cur);
+}
+
+ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<const ReferenceEntry*>& refs, const std::string& from,
+                     const CurrentValue& cur) {
+    ConsolePlan p;
     if (refs.empty()) {
         p.said.push_back("aucune référence mesurée : AUTO règle seulement le volume");
         p.targetLufs = -9.0;

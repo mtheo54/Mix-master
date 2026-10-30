@@ -1,7 +1,8 @@
 # La fiche d'une référence (`data/references.txt`)
 
 Une entrée par titre, en texte : **seulement des nombres, jamais d'audio**. Le plug-in embarque
-cette base et s'en sert hors ligne (AUTO, barre IA, « comme <artiste> »). Plus la fiche est
+cette base et s'en sert hors ligne (AUTO, barre IA, « comme <artiste> », menu RÉF de la
+console : styles, artistes et titres mesurés, de A à Z). Plus la fiche est
 complète, plus OMNIS en tire : chaque champ ci-dessous dit ce qu'il mesure et à quoi il sert.
 
 ## Identité

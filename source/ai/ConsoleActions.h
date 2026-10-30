@@ -47,6 +47,15 @@ ConsolePlan planRequest(const Understanding& understanding, const analysis::Spec
 ConsolePlan planAuto(const analysis::SpectralSignature& loudestPassage, const ReferenceLibrary& library, const std::string& style,
                      const CurrentValue& current);
 
+/// AUTO vers des titres choisis (menu RÉFÉRENCE) ; `from` les nomme dans le compte rendu.
+ConsolePlan planAuto(const analysis::SpectralSignature& loudestPassage, const std::vector<const ReferenceEntry*>& refs, const std::string& from,
+                     const CurrentValue& current);
+
+/// Une référence choisie au menu (style, artiste ou titre) : la courbe du Match EQ,
+/// ce que sa fiche complète apprend (punch, grave mono, sections, écrêtage) et sa sonie.
+ConsolePlan planReference(const analysis::SpectralSignature& prod, const std::vector<const ReferenceEntry*>& refs, const std::string& name,
+                          const CurrentValue& current);
+
 /// Glue du multibande (0 … 1) -> réglages des quatre bandes (même règle que le gros bouton du rack).
 std::vector<std::pair<params::ParamId, double>> glueSettings(double amount);
 double glueOf(const CurrentValue& current);

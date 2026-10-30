@@ -155,6 +155,8 @@ int main(int argc, char** argv) {
             std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
         }
         editor->startTutorial(-1);
+        // Une référence choisie au menu : la face du menu la montre.
+        if (mode == "master") rig.ctrl->chooseReference(omnis::vst3::OmnisController::RefKind::Title, "BloodyWraith Pee - DRILL 229 (feat. Konor Marley & DAÏCO CHUP)");
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
                                                {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-piste"}, {8, "9-chef"}};
         for (const auto& [page, name] : pages) {

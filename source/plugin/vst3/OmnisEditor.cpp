@@ -141,6 +141,54 @@ private:
     std::function<void(CControl*)> f_;
 };
 
+/// Menu RÉFÉRENCE : un menu déroulant (sous-menus Styles, Artistes, Titres)
+/// dont la face montre le choix en cours, pas l'entrée du menu principal.
+class RefMenu : public COptionMenu {
+public:
+    RefMenu(const CRect& r, IControlListener* l, std::function<std::string()> label)
+        : COptionMenu(r, l, -1), label_(std::move(label)) {}
+    void draw(CDrawContext* c) override {
+        const CRect r = getViewSize();
+        c->setFillColor(color::kScreen);
+        c->setFrameColor(CColor(0, 0, 0, 255));
+        c->setLineWidth(1.0);
+        c->drawRect(r, kDrawFilledAndStroked);
+        engraved(c, "RÉF", CRect(r.left + 7, r.top, r.left + 36, r.bottom));
+        std::string name = label_();
+        const auto font = mono(10, !name.empty());
+        // Un titre long est coupé (« … ») avant le triangle.
+        const CRect area(r.left + 36, r.top, r.right - 18, r.bottom);
+        c->setFont(font);
+        const bool none = name.empty();
+        if (!none && c->getStringWidth(name.c_str()) > area.getWidth()) {
+            while (!name.empty() && c->getStringWidth((name + "…").c_str()) > area.getWidth()) {
+                unsigned char last = 0;
+                do { // un caractère UTF-8 entier
+                    last = static_cast<unsigned char>(name.back());
+                    name.pop_back();
+                } while (!name.empty() && (last & 0xC0) == 0x80);
+            }
+            name += "…";
+        }
+        text(c, none ? std::string("aucune") : name, area, none ? color::kText3 : color::kAccent, font);
+        // Petit triangle : ça se déroule.
+        const double x = r.right - 10, y = r.getCenter().y;
+        auto path = VSTGUI::owned(c->createGraphicsPath());
+        if (path) {
+            path->beginSubpath(CPoint(x - 4, y - 2));
+            path->addLine(CPoint(x + 4, y - 2));
+            path->addLine(CPoint(x, y + 3));
+            path->closeSubpath();
+            c->setFillColor(color::kText2);
+            c->drawGraphicsPath(path, CDrawContext::kPathFilled);
+        }
+        setDirty(false);
+    }
+
+private:
+    std::function<std::string()> label_;
+};
+
 double clamp01(double v) { return std::clamp(v, 0.0, 1.0); }
 
 /// Abscisse logarithmique d'une fréquence dans [lo, hi].
@@ -196,10 +244,10 @@ const std::array<TutorialStep, 10> kTutorial{{
       "Match EQ : glisse les nœuds sur l'écran. Multiband : glisse les traits.", "Rien n'est caché : tu choisis précisément ce que tu changes."}},
     {CRect(10, 58, 932, 98), "LA BARRE IA",
      {"Écris ce que tu veux, en français, en anglais ou en argot :", "« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…",
-      "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "Une référence connue : « comme 2hollis » ou un artiste de ta base."}},
+      "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "RÉF : choisis un style, un artiste ou un titre de ta base ; AUTO le vise."}},
     {CRect(196, 10, 272, 50), "AUTO",
      {"Clique AUTO, puis joue le passage le plus fort (refrain, drop).", "OMNIS écoute 10 s, règle toute la chaîne vers ton style",
-      "et amène le volume à la bonne sonie. Tout reste réglable après.", "Écris un style dans la barre IA (« rap us », « rage ») pour le choisir."}},
+      "et amène le volume à la bonne sonie. Tout reste réglable après.", "La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »)."}},
     {CRect(270, 10, 830, 50), "ÉCOUTER HONNÊTEMENT",
      {"A / B : deux réglages complets ; A>B copie l'un dans l'autre.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
       "DELTA : n'entends que ce que le module ouvert change.", "STÉRÉO / MID / SIDE : vérifie le centre et les côtés."}},
@@ -526,15 +574,16 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     root->addView(r2);
     r2->addView(new Caption(CRect(10, 8, 34, 32), "IA", color::kAccent, mono(11, true)));
     auto* listener = listen([this](CControl*) { askAi(); });
-    askField_ = new CTextEdit(CRect(36, 7, 540, 33), listener, 1, "");
+    askField_ = new CTextEdit(CRect(36, 7, 330, 33), listener, 1, "");
     askField_->setFont(mono(11));
     askField_->setFontColor(color::kText);
     askField_->setBackColor(color::kScreen);
     askField_->setFrameColor(CColor(0, 0, 0, 255));
     askField_->setTextInset(CPoint(8, 0));
     askField_->setHoriAlign(kLeftText);
-    askField_->setPlaceholderString("ex. plus de punch, garde ma 808, un poil plus large dans les aigus");
+    askField_->setPlaceholderString("ex. plus de punch, garde ma 808");
     r2->addView(askField_);
+    buildReferenceMenu(r2, CRect(336, 7, 540, 33));
     auto* applyButton = new HwButton(CRect(546, 7, 640, 33), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false);
     applyButton->setAccentText(true);
     r2->addView(applyButton);
@@ -548,6 +597,71 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     live_.push_back(answer);
     // Le bouton AUTO est relié à la même zone de réponse.
     (void)autoButton;
+}
+
+void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
+    using Kind = OmnisController::RefKind;
+    auto* c = omnis();
+    const auto choices = c ? c->referenceChoices() : OmnisController::ReferenceChoices{};
+    // Ce que chaque entrée choisit, sous-menu par sous-menu.
+    struct Pick {
+        Kind kind;
+        std::string name;
+    };
+    auto picks = std::make_shared<std::vector<std::pair<COptionMenu*, std::vector<Pick>>>>();
+    auto* menu = new RefMenu(r, listen([this, picks](CControl* ctl) {
+        auto* m = dynamic_cast<COptionMenu*>(ctl);
+        if (!m || !omnis()) return;
+        int32_t idx = -1;
+        COptionMenu* from = m->getLastItemMenu(idx);
+        for (const auto& [sub, list] : *picks)
+            if (sub == from && idx >= 0 && idx < static_cast<int32_t>(list.size())) {
+                answer_ = omnis()->chooseReference(list[static_cast<std::size_t>(idx)].kind, list[static_cast<std::size_t>(idx)].name);
+                return;
+            }
+    }), [this] {
+        auto* oc = omnis();
+        return oc && oc->referenceKind() != Kind::None ? oc->referenceName() : std::string();
+    });
+    menu->setFont(mono(10.5));
+    menu->setFontColor(color::kText);
+    menu->setBackColor(color::kScreen);
+    // Menu principal : aucune, puis les trois familles.
+    menu->addEntry("Aucune (OMNIS suit tes mots)");
+    picks->push_back({menu, {Pick{Kind::None, {}}}});
+    menu->addSeparator();
+    const auto submenu = [&](const char* title, Kind kind, const std::vector<std::pair<std::string, int>>& named,
+                             const std::vector<std::string>& plain) {
+        auto* sub = new COptionMenu();
+        sub->setNbItemsPerColumn(30);
+        std::vector<Pick> list;
+        for (const auto& [n, count] : named) {
+            sub->addEntry(UTF8String(n + "  (" + std::to_string(count) + (count > 1 ? " titres)" : " titre)")));
+            list.push_back({kind, n});
+        }
+        for (const auto& n : plain) {
+            sub->addEntry(UTF8String(n));
+            list.push_back({kind, n});
+        }
+        if (list.empty()) sub->addEntry("(rien de mesuré)", -1, CMenuItem::kDisabled);
+        menu->addEntry(sub, title);
+        picks->push_back({sub, std::move(list)});
+        sub->forget();
+    };
+    submenu("Styles", Kind::Style, choices.styles, {});
+    submenu("Artistes", Kind::Artist, choices.artists, {});
+    submenu("Titres", Kind::Title, {}, choices.titles);
+    parent->addView(menu);
+    // La face suit le choix (fait ici, par AUTO ou relu avec la session).
+    auto shown = std::make_shared<std::string>("\x01");
+    syncs_.push_back([this, menu, shown] {
+        auto* oc = omnis();
+        const std::string now = oc ? std::to_string(static_cast<int>(oc->referenceKind())) + oc->referenceName() : std::string();
+        if (now != *shown) {
+            *shown = now;
+            menu->invalid();
+        }
+    });
 }
 
 void OmnisEditor::askAi() {

@@ -88,6 +88,20 @@ public:
     /// AUTO en cours : 0 … 1 (négatif : pas d'AUTO).
     [[nodiscard]] double autoProgress() const;
 
+    /// Menu RÉFÉRENCE : ce que la base propose (seulement ce qui est mesuré),
+    /// base fournie + références_utilisateur.txt, de A à Z.
+    struct ReferenceChoices {
+        std::vector<std::pair<std::string, int>> styles, artists; ///< nom, nombre de titres mesurés
+        std::vector<std::string> titles;                          ///< « Artiste - Titre »
+    };
+    [[nodiscard]] ReferenceChoices referenceChoices() const;
+    enum class RefKind : int { None = 0, Style, Artist, Title };
+    /// Choisit la référence : appliquée tout de suite (ou dès qu'OMNIS a assez
+    /// écouté) ; AUTO la vise ensuite. None : AUTO revient au style des mots.
+    std::string chooseReference(RefKind kind, const std::string& name);
+    [[nodiscard]] RefKind referenceKind() const noexcept { return refKind_; }
+    [[nodiscard]] const std::string& referenceName() const noexcept { return refName_; }
+
     /// Mémoires A / B : deux réglages complets, gardés avec la session.
     [[nodiscard]] int abSlot() const noexcept { return abSlot_; }
     void selectAB(int slot);
@@ -110,6 +124,10 @@ private:
     std::shared_ptr<UiFeed> feed_;
     // Barre IA / AUTO.
     std::string pendingAsk_, autoStyle_ = "rap fr", lastMessage_;
+    RefKind refKind_ = RefKind::None;
+    std::string refName_;
+    bool pendingRef_ = false;
+    std::string runReference();
     bool autoRunning_ = false;
     double loudTarget_ = 0.0;
     bool pursuing_ = false;
