@@ -131,6 +131,16 @@ OMNIS_TEST("plug-in barre IA: « plus de punch, plus fort, garde ma 808 » règl
     std::printf("      %s\n", early.c_str());
     OMNIS_CHECK(early.find("lecture") != std::string::npos);
     h.run(16.0, true);
+    // Machine rapide : le son passe bien plus vite que le temps réel, l'écoute (thread
+    // à part, photo toutes les 2 s) peut être en retard. On attend qu'elle ait suivi.
+    for (int i = 0; i < 80 && h.plain(ParamId::LimPunch) < 25.0; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    for (int i = 0; i < 40; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
     std::printf("      punch %.0f %%, limiteur %.1f dB, sortie %.1f LUFS court terme\n", h.plain(ParamId::LimPunch), h.plain(ParamId::LimGain),
                 h.plain(ParamId::MeterShortTerm));
     OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 25.0);
