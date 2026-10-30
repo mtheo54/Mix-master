@@ -117,6 +117,9 @@ public:
     std::string get(const std::string& url) { return getAll({url}).front(); }
     /// Un fichier (image) copié vers `path` (chemin quelconque, accents compris).
     bool download(const std::string& url, const std::string& path, std::string& error);
+    /// Les octets d'une adresse, en mémoire seulement (curl -> tube, aucun fichier) :
+    /// une image d'origine n'est jamais écrite sur le disque.
+    std::string fetchBytes(const std::string& url, std::string& error);
     [[nodiscard]] long long requests() const noexcept { return requests_; }
     /// Ne pas garder les réponses (recherches : elles changent).
     bool keep = true;

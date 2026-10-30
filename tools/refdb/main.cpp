@@ -30,28 +30,29 @@
 //                livrer avec le plug-in sans leur accord)
 //    omnis_refdb deezer --artiste "La Fève" [--titre T] --db base.txt
 //                (API publique de Deezer, sans clé : photo de l'artiste, pochette
-//                et lien de chaque titre de la base ; « Image : Deezer » ;
+//                et lien de chaque titre de la base, illustrés en mémoire (aucune image d'origine gardée) ;
 //                usage personnel, à ne pas livrer avec le plug-in vendu)
 //    omnis_refdb discographie playlist.csv [--artistes "euhZ|Gry=BRR"] [--retirer "GRY=Matilda"]
 //                [--proches 1] [--sortie dossier]
 //                (tous les titres de chaque artiste de la playlist et de --artistes,
 //                puis de leurs proches sur Deezer : artistes.tsv, titres.tsv,
 //                introuvables.txt ; reprend où il s'était arrêté grâce au cache)
-//    omnis_refdb cartoon photo.jpg [--sortie dessin.png]   |   omnis_refdb cartoon --db base.txt
-//                (l'image redessinée en cartoon : aplats, couleurs franches, trait noir ;
-//                toute la base : photos et pochettes de images/, les fiches pointent dessus)
+//    omnis_refdb cartoon photo.jpg [--sortie illustration.png]   |   omnis_refdb cartoon --db base.txt
+//                (illustration peinte OMNIS, gfx/OmnisAvatarStylizer ; --db : anciennes
+//                images de images/ -> cache/avatars et cache/covers)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
 #include "AudioRead.h"
 #include "AiFiles.h"
-#include "Cartoon.h"
 #include "Deezer.h"
 #include "AudioRead.h"
 #include "WavFile.h"
 
 #include "analysis/SpectralSignature.h"
 #include "core/UserDataDir.h"
+#include "gfx/AvatarCache.h"
+#include "gfx/OmnisAvatarStylizer.h"
 
 #include <algorithm>
 #include <atomic>
@@ -61,6 +62,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <string>
@@ -110,6 +112,20 @@ std::string slug(const std::string& text) {
     }
     while (!out.empty() && out.back() == '_') out.pop_back();
     return out.empty() ? std::string("image") : out;
+}
+
+bool readBinaryFile(const std::string& path, std::string& out) {
+    std::ifstream in(std::filesystem::path(std::u8string(path.begin(), path.end())), std::ios::binary);
+    if (!in) return false;
+    out.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+    return !out.empty();
+}
+
+/// Octets d'une image -> illustration OMNIS au chemin donné (cache).
+bool illustrate(const std::string& bytes, const std::filesystem::path& target, std::string& error) {
+    gfx::RgbaImage art;
+    if (!gfx::OmnisAvatarStylizer().stylize(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size(), art, &error)) return false;
+    return gfx::OmnisAvatarStylizer::savePng(target, art, &error);
 }
 
 ai::ReferenceLibrary openDb(const std::string& db) {
@@ -248,7 +264,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
                   "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
                   "  omnis_refdb deezer --artiste NOM [--titre T] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
-                  "  omnis_refdb cartoon image.jpg [--sortie dessin.png] | cartoon --db base.txt   (images redessinées en cartoon)\n"
+                  "  omnis_refdb cartoon image.jpg [--sortie illustration.png] | cartoon --db base.txt   (illustrations OMNIS)\n"
                   "  omnis_refdb discographie playlist.csv [--artistes \"a|b\"] [--proches 1] [--sortie dossier]   (tous les titres, et ceux des proches)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
@@ -270,19 +286,15 @@ int main(int argc, char** argv) {
     }
 
     if (command == "image" || command == "pochette") {
+        // Une image fournie (photo libre, pochette) devient une illustration dans le
+        // cache ; l'image d'origine n'est pas copiée.
         const bool photo = command == "image";
         if (db.empty() || input.empty() || artist.empty() || (!photo && title.empty())) {
             std::fprintf(stderr, "%s : fichier, --artiste%s et --db\n", command.c_str(), photo ? " --credit" : " --titre");
             return 1;
         }
         if (photo && credit.empty()) {
-            std::fprintf(stderr, "image : le crédit est obligatoire (« Photo : Auteur, CC BY-SA 4.0 ») : une photo libre se montre avec son auteur et sa licence\n");
-            return 1;
-        }
-        std::string ext = std::filesystem::path(input).extension().string();
-        for (char& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg") {
-            std::fprintf(stderr, "%s : PNG ou JPG\n", command.c_str());
+            std::fprintf(stderr, "image : le crédit est obligatoire (« Photo : Auteur, CC BY-SA 4.0 ») : une photo se montre avec son auteur et sa licence\n");
             return 1;
         }
         auto user = openDb(db);
@@ -293,23 +305,24 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "%s : « %s%s » n'est pas dans %s\n", command.c_str(), artist.c_str(), photo ? "" : (" - " + title).c_str(), db.c_str());
             return 1;
         }
-        const std::string name = slug(touched.front().artist) + (photo ? "" : "_" + slug(touched.front().title)) + ext;
-        const auto dir = userDataDir() / "images";
-        std::error_code ec;
-        std::filesystem::create_directories(dir, ec);
-        std::filesystem::copy_file(input, dir / name, std::filesystem::copy_options::overwrite_existing, ec);
-        if (ec) {
-            std::fprintf(stderr, "%s : copie impossible vers %s (%s)\n", command.c_str(), utf8Path(dir / name).c_str(), ec.message().c_str());
+        std::string bytes, error;
+        if (!readBinaryFile(input, bytes)) {
+            std::fprintf(stderr, "%s : fichier illisible : %s\n", command.c_str(), input.c_str());
+            return 1;
+        }
+        const auto target = photo ? gfx::avatars::artistPath(touched.front().artist) : gfx::avatars::coverPath(touched.front().artist, touched.front().title);
+        if (!illustrate(bytes, target, error)) {
+            std::fprintf(stderr, "%s : %s\n", command.c_str(), error.c_str());
             return 1;
         }
         for (auto e : touched) {
-            if (photo) e.image = name, e.imageCredit = credit;
-            else e.cover = name, e.coverCredit = credit;
+            if (photo) e.image.clear(), e.imageCredit = credit + " (illustration OMNIS)";
+            else e.cover.clear(), e.coverCredit = (credit.empty() ? std::string("Pochette") : credit) + " (illustration OMNIS)";
             if (!link.empty()) e.link = link;
             user.add(e);
         }
         if (!writeTextFile(db, user.serialize())) return 1;
-        std::printf("%s -> %s (%zu fiche(s))\n", command.c_str(), utf8Path(dir / name).c_str(), touched.size());
+        std::printf("%s -> %s (%zu fiche(s))\n", command.c_str(), utf8Path(target).c_str(), touched.size());
         return 0;
     }
 
@@ -338,15 +351,17 @@ int main(int argc, char** argv) {
             return 1;
         }
         std::printf("Deezer : %s (%lld fans) %s\n", found->name.c_str(), found->fans, found->link.c_str());
-        const auto dir = userDataDir() / "images";
-        std::error_code ec;
-        std::filesystem::create_directories(dir, ec);
-        const auto fetch = [&](const std::string& url, const std::string& file) {
+        // L'image téléchargée reste en mémoire : seule son illustration est écrite.
+        std::map<std::string, std::string> fetched; // adresse -> octets (une pochette sert à tout l'album)
+        const auto illustrateUrl = [&](const std::string& url, const std::filesystem::path& target) {
             std::string error;
             if (url.empty()) return false;
-            if (std::filesystem::exists(dir / file, ec)) return true; // déjà là (même album)
+            std::error_code ec;
+            if (std::filesystem::exists(target, ec)) return true; // déjà illustrée
             std::fflush(stdout);
-            if (!net.download(url, utf8Path(dir / file), error)) {
+            auto it = fetched.find(url);
+            if (it == fetched.end()) it = fetched.emplace(url, net.fetchBytes(url, error)).first;
+            if (it->second.empty() || !illustrate(it->second, target, error)) {
                 std::fprintf(stderr, "  %s\n", error.c_str());
                 return false;
             }
@@ -357,7 +372,7 @@ int main(int argc, char** argv) {
         for (const auto& e : user.entries())
             if (ai::namesMatch(e.artist, artist) && (title.empty() || ai::namesMatch(e.title, title))) touched.push_back(e);
         if (touched.empty()) {
-            // Pas encore dans la base : une fiche de nom, qui gardera images et lien
+            // Pas encore dans la base : une fiche de nom, qui gardera crédits et lien
             // quand le son sera mesuré (scan, ou écoute dans FL).
             ai::ReferenceEntry e;
             e.artist = found->name;
@@ -366,12 +381,12 @@ int main(int argc, char** argv) {
             e.measured = false;
             touched.push_back(e);
         }
-        const std::string photo = slug(found->name) + ".jpg";
-        const bool hasPhoto = fetch(found->picture, photo);
-        if (hasPhoto) std::printf("  photo -> %s\n", utf8Path(dir / photo).c_str());
+        const bool hasPhoto = illustrateUrl(found->picture, gfx::avatars::artistPath(found->name));
+        if (hasPhoto) std::printf("  avatar -> %s\n", utf8Path(gfx::avatars::artistPath(found->name)).c_str());
         int covers = 0;
         for (auto& e : touched) {
-            if (hasPhoto) e.image = photo, e.imageCredit = "Image : Deezer";
+            e.artist = e.artist.empty() ? found->name : e.artist;
+            if (hasPhoto) e.image.clear(), e.imageCredit = "Illustration OMNIS d'après Deezer";
             if (e.title.empty()) {
                 if (e.link.empty()) e.link = found->link;
                 continue;
@@ -387,10 +402,9 @@ int main(int argc, char** argv) {
                 std::printf("  %-40s pas trouvé sur Deezer\n", e.title.c_str());
                 continue;
             }
-            const std::string cover = slug(found->name) + "_" + slug(t->album.empty() ? e.title : t->album) + ".jpg";
-            if (fetch(t->cover, cover)) {
-                e.cover = cover;
-                e.coverCredit = "Pochette : Deezer";
+            if (illustrateUrl(t->cover, gfx::avatars::coverPath(e.artist, e.title))) {
+                e.cover.clear();
+                e.coverCredit = "Illustration OMNIS d'après la pochette (Deezer)";
                 ++covers;
             }
             e.link = t->link;
@@ -398,73 +412,61 @@ int main(int argc, char** argv) {
         }
         for (auto& e : touched) user.add(e);
         if (!writeTextFile(db, user.serialize())) return 1;
-        std::printf("%zu fiche(s) complétée(s), %d pochette(s), images dans %s\n", touched.size(), covers, utf8Path(dir).c_str());
-        std::printf("Images Deezer : pour ton usage. Les livrer avec le plug-in vendu demande l'accord de Deezer et des labels.\n");
+        std::printf("%zu fiche(s) complétée(s), %d pochette(s) illustrée(s) -> %s\n", touched.size(), covers, utf8Path(gfx::avatars::root()).c_str());
+        std::printf("Aucune image d'origine n'est gardée. Les illustrations restent tirées de Deezer : pour la version vendue, accord des artistes / labels.\n");
         return 0;
     }
 
     if (command == "cartoon") {
-        // Une image : omnis_refdb cartoon photo.jpg [--sortie cartoon.png]
-        // Toute la base : omnis_refdb cartoon --db base.txt (photos et pochettes du
-        // dossier images/ ; « x.jpg » -> « x_cartoon.png », la fiche pointe dessus).
+        // Une image : omnis_refdb cartoon photo.jpg [--sortie illustration.png]
+        // Toute la base : omnis_refdb cartoon --db base.txt (anciennes images du
+        // dossier images/ -> illustrations du cache ; les fiches ne les citent plus).
         std::string outFile;
         for (int i = 2; i + 1 < argc; ++i)
             if (std::string(argv[i]) == "--sortie") outFile = argv[i + 1];
-        const auto convert = [](const std::string& from, const std::string& to) {
-            RgbImage image;
-            std::string error;
-            if (!loadImage(from, image, error)) {
-                std::fprintf(stderr, "  %s\n", error.c_str());
-                return false;
-            }
-            if (!savePng(to, cartoonize(image), error)) {
-                std::fprintf(stderr, "  %s\n", error.c_str());
-                return false;
-            }
-            return true;
-        };
+        std::string bytes, error;
         if (!input.empty()) {
-            if (outFile.empty()) outFile = utf8Path(std::filesystem::path(std::u8string(input.begin(), input.end())).replace_extension()) + "_cartoon.png";
-            if (!convert(input, outFile)) return 1;
-            std::printf("cartoon -> %s\n", outFile.c_str());
+            if (outFile.empty()) outFile = utf8Path(std::filesystem::path(std::u8string(input.begin(), input.end())).replace_extension()) + "_illustration.png";
+            if (!readBinaryFile(input, bytes) || !illustrate(bytes, std::filesystem::path(std::u8string(outFile.begin(), outFile.end())), error)) {
+                std::fprintf(stderr, "cartoon : %s\n", error.empty() ? ("fichier illisible : " + input).c_str() : error.c_str());
+                return 1;
+            }
+            std::printf("illustration -> %s\n", outFile.c_str());
             return 0;
         }
         if (db.empty()) {
-            std::fputs("cartoon : une image, ou --db base.txt pour toutes les images de la base\n", stderr);
+            std::fputs("cartoon : une image, ou --db base.txt pour les anciennes images de la base\n", stderr);
             return 1;
         }
         const auto dir = userDataDir() / "images";
         auto user = openDb(db);
-        std::map<std::string, std::string> done; // image -> son cartoon
-        const auto cartoonOf = [&](const std::string& file) -> std::string {
-            if (file.empty() || file.find("_cartoon.png") != std::string::npos) return file;
-            if (const auto it = done.find(file); it != done.end()) return it->second;
-            const auto source = dir / std::filesystem::path(std::u8string(file.begin(), file.end()));
-            std::string target = utf8Path(std::filesystem::path(source).replace_extension());
-            target += "_cartoon.png";
-            const std::string name = utf8Path(std::filesystem::path(std::u8string(target.begin(), target.end())).filename());
-            std::error_code ec;
-            const bool ok = std::filesystem::exists(std::filesystem::path(std::u8string(target.begin(), target.end())), ec) || convert(utf8Path(source), target);
-            if (ok) std::printf("  %s -> %s\n", file.c_str(), name.c_str());
-            return done[file] = ok ? name : file;
-        };
-        int changed = 0;
+        int done = 0;
         std::vector<ai::ReferenceEntry> updated;
         for (const auto& e : user.entries()) {
             auto copy = e;
-            copy.image = cartoonOf(e.image);
-            copy.cover = cartoonOf(e.cover);
-            if (copy.image != e.image || copy.cover != e.cover) {
-                // La source reste dite : c'est un dessin tiré de cette image.
-                if (copy.image != e.image && !copy.imageCredit.empty()) copy.imageCredit += " (redessinée en cartoon)";
-                if (copy.cover != e.cover && !copy.coverCredit.empty()) copy.coverCredit += " (redessinée en cartoon)";
-                updated.push_back(copy);
-                ++changed;
-            }
+            const auto migrate = [&](std::string& file, std::string& creditText, const std::filesystem::path& target) {
+                if (file.empty()) return;
+                const auto source = dir / std::filesystem::path(std::u8string(file.begin(), file.end()));
+                std::error_code ec;
+                if (!std::filesystem::exists(target, ec) && (!readBinaryFile(utf8Path(source), bytes) || !illustrate(bytes, target, error))) {
+                    std::fprintf(stderr, "  %s : %s\n", file.c_str(), error.empty() ? "illisible" : error.c_str());
+                    return;
+                }
+                std::printf("  %s -> %s\n", file.c_str(), utf8Path(target).c_str());
+                file.clear();
+                // Ancienne mention de la version cartoon : remplacée.
+                for (const std::string old : {" (redessinée en cartoon)", " (redessinee en cartoon)"})
+                    for (auto at = creditText.find(old); at != std::string::npos; at = creditText.find(old)) creditText.erase(at, old.size());
+                if (creditText.find("illustration OMNIS") == std::string::npos) creditText += " (illustration OMNIS)";
+                ++done;
+            };
+            migrate(copy.image, copy.imageCredit, gfx::avatars::artistPath(e.artist));
+            if (!e.title.empty()) migrate(copy.cover, copy.coverCredit, gfx::avatars::coverPath(e.artist, e.title));
+            if (copy.image != e.image || copy.cover != e.cover) updated.push_back(copy);
         }
         for (auto& e : updated) user.add(e);
         if (!writeTextFile(db, user.serialize())) return 1;
-        std::printf("%zu image(s) redessinée(s), %d fiche(s) mises à jour\n", done.size(), changed);
+        std::printf("%d illustration(s) ; les fiches ne citent plus les images d'origine de %s (tu peux les supprimer)\n", done, utf8Path(dir).c_str());
         return 0;
     }
 

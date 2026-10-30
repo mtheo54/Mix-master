@@ -505,6 +505,39 @@ std::vector<std::string> Fetcher::getAll(const std::vector<std::string>& urls) {
     return out;
 }
 
+std::string Fetcher::fetchBytes(const std::string& url, std::string& error) {
+    if (!safeUrl(url)) {
+        error = "adresse refusée : " + url;
+        return {};
+    }
+#if defined(_WIN32)
+    FILE* pipe = _popen(("curl.exe -sSfL --max-time 30 \"" + url + "\" 2>NUL").c_str(), "rb");
+#else
+    FILE* pipe = popen(("curl -sSfL --max-time 30 \"" + url + "\" 2>/dev/null").c_str(), "r");
+#endif
+    if (!pipe) {
+        error = "curl introuvable";
+        return {};
+    }
+    std::string bytes;
+    char buffer[65536];
+    for (std::size_t n; (n = std::fread(buffer, 1, sizeof buffer, pipe)) > 0;) {
+        bytes.append(buffer, n);
+        if (bytes.size() > (32u << 20)) break; // une image, pas plus de 32 Mo
+    }
+#if defined(_WIN32)
+    const int rc = _pclose(pipe);
+#else
+    const int rc = pclose(pipe);
+#endif
+    ++requests_;
+    if (rc != 0 || bytes.empty()) {
+        error = "téléchargement impossible (internet ? curl ?) : " + url;
+        return {};
+    }
+    return bytes;
+}
+
 bool Fetcher::download(const std::string& url, const std::string& path, std::string& error) {
     if (!safeUrl(url)) {
         error = "adresse refusée : " + url;

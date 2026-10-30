@@ -243,14 +243,16 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         target_compile_options(omnis_stb PRIVATE -w)
     endif()
 
+    # Illustrations des artistes et pochettes (gfx/OmnisAvatarStylizer) : outil et tests.
+    add_library(omnis_gfx STATIC source/gfx/OmnisAvatarStylizer.cpp source/gfx/OmnisAvatarStylizer.h source/gfx/AvatarCache.h)
+    target_link_libraries(omnis_gfx PUBLIC omnis_core PRIVATE omnis_stb omnis_compile_options)
+
     add_library(omnis_tools_common STATIC
         tools/common/AiFiles.h
         tools/common/AnalysisReport.cpp
         tools/common/AudioRead.cpp
         tools/common/AudioRead.h
         tools/common/AnalysisReport.h
-        tools/common/Cartoon.cpp
-        tools/common/Cartoon.h
         tools/common/Deezer.cpp
         tools/common/Deezer.h
         tools/common/DistortionAnalysis.cpp
@@ -265,7 +267,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/WavFile.h
     )
     target_include_directories(omnis_tools_common PUBLIC tools/common)
-    target_link_libraries(omnis_tools_common PUBLIC omnis_core PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
+    target_link_libraries(omnis_tools_common PUBLIC omnis_core omnis_gfx PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
@@ -303,7 +305,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestDrumBus.cpp
         tests/TestMusic.cpp
         tests/TestDeezer.cpp
-        tests/TestCartoon.cpp
+        tests/TestAvatarStylizer.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
@@ -311,7 +313,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestEngine.cpp
         tests/TestWav.cpp
     )
-    target_link_libraries(omnis_tests PRIVATE omnis_tools_common omnis_compile_options)
+    target_link_libraries(omnis_tests PRIVATE omnis_tools_common omnis_stb omnis_compile_options)
     find_package(Threads REQUIRED)
     target_link_libraries(omnis_tests PRIVATE Threads::Threads)
     add_test(NAME omnis_unit_tests COMMAND omnis_tests)

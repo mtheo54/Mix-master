@@ -10,6 +10,7 @@
 
 #include "ai/ConsoleActions.h"
 #include "core/UserDataDir.h"
+#include "gfx/AvatarCache.h"
 
 #include "params/Parameters.h"
 
@@ -268,6 +269,13 @@ std::string imagePath(const std::string& file) {
     return std::string(reinterpret_cast<const char*>(utf8.data()), utf8.size());
 }
 
+/// La pochette d'un titre : son illustration (cache), sinon une ancienne image.
+std::string coverOf(const ai::ReferenceEntry& e) {
+    if (!e.title.empty())
+        if (auto cached = gfx::avatars::existing(gfx::avatars::coverPath(e.artist, e.title)); !cached.empty()) return cached;
+    return imagePath(e.cover);
+}
+
 /// Les titres mesurés regroupés par artiste (photo : la première fiche qui en a une, avec son crédit).
 std::vector<OmnisController::ReferenceArtist> byArtist(const std::vector<const ai::ReferenceEntry*>& entries) {
     std::vector<OmnisController::ReferenceArtist> out;
@@ -277,12 +285,17 @@ std::vector<OmnisController::ReferenceArtist> byArtist(const std::vector<const a
             out.push_back({e->artist, {}, {}, {}});
             it = out.end() - 1;
         }
-        if (it->photo.empty() && !e->imageCredit.empty()) {
-            it->photo = imagePath(e->image);
-            if (!it->photo.empty()) it->credit = e->imageCredit;
+        if (it->photo.empty()) {
+            // L'illustration du cache (omnis_refdb), sinon une ancienne image avec son crédit.
+            it->photo = gfx::avatars::existing(gfx::avatars::artistPath(e->artist));
+            if (!it->photo.empty()) it->credit = e->imageCredit.empty() ? std::string("Illustration OMNIS") : e->imageCredit;
+            else if (!e->imageCredit.empty()) {
+                it->photo = imagePath(e->image);
+                if (!it->photo.empty()) it->credit = e->imageCredit;
+            }
         }
         if (std::none_of(it->titles.begin(), it->titles.end(), [&](const auto& t) { return t.name == e->displayName(); }))
-            it->titles.push_back({e->displayName(), e->title.empty() ? e->artist : e->title, imagePath(e->cover), e->signature});
+            it->titles.push_back({e->displayName(), e->title.empty() ? e->artist : e->title, coverOf(*e), e->signature});
     }
     std::sort(out.begin(), out.end(), [](const auto& a, const auto& b) { return lessNoCase(a.name, b.name); });
     for (auto& a : out) std::sort(a.titles.begin(), a.titles.end(), [](const auto& x, const auto& y) { return lessNoCase(x.title, y.title); });
@@ -320,8 +333,8 @@ OmnisController::ReferenceCard OmnisController::referenceCard() const {
         card.credit = artists.front().credit;
     }
     if (refKind_ == RefKind::Title) {
-        card.cover = imagePath(refs.front()->cover);
-        if (!card.cover.empty()) card.coverCredit = refs.front()->coverCredit;
+        card.cover = coverOf(*refs.front());
+        if (!card.cover.empty()) card.coverCredit = refs.front()->coverCredit.empty() ? std::string("Illustration OMNIS") : refs.front()->coverCredit;
         card.link = refs.front()->link;
     } else if (refKind_ == RefKind::Artist) {
         // La page de l'artiste : sur sa fiche de nom (sans titre), sinon aucune.
