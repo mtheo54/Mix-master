@@ -59,7 +59,10 @@ const Track* pickTrack(const std::vector<Track>& found, const std::string& artis
 
 std::string urlEncode(const std::string& text);
 std::string artistSearchUrl(const std::string& name);
-std::string trackSearchUrl(const std::string& artist, const std::string& title);
+/// Recherches d'un titre, à essayer dans l'ordre : la recherche avancée
+/// (artist:"…" track:"…") ne trouve rien dès qu'il y a un accent (« CINÉMA ») ;
+/// la recherche simple « artiste titre » prend le relais.
+std::vector<std::string> trackSearchUrls(const std::string& artist, const std::string& title);
 
 /// Une adresse sûre à passer à curl : https, caractères d'URL seulement.
 bool safeUrl(const std::string& url);

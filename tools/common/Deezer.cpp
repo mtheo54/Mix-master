@@ -244,8 +244,9 @@ std::string urlEncode(const std::string& text) {
 
 std::string artistSearchUrl(const std::string& name) { return "https://api.deezer.com/search/artist?q=" + urlEncode(name); }
 
-std::string trackSearchUrl(const std::string& artist, const std::string& title) {
-    return "https://api.deezer.com/search/track?q=" + urlEncode("artist:\"" + artist + "\" track:\"" + bare(title) + "\"");
+std::vector<std::string> trackSearchUrls(const std::string& artist, const std::string& title) {
+    const std::string base = "https://api.deezer.com/search/track?q=";
+    return {base + urlEncode("artist:\"" + artist + "\" track:\"" + bare(title) + "\""), base + urlEncode(artist + " " + bare(title))};
 }
 
 bool safeUrl(const std::string& url) {

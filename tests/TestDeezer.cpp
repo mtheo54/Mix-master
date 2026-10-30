@@ -54,8 +54,10 @@ OMNIS_TEST("deezer: le bon artiste (accents, fautes) et le bon titre (feat. igno
 
 OMNIS_TEST("deezer: adresses de recherche encodées, adresses refusées avant curl") {
     OMNIS_CHECK(artistSearchUrl("La Fève") == "https://api.deezer.com/search/artist?q=La+F%C3%A8ve");
-    OMNIS_CHECK(trackSearchUrl("La Fève", "Mon titre (feat. X)") ==
-                "https://api.deezer.com/search/track?q=artist%3A%22La+F%C3%A8ve%22+track%3A%22Mon+titre%22");
+    const auto urls = trackSearchUrls("La Fève", "Mon titre (feat. X)");
+    OMNIS_CHECK(urls.size() == 2);
+    OMNIS_CHECK(urls[0] == "https://api.deezer.com/search/track?q=artist%3A%22La+F%C3%A8ve%22+track%3A%22Mon+titre%22");
+    OMNIS_CHECK(urls[1] == "https://api.deezer.com/search/track?q=La+F%C3%A8ve+Mon+titre"); // si l'accent fait échouer la première
     OMNIS_CHECK(safeUrl("https://cdn.example/images/1000x1000-000000-80-0-0.jpg"));
     OMNIS_CHECK(!safeUrl("http://cdn.example/a.jpg"));
     OMNIS_CHECK(!safeUrl("https://x.example/a.jpg\" & calc"));

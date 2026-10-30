@@ -310,6 +310,7 @@ int main(int argc, char** argv) {
         const auto tmp = std::filesystem::temp_directory_path() / "omnis_deezer.json";
         const auto get = [&](const std::string& url, std::string& text) {
             std::string error;
+            std::fflush(stdout);
             std::this_thread::sleep_for(std::chrono::milliseconds(200)); // l'API limite à 50 demandes / 5 s
             if (!dz::download(url, utf8Path(tmp), error) || !readTextFile(utf8Path(tmp), text)) {
                 std::fprintf(stderr, "  %s\n", error.empty() ? "réponse illisible" : error.c_str());
@@ -335,6 +336,7 @@ int main(int argc, char** argv) {
             std::string error;
             if (url.empty()) return false;
             if (std::filesystem::exists(dir / file, ec)) return true; // déjà là (même album)
+            std::fflush(stdout);
             if (!dz::download(url, utf8Path(dir / file), error)) {
                 std::fprintf(stderr, "  %s\n", error.c_str());
                 return false;
@@ -365,9 +367,13 @@ int main(int argc, char** argv) {
                 if (e.link.empty()) e.link = found->link;
                 continue;
             }
-            if (!get(dz::trackSearchUrl(found->name, e.title), text)) continue;
-            const auto tracks = dz::parseTracks(text);
-            const auto* t = dz::pickTrack(tracks, found->name, e.title);
+            std::vector<dz::Track> tracks;
+            const dz::Track* t = nullptr;
+            for (const auto& url : dz::trackSearchUrls(found->name, e.title)) {
+                if (!get(url, text)) break;
+                tracks = dz::parseTracks(text);
+                if ((t = dz::pickTrack(tracks, found->name, e.title)) != nullptr) break;
+            }
             if (!t) {
                 std::printf("  %-40s pas trouvé sur Deezer\n", e.title.c_str());
                 continue;
