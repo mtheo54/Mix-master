@@ -228,6 +228,53 @@ std::vector<Artist> parseArtistList(const std::string& text, Page* page) {
 
 std::vector<Artist> parseArtists(const std::string& text) { return parseArtistList(text, nullptr); }
 
+namespace {
+
+Artist artistOf(const Json& a) {
+    Artist x;
+    x.id = static_cast<long long>(a.num("id"));
+    x.name = a.str("name");
+    x.link = a.str("link");
+    x.picture = a.str("picture_xl").empty() ? a.str("picture_big") : a.str("picture_xl");
+    x.fans = static_cast<long long>(a.num("nb_fan"));
+    x.albums = static_cast<int>(a.num("nb_album"));
+    return x;
+}
+
+} // namespace
+
+int parseAlbumGenre(const std::string& text) {
+    Json j;
+    if (!parseJson(text, j) || j["error"].type == Json::Type::Object) return 0;
+    return static_cast<int>(j.num("genre_id"));
+}
+
+Artist parseArtist(const std::string& text) {
+    Json j;
+    if (!parseJson(text, j) || j["error"].type == Json::Type::Object) return {};
+    return artistOf(j);
+}
+
+TrackDetail parseTrackDetail(const std::string& text) {
+    Json j;
+    TrackDetail d;
+    if (!parseJson(text, j) || j["error"].type == Json::Type::Object) return d;
+    auto& x = d.track;
+    x.id = static_cast<long long>(j.num("id"));
+    x.title = j.str("title");
+    x.link = j.str("link");
+    x.artist = j["artist"].str("name");
+    x.artistId = static_cast<long long>(j["artist"].num("id"));
+    x.album = j["album"].str("title");
+    x.cover = j["album"].str("cover_xl");
+    x.durationS = static_cast<int>(j.num("duration"));
+    x.isrc = j.str("isrc");
+    d.albumId = static_cast<long long>(j["album"].num("id"));
+    d.albumDate = j["album"].str("release_date").empty() ? j.str("release_date") : j["album"].str("release_date");
+    for (const auto& c : j["contributors"].array) d.contributors.push_back(artistOf(c));
+    return d;
+}
+
 std::vector<Track> parseTracks(const std::string& text, Page* page) {
     Json j;
     std::vector<Track> out;
@@ -259,6 +306,7 @@ std::vector<Album> parseAlbums(const std::string& text, Page* page) {
         x.type = a.str("record_type");
         x.date = a.str("release_date");
         x.link = a.str("link");
+        x.genre = static_cast<int>(a.num("genre_id"));
         if (x.id != 0) out.push_back(std::move(x));
     }
     return out;
@@ -328,6 +376,8 @@ const Track* pickTrack(const std::vector<Track>& found, const std::string& artis
     return nullptr;
 }
 
+std::string bareTitle(const std::string& title) { return bare(title); }
+
 std::string urlEncode(const std::string& text) {
     std::string out;
     char b[4];
@@ -380,11 +430,26 @@ bool Fetcher::runCurl(const std::vector<std::string>& urls) {
     const auto back = std::filesystem::current_path(ec);
     std::filesystem::current_path(dir, ec);
     if (ec) return false;
+    // En parallèle (-Z, curl 7.66 et plus) : un paquet de 40 en ~1 s au lieu de ~25 ;
+    // un curl plus ancien refuse l'option (code 2) : on repasse en série.
 #if defined(_WIN32)
-    const int rc = std::system("curl.exe -sSL --max-time 30 -K requetes.cfg 2>NUL");
+    const char* parallel = "curl.exe -sSL -Z --parallel-max 8 --max-time 30 -K requetes.cfg 2>NUL";
+    const char* serial = "curl.exe -sSL --max-time 30 -K requetes.cfg 2>NUL";
 #else
-    const int rc = std::system("curl -sSL --max-time 30 -K requetes.cfg 2>/dev/null");
+    const char* parallel = "curl -sSL -Z --parallel-max 8 --max-time 30 -K requetes.cfg 2>/dev/null";
+    const char* serial = "curl -sSL --max-time 30 -K requetes.cfg 2>/dev/null";
 #endif
+    int rc = std::system(parallel_ ? parallel : serial);
+    if (parallel_ && rc != 0 && urls.size() > 0) {
+        std::error_code e2;
+        bool any = false;
+        for (const auto& url : urls) any = any || std::filesystem::exists(dir / (cachedName(url) + ".part"), e2);
+        if (!any) { // rien reçu : option inconnue ? une fois en série pour voir
+            rc = std::system(serial);
+            for (const auto& url : urls) any = any || std::filesystem::exists(dir / (cachedName(url) + ".part"), e2);
+            if (any) parallel_ = false;
+        }
+    }
     std::filesystem::current_path(back, ec);
     requests_ += static_cast<long long>(urls.size());
     return rc == 0;

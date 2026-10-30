@@ -32,7 +32,7 @@
 //                (API publique de Deezer, sans clé : photo de l'artiste, pochette
 //                et lien de chaque titre de la base ; « Image : Deezer » ;
 //                usage personnel, à ne pas livrer avec le plug-in vendu)
-//    omnis_refdb discographie playlist.csv [--artistes "euhZ|Gry"] [--proches 1] [--sortie dossier]
+//    omnis_refdb discographie playlist.csv [--artistes "euhZ|Gry=BRR"] [--proches 1] [--sortie dossier]
 //                (tous les titres de chaque artiste de la playlist et de --artistes,
 //                puis de leurs proches sur Deezer : artistes.tsv, titres.tsv,
 //                introuvables.txt ; reprend où il s'était arrêté grâce au cache)
@@ -444,7 +444,14 @@ int main(int argc, char** argv) {
                     }
             }
         }
-        for (const auto& n : list(wanted)) addSeed(n, "demandé");
+        // « Nom=titre connu » : le titre désigne la bonne fiche parmi les homonymes.
+        std::map<std::string, std::string> hints;
+        for (const auto& n : list(wanted)) {
+            const auto eq = n.find('=');
+            const std::string name = n.substr(0, eq);
+            if (eq != std::string::npos) hints[name] = n.substr(eq + 1);
+            addSeed(name, "demandé");
+        }
         if (seeds.empty()) {
             std::fputs("discographie : playlist.csv et/ou --artistes \"a|b\" [--proches 1] [--sortie dossier]\n", stderr);
             return 1;
@@ -472,36 +479,72 @@ int main(int argc, char** argv) {
         struct Who {
             dz::Artist a;
             std::string origin;
+            std::string hintAlbum; ///< sortie du titre connu (« Gry=BRR » -> BRIBES)
         };
         std::vector<Who> todo;
         std::map<long long, std::size_t> seen;
+        // Un artiste par les crédits d'un titre : ceux que la recherche d'artistes
+        // ne remonte pas (« Omyll », crédité sur MALADEUX de mïrï), ou le bon homonyme.
+        std::string creditAlbum; // sortie du titre trouvé par byCredits
+        const auto byCredits = [&](const std::string& name, const std::string& title) -> dz::Artist {
+            const auto found = dz::parseTracks(net.get("https://api.deezer.com/search/track?q=" + dz::urlEncode(name + (title.empty() ? "" : " " + title)) + "&limit=25"));
+            std::vector<std::string> urls;
+            for (const auto& t : found)
+                if (urls.size() < 10 && (title.empty() || ai::namesMatch(t.title, title) || ai::namesMatch(dz::bareTitle(t.title), title)))
+                    urls.push_back("https://api.deezer.com/track/" + std::to_string(t.id));
+            for (const auto& text : net.getAll(urls)) {
+                const auto detail = dz::parseTrackDetail(text);
+                for (const auto& c : detail.contributors)
+                    if (dz::sameArtist(c.name, name)) {
+                        creditAlbum = detail.track.album;
+                        const auto full = dz::parseArtist(net.get("https://api.deezer.com/artist/" + std::to_string(c.id)));
+                        return full.id != 0 ? full : c;
+                    }
+            }
+            return {};
+        };
         {
             std::vector<std::string> urls;
             for (const auto& [n, o] : seeds) urls.push_back(dz::artistSearchUrl(n));
             const auto answers = net.getAll(urls);
             for (std::size_t i = 0; i < seeds.size(); ++i) {
+                const auto& [name, origin] = seeds[i];
                 const auto found = dz::parseArtists(answers[i]);
-                const auto* a = dz::pickArtist(found, seeds[i].first);
+                if (const auto hint = hints.find(name); hint != hints.end()) {
+                    const auto a = byCredits(name, hint->second);
+                    if (a.id != 0) {
+                        if (seen.emplace(a.id, todo.size()).second) todo.push_back({a, origin + " (" + hint->second + ")", creditAlbum});
+                        continue;
+                    }
+                    missOut << name << "\t« " << hint->second << " » introuvable sous ce nom : recherche par le nom seul\n";
+                }
+                const auto* a = dz::pickArtist(found, name);
                 if (!a) {
-                    missOut << seeds[i].first << "\tpas sur Deezer (ou nom différent)";
+                    const auto c = byCredits(name, {});
+                    if (c.id != 0) {
+                        if (seen.emplace(c.id, todo.size()).second) todo.push_back({c, origin + ", trouvé par ses crédits", {}});
+                        continue;
+                    }
+                    missOut << name << "\tpas sur Deezer (ou nom différent)";
                     for (std::size_t k = 0; k < std::min<std::size_t>(3, found.size()); ++k) missOut << (k ? ", " : " ; proposés : ") << found[k].name;
                     missOut << "\n";
                     continue;
                 }
-                if (seen.emplace(a->id, todo.size()).second) todo.push_back({*a, seeds[i].second});
+                if (seen.emplace(a->id, todo.size()).second) todo.push_back({*a, origin, {}});
                 // Homonymes : pour un petit artiste, Deezer coupe souvent son œuvre en
-                // plusieurs fiches (ou la mêle à d'autres) : toutes gardées, à vérifier.
-                // Pour un artiste connu, les homonymes sont d'autres gens : écartés.
+                // plusieurs fiches (ou la mêle à d'autres) : toutes gardées, à vérifier
+                // (« Nom=titre connu » dans --artistes tranche). Pour un artiste connu,
+                // les homonymes sont d'autres gens : écartés.
                 for (const auto& other : found) {
-                    if (other.id == a->id || !dz::sameArtist(other.name, seeds[i].first)) continue;
+                    if (other.id == a->id || !dz::sameArtist(other.name, name)) continue;
                     const bool small = a->fans < 5000;
-                    missOut << seeds[i].first << (small ? "\thomonyme gardé (à vérifier) : " : "\thomonyme écarté : ") << other.name << " ("
-                            << other.fans << " fans) " << other.link << "\n";
-                    if (small && seen.emplace(other.id, todo.size()).second)
-                        todo.push_back({other, seeds[i].second + ", homonyme à vérifier"});
+                    missOut << name << (small ? "\thomonyme gardé (à vérifier ; « " + name + "=titre » pour choisir) : " : "\thomonyme écarté : ")
+                            << other.name << " (" << other.fans << " fans) " << other.link << "\n";
+                    if (small && seen.emplace(other.id, todo.size()).second) todo.push_back({other, origin + ", homonyme à vérifier", {}});
                 }
             }
         }
+        const std::size_t seedCount = todo.size();
         // 2. Les proches (Deezer : 20 par artiste), sur `depth` niveaux.
         std::size_t levelStart = 0;
         for (int level = 0; level < depth; ++level) {
@@ -511,7 +554,7 @@ int main(int argc, char** argv) {
             const auto answers = net.getAll(urls);
             for (std::size_t i = levelStart; i < levelEnd; ++i)
                 for (const auto& r : dz::parseArtistList(answers[i - levelStart]))
-                    if (seen.emplace(r.id, todo.size()).second) todo.push_back({r, "proche de " + todo[i].a.name});
+                    if (seen.emplace(r.id, todo.size()).second) todo.push_back({r, "proche de " + todo[i].a.name, {}});
             levelStart = levelEnd;
         }
         std::printf("%zu artiste(s) avec les proches\n", todo.size());
@@ -527,6 +570,30 @@ int main(int argc, char** argv) {
                 albums.insert(albums.end(), part.begin(), part.end());
                 url = dz::safeUrl(page.next) ? page.next : std::string();
             }
+            // Une fiche Deezer qui mêle deux homonymes (GRy : un DJ et un rappeur) : le
+            // titre connu dit lequel ; ses sorties d'un autre genre sont mises de côté.
+            // Seulement une fiche assez grosse où le genre du titre connu est minoritaire :
+            // un petit artiste qui change de genre garde tout.
+            int keepGenre = 0;
+            if (!who.hintAlbum.empty() && albums.size() >= 8) {
+                int genre = 0;
+                for (const auto& al : albums)
+                    if (ai::namesMatch(al.title, who.hintAlbum)) genre = al.genre;
+                const auto sameCount = std::count_if(albums.begin(), albums.end(), [&](const auto& al) { return al.genre == genre; });
+                if (genre > 0 && static_cast<double>(sameCount) < 0.7 * static_cast<double>(albums.size())) keepGenre = genre;
+            }
+            if (keepGenre > 0) {
+                const int genre = keepGenre;
+                {
+                    std::vector<dz::Album> same;
+                    for (const auto& al : albums) {
+                        if (al.genre == genre) same.push_back(al);
+                        else missOut << who.a.name << "\tsortie d'un autre genre écartée (autre artiste du même nom ?) : " << al.title << " ("
+                                     << al.date << ") " << al.link << "\n";
+                    }
+                    albums.swap(same);
+                }
+            }
             // Du plus ancien au plus récent : un titre repris (single puis album) garde sa première sortie.
             std::stable_sort(albums.begin(), albums.end(), [](const auto& x, const auto& y) { return x.date < y.date; });
             std::vector<std::string> urls;
@@ -539,6 +606,38 @@ int main(int argc, char** argv) {
                     if (!kept.emplace(slug(t.title), true).second) continue;
                     tracksOut << cell(who.a.name) << '\t' << cell(t.title) << '\t' << cell(t.artist) << '\t' << cell(albums[k].title) << '\t'
                               << albums[k].type << '\t' << albums[k].date << '\t' << t.durationS << '\t' << t.isrc << '\t' << t.link << '\n';
+                    ++count;
+                }
+            }
+            // Les featurings d'un petit artiste de départ : ses titres sur les sorties
+            // des autres (Deezer ne les range pas dans sa discographie).
+            if (n < seedCount && who.a.fans < 5000) {
+                const auto found = dz::parseTracks(net.get("https://api.deezer.com/search/track?q=" + dz::urlEncode(who.a.name) + "&limit=50"));
+                std::vector<std::string> details;
+                for (const auto& t : found)
+                    if (t.artistId != who.a.id) details.push_back("https://api.deezer.com/track/" + std::to_string(t.id));
+                std::vector<dz::TrackDetail> feats;
+                for (const auto& text : net.getAll(details)) {
+                    auto d = dz::parseTrackDetail(text);
+                    if (std::any_of(d.contributors.begin(), d.contributors.end(), [&](const auto& c) { return c.id == who.a.id; })) feats.push_back(std::move(d));
+                }
+                // Fiche mêlée : les featurings aussi doivent être du bon genre.
+                std::vector<int> featGenres(feats.size(), keepGenre);
+                if (keepGenre > 0) {
+                    std::vector<std::string> albumsUrls;
+                    for (const auto& d : feats) albumsUrls.push_back("https://api.deezer.com/album/" + std::to_string(d.albumId));
+                    const auto answers2 = net.getAll(albumsUrls);
+                    for (std::size_t k = 0; k < feats.size(); ++k) featGenres[k] = dz::parseAlbumGenre(answers2[k]);
+                }
+                for (std::size_t k = 0; k < feats.size(); ++k) {
+                    const auto& d = feats[k];
+                    if (featGenres[k] != keepGenre) {
+                        missOut << who.a.name << "\tfeaturing d'un autre genre écarté : " << d.track.title << " (" << d.track.artist << ") " << d.track.link << "\n";
+                        continue;
+                    }
+                    if (!kept.emplace(slug(d.track.title), true).second) continue;
+                    tracksOut << cell(who.a.name) << '\t' << cell(d.track.title) << '\t' << cell(d.track.artist) << '\t' << cell(d.track.album) << '\t'
+                              << "featuring" << '\t' << d.albumDate << '\t' << d.track.durationS << '\t' << d.track.isrc << '\t' << d.track.link << '\n';
                     ++count;
                 }
             }

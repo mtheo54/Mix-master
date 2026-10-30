@@ -54,6 +54,7 @@ struct Track {
 struct Album {
     long long id = 0;
     std::string title, type, date, link; ///< type : album, ep, single, compile
+    int genre = 0;                       ///< genre Deezer (116 : rap) ; ≤ 0 : inconnu
 };
 
 /// Une page de réponse : `next` = adresse de la page suivante (vide : fin).
@@ -72,6 +73,18 @@ std::vector<Track> parseTracks(const std::string& json, Page* page = nullptr);
 std::vector<Album> parseAlbums(const std::string& json, Page* page = nullptr);
 /// /artist/{id}/related (même forme que la recherche d'artistes).
 std::vector<Artist> parseArtistList(const std::string& json, Page* page = nullptr);
+/// /artist/{id} : une fiche (id 0 si erreur).
+Artist parseArtist(const std::string& json);
+/// /track/{id} : le titre complet (sortie, date) et tous ses artistes crédités.
+struct TrackDetail {
+    Track track;
+    long long albumId = 0;
+    std::string albumDate;
+    std::vector<Artist> contributors;
+};
+TrackDetail parseTrackDetail(const std::string& json);
+/// /album/{id} : son genre Deezer (0 si inconnu).
+int parseAlbumGenre(const std::string& json);
 
 /// L'artiste demandé parmi les résultats : même nom (accents, casse, espaces
 /// mis à part), sinon une lettre d'écart ; à égalité, le plus suivi. nullptr sinon.
@@ -82,6 +95,8 @@ bool sameArtist(const std::string& a, const std::string& b);
 const Track* pickTrack(const std::vector<Track>& found, const std::string& artist, const std::string& title);
 
 std::string urlEncode(const std::string& text);
+/// « Titre (feat. X) » -> « Titre ».
+std::string bareTitle(const std::string& title);
 std::string artistSearchUrl(const std::string& name);
 /// Recherches d'un titre, à essayer dans l'ordre : la recherche avancée
 /// (artist:"…" track:"…") ne trouve rien dès qu'il y a un accent (« CINÉMA ») ;
@@ -111,6 +126,7 @@ private:
     bool runCurl(const std::vector<std::string>& urls);
     std::string dir_;
     long long requests_ = 0;
+    bool parallel_ = true; ///< curl -Z (sinon en série)
 };
 
 } // namespace omnis::tools::deezer
