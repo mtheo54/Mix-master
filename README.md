@@ -278,7 +278,9 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
   style, ou tous les titres de l'artiste), et les artistes de A à Z ; y compris ceux que tu as
   ajoutés (`references_utilisateur.txt`). Chaque son a sa pochette (la vraie si tu l'as mise,
   sinon dessinée d'après sa fiche), l'artiste sa photo libre avec son crédit ; la page Match EQ
-  montre la **référence visée** ([images](docs/REFERENCES.md#les-images-photo-dartiste-pochette)). Elle s'applique tout de suite (courbe du Match EQ, punch,
+  montre la **référence visée** (un clic ouvre le titre en ligne). Photo, pochettes et liens
+  d'un artiste en une commande : `omnis_refdb deezer --artiste "La Fève"`
+  ([images et droits](docs/REFERENCES.md#les-images-photo-dartiste-pochette)). Elle s'applique tout de suite (courbe du Match EQ, punch,
   grave mono, écart couplet / refrain, écrêtage, volume) et AUTO la vise ensuite. Le choix est
   gardé avec le projet ; « Aucune » rend la main aux mots.
 - **Rack** : 7 modules (Sub, Match EQ, Inflator, Imager, Multiband, Clipper, Limiter), chacun

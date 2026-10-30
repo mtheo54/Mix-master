@@ -118,6 +118,7 @@ public:
     /// La référence choisie, de quoi la montrer (vide : aucune).
     struct ReferenceCard {
         std::string name, credit, photo, cover, detail; ///< detail : « 111 BPM · Mi · -3,7 LUFS »
+        std::string coverCredit, link;                  ///< d'où vient la pochette ; la musique en ligne
         analysis::SpectralSignature signature;           ///< moyenne des titres (pochette dessinée)
         int titles = 0;
     };

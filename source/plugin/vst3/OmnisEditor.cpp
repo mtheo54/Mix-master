@@ -7,6 +7,7 @@
 #include "OmnisController.h"
 #include "UiFeed.h"
 #include "gui/Look.h"
+#include "gui/OpenUrl.h"
 #include "gui/Widgets.h"
 
 #include "dsp/Fft.h"
@@ -33,6 +34,7 @@
 #include <cmath>
 #include <complex>
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -703,11 +705,20 @@ void OmnisEditor::paintReferenceCard(CDrawContext* c, const CRect& r) {
         paintCover(c, photo, d.photo, d.signature, d.name);
         x = photo.right + 10;
     }
-    engraved(c, "RÉFÉRENCE VISÉE", CRect(x, r.top + 6, r.right - 8, r.top + 20));
-    text(c, d.name, CRect(x, r.top + 22, r.right - 8, r.top + 40), color::kAccent, mono(11, true));
-    text(c, d.detail, CRect(x, r.top + 42, r.right - 8, r.top + 56), color::kText2, mono(9.5));
-    // Une photo libre ne se montre qu'avec son auteur et sa licence.
-    if (!d.credit.empty()) text(c, d.credit, CRect(x, r.bottom - 20, r.right - 8, r.bottom - 6), color::kText3, mono(8.5));
+    engraved(c, "RÉFÉRENCE VISÉE", CRect(x, r.top + 6, r.right - 8, r.top + 18));
+    text(c, d.name, CRect(x, r.top + 20, r.right - 8, r.top + 36), color::kAccent, mono(11, true));
+    text(c, d.detail, CRect(x, r.top + 38, r.right - 8, r.top + 50), color::kText2, mono(9.5));
+    // Une image ne se montre qu'avec sa source (auteur et licence, ou Deezer).
+    std::string credits = d.credit;
+    if (!d.coverCredit.empty() && d.coverCredit != d.credit) credits += (credits.empty() ? "" : " · ") + d.coverCredit;
+    if (!credits.empty()) text(c, credits, CRect(x, r.bottom - 17, r.right - 8, r.bottom - 5), color::kText3, mono(8.5));
+    // La musique en ligne : un clic sur la carte l'ouvre dans le navigateur.
+    if (!d.link.empty()) {
+        std::string shown = d.link;
+        for (const char* prefix : {"https://", "www."})
+            if (shown.rfind(prefix, 0) == 0) shown.erase(0, std::strlen(prefix));
+        text(c, "▶ " + shown, CRect(x, r.top + 52, r.right - 8, r.top + 64), color::kCool, mono(9));
+    }
 }
 
 void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
@@ -1128,12 +1139,16 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         p->addView(flat);
         live_.push_back(flat);
         // La référence visée : pochette, photo (avec son crédit), tempo, tonalité, sonie.
-        cardScreen_ = new Screen(CRect(12, row2, W - 14, row2 + 72), [this](CDrawContext* dc, const CRect& r) { paintReferenceCard(dc, r); }, false);
-        cardScreen_->setMouseEnabled(false);
+        cardScreen_ = new Screen(CRect(12, row2 - 4, W - 14, row2 + 80), [this](CDrawContext* dc, const CRect& r) { paintReferenceCard(dc, r); }, false);
+        cardScreen_->setMouse([this](const CPoint&, int phase, bool) {
+            if (!card_ || card_->data.link.empty()) return false;
+            if (phase == 0) gui::openUrl(card_->data.link);
+            return true;
+        });
         p->addView(cardScreen_);
         live_.push_back(cardScreen_);
-        p->addView(new Caption(CRect(12, row2 + 80, W - 14, row2 + 94), "21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).", color::kText3, mono(9)));
-        p->addView(new Caption(CRect(12, row2 + 96, W - 14, row2 + 110), "La barre IA et les références les écrivent ; ici tu les retouches.", color::kText3, mono(9)));
+        p->addView(new Caption(CRect(12, row2 + 86, W - 14, row2 + 100), "21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).", color::kText3, mono(9)));
+        p->addView(new Caption(CRect(12, row2 + 102, W - 14, row2 + 116), "La barre IA et les références les écrivent ; ici tu les retouches.", color::kText3, mono(9)));
     }
     {
         auto* p = page(drawer, 2, "3", "INFLATOR", "Densité et chaleur, la 808 et le mix à part.");

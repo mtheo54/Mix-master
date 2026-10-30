@@ -319,7 +319,15 @@ OmnisController::ReferenceCard OmnisController::referenceCard() const {
         card.photo = artists.front().photo;
         card.credit = artists.front().credit;
     }
-    if (refKind_ == RefKind::Title) card.cover = imagePath(refs.front()->cover);
+    if (refKind_ == RefKind::Title) {
+        card.cover = imagePath(refs.front()->cover);
+        if (!card.cover.empty()) card.coverCredit = refs.front()->coverCredit;
+        card.link = refs.front()->link;
+    } else if (refKind_ == RefKind::Artist) {
+        // La page de l'artiste : sur sa fiche de nom (sans titre), sinon aucune.
+        for (const auto& e : lib.entries())
+            if (e.artist == refName_ && e.title.empty() && !e.link.empty()) card.link = e.link;
+    }
     char b[96];
     const auto& m = refs.front()->signature.music;
     if (refs.size() == 1 && m.valid) {

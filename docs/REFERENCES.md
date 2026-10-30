@@ -15,7 +15,8 @@ complète, plus OMNIS en tire : chaque champ ci-dessous dit ce qu'il mesure et �
 | `proches` | `2hollis \| Nettspend` | artistes proches | un artiste inconnu -> ses proches mesurés |
 | `traits` | `808 saturée, voix autotune` | ce qui fait le son, en mots | expliquer pourquoi la réf sonne ainsi |
 | `image`, `image_credit` | `2hollis.png`, `Photo : Auteur, CC BY-SA 4.0` | photo de l'artiste **sous licence libre** et son crédit | menu RÉF et carte « Référence visée » ; sans crédit, la photo n'est pas montrée |
-| `pochette` | `2hollis_poster_boy.png` | pochette du titre | idem ; absente : OMNIS dessine une pochette d'après la fiche |
+| `pochette`, `pochette_credit` | `la_feve_album.jpg`, `Pochette : Deezer` | pochette du titre et sa source | idem ; absente : OMNIS dessine une pochette d'après la fiche |
+| `lien` | `https://www.deezer.com/track/…` | la musique en ligne | carte « Référence visée » : un clic ouvre le navigateur |
 
 ## Les images (photo d'artiste, pochette)
 
@@ -30,11 +31,29 @@ omnis_refdb pochette pochette.png --artiste "2hollis" --titre "poster boy" --db 
 
 L'outil copie l'image dans `images/` sous un nom propre et l'écrit dans la fiche.
 
+**Depuis Deezer, d'un coup** (API publique, sans clé ni compte ; il faut internet et `curl`,
+présent dans Windows 10 et 11) :
+
+```
+omnis_refdb deezer --artiste "La Fève" --db references_utilisateur.txt
+omnis_refdb deezer --artiste "La Fève" --titre "Titre" --db references_utilisateur.txt
+```
+
+L'outil trouve l'artiste (accents et fautes tolérés ; à égalité, le plus suivi), télécharge
+sa photo, puis pour chaque titre de cet artiste dans la base : la pochette de l'album et le
+lien du titre. Crédits écrits : « Image : Deezer », « Pochette : Deezer ». Un artiste encore
+absent de la base y entre en fiche de nom : ses images et son lien seront gardés quand son
+son sera mesuré. Seul l'outil va sur internet : le plug-in reste hors ligne, il ne lit que
+les fichiers.
+
 **Rester réglo :**
 - **Photo d'artiste** : seulement une photo sous licence libre (Wikimedia Commons : CC BY,
   CC BY-SA, CC0), avec l'auteur et la licence dans `image_credit`. OMNIS l'affiche toujours
   sous la photo ; l'outil refuse une photo sans crédit. Garder le lien de la page source dans
   un fichier à part (`images/sources.txt`) pour pouvoir le prouver.
+- **Images Deezer** (photo et pochettes) : pas sous licence libre non plus. Pour ton usage,
+  avec « Deezer » affiché et le lien vers la musique : oui. **Dans le plug-in vendu : non**,
+  sans un accord avec Deezer (conditions de son API) et les labels.
 - **Pochette** : elle n'est **pas** sous licence libre, elle appartient au label / à
   l'artiste. Pour ton usage, sur ton PC : oui. **Livrée avec le plug-in vendu : non**, sauf
   accord écrit du label. Sans pochette, OMNIS dessine la sienne à partir de la fiche (teinte

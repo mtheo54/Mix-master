@@ -46,8 +46,10 @@ struct ReferenceEntry {
     std::string traits;               ///< traits sonores (« 808 saturée, autotune »), pour expliquer
     /// Images (fichiers du dossier images/ de l'utilisateur, jamais dans la base) :
     /// photo de l'artiste sous licence libre, montrée seulement avec son crédit
-    /// (« Photo : Nom, CC BY-SA 4.0 ») ; pochette du titre (droits du label).
+    /// (« Photo : Nom, CC BY-SA 4.0 », « Image : Deezer ») ; pochette du titre (droits du label).
     std::string image, imageCredit, cover;
+    std::string coverCredit; ///< d'où vient la pochette (« Image : Deezer »)
+    std::string link;        ///< la musique en ligne (page du titre, ou de l'artiste)
     analysis::SpectralSignature signature;
     bool measured = true; ///< false : connu de nom (et de genre) seulement, en attente d'un son
 

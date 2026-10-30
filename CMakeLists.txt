@@ -192,7 +192,8 @@ if(OMNIS_BUILD_VST3)
     target_compile_definitions(OMNIS PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
     if(OMNIS_BUILD_GUI)
         target_sources(OMNIS PRIVATE source/plugin/vst3/OmnisEditor.cpp source/plugin/vst3/OmnisEditor.h
-            source/plugin/vst3/gui/Widgets.cpp source/plugin/vst3/gui/Widgets.h source/plugin/vst3/gui/Look.h)
+            source/plugin/vst3/gui/Widgets.cpp source/plugin/vst3/gui/Widgets.h source/plugin/vst3/gui/Look.h
+            source/plugin/vst3/gui/OpenUrl.cpp source/plugin/vst3/gui/OpenUrl.h)
         # vstgui_support (vstguieditor.cpp) appelle pluginfactory.cpp de « sdk » :
         # « sdk » après lui sur la ligne de liens.
         target_link_libraries(OMNIS PRIVATE vstgui_support sdk)
@@ -205,7 +206,7 @@ if(OMNIS_BUILD_VST3)
     if(OMNIS_BUILD_GUI AND OMNIS_BUILD_TOOLS AND UNIX AND NOT APPLE)
         add_executable(omnis_guishot tools/guishot/main.cpp
             source/plugin/vst3/OmnisProcessor.cpp source/plugin/vst3/OmnisController.cpp source/plugin/vst3/OmnisEditor.cpp
-            source/plugin/vst3/OmnisState.cpp source/plugin/vst3/UiFeed.cpp source/plugin/vst3/gui/Widgets.cpp
+            source/plugin/vst3/OmnisState.cpp source/plugin/vst3/UiFeed.cpp source/plugin/vst3/gui/Widgets.cpp source/plugin/vst3/gui/OpenUrl.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/parameterchanges.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/processdata.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/hostclasses.cpp
@@ -241,6 +242,8 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/AudioRead.cpp
         tools/common/AudioRead.h
         tools/common/AnalysisReport.h
+        tools/common/Deezer.cpp
+        tools/common/Deezer.h
         tools/common/DistortionAnalysis.cpp
         tools/common/DistortionAnalysis.h
         tools/common/LoudnessTuner.cpp
@@ -290,6 +293,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestRack.cpp
         tests/TestDrumBus.cpp
         tests/TestMusic.cpp
+        tests/TestDeezer.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp

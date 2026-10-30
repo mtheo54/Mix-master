@@ -28,11 +28,16 @@
 //    omnis_refdb pochette pochette.jpg --artiste "2hollis" --titre "poster boy" --db base.txt
 //                (pochette du titre : droits du label, pour ton usage ; à ne pas
 //                livrer avec le plug-in sans leur accord)
+//    omnis_refdb deezer --artiste "La Fève" [--titre T] --db base.txt
+//                (API publique de Deezer, sans clé : photo de l'artiste, pochette
+//                et lien de chaque titre de la base ; « Image : Deezer » ;
+//                usage personnel, à ne pas livrer avec le plug-in vendu)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
 #include "AudioRead.h"
 #include "AiFiles.h"
+#include "Deezer.h"
 #include "AudioRead.h"
 #include "WavFile.h"
 
@@ -74,6 +79,27 @@ std::vector<std::string> loose(std::string s) {
     for (char& c : s)
         if (c == ',') c = '|';
     return list(s);
+}
+
+/// Nom de fichier stable, sans espaces ni accents : « La Fève » -> « la_feve ».
+std::string slug(const std::string& text) {
+    // Lettres accentuées du latin (UTF-8 sur deux octets, C3 xx) -> sans accent.
+    static const char* const kLatin = "AAAAAAACEEEEIIIIDNOOOOO OUUUUYTsaaaaaaaceeeeiiiidnooooo ouuuuyty";
+    std::string out;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        auto c = static_cast<unsigned char>(text[i]);
+        if (c == 0xC3 && i + 1 < text.size()) {
+            const auto n = static_cast<unsigned char>(text[i + 1]);
+            if (n >= 0x80 && n <= 0xBF) {
+                c = static_cast<unsigned char>(kLatin[n - 0x80]);
+                ++i;
+            }
+        }
+        if (c < 0x80 && std::isalnum(c)) out += static_cast<char>(std::tolower(c));
+        else if (!out.empty() && out.back() != '_') out += '_';
+    }
+    while (!out.empty() && out.back() == '_') out.pop_back();
+    return out.empty() ? std::string("image") : out;
 }
 
 ai::ReferenceLibrary openDb(const std::string& db) {
@@ -210,13 +236,14 @@ int main(int argc, char** argv) {
                   "  omnis_refdb artistes liens.txt --db base.txt   (« Artiste ; famille ; styles ; proches : A, B ; traits : … »)\n"
                   "  omnis_refdb fiche titre.wav   (la fiche complète d'un son, sans rien écrire)\n"
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
-                  "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T --db base.txt\n"
+                  "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
+                  "  omnis_refdb deezer --artiste NOM [--titre T] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
         return 1;
     }
     const std::string command = argv[1];
-    std::string db, artist, title, genres, aliases, input, credit;
+    std::string db, artist, title, genres, aliases, input, credit, link;
     for (int i = 2; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--db" && i + 1 < argc) db = argv[++i];
@@ -225,6 +252,7 @@ int main(int argc, char** argv) {
         else if (a == "--genres" && i + 1 < argc) genres = argv[++i];
         else if (a == "--alias" && i + 1 < argc) aliases = argv[++i];
         else if (a == "--credit" && i + 1 < argc) credit = argv[++i];
+        else if (a == "--lien" && i + 1 < argc) link = argv[++i];
         else if ((a == "--classes" || a == "--titres") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
     }
@@ -253,16 +281,6 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "%s : « %s%s » n'est pas dans %s\n", command.c_str(), artist.c_str(), photo ? "" : (" - " + title).c_str(), db.c_str());
             return 1;
         }
-        // Nom de fichier stable, sans espaces ni accents : « 2hollis.jpg », « 2hollis_poster_boy.png ».
-        const auto slug = [](const std::string& text) {
-            std::string out;
-            for (unsigned char c : text) {
-                if (std::isalnum(c)) out += static_cast<char>(std::tolower(c));
-                else if (!out.empty() && out.back() != '_') out += '_';
-            }
-            while (!out.empty() && out.back() == '_') out.pop_back();
-            return out.empty() ? std::string("image") : out;
-        };
         const std::string name = slug(touched.front().artist) + (photo ? "" : "_" + slug(touched.front().title)) + ext;
         const auto dir = userDataDir() / "images";
         std::error_code ec;
@@ -274,11 +292,100 @@ int main(int argc, char** argv) {
         }
         for (auto e : touched) {
             if (photo) e.image = name, e.imageCredit = credit;
-            else e.cover = name;
+            else e.cover = name, e.coverCredit = credit;
+            if (!link.empty()) e.link = link;
             user.add(e);
         }
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%s -> %s (%zu fiche(s))\n", command.c_str(), utf8Path(dir / name).c_str(), touched.size());
+        return 0;
+    }
+
+    if (command == "deezer") {
+        if (db.empty() || artist.empty()) {
+            std::fprintf(stderr, "deezer : --artiste NOM [--titre T] --db base.txt\n");
+            return 1;
+        }
+        namespace dz = tools::deezer;
+        const auto tmp = std::filesystem::temp_directory_path() / "omnis_deezer.json";
+        const auto get = [&](const std::string& url, std::string& text) {
+            std::string error;
+            std::this_thread::sleep_for(std::chrono::milliseconds(200)); // l'API limite à 50 demandes / 5 s
+            if (!dz::download(url, utf8Path(tmp), error) || !readTextFile(utf8Path(tmp), text)) {
+                std::fprintf(stderr, "  %s\n", error.empty() ? "réponse illisible" : error.c_str());
+                return false;
+            }
+            return true;
+        };
+        std::string text;
+        if (!get(dz::artistSearchUrl(artist), text)) return 1;
+        const auto artists = dz::parseArtists(text);
+        const auto* found = dz::pickArtist(artists, artist);
+        if (!found) {
+            std::fprintf(stderr, "deezer : « %s » introuvable. Proposés :", artist.c_str());
+            for (std::size_t i = 0; i < std::min<std::size_t>(5, artists.size()); ++i) std::fprintf(stderr, " %s ;", artists[i].name.c_str());
+            std::fprintf(stderr, "\n");
+            return 1;
+        }
+        std::printf("Deezer : %s (%lld fans) %s\n", found->name.c_str(), found->fans, found->link.c_str());
+        const auto dir = userDataDir() / "images";
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+        const auto fetch = [&](const std::string& url, const std::string& file) {
+            std::string error;
+            if (url.empty()) return false;
+            if (std::filesystem::exists(dir / file, ec)) return true; // déjà là (même album)
+            if (!dz::download(url, utf8Path(dir / file), error)) {
+                std::fprintf(stderr, "  %s\n", error.c_str());
+                return false;
+            }
+            return true;
+        };
+        auto user = openDb(db);
+        std::vector<ai::ReferenceEntry> touched;
+        for (const auto& e : user.entries())
+            if (ai::namesMatch(e.artist, artist) && (title.empty() || ai::namesMatch(e.title, title))) touched.push_back(e);
+        if (touched.empty()) {
+            // Pas encore dans la base : une fiche de nom, qui gardera images et lien
+            // quand le son sera mesuré (scan, ou écoute dans FL).
+            ai::ReferenceEntry e;
+            e.artist = found->name;
+            e.title = title;
+            e.genres = list(genres);
+            e.measured = false;
+            touched.push_back(e);
+        }
+        const std::string photo = slug(found->name) + ".jpg";
+        const bool hasPhoto = fetch(found->picture, photo);
+        if (hasPhoto) std::printf("  photo -> %s\n", utf8Path(dir / photo).c_str());
+        int covers = 0;
+        for (auto& e : touched) {
+            if (hasPhoto) e.image = photo, e.imageCredit = "Image : Deezer";
+            if (e.title.empty()) {
+                if (e.link.empty()) e.link = found->link;
+                continue;
+            }
+            if (!get(dz::trackSearchUrl(found->name, e.title), text)) continue;
+            const auto tracks = dz::parseTracks(text);
+            const auto* t = dz::pickTrack(tracks, found->name, e.title);
+            if (!t) {
+                std::printf("  %-40s pas trouvé sur Deezer\n", e.title.c_str());
+                continue;
+            }
+            const std::string cover = slug(found->name) + "_" + slug(t->album.empty() ? e.title : t->album) + ".jpg";
+            if (fetch(t->cover, cover)) {
+                e.cover = cover;
+                e.coverCredit = "Pochette : Deezer";
+                ++covers;
+            }
+            e.link = t->link;
+            std::printf("  %-40s album « %s » %s\n", e.title.c_str(), t->album.c_str(), t->link.c_str());
+        }
+        for (auto& e : touched) user.add(e);
+        std::filesystem::remove(tmp, ec);
+        if (!writeTextFile(db, user.serialize())) return 1;
+        std::printf("%zu fiche(s) complétée(s), %d pochette(s), images dans %s\n", touched.size(), covers, utf8Path(dir).c_str());
+        std::printf("Images Deezer : pour ton usage. Les livrer avec le plug-in vendu demande l'accord de Deezer et des labels.\n");
         return 0;
     }
 
@@ -395,6 +502,7 @@ int main(int argc, char** argv) {
                     if (merged.similar.empty()) merged.similar = old.similar;
                     if (merged.traits.empty()) merged.traits = old.traits;
                     merged.image = old.image, merged.imageCredit = old.imageCredit, merged.cover = old.cover;
+                    merged.coverCredit = old.coverCredit, merged.link = old.link;
                     for (const auto& g : old.genres)
                         if (std::find(merged.genres.begin(), merged.genres.end(), g) == merged.genres.end()) merged.genres.push_back(g);
                     break;
