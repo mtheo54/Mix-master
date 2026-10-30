@@ -1,8 +1,13 @@
 name: CI
 
 on:
+  # Rien pour un changement de documentation seule (économise le quota en dépôt privé).
   push:
+    paths-ignore: ['docs/**', '**.md']
   pull_request:
+    paths-ignore: ['docs/**', '**.md']
+  # Bouton « Run workflow » de l'onglet Actions : un plug-in à la demande.
+  workflow_dispatch:
 
 jobs:
   build:
