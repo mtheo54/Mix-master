@@ -21,7 +21,10 @@ aucune image, aucune parole.
 **Aucune image** n'est livrée : ni dans le `.vst3`, ni dans l'installateur, ni dans les sources
 (`data/`, `source/`). Le test `omnis_no_images` (ctest, CI) le vérifie à chaque compilation : il
 refuse tout fichier image dans le paquet et toute signature PNG / JPEG / GIF dans ses octets,
-binaire compris. Les polices sont celles du système (aucune n'est livrée).
+binaire compris. Les polices sont celles du système (aucune n'est livrée). Sous Windows, le SDK
+VST3 ajoute d'office au paquet une icône de dossier (`PlugIn.ico`, le logo VST de Steinberg) :
+elle est retirée à la compilation (`cmake/OmnisRemoveFolderIcon.cmake`), le logo VST n'est donc
+pas utilisé.
 
 ## 2. Outils hors plug-in (`omnis_refdb` et tests)
 

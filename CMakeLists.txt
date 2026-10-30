@@ -185,6 +185,14 @@ if(OMNIS_BUILD_VST3)
     )
     target_include_directories(OMNIS PRIVATE source)
     target_compile_features(OMNIS PRIVATE cxx_std_20)
+    # Windows : l'icône de dossier que le SDK ajoute (logo VST de Steinberg) est
+    # retirée du paquet : aucune image ni marque tierce livrée (test omnis_no_images).
+    if(WIN32)
+        get_target_property(OMNIS_PACKAGE_FOR_ICON OMNIS SMTG_PLUGIN_PACKAGE_PATH)
+        add_custom_command(TARGET OMNIS POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -DPACKAGE=${OMNIS_PACKAGE_FOR_ICON} -P ${CMAKE_SOURCE_DIR}/cmake/OmnisRemoveFolderIcon.cmake
+            COMMENT "[OMNIS] Paquet sans icône de dossier (logo VST)")
+    endif()
     # Pas d'omnis_compile_options ici : les en-têtes du SDK ne passent pas -Wshadow
     # / -Wnon-virtual-dtor. Le code DSP (omnis_core) reste compilé en strict.
     target_link_libraries(OMNIS PRIVATE omnis_core sdk)
