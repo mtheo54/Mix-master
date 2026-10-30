@@ -39,21 +39,45 @@ struct Artist {
     long long id = 0;
     std::string name, link, picture; ///< picture : la plus grande (picture_xl)
     long long fans = 0;
+    int albums = 0; ///< sorties (albums, EP, singles)
 };
 
 struct Track {
     long long id = 0;
     std::string title, link, artist, album, cover; ///< cover : la plus grande (cover_xl)
+    long long artistId = 0;
+    int durationS = 0;
+    std::string isrc;
+};
+
+/// Une sortie d'un artiste (/artist/{id}/albums).
+struct Album {
+    long long id = 0;
+    std::string title, type, date, link; ///< type : album, ep, single, compile
+};
+
+/// Une page de réponse : `next` = adresse de la page suivante (vide : fin).
+/// `quota` : Deezer demande d'attendre (trop de demandes) ; `error` : autre refus.
+struct Page {
+    std::string next;
+    bool quota = false;
+    std::string error;
 };
 
 /// Réponse de /search/artist ; vide si erreur ou rien trouvé.
 std::vector<Artist> parseArtists(const std::string& json);
-/// Réponse de /search/track.
-std::vector<Track> parseTracks(const std::string& json);
+/// Réponse de /search/track, ou des titres d'un album (/album/{id}/tracks).
+std::vector<Track> parseTracks(const std::string& json, Page* page = nullptr);
+/// /artist/{id}/albums.
+std::vector<Album> parseAlbums(const std::string& json, Page* page = nullptr);
+/// /artist/{id}/related (même forme que la recherche d'artistes).
+std::vector<Artist> parseArtistList(const std::string& json, Page* page = nullptr);
 
-/// L'artiste demandé parmi les résultats (nom tolérant aux fautes et accents ;
-/// à égalité, le plus suivi) ; nullptr si aucun ne correspond.
+/// L'artiste demandé parmi les résultats : même nom (accents, casse, espaces
+/// mis à part), sinon une lettre d'écart ; à égalité, le plus suivi. nullptr sinon.
 const Artist* pickArtist(const std::vector<Artist>& found, const std::string& name);
+/// Même nom d'artiste (casse, accents, espaces, « $ » mis à part).
+bool sameArtist(const std::string& a, const std::string& b);
 /// Le titre demandé de cet artiste (les « (feat. …) » ignorés si besoin).
 const Track* pickTrack(const std::vector<Track>& found, const std::string& artist, const std::string& title);
 
@@ -66,7 +90,27 @@ std::vector<std::string> trackSearchUrls(const std::string& artist, const std::s
 
 /// Une adresse sûre à passer à curl : https, caractères d'URL seulement.
 bool safeUrl(const std::string& url);
-/// Téléchargement par curl (présent sous Windows 10+, macOS, Linux).
-bool download(const std::string& url, const std::string& path, std::string& error);
+/// Téléchargements par curl (présent sous Windows 10+, macOS, Linux), dans un
+/// dossier cache : une adresse déjà là n'est pas redemandée (reprise après
+/// coupure). Plusieurs adresses passent par un seul curl (une connexion), en
+/// paquets qui respectent la limite de l'API (50 demandes / 5 s).
+class Fetcher {
+public:
+    explicit Fetcher(std::string cacheDir);
+    /// Le texte de chaque adresse (vide : échec). Réponses « quota » redemandées.
+    std::vector<std::string> getAll(const std::vector<std::string>& urls);
+    std::string get(const std::string& url) { return getAll({url}).front(); }
+    /// Un fichier (image) copié vers `path` (chemin quelconque, accents compris).
+    bool download(const std::string& url, const std::string& path, std::string& error);
+    [[nodiscard]] long long requests() const noexcept { return requests_; }
+    /// Ne pas garder les réponses (recherches : elles changent).
+    bool keep = true;
+
+private:
+    std::string cachedName(const std::string& url) const;
+    bool runCurl(const std::vector<std::string>& urls);
+    std::string dir_;
+    long long requests_ = 0;
+};
 
 } // namespace omnis::tools::deezer

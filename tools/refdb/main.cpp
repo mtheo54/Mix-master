@@ -32,6 +32,10 @@
 //                (API publique de Deezer, sans clé : photo de l'artiste, pochette
 //                et lien de chaque titre de la base ; « Image : Deezer » ;
 //                usage personnel, à ne pas livrer avec le plug-in vendu)
+//    omnis_refdb discographie playlist.csv [--artistes "euhZ|Gry"] [--proches 1] [--sortie dossier]
+//                (tous les titres de chaque artiste de la playlist et de --artistes,
+//                puis de leurs proches sur Deezer : artistes.tsv, titres.tsv,
+//                introuvables.txt ; reprend où il s'était arrêté grâce au cache)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
@@ -238,6 +242,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
                   "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
                   "  omnis_refdb deezer --artiste NOM [--titre T] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
+                  "  omnis_refdb discographie playlist.csv [--artistes \"a|b\"] [--proches 1] [--sortie dossier]   (tous les titres, et ceux des proches)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
         return 1;
@@ -253,7 +258,7 @@ int main(int argc, char** argv) {
         else if (a == "--alias" && i + 1 < argc) aliases = argv[++i];
         else if (a == "--credit" && i + 1 < argc) credit = argv[++i];
         else if (a == "--lien" && i + 1 < argc) link = argv[++i];
-        else if ((a == "--classes" || a == "--titres") && i + 1 < argc) ++i;
+        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--cache" || a == "--proches") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
     }
 
@@ -307,16 +312,13 @@ int main(int argc, char** argv) {
             return 1;
         }
         namespace dz = tools::deezer;
-        const auto tmp = std::filesystem::temp_directory_path() / "omnis_deezer.json";
+        dz::Fetcher net(utf8Path(std::filesystem::temp_directory_path() / "omnis_deezer"));
+        net.keep = false; // recherches : toujours fraîches
         const auto get = [&](const std::string& url, std::string& text) {
-            std::string error;
             std::fflush(stdout);
-            std::this_thread::sleep_for(std::chrono::milliseconds(200)); // l'API limite à 50 demandes / 5 s
-            if (!dz::download(url, utf8Path(tmp), error) || !readTextFile(utf8Path(tmp), text)) {
-                std::fprintf(stderr, "  %s\n", error.empty() ? "réponse illisible" : error.c_str());
-                return false;
-            }
-            return true;
+            text = net.get(url);
+            if (text.empty()) std::fprintf(stderr, "  pas de réponse de Deezer (internet ? curl ?) : %s\n", url.c_str());
+            return !text.empty();
         };
         std::string text;
         if (!get(dz::artistSearchUrl(artist), text)) return 1;
@@ -337,7 +339,7 @@ int main(int argc, char** argv) {
             if (url.empty()) return false;
             if (std::filesystem::exists(dir / file, ec)) return true; // déjà là (même album)
             std::fflush(stdout);
-            if (!dz::download(url, utf8Path(dir / file), error)) {
+            if (!net.download(url, utf8Path(dir / file), error)) {
                 std::fprintf(stderr, "  %s\n", error.c_str());
                 return false;
             }
@@ -388,10 +390,168 @@ int main(int argc, char** argv) {
             std::printf("  %-40s album « %s » %s\n", e.title.c_str(), t->album.c_str(), t->link.c_str());
         }
         for (auto& e : touched) user.add(e);
-        std::filesystem::remove(tmp, ec);
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%zu fiche(s) complétée(s), %d pochette(s), images dans %s\n", touched.size(), covers, utf8Path(dir).c_str());
         std::printf("Images Deezer : pour ton usage. Les livrer avec le plug-in vendu demande l'accord de Deezer et des labels.\n");
+        return 0;
+    }
+
+    if (command == "discographie") {
+        // Les artistes : ceux d'une playlist (export CSV, colonne « Artist Name(s) »,
+        // seuls les noms sont lus), ceux de --artistes, puis leurs proches (Deezer).
+        std::string wanted, outDir = "discographies", cacheDir;
+        int depth = 1;
+        for (int i = 2; i + 1 < argc; ++i) {
+            const std::string a = argv[i];
+            if (a == "--artistes") wanted = argv[i + 1];
+            else if (a == "--sortie") outDir = argv[i + 1];
+            else if (a == "--cache") cacheDir = argv[i + 1];
+            else if (a == "--proches") depth = std::clamp(std::atoi(argv[i + 1]), 0, 3);
+        }
+        std::vector<std::pair<std::string, std::string>> seeds; // nom, origine
+        const auto addSeed = [&](const std::string& name, const std::string& origin) {
+            if (name.empty()) return;
+            for (const auto& [n, o] : seeds)
+                if (ai::namesMatch(n, name)) return;
+            seeds.emplace_back(name, origin);
+        };
+        if (!input.empty()) {
+            std::ifstream in(std::filesystem::path(std::u8string(input.begin(), input.end())), std::ios::binary);
+            std::string line;
+            std::getline(in, line);
+            if (line.rfind("\xEF\xBB\xBF", 0) == 0) line.erase(0, 3);
+            const auto header = csvFields(line);
+            int cArtist = -1;
+            for (std::size_t i = 0; i < header.size(); ++i)
+                if (header[i] == "Artist Name(s)") cArtist = static_cast<int>(i);
+            if (cArtist < 0) {
+                std::fputs("discographie : colonne « Artist Name(s) » introuvable\n", stderr);
+                return 1;
+            }
+            while (std::getline(in, line)) {
+                const auto f = csvFields(line);
+                if (static_cast<int>(f.size()) <= cArtist) continue;
+                // Plusieurs artistes séparés par « ; » (« Tyler, The Creator » garde sa virgule).
+                std::size_t start = 0;
+                const std::string& cell = f[static_cast<std::size_t>(cArtist)];
+                for (std::size_t i = 0; i <= cell.size(); ++i)
+                    if (i == cell.size() || cell[i] == ';') {
+                        std::string n = cell.substr(start, i - start);
+                        while (!n.empty() && n.front() == ' ') n.erase(0, 1);
+                        while (!n.empty() && n.back() == ' ') n.pop_back();
+                        addSeed(n, "playlist");
+                        start = i + 1;
+                    }
+            }
+        }
+        for (const auto& n : list(wanted)) addSeed(n, "demandé");
+        if (seeds.empty()) {
+            std::fputs("discographie : playlist.csv et/ou --artistes \"a|b\" [--proches 1] [--sortie dossier]\n", stderr);
+            return 1;
+        }
+        namespace dz = tools::deezer;
+        namespace fs = std::filesystem;
+        if (cacheDir.empty()) cacheDir = utf8Path(fs::temp_directory_path() / "omnis_deezer");
+        dz::Fetcher net(cacheDir);
+        const fs::path out(std::u8string(outDir.begin(), outDir.end()));
+        std::error_code ec;
+        fs::create_directories(out, ec);
+        std::ofstream artistsOut(out / "artistes.tsv", std::ios::binary | std::ios::trunc);
+        std::ofstream tracksOut(out / "titres.tsv", std::ios::binary | std::ios::trunc);
+        std::ofstream missOut(out / "introuvables.txt", std::ios::binary | std::ios::trunc);
+        const auto cell = [](std::string v) {
+            for (char& c : v)
+                if (c == '\t' || c == '\n' || c == '\r') c = ' ';
+            return v;
+        };
+        artistsOut << "deezer_id\tartiste\tfans\tsorties\ttitres\torigine\tlien\n";
+        tracksOut << "artiste\ttitre\tinterprète\tsortie\ttype\tdate\tdurée_s\tisrc\tlien\n";
+        std::printf("%zu artiste(s) de départ ; cache %s\n", seeds.size(), cacheDir.c_str());
+
+        // 1. Les noms -> fiches Deezer (le plus suivi des homonymes ; les autres signalés).
+        struct Who {
+            dz::Artist a;
+            std::string origin;
+        };
+        std::vector<Who> todo;
+        std::map<long long, std::size_t> seen;
+        {
+            std::vector<std::string> urls;
+            for (const auto& [n, o] : seeds) urls.push_back(dz::artistSearchUrl(n));
+            const auto answers = net.getAll(urls);
+            for (std::size_t i = 0; i < seeds.size(); ++i) {
+                const auto found = dz::parseArtists(answers[i]);
+                const auto* a = dz::pickArtist(found, seeds[i].first);
+                if (!a) {
+                    missOut << seeds[i].first << "\tpas sur Deezer (ou nom différent)";
+                    for (std::size_t k = 0; k < std::min<std::size_t>(3, found.size()); ++k) missOut << (k ? ", " : " ; proposés : ") << found[k].name;
+                    missOut << "\n";
+                    continue;
+                }
+                if (seen.emplace(a->id, todo.size()).second) todo.push_back({*a, seeds[i].second});
+                // Homonymes : pour un petit artiste, Deezer coupe souvent son œuvre en
+                // plusieurs fiches (ou la mêle à d'autres) : toutes gardées, à vérifier.
+                // Pour un artiste connu, les homonymes sont d'autres gens : écartés.
+                for (const auto& other : found) {
+                    if (other.id == a->id || !dz::sameArtist(other.name, seeds[i].first)) continue;
+                    const bool small = a->fans < 5000;
+                    missOut << seeds[i].first << (small ? "\thomonyme gardé (à vérifier) : " : "\thomonyme écarté : ") << other.name << " ("
+                            << other.fans << " fans) " << other.link << "\n";
+                    if (small && seen.emplace(other.id, todo.size()).second)
+                        todo.push_back({other, seeds[i].second + ", homonyme à vérifier"});
+                }
+            }
+        }
+        // 2. Les proches (Deezer : 20 par artiste), sur `depth` niveaux.
+        std::size_t levelStart = 0;
+        for (int level = 0; level < depth; ++level) {
+            const std::size_t levelEnd = todo.size();
+            std::vector<std::string> urls;
+            for (std::size_t i = levelStart; i < levelEnd; ++i) urls.push_back("https://api.deezer.com/artist/" + std::to_string(todo[i].a.id) + "/related?limit=50");
+            const auto answers = net.getAll(urls);
+            for (std::size_t i = levelStart; i < levelEnd; ++i)
+                for (const auto& r : dz::parseArtistList(answers[i - levelStart]))
+                    if (seen.emplace(r.id, todo.size()).second) todo.push_back({r, "proche de " + todo[i].a.name});
+            levelStart = levelEnd;
+        }
+        std::printf("%zu artiste(s) avec les proches\n", todo.size());
+
+        // 3. Toutes les sorties de chaque artiste, puis tous leurs titres.
+        long long totalTracks = 0;
+        for (std::size_t n = 0; n < todo.size(); ++n) {
+            const auto& who = todo[n];
+            std::vector<dz::Album> albums;
+            for (std::string url = "https://api.deezer.com/artist/" + std::to_string(who.a.id) + "/albums?limit=100"; !url.empty();) {
+                dz::Page page;
+                const auto part = dz::parseAlbums(net.get(url), &page);
+                albums.insert(albums.end(), part.begin(), part.end());
+                url = dz::safeUrl(page.next) ? page.next : std::string();
+            }
+            // Du plus ancien au plus récent : un titre repris (single puis album) garde sa première sortie.
+            std::stable_sort(albums.begin(), albums.end(), [](const auto& x, const auto& y) { return x.date < y.date; });
+            std::vector<std::string> urls;
+            for (const auto& al : albums) urls.push_back("https://api.deezer.com/album/" + std::to_string(al.id) + "/tracks?limit=200");
+            const auto answers = net.getAll(urls);
+            std::map<std::string, bool> kept; // titre normalisé
+            int count = 0;
+            for (std::size_t k = 0; k < albums.size(); ++k) {
+                for (const auto& t : dz::parseTracks(answers[k])) {
+                    if (!kept.emplace(slug(t.title), true).second) continue;
+                    tracksOut << cell(who.a.name) << '\t' << cell(t.title) << '\t' << cell(t.artist) << '\t' << cell(albums[k].title) << '\t'
+                              << albums[k].type << '\t' << albums[k].date << '\t' << t.durationS << '\t' << t.isrc << '\t' << t.link << '\n';
+                    ++count;
+                }
+            }
+            totalTracks += count;
+            artistsOut << who.a.id << '\t' << cell(who.a.name) << '\t' << who.a.fans << '\t' << albums.size() << '\t' << count << '\t'
+                       << cell(who.origin) << '\t' << who.a.link << '\n';
+            artistsOut.flush();
+            tracksOut.flush();
+            std::printf("  [%zu/%zu] %-28s %4zu sorties %5d titres  (%s)\n", n + 1, todo.size(), who.a.name.c_str(), albums.size(), count,
+                        who.origin.c_str());
+            std::fflush(stdout);
+        }
+        std::printf("%zu artistes, %lld titres -> %s (%lld demandes à Deezer)\n", todo.size(), totalTracks, utf8Path(out).c_str(), net.requests());
         return 0;
     }
 

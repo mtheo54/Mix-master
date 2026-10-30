@@ -10,7 +10,12 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <chrono>
+#include <cstdint>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <thread>
 
 namespace omnis::tools::deezer {
 
@@ -183,10 +188,31 @@ bool parseJson(const std::string& text, Json& out) {
     return r.value(out) && r.end();
 }
 
-std::vector<Artist> parseArtists(const std::string& text) {
+namespace {
+
+/// Chemin depuis de l'UTF-8 (accents compris, sous Windows aussi).
+std::filesystem::path pathOf(const std::string& utf8) { return std::filesystem::path(std::u8string(utf8.begin(), utf8.end())); }
+
+/// Lit la réponse ; renseigne la page (suivante, quota, erreur).
+bool open(const std::string& text, Json& j, Page* page) {
+    const bool ok = parseJson(text, j);
+    if (page) {
+        *page = Page{};
+        if (!ok) page->error = text.empty() ? "pas de réponse" : "réponse illisible";
+        else if (j["error"].type == Json::Type::Object) {
+            page->quota = static_cast<int>(j["error"].num("code")) == 4;
+            page->error = j["error"].str("message");
+        } else page->next = j.str("next");
+    }
+    return ok;
+}
+
+} // namespace
+
+std::vector<Artist> parseArtistList(const std::string& text, Page* page) {
     Json j;
     std::vector<Artist> out;
-    if (!parseJson(text, j)) return out;
+    if (!open(text, j, page)) return out;
     for (const auto& a : j["data"].array) {
         Artist x;
         x.id = static_cast<long long>(a.num("id"));
@@ -194,34 +220,105 @@ std::vector<Artist> parseArtists(const std::string& text) {
         x.link = a.str("link");
         x.picture = a.str("picture_xl").empty() ? a.str("picture_big") : a.str("picture_xl");
         x.fans = static_cast<long long>(a.num("nb_fan"));
+        x.albums = static_cast<int>(a.num("nb_album"));
         if (!x.name.empty()) out.push_back(std::move(x));
     }
     return out;
 }
 
-std::vector<Track> parseTracks(const std::string& text) {
+std::vector<Artist> parseArtists(const std::string& text) { return parseArtistList(text, nullptr); }
+
+std::vector<Track> parseTracks(const std::string& text, Page* page) {
     Json j;
     std::vector<Track> out;
-    if (!parseJson(text, j)) return out;
+    if (!open(text, j, page)) return out;
     for (const auto& t : j["data"].array) {
         Track x;
         x.id = static_cast<long long>(t.num("id"));
         x.title = t.str("title");
         x.link = t.str("link");
         x.artist = t["artist"].str("name");
+        x.artistId = static_cast<long long>(t["artist"].num("id"));
         x.album = t["album"].str("title");
         x.cover = t["album"].str("cover_xl").empty() ? t["album"].str("cover_big") : t["album"].str("cover_xl");
+        x.durationS = static_cast<int>(t.num("duration"));
+        x.isrc = t.str("isrc");
         if (!x.title.empty()) out.push_back(std::move(x));
     }
     return out;
 }
 
+std::vector<Album> parseAlbums(const std::string& text, Page* page) {
+    Json j;
+    std::vector<Album> out;
+    if (!open(text, j, page)) return out;
+    for (const auto& a : j["data"].array) {
+        Album x;
+        x.id = static_cast<long long>(a.num("id"));
+        x.title = a.str("title");
+        x.type = a.str("record_type");
+        x.date = a.str("release_date");
+        x.link = a.str("link");
+        if (x.id != 0) out.push_back(std::move(x));
+    }
+    return out;
+}
+
+namespace {
+
+/// Nom réduit : minuscules, sans accents (latin), lettres et chiffres seulement.
+std::string key(const std::string& text) {
+    static const char* const kLatin = "aaaaaaaceeeeiiiidnooooo ouuuuytsaaaaaaaceeeeiiiidnooooo ouuuuyty";
+    std::string out;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        auto c = static_cast<unsigned char>(text[i]);
+        if (c == 0xC3 && i + 1 < text.size() && static_cast<unsigned char>(text[i + 1]) >= 0x80 &&
+            static_cast<unsigned char>(text[i + 1]) <= 0xBF)
+            c = static_cast<unsigned char>(kLatin[static_cast<unsigned char>(text[++i]) - 0x80]);
+        if (c == '$') c = 's'; // A$AP = ASAP
+        if (c < 0x80 && std::isalnum(c)) out += static_cast<char>(std::tolower(c));
+    }
+    return out;
+}
+
+/// Au plus une lettre changée, ajoutée ou enlevée.
+bool oneEdit(const std::string& a, const std::string& b) {
+    if (a == b) return true;
+    const std::size_t n = a.size(), m = b.size();
+    if (n + 1 < m || m + 1 < n) return false;
+    std::size_t i = 0, j = 0;
+    bool used = false;
+    while (i < n && j < m) {
+        if (a[i] == b[j]) {
+            ++i, ++j;
+            continue;
+        }
+        if (used) return false;
+        used = true;
+        if (n > m) ++i;
+        else if (m > n) ++j;
+        else ++i, ++j;
+    }
+    return !(used && (i < n || j < m));
+}
+
+} // namespace
+
 const Artist* pickArtist(const std::vector<Artist>& found, const std::string& name) {
+    // Le même nom (accents, casse, espaces, « $ » mis à part), sinon une seule lettre
+    // d'écart pour un nom assez long : « omyll » ne devient pas « Omellette ».
+    const std::string wanted = key(name);
     const Artist* best = nullptr;
-    for (const auto& a : found)
-        if (ai::namesMatch(a.name, name) && (!best || a.fans > best->fans)) best = &a;
+    for (int pass = 0; pass < 2 && !best; ++pass)
+        for (const auto& a : found) {
+            const std::string k = key(a.name);
+            const bool same = pass == 0 ? k == wanted : wanted.size() >= 5 && oneEdit(k, wanted);
+            if (!wanted.empty() && same && (!best || a.fans > best->fans)) best = &a;
+        }
     return best;
 }
+
+bool sameArtist(const std::string& a, const std::string& b) { return !key(a).empty() && key(a) == key(b); }
 
 const Track* pickTrack(const std::vector<Track>& found, const std::string& artist, const std::string& title) {
     for (const auto& t : found)
@@ -256,28 +353,112 @@ bool safeUrl(const std::string& url) {
     });
 }
 
-bool download(const std::string& url, const std::string& path, std::string& error) {
+Fetcher::Fetcher(std::string cacheDir) : dir_(std::move(cacheDir)) {
+    std::error_code ec;
+    std::filesystem::create_directories(pathOf(dir_), ec);
+}
+
+std::string Fetcher::cachedName(const std::string& url) const {
+    // Nom ASCII tiré de l'adresse (FNV-1a 64 bits) : curl n'a jamais à écrire un
+    // chemin accentué (Windows lui passe la ligne de commande dans sa page de code).
+    std::uint64_t h = 1469598103934665603ull;
+    for (unsigned char c : url) h = (h ^ c) * 1099511628211ull;
+    char b[24];
+    std::snprintf(b, sizeof b, "%016llx", static_cast<unsigned long long>(h));
+    return b;
+}
+
+bool Fetcher::runCurl(const std::vector<std::string>& urls) {
+    // Une liste d'adresses et de fichiers (relatifs au cache) : un seul curl,
+    // une seule connexion. curl est lancé depuis le dossier cache.
+    const auto dir = pathOf(dir_);
+    {
+        std::ofstream cfg(dir / "requetes.cfg", std::ios::binary | std::ios::trunc);
+        for (const auto& url : urls) cfg << "url = \"" << url << "\"\noutput = \"" << cachedName(url) << ".part\"\n";
+    }
+    std::error_code ec;
+    const auto back = std::filesystem::current_path(ec);
+    std::filesystem::current_path(dir, ec);
+    if (ec) return false;
+#if defined(_WIN32)
+    const int rc = std::system("curl.exe -sSL --max-time 30 -K requetes.cfg 2>NUL");
+#else
+    const int rc = std::system("curl -sSL --max-time 30 -K requetes.cfg 2>/dev/null");
+#endif
+    std::filesystem::current_path(back, ec);
+    requests_ += static_cast<long long>(urls.size());
+    return rc == 0;
+}
+
+std::vector<std::string> Fetcher::getAll(const std::vector<std::string>& urls) {
+    namespace fs = std::filesystem;
+    const auto dir = pathOf(dir_);
+    std::vector<std::string> out(urls.size());
+    const auto readFile = [](const fs::path& p) {
+        std::ifstream in(p, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+    };
+    const auto quota = [](const std::string& t) { return t.find("\"error\"") != std::string::npos && t.find("\"code\":4") != std::string::npos; };
+    std::vector<std::size_t> missing;
+    for (std::size_t i = 0; i < urls.size(); ++i) {
+        if (!safeUrl(urls[i])) continue;
+        std::error_code ec;
+        const auto cached = dir / (cachedName(urls[i]) + ".json");
+        if (keep && fs::exists(cached, ec)) out[i] = readFile(cached);
+        else missing.push_back(i);
+    }
+    // Paquets de 40 au plus, un paquet toutes les 5 s au mieux : sous la limite de l'API.
+    for (int attempt = 0; attempt < 6 && !missing.empty(); ++attempt) {
+        std::vector<std::size_t> again;
+        for (std::size_t start = 0; start < missing.size(); start += 40) {
+            const auto t0 = std::chrono::steady_clock::now();
+            std::vector<std::string> batch;
+            const std::size_t end = std::min(missing.size(), start + 40);
+            for (std::size_t k = start; k < end; ++k) batch.push_back(urls[missing[k]]);
+            runCurl(batch);
+            for (std::size_t k = start; k < end; ++k) {
+                const auto i = missing[k];
+                std::error_code ec;
+                const auto part = dir / (cachedName(urls[i]) + ".part");
+                std::string text = fs::exists(part, ec) ? readFile(part) : std::string();
+                fs::remove(part, ec);
+                if (text.empty() || quota(text)) {
+                    again.push_back(i);
+                    continue;
+                }
+                out[i] = text;
+                if (keep && text.find("\"error\"") == std::string::npos) {
+                    std::ofstream(dir / (cachedName(urls[i]) + ".json"), std::ios::binary) << text;
+                }
+            }
+            const auto spent = std::chrono::steady_clock::now() - t0;
+            if (end - start >= 10 && spent < std::chrono::milliseconds(5000)) std::this_thread::sleep_for(std::chrono::milliseconds(5000) - spent);
+        }
+        missing.swap(again);
+        if (!missing.empty()) std::this_thread::sleep_for(std::chrono::seconds(5 + 5 * attempt)); // quota : attendre
+    }
+    return out;
+}
+
+bool Fetcher::download(const std::string& url, const std::string& path, std::string& error) {
     if (!safeUrl(url)) {
         error = "adresse refusée : " + url;
         return false;
     }
-    // Le chemin est entre guillemets ; il ne doit pas en contenir.
-    if (path.find('"') != std::string::npos) {
-        error = "chemin refusé : " + path;
-        return false;
-    }
-#if defined(_WIN32)
-    const std::string command = "curl.exe -fsSL --max-time 30 -o \"" + path + "\" \"" + url + "\" 2>NUL";
-#else
-    const std::string command = "curl -fsSL --max-time 30 -o \"" + path + "\" \"" + url + "\" 2>/dev/null";
-#endif
-    if (std::system(command.c_str()) != 0) {
-        std::error_code ec;
-        std::filesystem::remove(path, ec);
+    namespace fs = std::filesystem;
+    const auto dir = pathOf(dir_);
+    runCurl({url});
+    std::error_code ec;
+    const auto part = dir / (cachedName(url) + ".part");
+    if (!fs::exists(part, ec) || fs::file_size(part, ec) == 0) {
+        fs::remove(part, ec);
         error = "téléchargement impossible (internet ? curl ?) : " + url;
         return false;
     }
-    return true;
+    fs::copy_file(part, pathOf(path), fs::copy_options::overwrite_existing, ec);
+    fs::remove(part, ec);
+    if (ec) error = "copie impossible : " + path;
+    return !ec;
 }
 
 } // namespace omnis::tools::deezer

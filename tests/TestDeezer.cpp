@@ -44,6 +44,12 @@ OMNIS_TEST("deezer: le bon artiste (accents, fautes) et le bon titre (feat. igno
     OMNIS_CHECK(a && a->id == 12 && a->name == "La F\xC3\xA8ve" && a->picture == "https://cdn.example/a12.jpg");
     OMNIS_CHECK(artists[2].picture == "https://cdn.example/a13.jpg"); // picture_big si pas de picture_xl
     OMNIS_CHECK(pickArtist(artists, "Booba") == nullptr);
+    // Pas de rapprochement trop large : « omyll » n'est pas « Omellette » ; une faute oui.
+    const std::vector<Artist> near{{1, "Omellette", "", "", 12, 9}, {2, "Omelly", "", "", 177, 11}, {3, "Destroy Lonely", "", "", 5, 1}};
+    OMNIS_CHECK(pickArtist(near, "omyll") == nullptr);
+    OMNIS_CHECK(pickArtist(near, "Destroy Lonley") == nullptr || pickArtist(near, "Destroy Lonley")->id == 3);
+    OMNIS_CHECK(pickArtist(near, "Destroy Lonelly") && pickArtist(near, "Destroy Lonelly")->id == 3);
+    OMNIS_CHECK(sameArtist("A$AP Rocky", "ASAP ROCKY") && sameArtist("La Fève", "la feve") && !sameArtist("GRY", "Gryffin"));
     const auto tracks = parseTracks(kTracks);
     OMNIS_CHECK(tracks.size() == 3 && tracks[1].album == "Album B");
     const auto* t = pickTrack(tracks, "La Fève", "Mon titre");

@@ -46,6 +46,29 @@ absent de la base y entre en fiche de nom : ses images et son lien seront gardé
 son sera mesuré. Seul l'outil va sur internet : le plug-in reste hors ligne, il ne lit que
 les fichiers.
 
+**Toute la discographie, et celle des proches** :
+
+```
+omnis_refdb discographie playlist.csv --artistes "euhZ|Gry" --proches 1 --sortie discographies
+```
+
+- Les artistes : ceux de la playlist (export CSV : seule la colonne « Artist Name(s) » est
+  lue, plusieurs artistes séparés par « ; ») et ceux de `--artistes`.
+- `--proches 1` ajoute les artistes proches selon Deezer (20 par artiste, connus ou non ;
+  `--proches 2` : les proches des proches).
+- Pour chacun : toutes ses sorties (albums, EP, singles) et tous leurs titres, un titre repris
+  gardé une fois (sa première sortie).
+- Résultat : `artistes.tsv` (fans, sorties, titres, d'où il vient), `titres.tsv` (artiste,
+  titre, interprète, sortie, type, date, durée, ISRC, lien), `introuvables.txt` (pas sur
+  Deezer, homonymes). Fichiers texte à ouvrir dans Excel / LibreOffice.
+- Nom trouvé seulement s'il est le même (accents, casse, espaces mis à part) ou à une lettre
+  près : « omyll » ne devient pas « Omellette ». Un petit artiste a parfois plusieurs fiches
+  Deezer du même nom : toutes gardées, marquées « homonyme à vérifier ».
+- Long (la limite de Deezer est 50 demandes / 5 s) mais reprend où il s'était arrêté : les
+  réponses sont gardées dans un cache (`--cache dossier`, par défaut le dossier temporaire).
+- Ne contient que des noms et des liens, jamais d'audio. Les titres d'artistes absents de
+  Deezer (SoundCloud seulement…) n'y sont pas.
+
 **Rester réglo :**
 - **Photo d'artiste** : seulement une photo sous licence libre (Wikimedia Commons : CC BY,
   CC BY-SA, CC0), avec l'auteur et la licence dans `image_credit`. OMNIS l'affiche toujours
