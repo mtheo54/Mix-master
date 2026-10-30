@@ -690,7 +690,9 @@ int main(int argc, char** argv) {
                 return true;
             };
             // Petit artiste de départ, ou collaborateur proche : on suit ses collaborations.
-            const bool scene = who.a.fans < 5000 && (n < seedCount || who.hops > 0) && who.hops < 2;
+            // Seulement autour des artistes donnés à la main (une playlist entière ferait
+            // des milliers d'artistes : ses proches Deezer suffisent).
+            const bool scene = who.a.fans < 5000 && ((n < seedCount && who.origin.rfind("demandé", 0) == 0) || who.hops > 0) && who.hops < 2;
             std::vector<long long> ownTracks;
             for (std::size_t k = 0; k < albums.size(); ++k) {
                 for (const auto& t : dz::parseTracks(answers[k])) {
