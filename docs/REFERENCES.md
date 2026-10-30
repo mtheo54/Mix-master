@@ -69,6 +69,20 @@ omnis_refdb discographie playlist.csv --artistes "euhZ|Gry" --proches 1 --sortie
 - Ne contient que des noms et des liens, jamais d'audio. Les titres d'artistes absents de
   Deezer (SoundCloud seulement…) n'y sont pas.
 
+**En cartoon** : chaque photo et chaque pochette redessinée d'après l'image elle-même (sans IA,
+en local, ~1 s par image) : lissage qui garde les bords, ombrage en aplats (chaque zone garde sa
+couleur, un peu plus vive), trait noir sur les contours.
+
+```
+omnis_refdb cartoon photo.jpg --sortie dessin.png      (une image, pour essayer)
+omnis_refdb cartoon --db references_utilisateur.txt     (toutes les images de la base)
+```
+
+Toute la base : « x.jpg » -> « x_cartoon.png » dans `images/`, les fiches pointent sur le cartoon,
+la source reste dite (« Image : Deezer (redessinée en cartoon) ») ; les originaux restent sur le
+disque. Relancer ne refait que ce qui manque. Le cartoon reste **tiré** de la photo ou de la
+pochette : mêmes droits que l'image de départ (ci-dessous).
+
 **Rester réglo :**
 - **Photo d'artiste** : seulement une photo sous licence libre (Wikimedia Commons : CC BY,
   CC BY-SA, CC0), avec l'auteur et la licence dans `image_credit`. OMNIS l'affiche toujours

@@ -236,12 +236,21 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         target_compile_options(omnis_dr_libs PRIVATE -w)
     endif()
 
+    # Images (JPG / PNG) pour les cartoons de l'outil de références (domaine public).
+    add_library(omnis_stb STATIC third_party/stb/stb_impl.cpp)
+    target_include_directories(omnis_stb PUBLIC third_party/stb)
+    if(NOT MSVC)
+        target_compile_options(omnis_stb PRIVATE -w)
+    endif()
+
     add_library(omnis_tools_common STATIC
         tools/common/AiFiles.h
         tools/common/AnalysisReport.cpp
         tools/common/AudioRead.cpp
         tools/common/AudioRead.h
         tools/common/AnalysisReport.h
+        tools/common/Cartoon.cpp
+        tools/common/Cartoon.h
         tools/common/Deezer.cpp
         tools/common/Deezer.h
         tools/common/DistortionAnalysis.cpp
@@ -256,7 +265,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/WavFile.h
     )
     target_include_directories(omnis_tools_common PUBLIC tools/common)
-    target_link_libraries(omnis_tools_common PUBLIC omnis_core PRIVATE omnis_dr_libs omnis_compile_options)
+    target_link_libraries(omnis_tools_common PUBLIC omnis_core PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
@@ -294,6 +303,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestDrumBus.cpp
         tests/TestMusic.cpp
         tests/TestDeezer.cpp
+        tests/TestCartoon.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp

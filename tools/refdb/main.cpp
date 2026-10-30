@@ -37,11 +37,15 @@
 //                (tous les titres de chaque artiste de la playlist et de --artistes,
 //                puis de leurs proches sur Deezer : artistes.tsv, titres.tsv,
 //                introuvables.txt ; reprend où il s'était arrêté grâce au cache)
+//    omnis_refdb cartoon photo.jpg [--sortie dessin.png]   |   omnis_refdb cartoon --db base.txt
+//                (l'image redessinée en cartoon : aplats, couleurs franches, trait noir ;
+//                toute la base : photos et pochettes de images/, les fiches pointent dessus)
 //    omnis_refdb list [--db base.txt]
 //    omnis_refdb find "2 holis" [--db base.txt]
 // =============================================================================
 #include "AudioRead.h"
 #include "AiFiles.h"
+#include "Cartoon.h"
 #include "Deezer.h"
 #include "AudioRead.h"
 #include "WavFile.h"
@@ -244,6 +248,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
                   "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
                   "  omnis_refdb deezer --artiste NOM [--titre T] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
+                  "  omnis_refdb cartoon image.jpg [--sortie dessin.png] | cartoon --db base.txt   (images redessinées en cartoon)\n"
                   "  omnis_refdb discographie playlist.csv [--artistes \"a|b\"] [--proches 1] [--sortie dossier]   (tous les titres, et ceux des proches)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
@@ -398,6 +403,71 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    if (command == "cartoon") {
+        // Une image : omnis_refdb cartoon photo.jpg [--sortie cartoon.png]
+        // Toute la base : omnis_refdb cartoon --db base.txt (photos et pochettes du
+        // dossier images/ ; « x.jpg » -> « x_cartoon.png », la fiche pointe dessus).
+        std::string outFile;
+        for (int i = 2; i + 1 < argc; ++i)
+            if (std::string(argv[i]) == "--sortie") outFile = argv[i + 1];
+        const auto convert = [](const std::string& from, const std::string& to) {
+            RgbImage image;
+            std::string error;
+            if (!loadImage(from, image, error)) {
+                std::fprintf(stderr, "  %s\n", error.c_str());
+                return false;
+            }
+            if (!savePng(to, cartoonize(image), error)) {
+                std::fprintf(stderr, "  %s\n", error.c_str());
+                return false;
+            }
+            return true;
+        };
+        if (!input.empty()) {
+            if (outFile.empty()) outFile = utf8Path(std::filesystem::path(std::u8string(input.begin(), input.end())).replace_extension()) + "_cartoon.png";
+            if (!convert(input, outFile)) return 1;
+            std::printf("cartoon -> %s\n", outFile.c_str());
+            return 0;
+        }
+        if (db.empty()) {
+            std::fputs("cartoon : une image, ou --db base.txt pour toutes les images de la base\n", stderr);
+            return 1;
+        }
+        const auto dir = userDataDir() / "images";
+        auto user = openDb(db);
+        std::map<std::string, std::string> done; // image -> son cartoon
+        const auto cartoonOf = [&](const std::string& file) -> std::string {
+            if (file.empty() || file.find("_cartoon.png") != std::string::npos) return file;
+            if (const auto it = done.find(file); it != done.end()) return it->second;
+            const auto source = dir / std::filesystem::path(std::u8string(file.begin(), file.end()));
+            std::string target = utf8Path(std::filesystem::path(source).replace_extension());
+            target += "_cartoon.png";
+            const std::string name = utf8Path(std::filesystem::path(std::u8string(target.begin(), target.end())).filename());
+            std::error_code ec;
+            const bool ok = std::filesystem::exists(std::filesystem::path(std::u8string(target.begin(), target.end())), ec) || convert(utf8Path(source), target);
+            if (ok) std::printf("  %s -> %s\n", file.c_str(), name.c_str());
+            return done[file] = ok ? name : file;
+        };
+        int changed = 0;
+        std::vector<ai::ReferenceEntry> updated;
+        for (const auto& e : user.entries()) {
+            auto copy = e;
+            copy.image = cartoonOf(e.image);
+            copy.cover = cartoonOf(e.cover);
+            if (copy.image != e.image || copy.cover != e.cover) {
+                // La source reste dite : c'est un dessin tiré de cette image.
+                if (copy.image != e.image && !copy.imageCredit.empty()) copy.imageCredit += " (redessinée en cartoon)";
+                if (copy.cover != e.cover && !copy.coverCredit.empty()) copy.coverCredit += " (redessinée en cartoon)";
+                updated.push_back(copy);
+                ++changed;
+            }
+        }
+        for (auto& e : updated) user.add(e);
+        if (!writeTextFile(db, user.serialize())) return 1;
+        std::printf("%zu image(s) redessinée(s), %d fiche(s) mises à jour\n", done.size(), changed);
+        return 0;
+    }
+
     if (command == "discographie") {
         // Les artistes : ceux d'une playlist (export CSV, colonne « Artist Name(s) »,
         // seuls les noms sont lus), ceux de --artistes, puis leurs proches (Deezer).
@@ -494,11 +564,11 @@ int main(int argc, char** argv) {
         // Un artiste par les crédits d'un titre : ceux que la recherche d'artistes
         // ne remonte pas (« Omyll », crédité sur MALADEUX de mïrï), ou le bon homonyme.
         std::string creditAlbum; // sortie du titre trouvé par byCredits
-        const auto byCredits = [&](const std::string& name, const std::string& title) -> dz::Artist {
-            const auto found = dz::parseTracks(net.get("https://api.deezer.com/search/track?q=" + dz::urlEncode(name + (title.empty() ? "" : " " + title)) + "&limit=25"));
+        const auto byCredits = [&](const std::string& name, const std::string& known) -> dz::Artist {
+            const auto found = dz::parseTracks(net.get("https://api.deezer.com/search/track?q=" + dz::urlEncode(name + (known.empty() ? "" : " " + known)) + "&limit=25"));
             std::vector<std::string> urls;
             for (const auto& t : found)
-                if (urls.size() < 10 && (title.empty() || ai::namesMatch(t.title, title) || ai::namesMatch(dz::bareTitle(t.title), title)))
+                if (urls.size() < 10 && (known.empty() || ai::namesMatch(t.title, known) || ai::namesMatch(dz::bareTitle(t.title), known)))
                     urls.push_back("https://api.deezer.com/track/" + std::to_string(t.id));
             for (const auto& text : net.getAll(urls)) {
                 const auto detail = dz::parseTrackDetail(text);
@@ -545,7 +615,9 @@ int main(int argc, char** argv) {
                 // les homonymes sont d'autres gens : écartés.
                 for (const auto& other : found) {
                     if (other.id == a->id || !dz::sameArtist(other.name, name)) continue;
-                    const bool small = a->fans < 5000;
+                    // Gardés seulement pour un nom donné à la main (« demandé ») : ceux d'une
+                    // playlist sont presque toujours d'autres gens (« Azure », « gio »…).
+                    const bool small = a->fans < 5000 && origin == "demandé";
                     missOut << name << (small ? "\thomonyme gardé (à vérifier ; « " + name + "=titre » pour choisir) : " : "\thomonyme écarté : ")
                             << other.name << " (" << other.fans << " fans) " << other.link << "\n";
                     if (small && seen.emplace(other.id, todo.size()).second) todo.push_back({other, origin + ", homonyme à vérifier", {}});
@@ -612,9 +684,9 @@ int main(int argc, char** argv) {
             const auto answers = net.getAll(urls);
             std::map<std::string, bool> kept; // titre normalisé
             int count = 0;
-            const auto removed = [&](const std::string& title) {
-                if (!removals.count(slug(who.a.name) + "|" + slug(title))) return false;
-                missOut << who.a.name << "\tretiré (pas de lui) : " << title << "\n";
+            const auto removed = [&](const std::string& name) {
+                if (!removals.count(slug(who.a.name) + "|" + slug(name))) return false;
+                missOut << who.a.name << "\tretiré (pas de lui) : " << name << "\n";
                 return true;
             };
             // Petit artiste de départ, ou collaborateur proche : on suit ses collaborations.
