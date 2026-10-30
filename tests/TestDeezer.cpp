@@ -25,11 +25,15 @@ const char* kTracks = R"json({"data":[
   {"id":23,"title":"Mon titre","link":"https:\/\/www.deezer.com\/track\/23","artist":{"id":99,"name":"Quelqu'un d'autre"},"album":{"id":33,"title":"X","cover_xl":"https:\/\/cdn.example\/c33.jpg"}}
 ]})json";
 
+// Hors des macros de test : MSVC lit mal une chaîne brute (R"(…)") passée à une macro.
+const char* kEscapes = R"json({"a":[1,-2.5e1,true,null,{"b":"x\"y\\z\/\u00e9\ud83d\ude00"}]})json";
+const char* kQuota = R"json({"error":{"type":"Exception","message":"Quota limit exceeded","code":4}})json";
+
 } // namespace
 
 OMNIS_TEST("deezer: lecteur JSON (échappements, unicode, imbrication)") {
     Json j;
-    OMNIS_CHECK(parseJson(R"({"a":[1,-2.5e1,true,null,{"b":"x\"y\\z\/é😀"}]})", j));
+    OMNIS_CHECK(parseJson(kEscapes, j));
     OMNIS_CHECK(j["a"].array.size() == 5 && j["a"].array[1].number == -25.0 && j["a"].array[2].boolean);
     OMNIS_CHECK(j["a"].array[4].str("b") == "x\"y\\z/\xC3\xA9\xF0\x9F\x98\x80");
     OMNIS_CHECK(j["absent"]["encore"].string.empty());
@@ -55,7 +59,7 @@ OMNIS_TEST("deezer: le bon artiste (accents, fautes) et le bon titre (feat. igno
     const auto* t = pickTrack(tracks, "La Fève", "Mon titre");
     OMNIS_CHECK(t && t->id == 22 && t->cover == "https://cdn.example/c32.jpg" && t->link == "https://www.deezer.com/track/22");
     OMNIS_CHECK(pickTrack(tracks, "La Fève", "Inconnu") == nullptr);
-    OMNIS_CHECK(parseArtists(R"({"error":{"type":"Exception","message":"Quota limit exceeded","code":4}})").empty());
+    OMNIS_CHECK(parseArtists(kQuota).empty());
 }
 
 OMNIS_TEST("deezer: adresses de recherche encodées, adresses refusées avant curl") {
