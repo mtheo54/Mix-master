@@ -175,3 +175,20 @@ Retours d'écoute (24/10, prod 808 / basse / 2 drums / mélo) : Auto jugé bien 
 - Appliquer la référence écoutée depuis le plug-in : le contrôleur calcule l'intention et écrit
   les paramètres `match_*` / `mb_*` via performEdit. Ça demande l'interface (module 6), pour
   saisir la demande et nommer la référence.
+
+## Le VPS de données (prévu par l'utilisateur, 30/10)
+
+Pas d'audio. Il garde ce qu'OMNIS apprend et ce qu'on mesure :
+- `references/` : la base des signatures (`references.txt` et suivants), qui peut grandir
+  sans alourdir le dépôt du code (91 titres = 48 Ko, ~0,5 Ko par titre : 10 000 titres ≈ 5 Mo) ;
+- `bancs/` : les résultats des bancs d'essai (OMNIS / Ozone, distorsion, true peak, sonie)
+  et des tests, datés, pour suivre chaque version ;
+- `retours/` : les retours d'écoute et les exports anonymes d'apprentissage
+  (docs/APPRENTISSAGE.md), pour améliorer le lexique et les cibles ;
+- `journal/` : les informations générales sur le plug-in (versions livrées, ce qui a été
+  testé dans quel DAW).
+Un dépôt Git privé à part (ex. `omnis-data`) sur le VPS : historique de chaque changement,
+et accès par Remote Control (dossier racine d'un dépôt Git). Au moment d'une version, la base
+de références est recopiée dans `data/` et embarquée dans le plug-in, qui reste 100 % hors
+ligne. Accès : Remote Control sur le VPS (de préférence) ou clé SSH en secret de
+l'environnement — jamais de clé collée dans la conversation.
