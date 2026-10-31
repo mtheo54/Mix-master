@@ -37,11 +37,14 @@
 //                (tous les titres de chaque artiste de la playlist et de --artistes,
 //                puis de leurs proches sur Deezer : artistes.tsv, titres.tsv,
 //                introuvables.txt ; reprend où il s'était arrêté grâce au cache)
-//    omnis_refdb cartoon photo.jpg [--sortie illustration.png]   |   omnis_refdb cartoon --db base.txt
-//                (illustration peinte OMNIS, gfx/OmnisAvatarStylizer ; --db : anciennes
+//    omnis_refdb embleme photo.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png]
+//    omnis_refdb embleme --db base.txt   (« cartoon » : même commande)
+//                (illustration OMNIS, gfx/OmnisAvatarStylizer ; --db : anciennes
 //                images de images/ -> cache/avatars et cache/covers)
-//    omnis_refdb list [--db base.txt]
-//    omnis_refdb find "2 holis" [--db base.txt]
+//    Pour toutes les commandes qui illustrent : --style embleme (défaut : l'image
+//    Deezer / du fichier, sans filtre, sert de modèle à des formes simples
+//    empilées ; artiste en rond, pochette en carré arrondi) | hd (photo à peine
+//    retouchée) | peint ; --refaire redessine ce que le cache a déjà.
 // =============================================================================
 #include "AudioRead.h"
 #include "AiFiles.h"
@@ -57,6 +60,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cctype>
+#include <cstdlib>
 #include <chrono>
 #include <thread>
 #include <cstdio>
@@ -121,11 +125,31 @@ bool readBinaryFile(const std::string& path, std::string& out) {
     return !out.empty();
 }
 
+/// Style des illustrations (--style embleme|hd|peint ; embleme par défaut) et
+/// --refaire (redessine même ce que le cache a déjà).
+gfx::OmnisAvatarStylizer::Style gStyle = gfx::OmnisAvatarStylizer::Style::Emblem;
+bool gRedo = false;
+
+/// Réglages d'une illustration : rond pour un artiste, carré arrondi pour une pochette.
+gfx::OmnisAvatarStylizer::Options lookFor(bool artistFace) {
+    gfx::OmnisAvatarStylizer::Options o;
+    o.style = gStyle;
+    o.shape = artistFace ? gfx::OmnisAvatarStylizer::Shape::Round : gfx::OmnisAvatarStylizer::Shape::Square;
+    return o;
+}
+
+/// L'illustration est déjà dans le cache (et --refaire n'est pas demandé).
+bool cached(const std::filesystem::path& target) {
+    std::error_code ec;
+    return !gRedo && std::filesystem::exists(target, ec);
+}
+
 /// Octets d'une image -> avatar OMNIS au chemin donné (cache), avec ses deux
 /// couleurs dominantes (monogramme du mode promo).
-bool illustrate(const std::string& bytes, const std::filesystem::path& target, std::string& error) {
+bool illustrate(const std::string& bytes, const std::filesystem::path& target, std::string& error,
+                const gfx::OmnisAvatarStylizer::Options& options = {}) {
     gfx::RgbaImage art;
-    if (!gfx::OmnisAvatarStylizer().stylize(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size(), art, &error)) return false;
+    if (!gfx::OmnisAvatarStylizer(options).stylize(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size(), art, &error)) return false;
     if (!gfx::OmnisAvatarStylizer::savePng(target, art, &error)) return false;
     gfx::avatars::writeColors(target, gfx::OmnisAvatarStylizer::dominantColors(art));
     return true;
@@ -142,13 +166,13 @@ void illustrateEmbedded(const std::filesystem::path& file, ai::ReferenceEntry& e
         if (p.type == 3) front = &p;
     std::error_code ec;
     const auto cover = gfx::avatars::coverPath(e.artist, e.title);
-    if (!e.title.empty() && (std::filesystem::exists(cover, ec) || illustrate(front->bytes, cover, error))) {
+    if (!e.title.empty() && (cached(cover) || illustrate(front->bytes, cover, error, lookFor(false)))) {
         if (e.coverCredit.empty()) e.coverCredit = "Pochette du fichier (avatar OMNIS)";
     }
     for (const auto& p : pictures)
         if (p.type == 7 || p.type == 8) {
             const auto face = gfx::avatars::artistPath(e.artist);
-            if ((std::filesystem::exists(face, ec) || illustrate(p.bytes, face, error)) && e.imageCredit.empty()) e.imageCredit = "Image du fichier (avatar OMNIS)";
+            if ((cached(face) || illustrate(p.bytes, face, error, lookFor(true))) && e.imageCredit.empty()) e.imageCredit = "Image du fichier (avatar OMNIS)";
             break;
         }
 }
@@ -289,7 +313,8 @@ int main(int argc, char** argv) {
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
                   "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
                   "  omnis_refdb deezer --artiste NOM [--titre T] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
-                  "  omnis_refdb cartoon image.jpg [--sortie illustration.png] | cartoon --db base.txt   (illustrations OMNIS)\n"
+                  "  omnis_refdb embleme image.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png] | embleme --db base.txt   (illustrations OMNIS)\n"
+                  "  (illustrations : --style embleme|hd|peint, embleme par défaut ; --refaire redessine le cache)\n"
                   "  omnis_refdb discographie playlist.csv [--artistes \"a|b\"] [--proches 1] [--sortie dossier]   (tous les titres, et ceux des proches)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
@@ -306,7 +331,11 @@ int main(int argc, char** argv) {
         else if (a == "--alias" && i + 1 < argc) aliases = argv[++i];
         else if (a == "--credit" && i + 1 < argc) credit = argv[++i];
         else if (a == "--lien" && i + 1 < argc) link = argv[++i];
-        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--cache" || a == "--proches" || a == "--retirer") && i + 1 < argc) ++i;
+        else if (a == "--style" && i + 1 < argc) {
+            const std::string v = argv[++i];
+            gStyle = v == "hd" ? gfx::OmnisAvatarStylizer::Style::HD : v == "peint" ? gfx::OmnisAvatarStylizer::Style::Painted : gfx::OmnisAvatarStylizer::Style::Emblem;
+        } else if (a == "--refaire") gRedo = true;
+        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--forme" || a == "--formes" || a == "--cache" || a == "--proches" || a == "--retirer") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
     }
 
@@ -336,7 +365,7 @@ int main(int argc, char** argv) {
             return 1;
         }
         const auto target = photo ? gfx::avatars::artistPath(touched.front().artist) : gfx::avatars::coverPath(touched.front().artist, touched.front().title);
-        if (!illustrate(bytes, target, error)) {
+        if (!illustrate(bytes, target, error, lookFor(photo))) {
             std::fprintf(stderr, "%s : %s\n", command.c_str(), error.c_str());
             return 1;
         }
@@ -378,15 +407,14 @@ int main(int argc, char** argv) {
         std::printf("Deezer : %s (%lld fans) %s\n", found->name.c_str(), found->fans, found->link.c_str());
         // L'image téléchargée reste en mémoire : seul l'avatar (256 px, cache) est écrit.
         std::map<std::string, std::string> fetched; // adresse -> octets (une pochette sert à tout l'album)
-        const auto illustrateUrl = [&](const std::string& url, const std::filesystem::path& target) {
+        const auto illustrateUrl = [&](const std::string& url, const std::filesystem::path& target, bool face) {
             std::string error;
             if (url.empty()) return false;
-            std::error_code ec;
-            if (std::filesystem::exists(target, ec)) return true; // déjà illustrée
+            if (cached(target)) return true; // déjà illustrée
             std::fflush(stdout);
             auto it = fetched.find(url);
             if (it == fetched.end()) it = fetched.emplace(url, net.fetchBytes(url, error)).first;
-            if (it->second.empty() || !illustrate(it->second, target, error)) {
+            if (it->second.empty() || !illustrate(it->second, target, error, lookFor(face))) {
                 std::fprintf(stderr, "  %s\n", error.c_str());
                 return false;
             }
@@ -406,7 +434,7 @@ int main(int argc, char** argv) {
             e.measured = false;
             touched.push_back(e);
         }
-        const bool hasPhoto = illustrateUrl(found->picture, gfx::avatars::artistPath(found->name));
+        const bool hasPhoto = illustrateUrl(found->picture, gfx::avatars::artistPath(found->name), true);
         if (hasPhoto) std::printf("  avatar -> %s\n", utf8Path(gfx::avatars::artistPath(found->name)).c_str());
         int covers = 0;
         for (auto& e : touched) {
@@ -427,7 +455,7 @@ int main(int argc, char** argv) {
                 std::printf("  %-40s pas trouvé sur Deezer\n", e.title.c_str());
                 continue;
             }
-            if (illustrateUrl(t->cover, gfx::avatars::coverPath(e.artist, e.title))) {
+            if (illustrateUrl(t->cover, gfx::avatars::coverPath(e.artist, e.title), false)) {
                 e.cover.clear();
                 e.coverCredit = "Avatar OMNIS d'après la pochette (Deezer)";
                 ++covers;
@@ -442,17 +470,22 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    if (command == "cartoon") {
+    if (command == "embleme" || command == "cartoon") {
         // Une image : omnis_refdb cartoon photo.jpg [--sortie illustration.png]
         // Toute la base : omnis_refdb cartoon --db base.txt (anciennes images du
         // dossier images/ -> illustrations du cache ; les fiches ne les citent plus).
         std::string outFile;
-        for (int i = 2; i + 1 < argc; ++i)
-            if (std::string(argv[i]) == "--sortie") outFile = argv[i + 1];
+        auto look = lookFor(false);
+        for (int i = 2; i + 1 < argc; ++i) {
+            const std::string a = argv[i], v = argv[i + 1];
+            if (a == "--sortie") outFile = v;
+            else if (a == "--forme") look.shape = v == "rond" ? gfx::OmnisAvatarStylizer::Shape::Round : gfx::OmnisAvatarStylizer::Shape::Square;
+            else if (a == "--formes") look.shapes = std::clamp(std::atoi(v.c_str()), 1, 250); // au-delà, ce serait une copie, plus un emblème
+        }
         std::string bytes, error;
         if (!input.empty()) {
             if (outFile.empty()) outFile = utf8Path(std::filesystem::path(std::u8string(input.begin(), input.end())).replace_extension()) + "_illustration.png";
-            if (!readBinaryFile(input, bytes) || !illustrate(bytes, std::filesystem::path(std::u8string(outFile.begin(), outFile.end())), error)) {
+            if (!readBinaryFile(input, bytes) || !illustrate(bytes, std::filesystem::path(std::u8string(outFile.begin(), outFile.end())), error, look)) {
                 std::fprintf(stderr, "cartoon : %s\n", error.empty() ? ("fichier illisible : " + input).c_str() : error.c_str());
                 return 1;
             }
@@ -469,11 +502,10 @@ int main(int argc, char** argv) {
         std::vector<ai::ReferenceEntry> updated;
         for (const auto& e : user.entries()) {
             auto copy = e;
-            const auto migrate = [&](std::string& file, std::string& creditText, const std::filesystem::path& target) {
+            const auto migrate = [&](std::string& file, std::string& creditText, const std::filesystem::path& target, bool face) {
                 if (file.empty()) return;
                 const auto source = dir / std::filesystem::path(std::u8string(file.begin(), file.end()));
-                std::error_code ec;
-                if (!std::filesystem::exists(target, ec) && (!readBinaryFile(utf8Path(source), bytes) || !illustrate(bytes, target, error))) {
+                if (!cached(target) && (!readBinaryFile(utf8Path(source), bytes) || !illustrate(bytes, target, error, lookFor(face)))) {
                     std::fprintf(stderr, "  %s : %s\n", file.c_str(), error.empty() ? "illisible" : error.c_str());
                     return;
                 }
@@ -485,8 +517,8 @@ int main(int argc, char** argv) {
                 if (creditText.find("illustration OMNIS") == std::string::npos) creditText += " (illustration OMNIS)";
                 ++done;
             };
-            migrate(copy.image, copy.imageCredit, gfx::avatars::artistPath(e.artist));
-            if (!e.title.empty()) migrate(copy.cover, copy.coverCredit, gfx::avatars::coverPath(e.artist, e.title));
+            migrate(copy.image, copy.imageCredit, gfx::avatars::artistPath(e.artist), true);
+            if (!e.title.empty()) migrate(copy.cover, copy.coverCredit, gfx::avatars::coverPath(e.artist, e.title), false);
             if (copy.image != e.image || copy.cover != e.cover) updated.push_back(copy);
         }
         for (auto& e : updated) user.add(e);

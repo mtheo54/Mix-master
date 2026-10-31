@@ -461,6 +461,194 @@ std::array<std::array<std::uint8_t, 3>, 2> OmnisAvatarStylizer::dominantColors(c
     return out;
 }
 
+// ----------------------------------------------------------------------------
+//  Style « Emblème » : des formes empilées (rectangles, ellipses, traits)
+// ----------------------------------------------------------------------------
+
+namespace {
+
+/// Le pixel (x + 0,5, y + 0,5) est-il dans la forme ? (coordonnées du plan d'ajustement)
+bool inside(const OmnisAvatarStylizer::Primitive& p, float x, float y, float cosA, float sinA) {
+    const float dx = x - p.cx, dy = y - p.cy;
+    const float u = dx * cosA + dy * sinA, v = -dx * sinA + dy * cosA;
+    if (p.kind == OmnisAvatarStylizer::Primitive::Kind::Ellipse) return (u * u) / (p.rx * p.rx) + (v * v) / (p.ry * p.ry) <= 1.0f;
+    return std::abs(u) <= p.rx && std::abs(v) <= p.ry;
+}
+
+/// Boîte englobante (bornée au plan w × h).
+void bounds(const OmnisAvatarStylizer::Primitive& p, int w, int h, int& x0, int& y0, int& x1, int& y1) {
+    const float c = std::abs(std::cos(p.angle)), s = std::abs(std::sin(p.angle));
+    const float ex = p.rx * c + p.ry * s, ey = p.rx * s + p.ry * c;
+    x0 = std::max(0, static_cast<int>(std::floor(p.cx - ex)));
+    x1 = std::min(w - 1, static_cast<int>(std::ceil(p.cx + ex)));
+    y0 = std::max(0, static_cast<int>(std::floor(p.cy - ey)));
+    y1 = std::min(h - 1, static_cast<int>(std::ceil(p.cy + ey)));
+}
+
+struct Rng {
+    std::uint32_t s;
+    float uniform() {
+        s ^= s << 13, s ^= s >> 17, s ^= s << 5;
+        return static_cast<float>(s >> 8) / 16777216.0f;
+    }
+    float range(float a, float b) { return a + (b - a) * uniform(); }
+    float gauss() { return (uniform() + uniform() + uniform() - 1.5f) * 1.41f; }
+};
+
+} // namespace
+
+OmnisAvatarStylizer::Emblem OmnisAvatarStylizer::fitShapes(const Rgb& target, int count, float alpha, std::uint32_t seed) {
+    const int w = target.width, h = target.height;
+    const auto n = static_cast<std::size_t>(w * h);
+    Emblem e;
+    // Le fond : la couleur moyenne de l'image.
+    std::array<double, 3> mean{};
+    for (std::size_t i = 0; i < n; ++i)
+        for (std::size_t c = 0; c < 3; ++c) mean[c] += target.c[3 * i + c];
+    for (std::size_t c = 0; c < 3; ++c) e.background[c] = static_cast<float>(mean[c] / static_cast<double>(n));
+    std::vector<float> canvas(3 * n);
+    for (std::size_t i = 0; i < n; ++i)
+        for (std::size_t c = 0; c < 3; ++c) canvas[3 * i + c] = e.background[c];
+    // Le centre (le visage, le sujet) compte plus : il reçoit les petites formes.
+    std::vector<float> weight(n);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            const float u = (static_cast<float>(x) + 0.5f) / static_cast<float>(w) * 2 - 1, v = (static_cast<float>(y) + 0.5f) / static_cast<float>(h) * 2 - 1;
+            weight[static_cast<std::size_t>(y * w + x)] = 1.0f + 2.0f * std::exp(-(u * u + v * v) / 0.3f);
+        }
+    alpha = std::clamp(alpha, 0.2f, 1.0f);
+    // Une forme : sa meilleure couleur (moyenne pondérée de ce qu'elle couvre) et
+    // le gain d'erreur qu'elle apporte (négatif : l'image se rapproche du modèle).
+    const auto evaluate = [&](Primitive& p) {
+        int x0, y0, x1, y1;
+        bounds(p, w, h, x0, y0, x1, y1);
+        const float cosA = std::cos(p.angle), sinA = std::sin(p.angle);
+        double acc[3] = {0, 0, 0}, wsum = 0;
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x) {
+                if (!inside(p, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, cosA, sinA)) continue;
+                const auto i = static_cast<std::size_t>(y * w + x);
+                for (std::size_t c = 0; c < 3; ++c) acc[c] += weight[i] * (target.c[3 * i + c] - canvas[3 * i + c] * (1 - alpha)) / alpha;
+                wsum += weight[i];
+            }
+        if (wsum <= 0) return 0.0;
+        for (std::size_t c = 0; c < 3; ++c) p.color[c] = std::clamp(static_cast<float>(acc[c] / wsum), 0.0f, 1.0f);
+        double delta = 0;
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x) {
+                if (!inside(p, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, cosA, sinA)) continue;
+                const auto i = static_cast<std::size_t>(y * w + x);
+                for (std::size_t c = 0; c < 3; ++c) {
+                    const float t = target.c[3 * i + c], before = canvas[3 * i + c];
+                    const float after = before * (1 - alpha) + p.color[c] * alpha;
+                    delta += weight[i] * ((after - t) * (after - t) - (before - t) * (before - t));
+                }
+            }
+        return delta;
+    };
+    Rng rng{seed ? seed : 0x2545F491u};
+    const float W = static_cast<float>(w), H = static_cast<float>(h);
+    for (int k = 0; k < std::max(1, count); ++k) {
+        // Des grands aplats d'abord, puis des formes de plus en plus fines.
+        const float progress = static_cast<float>(k) / static_cast<float>(std::max(1, count));
+        const float maxSize = W * (0.40f - 0.32f * progress);
+        const auto random = [&] {
+            Primitive p;
+            const float r = rng.uniform();
+            p.kind = r < 0.42f ? Primitive::Kind::Rect : r < 0.84f ? Primitive::Kind::Ellipse : Primitive::Kind::Line;
+            p.cx = rng.range(0, W), p.cy = rng.range(0, H);
+            p.angle = rng.range(0, 3.14159265f);
+            if (p.kind == Primitive::Kind::Line) {
+                p.rx = rng.range(3.0f, std::max(4.0f, maxSize * 1.2f));
+                p.ry = rng.range(0.6f, 1.6f);
+            } else {
+                p.rx = rng.range(1.5f, std::max(2.0f, maxSize));
+                p.ry = rng.range(1.5f, std::max(2.0f, maxSize));
+                if (p.kind == Primitive::Kind::Rect && rng.uniform() < 0.3f) p.angle = 0; // des carrés droits aussi
+            }
+            return p;
+        };
+        Primitive best = random();
+        double bestDelta = evaluate(best);
+        for (int t = 0; t < 140; ++t) {
+            Primitive c = random();
+            if (const double d = evaluate(c); d < bestDelta) best = c, bestDelta = d;
+        }
+        // Retouches : la forme glisse, grandit, tourne, tant que ça ressemble mieux.
+        for (int t = 0; t < 140; ++t) {
+            Primitive c = best;
+            switch (static_cast<int>(rng.uniform() * 4)) {
+            case 0: c.cx = std::clamp(c.cx + rng.gauss() * W * 0.04f, 0.0f, W), c.cy = std::clamp(c.cy + rng.gauss() * H * 0.04f, 0.0f, H); break;
+            case 1: c.rx = std::max(c.kind == Primitive::Kind::Line ? 2.0f : 1.0f, c.rx * (1 + 0.2f * rng.gauss())); break;
+            case 2: c.ry = c.kind == Primitive::Kind::Line ? std::clamp(c.ry * (1 + 0.2f * rng.gauss()), 0.5f, 2.0f) : std::max(1.0f, c.ry * (1 + 0.2f * rng.gauss())); break;
+            default: c.angle += 0.25f * rng.gauss(); break;
+            }
+            if (const double d = evaluate(c); d < bestDelta) best = c, bestDelta = d;
+        }
+        if (bestDelta >= 0) continue; // rien n'aide à cet endroit : on n'empile pas pour rien
+        // La forme est posée sur le plan.
+        int x0, y0, x1, y1;
+        bounds(best, w, h, x0, y0, x1, y1);
+        const float cosA = std::cos(best.angle), sinA = std::sin(best.angle);
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                if (inside(best, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, cosA, sinA))
+                    for (std::size_t c = 0; c < 3; ++c) {
+                        auto& v = canvas[3 * static_cast<std::size_t>(y * w + x) + c];
+                        v = v * (1 - alpha) + best.color[c] * alpha;
+                    }
+        best.alpha = alpha;
+        e.shapes.push_back(best);
+    }
+    // Coordonnées ramenées à 0 … 1 : l'emblème se redessine net à toute taille.
+    for (auto& p : e.shapes) p.cx /= W, p.cy /= H, p.rx /= W, p.ry /= H;
+    return e;
+}
+
+RgbaImage OmnisAvatarStylizer::renderEmblem(const Emblem& e, int size, Shape shape) {
+    const int s = std::max(16, size), ss = 4 * s; // suréchantillonnage 4 × 4 : bords lisses
+    std::vector<float> big(static_cast<std::size_t>(3 * ss * ss));
+    for (std::size_t i = 0; i < big.size(); ++i) big[i] = e.background[i % 3];
+    const float S = static_cast<float>(ss);
+    for (auto p : e.shapes) {
+        p.cx *= S, p.cy *= S, p.rx *= S, p.ry *= S;
+        int x0, y0, x1, y1;
+        bounds(p, ss, ss, x0, y0, x1, y1);
+        const float cosA = std::cos(p.angle), sinA = std::sin(p.angle);
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                if (inside(p, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, cosA, sinA))
+                    for (std::size_t c = 0; c < 3; ++c) {
+                        auto& v = big[3 * static_cast<std::size_t>(y * ss + x) + c];
+                        v = v * (1 - p.alpha) + p.color[c] * p.alpha;
+                    }
+    }
+    const auto small = resample(big, ss, ss, 3, s, s);
+    RgbaImage out;
+    out.width = out.height = s;
+    out.pixels.resize(static_cast<std::size_t>(s * s * 4));
+    // Forme du médaillon : distance signée au bord (rond, ou carré aux coins
+    // arrondis), bord anti-crénelé et liseré sombre de 2 px.
+    const float half = static_cast<float>(s) * 0.5f;
+    const float corner = shape == Shape::Round ? half : static_cast<float>(s) * 0.07f;
+    const float outline = std::max(1.0f, static_cast<float>(s) / 128.0f);
+    for (int y = 0; y < s; ++y)
+        for (int x = 0; x < s; ++x) {
+            const auto i = static_cast<std::size_t>(y * s + x);
+            const float px = std::abs(static_cast<float>(x) + 0.5f - half) - (half - corner);
+            const float py = std::abs(static_cast<float>(y) + 0.5f - half) - (half - corner);
+            const float outside = std::hypot(std::max(px, 0.0f), std::max(py, 0.0f)) + std::min(std::max(px, py), 0.0f) - corner;
+            const float ring = 0.8f * smoothstep(-outline - 1.0f, -outline, outside);
+            for (std::size_t c = 0; c < 3; ++c) {
+                const float ink = c == 2 ? 0.09f : 0.04f;
+                const float v = std::clamp(small[3 * i + c], 0.0f, 1.0f) * (1 - ring) + ink * ring;
+                out.pixels[4 * i + c] = static_cast<std::uint8_t>(std::lround(v * 255.0f));
+            }
+            out.pixels[4 * i + 3] = static_cast<std::uint8_t>(std::lround(std::clamp(0.5f - outside, 0.0f, 1.0f) * 255.0f));
+        }
+    return out;
+}
+
 bool OmnisAvatarStylizer::stylize(const std::uint8_t* data, std::size_t size, RgbaImage& out, std::string* error) const {
     out = {};
     int w = 0, h = 0, channels = 0;
@@ -477,9 +665,20 @@ bool OmnisAvatarStylizer::stylize(const std::uint8_t* data, std::size_t size, Rg
     }
     if (o_.removeCornerText)
         for (const auto& box : findCornerText(work)) inpaint(work, box);
-    denoise(work); // bruit de compression d'abord (et, en « Peint », avant le Kuwahara)
+    if (o_.style != Style::Emblem) denoise(work); // bruit de compression d'abord (et, en « Peint », avant le Kuwahara)
     if (o_.style == Style::HD) {
         out = finishHd(work);
+        return true;
+    }
+    if (o_.style == Style::Emblem) {
+        // Aucun filtre : l'image (cadrée, sans macaron) sert seulement de modèle ;
+        // l'emblème est fait de formes posées une à une, puis redessiné net.
+        Rgb model;
+        model.width = model.height = std::clamp(o_.fitSize, 48, 256);
+        model.c = resample(work.c, work.width, work.height, 3, model.width, model.height);
+        std::uint32_t seed = 2166136261u; // même image, même emblème
+        for (std::size_t i = 0; i < size; i += 97) seed = (seed ^ data[i]) * 16777619u;
+        out = renderEmblem(fitShapes(model, o_.shapes, o_.shapeAlpha, seed), o_.size, o_.shape);
         return true;
     }
     // Première passe large (texture de peau, tissu), les suivantes deux fois plus

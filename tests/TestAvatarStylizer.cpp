@@ -12,6 +12,7 @@
 
 #include "stb_image_write.h"
 
+#include <array>
 #include <cmath>
 #include <random>
 
@@ -89,6 +90,55 @@ OMNIS_TEST("avatar peint (option): macaron retiré, teinte gardée, détourage r
     const auto* c = px(art, 128, 118);
     OMNIS_CHECK(c[0] > c[1] + 40 && c[0] > c[2] + 40);
     OMNIS_CHECK(px(art, 128, 128)[3] == 255 && px(art, 2, 2)[3] == 0 && px(art, 253, 253)[3] == 0);
+}
+
+OMNIS_TEST("avatar emblème: des formes posées d'après l'image (pas de filtre), rond pour l'artiste, carré arrondi pour la pochette") {
+    const auto bytes = cover();
+    OmnisAvatarStylizer::Options o;
+    o.style = OmnisAvatarStylizer::Style::Emblem;
+    o.shape = OmnisAvatarStylizer::Shape::Round;
+    RgbaImage face, again, sleeve;
+    OMNIS_CHECK(OmnisAvatarStylizer(o).stylize(bytes.data(), bytes.size(), face));
+    OMNIS_CHECK(face.width == 256 && face.height == 256);
+    // D'après l'image : le sujet chaud au centre, la nuit autour.
+    const auto* c = px(face, 128, 115);
+    const auto* bg = px(face, 128, 30);
+    std::printf("      sujet %d %d %d, fond %d %d %d\n", c[0], c[1], c[2], bg[0], bg[1], bg[2]);
+    OMNIS_CHECK(c[0] > c[1] + 60 && c[0] > c[2] + 60);
+    OMNIS_CHECK(bg[2] > bg[0] && bg[0] < 90);
+    // Formes : le grain de la photo n'existe pas dans l'emblème (aplats).
+    int spread = 0;
+    for (int y = 105; y < 125; ++y)
+        for (int x = 118; x < 138; ++x) spread = std::max(spread, std::abs(px(face, x, y)[0] - c[0]));
+    std::printf("      écart dans le sujet : %d (grain de la photo : ±10)\n", spread);
+    OMNIS_CHECK(spread <= 8);
+    // Rond : coins transparents, centre plein ; macaron blanc du coin parti.
+    OMNIS_CHECK(px(face, 2, 2)[3] == 0 && px(face, 253, 253)[3] == 0 && px(face, 128, 128)[3] == 255 && px(face, 128, 2)[3] == 255);
+    // Même image, même emblème.
+    OMNIS_CHECK(OmnisAvatarStylizer(o).stylize(bytes.data(), bytes.size(), again));
+    OMNIS_CHECK(again.pixels == face.pixels);
+    o.shape = OmnisAvatarStylizer::Shape::Square;
+    OMNIS_CHECK(OmnisAvatarStylizer(o).stylize(bytes.data(), bytes.size(), sleeve));
+    OMNIS_CHECK(px(sleeve, 0, 0)[3] == 0 && px(sleeve, 30, 2)[3] == 255 && px(sleeve, 2, 30)[3] == 255 && px(sleeve, 30, 30)[3] == 255);
+}
+
+OMNIS_TEST("emblème: chaque forme rapproche du modèle (un disque est retrouvé)") {
+    // Modèle : un disque clair sur fond sombre.
+    OmnisAvatarStylizer::Rgb model;
+    model.width = model.height = 64;
+    model.c.assign(64u * 64u * 3u, 0.1f);
+    for (int y = 0; y < 64; ++y)
+        for (int x = 0; x < 64; ++x)
+            if ((x - 32) * (x - 32) + (y - 32) * (y - 32) < 15 * 15)
+                for (int c = 0; c < 3; ++c) model.c[static_cast<std::size_t>((y * 64 + x) * 3 + c)] = 0.9f;
+    const auto e = OmnisAvatarStylizer::fitShapes(model, 12, 1.0f, 7);
+    OMNIS_CHECK(!e.shapes.empty() && e.shapes.size() <= 12);
+    for (const auto& p : e.shapes) OMNIS_CHECK(p.cx >= 0 && p.cx <= 1 && p.cy >= 0 && p.cy <= 1 && p.rx > 0 && p.ry > 0);
+    const auto img = OmnisAvatarStylizer::renderEmblem(e, 64, OmnisAvatarStylizer::Shape::Square);
+    const auto* center = px(img, 32, 32);
+    const auto* corner = px(img, 8, 8);
+    std::printf("      centre %d, coin %d (modèle : 230 / 26)\n", center[0], corner[0]);
+    OMNIS_CHECK(center[0] > 190 && corner[0] < 70);
 }
 
 OMNIS_TEST("avatar: un bloc de texte noir et blanc est repéré dans un coin, jamais au centre") {

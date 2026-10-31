@@ -17,6 +17,15 @@
 //
 //  Style « Peint » (option) : Kuwahara, cel-shading, encre, détourage radial.
 //
+//  Style « Emblème » (défaut des outils) : aucun filtre sur l'image. Elle sert
+//  seulement de modèle ; l'avatar est refait de zéro avec des formes simples
+//  (rectangles, carrés, ellipses, ronds, traits) posées une à une, chacune à
+//  l'endroit, à la taille et dans la couleur qui rapprochent le plus l'ensemble
+//  du modèle : de grands aplats d'abord, des détails ensuite, le centre (le
+//  visage) servi en premier. Comme un éditeur d'emblèmes de jeu : une
+//  interprétation en formes, pas une copie. Rond pour un artiste, carré aux
+//  coins arrondis pour une pochette.
+//
 //  Aucune image n'est livrée avec le plug-in : celles-ci vivent dans le cache
 //  de la personne (gfx/AvatarCache.h), comme la pochette d'un lecteur de
 //  musique. En vidéo / promo, le mode monogramme (« /fbi ») n'en montre aucune.
@@ -48,7 +57,8 @@ struct RgbaImage {
 
 class OmnisAvatarStylizer {
 public:
-    enum class Style { HD, Painted };
+    enum class Style { HD, Painted, Emblem };
+    enum class Shape { Square, Round };
     struct Options {
         Style style = Style::HD;
         int size = 256;            ///< côté de l'avatar
@@ -67,6 +77,11 @@ public:
         // Style « Peint » seulement :
         float ink = 0.85f;         ///< force du trait (0 : aucun)
         float vignetteInner = 0.62f, vignetteOuter = 0.98f; ///< rayons (1 = bord) du détourage
+        // Style « Emblème » seulement :
+        Shape shape = Shape::Square; ///< rond : artiste ; carré arrondi : pochette
+        int shapes = 120;          ///< formes posées (plus : plus fidèle ; moins : plus abstrait)
+        float shapeAlpha = 0.9f;   ///< opacité de chaque forme (calques)
+        int fitSize = 128;         ///< côté du modèle sur lequel les formes s'ajustent
     };
 
     OmnisAvatarStylizer() = default;
@@ -97,6 +112,24 @@ public:
     static std::vector<float> inkMask(const Rgb& image);
     /// Trait multiplié, réduction à `size`, alpha radial.
     RgbaImage finish(const Rgb& image, const std::vector<float>& ink) const;
+
+    /// Emblème : une forme (coordonnées 0 … 1 de l'avatar ; rx, ry : demi-côtés
+    /// ou demi-axes ; un trait est un rectangle très fin).
+    struct Primitive {
+        enum class Kind { Rect, Ellipse, Line } kind = Kind::Rect;
+        float cx = 0, cy = 0, rx = 0, ry = 0, angle = 0;
+        std::array<float, 3> color{};
+        float alpha = 1;
+    };
+    struct Emblem {
+        std::array<float, 3> background{};
+        std::vector<Primitive> shapes; ///< dans l'ordre de pose (dessous -> dessus)
+    };
+    /// Pose `count` formes qui reproduisent au mieux `model` (graine : même
+    /// image, même emblème).
+    static Emblem fitShapes(const Rgb& model, int count, float alpha, std::uint32_t seed);
+    /// L'emblème redessiné net (suréchantillonné), dans son médaillon.
+    static RgbaImage renderEmblem(const Emblem& emblem, int size, Shape shape);
 
     /// HD : réduction à `size`, 90 % d'origine, fondu alpha du bord.
     RgbaImage finishHd(const Rgb& image) const;

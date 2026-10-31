@@ -32,6 +32,14 @@ omnis_refdb pochette pochette.png --artiste "2hollis" --titre "poster boy" --db 
 
 L'outil en fait l'avatar (cache) ; le fichier d'origine n'est pas copié.
 
+**Style « emblème »** (par défaut) : aucun filtre sur l'image. Elle sert seulement de modèle ;
+l'avatar est refait de zéro avec ~120 formes simples (rectangles, carrés, ellipses, ronds,
+traits) posées une à une, comme dans un éditeur d'emblèmes de jeu : grands aplats d'abord,
+détails ensuite, le centre (le visage) servi en premier. On reconnaît la pose et les couleurs,
+mais c'est une interprétation en formes, pas la photo (250 formes au plus). Artiste en **rond**,
+pochette en **carré aux coins arrondis**. `--style hd` (photo à peine retouchée) ou
+`--style peint` pour les anciens rendus ; `--refaire` redessine ce que le cache a déjà.
+
 **Depuis Deezer, d'un coup** (API publique, sans clé ni compte ; il faut internet et `curl`,
 présent dans Windows 10 et 11) :
 
@@ -101,8 +109,9 @@ filmer la console (démo, pub, réseaux) sans montrer une seule pochette. Gardé
 l'autre ; `/fbi` à nouveau pour revenir.
 
 ```
-omnis_refdb cartoon photo.jpg --sortie avatar.png         (une image, pour essayer)
-omnis_refdb cartoon --db references_utilisateur.txt        (anciennes images de images/ -> cache)
+omnis_refdb embleme photo.jpg --forme rond --sortie avatar.png   (une image, pour essayer ; --formes 80 : plus abstrait)
+omnis_refdb embleme --db references_utilisateur.txt               (anciennes images de images/ -> cache)
+omnis_refdb deezer --artiste "La Fève" --refaire --db references_utilisateur.txt   (redessiner en emblèmes)
 ```
 
 **Rester réglo :**
