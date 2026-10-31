@@ -28,7 +28,7 @@
 //    omnis_refdb pochette pochette.jpg --artiste "2hollis" --titre "poster boy" --db base.txt
 //                (pochette du titre : droits du label, pour ton usage ; à ne pas
 //                livrer avec le plug-in sans leur accord)
-//    omnis_refdb deezer --artiste "La Fève" [--titre T] --db base.txt
+//    omnis_refdb deezer --artiste "La Fève" [--titre T] [--id N] [--photo profil.jpg | --sans-photo] --db base.txt
 //                (API publique de Deezer, sans clé : photo de l'artiste, pochette
 //                et lien de chaque titre de la base, illustrés en mémoire (aucune image d'origine gardée) ;
 //                usage personnel, à ne pas livrer avec le plug-in vendu)
@@ -312,7 +312,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb fiche titre.wav   (la fiche complète d'un son, sans rien écrire)\n"
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
                   "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
-                  "  omnis_refdb deezer --artiste NOM [--titre T] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
+                  "  omnis_refdb deezer --artiste NOM [--titre T] [--id N] [--photo profil.jpg | --sans-photo] --db base.txt   (photo, pochettes et liens depuis Deezer)\n"
                   "  omnis_refdb embleme image.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png] | embleme --db base.txt   (illustrations OMNIS)\n"
                   "  (illustrations : --style embleme|hd|peint, embleme par défaut ; --refaire redessine le cache)\n"
                   "  omnis_refdb discographie playlist.csv [--artistes \"a|b\"] [--proches 1] [--sortie dossier]   (tous les titres, et ceux des proches)\n"
@@ -335,7 +335,7 @@ int main(int argc, char** argv) {
             const std::string v = argv[++i];
             gStyle = v == "hd" ? gfx::OmnisAvatarStylizer::Style::HD : v == "peint" ? gfx::OmnisAvatarStylizer::Style::Painted : gfx::OmnisAvatarStylizer::Style::Emblem;
         } else if (a == "--refaire") gRedo = true;
-        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--forme" || a == "--formes" || a == "--cache" || a == "--proches" || a == "--retirer") && i + 1 < argc) ++i;
+        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--forme" || a == "--formes" || a == "--id" || a == "--photo" || a == "--cache" || a == "--proches" || a == "--retirer") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
     }
 
@@ -394,10 +394,33 @@ int main(int argc, char** argv) {
             if (text.empty()) std::fprintf(stderr, "  pas de réponse de Deezer (internet ? curl ?) : %s\n", url.c_str());
             return !text.empty();
         };
+        // --id N : le bon profil Deezer, quand la recherche par nom tombe sur un
+        // homonyme ou ne trouve rien (petits artistes : GRY, Omyll…).
+        // --photo image.jpg : la photo de l'artiste vient de ce fichier (une
+        // capture de son profil, par exemple) et non de Deezer ; --sans-photo :
+        // pas d'avatar d'artiste (profil Deezer partagé avec un homonyme).
+        std::string pinnedId, photoFile;
+        bool noPhoto = false;
+        for (int i = 2; i < argc; ++i) {
+            const std::string a = argv[i];
+            if (a == "--id" && i + 1 < argc) pinnedId = argv[++i];
+            else if (a == "--photo" && i + 1 < argc) photoFile = argv[++i];
+            else if (a == "--sans-photo") noPhoto = true;
+        }
         std::string text;
-        if (!get(dz::artistSearchUrl(artist), text)) return 1;
-        const auto artists = dz::parseArtists(text);
-        const auto* found = dz::pickArtist(artists, artist);
+        std::vector<dz::Artist> artists;
+        if (!pinnedId.empty()) {
+            if (pinnedId.find_first_not_of("0123456789") != std::string::npos) {
+                std::fprintf(stderr, "deezer : --id attend le numéro du profil (deezer.com/artist/NUMÉRO)\n");
+                return 1;
+            }
+            if (!get("https://api.deezer.com/artist/" + pinnedId, text)) return 1;
+            if (auto a = dz::parseArtist(text); a.id != 0) artists.push_back(a);
+        } else {
+            if (!get(dz::artistSearchUrl(artist), text)) return 1;
+            artists = dz::parseArtists(text);
+        }
+        const auto* found = pinnedId.empty() ? dz::pickArtist(artists, artist) : (artists.empty() ? nullptr : &artists.front());
         if (!found) {
             std::fprintf(stderr, "deezer : « %s » introuvable. Proposés :", artist.c_str());
             for (std::size_t i = 0; i < std::min<std::size_t>(5, artists.size()); ++i) std::fprintf(stderr, " %s ;", artists[i].name.c_str());
@@ -434,12 +457,21 @@ int main(int argc, char** argv) {
             e.measured = false;
             touched.push_back(e);
         }
-        const bool hasPhoto = illustrateUrl(found->picture, gfx::avatars::artistPath(found->name), true);
-        if (hasPhoto) std::printf("  avatar -> %s\n", utf8Path(gfx::avatars::artistPath(found->name)).c_str());
+        const auto face = gfx::avatars::artistPath(touched.front().artist.empty() ? found->name : touched.front().artist);
+        bool hasPhoto = false;
+        if (!photoFile.empty()) {
+            std::string bytes, error;
+            hasPhoto = readBinaryFile(photoFile, bytes) && illustrate(bytes, face, error, lookFor(true));
+            if (!hasPhoto) std::fprintf(stderr, "  --photo : %s\n", error.empty() ? ("fichier illisible : " + photoFile).c_str() : error.c_str());
+        } else if (!noPhoto) {
+            hasPhoto = illustrateUrl(found->picture, face, true);
+        }
+        if (hasPhoto) std::printf("  avatar -> %s\n", utf8Path(face).c_str());
         int covers = 0;
+        std::vector<dz::Track> profileTracks; // titres du profil --id (lus une fois)
         for (auto& e : touched) {
             e.artist = e.artist.empty() ? found->name : e.artist;
-            if (hasPhoto) e.image.clear(), e.imageCredit = "Avatar OMNIS d'après Deezer";
+            if (hasPhoto) e.image.clear(), e.imageCredit = photoFile.empty() ? "Avatar OMNIS d'après Deezer" : "Avatar OMNIS d'après le profil de l'artiste";
             if (e.title.empty()) {
                 if (e.link.empty()) e.link = found->link;
                 continue;
@@ -450,6 +482,28 @@ int main(int argc, char** argv) {
                 if (!get(url, text)) break;
                 tracks = dz::parseTracks(text);
                 if ((t = dz::pickTrack(tracks, found->name, e.title)) != nullptr) break;
+            }
+            dz::Track fromProfile;
+            if (!t && found->id != 0 && !pinnedId.empty()) {
+                // Profil désigné (--id) : la recherche de Deezer ignore souvent les
+                // tout petits artistes ; on lit alors leurs sorties une à une.
+                if (profileTracks.empty())
+                    for (std::string url = "https://api.deezer.com/artist/" + pinnedId + "/albums?limit=100"; !url.empty();) {
+                        if (!get(url, text)) break;
+                        dz::Page page;
+                        for (const auto& album : dz::parseAlbums(text, &page)) {
+                            std::string listing;
+                            if (!get("https://api.deezer.com/album/" + std::to_string(album.id) + "/tracks?limit=100", listing)) continue;
+                            for (auto tr : dz::parseTracks(listing)) profileTracks.push_back(tr);
+                        }
+                        url = page.next;
+                    }
+                for (const auto& tr : profileTracks)
+                    if (ai::namesMatch(dz::bareTitle(tr.title), dz::bareTitle(e.title)) && get("https://api.deezer.com/track/" + std::to_string(tr.id), text)) {
+                        fromProfile = dz::parseTrackDetail(text).track;
+                        if (fromProfile.id != 0) t = &fromProfile;
+                        break;
+                    }
             }
             if (!t) {
                 std::printf("  %-40s pas trouvé sur Deezer\n", e.title.c_str());

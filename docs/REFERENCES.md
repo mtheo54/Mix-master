@@ -48,6 +48,17 @@ omnis_refdb deezer --artiste "La Fève" --db references_utilisateur.txt
 omnis_refdb deezer --artiste "La Fève" --titre "Titre" --db references_utilisateur.txt
 ```
 
+**Petits artistes, homonymes** : quand la recherche par nom tombe sur quelqu'un d'autre (le
+profil Deezer de GRY est partagé avec un DJ) ou ne trouve rien (Omyll), donne le numéro du bon
+profil (`deezer.com/artist/NUMÉRO`) avec `--id` : l'outil lit alors ses sorties une à une. Si la
+photo du profil Deezer n'est pas la bonne, `--photo capture.jpg` la prend dans un fichier (une
+capture de son profil, recadrée sur la photo), `--sans-photo` n'en met aucune :
+
+```
+omnis_refdb deezer --artiste GRY --titre "BRR" --id 1491715 --photo gry.jpg --db references_utilisateur.txt
+omnis_refdb deezer --artiste Omyll --titre "C'EST PAS ÇA" --id 243323401 --photo omyll.jpg --db references_utilisateur.txt
+```
+
 L'outil trouve l'artiste (même nom ou une lettre d'écart ; à égalité, le plus suivi), lit sa
 photo puis, pour chaque titre de cet artiste dans la base, la pochette de l'album, **en mémoire**,
 et n'en garde que l'illustration (cache) ; il écrit le lien du titre. Crédits : « Illustration
