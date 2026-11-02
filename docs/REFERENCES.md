@@ -198,11 +198,14 @@ Vérifié sur des fichiers dont le tempo est dans le nom : 135, 118 et 142 BPM r
 
 ## Sons à mesurer en priorité
 
-`data/sons_a_mesurer.csv` (refait par `python3 tools/refdb/sons_a_mesurer.py`) liste ~140 titres :
-d'abord ta scène (GRY, Omyll, euhZ, La Fève : les titres demandés puis les plus récents), puis,
-dans chaque famille de tes playlists, un titre par artiste encore jamais mesuré, les plus présents
-dans tes playlists d'abord. Colonnes au format des exports de playlists (« Track Name »,
-« Artist Name(s) », « Album Name », « ISRC », « Genre_Classement ») + priorité, raison, lien Deezer.
+`data/sons_a_mesurer.csv` (refait par `python3 tools/refdb/sons_a_mesurer.py`) : **1269 titres,
+~28 Go en FLAC** (estimation prudente : 1000 kb/s, durée Deezer ou 185 s). Dans l'ordre :
+ta scène (GRY, Omyll, euhZ, La Fève : titres demandés puis jusqu'à 25 chacun), puis tes
+playlists et les proches de ta scène à tour de rôle (le 1er titre de chaque artiste, puis le 2e…).
+La colonne « Cumul (Go) » dit où t'arrêter si tu veux moins. Ordres de grandeur : tout ce que
+tes playlists citent ≈ 45 Go, toute la scène ≈ 105 Go, les discographies complètes ≈ 4 To.
+Colonnes au format des exports de playlists (« Track Name », « Artist Name(s) », « Album Name »,
+« ISRC », « Genre_Classement ») + priorité, raison, durée, taille, cumul, lien Deezer.
 
 Une fois les fichiers sur ton PC (achetés ou obtenus légalement, en FLAC ou WAV de préférence),
 nommés « Artiste - Titre » :
