@@ -36,6 +36,7 @@
 // =============================================================================
 #pragma once
 
+#include "ListenSim.h"
 #include "Stage.h"
 
 #include "../analysis/LoudnessMeter.h"
@@ -109,6 +110,8 @@ public:
     [[nodiscard]] int latencySamples() const noexcept { return latency_; }
     /// Mode travail (latence basse) : pris en compte au prochain prepare().
     void setLowLatency(bool on) noexcept { lowLatency_ = on; }
+    /// Outil (omnis_render) : l'écoute simulée s'applique aussi hors temps réel.
+    void forceListenSim(bool on) noexcept { forceListen_ = on; }
     [[nodiscard]] bool lowLatency() const noexcept { return spec_.lowLatency; }
     [[nodiscard]] double sampleRate() const noexcept { return spec_.sampleRate; }
     [[nodiscard]] int maxBlockSize() const noexcept { return spec_.maxBlockSize; }
@@ -175,6 +178,9 @@ private:
     OnePoleSmoother matchMix_;
     ProcessSpec spec_{};
     bool lowLatency_ = false;
+    bool realtime_ = true;      ///< false : rendu hors ligne (export) -> pas d'écoute simulée
+    bool forceListen_ = false;  ///< omnis_render : appliquer l'écoute simulée quand même
+    ListenSim listen_;
     bool prepared_ = false;
     int latency_ = 0;
     int faults_ = 0;

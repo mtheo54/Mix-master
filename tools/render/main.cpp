@@ -36,7 +36,7 @@ namespace {
 
 void usage() {
     std::puts("Abrasion Labs // OMNIS — rendu hors ligne\n"
-              "  omnis_render in.wav out.wav [--set cle=valeur ...] [--block 512] [--random-blocks] [--latence-basse]\n"
+              "  omnis_render in.wav out.wav [--set cle=valeur ...] [--block 512] [--random-blocks] [--latence-basse] [--ecoute N]\n"
               "               [--format f32|f64|pcm24|pcm16] [--report]\n"
               "  omnis_render --params");
 }
@@ -72,6 +72,7 @@ int main(int argc, char** argv) {
     const std::string outPath = argv[2];
     int blockSize = 512;
     bool randomBlocks = false, lowLatency = false;
+    int listen = 0;
     bool report = false;
     SampleFormat format = SampleFormat::Float32;
     std::vector<std::pair<const params::ParamSpec*, double>> settings;
@@ -98,6 +99,8 @@ int main(int argc, char** argv) {
             randomBlocks = true;
         } else if (a == "--latence-basse") {
             lowLatency = true;
+        } else if (a == "--ecoute" && i + 1 < argc) {
+            listen = std::atoi(argv[++i]); // indice du menu ÉCOUTE (0 = aucune)
         } else if (a == "--report") {
             report = true;
         } else if (a == "--format" && i + 1 < argc) {
@@ -123,8 +126,10 @@ int main(int argc, char** argv) {
     Engine engine;
     buildMasteringChain(engine);
     engine.setLowLatency(lowLatency);
+    engine.forceListenSim(listen > 0); // pour comparer à l'oreille : jamais dans le plug-in à l'export
     engine.prepare(input.sampleRate, blockSize);
     for (const auto& [spec, value] : settings) engine.setParameterImmediate(spec->id, value);
+    if (listen > 0) engine.setParameterImmediate(params::ParamId::ListenSim, listen);
 
     const int latency = engine.latencySamples();
     const int frames = input.numFrames();

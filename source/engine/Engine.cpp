@@ -49,6 +49,7 @@ void Engine::appendStage(std::unique_ptr<Stage> stage, ParamId onParameter) {
 }
 
 void Engine::setRealtimeMode(bool realtime) noexcept {
+    realtime_ = realtime;
     for (auto& stage : stages_) stage->setRealtime(realtime);
 }
 
@@ -71,6 +72,7 @@ void Engine::prepare(double sampleRate, int maxBlockSize) {
         slot.on.snapTo(slot.on.target());
     }
 
+    listen_.prepare(sampleRate, spec_.maxBlockSize);
     work_.allocate(kNumChannels, spec_.maxBlockSize);
     dry_.allocate(kNumChannels, spec_.maxBlockSize);
     stageIn_.allocate(kNumChannels, spec_.maxBlockSize);
@@ -176,6 +178,7 @@ void Engine::applyParameter(ParamId id, double plainValue, bool immediate) noexc
             break;
         }
         case ParamId::DeltaListen: deltaWanted_ = std::clamp(static_cast<int>(plainValue), 0, static_cast<int>(stages_.size())); break;
+        case ParamId::ListenSim: listen_.setPreset(static_cast<int>(std::lround(plainValue))); break;
         case ParamId::GainMatch:
             gainMatch_ = plainValue >= 0.5;
             matchMix_.setTarget(gainMatch_ ? 1.0 : 0.0);
@@ -391,7 +394,11 @@ void Engine::processChunk(int n) noexcept {
         }
     }
 
-    // 7. Monitoring Stéréo / Mid / Side.
+    // 7. Écoute simulée (écouteurs, téléphone, plateformes…) : écoute seulement,
+    //    jamais dans un rendu hors ligne (export).
+    if (realtime_ || forceListen_) listen_.process(w, n, loudness_.integratedLufs());
+
+    // 8. Monitoring Stéréo / Mid / Side.
     applyMonitorMatrix(n);
 }
 

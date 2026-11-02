@@ -21,6 +21,11 @@ constexpr std::array<std::string_view, 3> kMonitorLabels{"Stereo", "Mid", "Side"
 constexpr std::array<std::string_view, 2> kSlopeLabels{"24 dB/oct", "48 dB/oct"};
 constexpr std::array<std::string_view, 2> kPhaseLabels{"Linear", "Analog"};
 constexpr std::array<std::string_view, 2> kLatencyLabels{"Max Quality", "Low Latency"};
+// Ordre de engine/ListenSim.h (Preset).
+constexpr std::array<std::string_view, 19> kListenLabels{
+    "Off", "AirPods (2/3)", "AirPods Pro 2", "AirPods Max", "Beats Studio Pro", "Sony WH-1000XM5", "Galaxy Buds2 Pro",
+    "JBL Tune 510BT", "Sennheiser HD 600", "Audio-Technica M50x", "Phone speaker", "TikTok (phone)", "Car", "Club PA",
+    "Spatial (binaural)", "Spotify -14 LUFS", "Deezer -15 LUFS", "YouTube -14 LUFS", "Apple Music -16 LUFS"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
 constexpr std::array<std::string_view, 3> kLinkRoleLabels{"Seul", "Stem", "Master"};
@@ -60,6 +65,8 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // Mode travail : filtres à phase linéaire raccourcis (latence ~10x plus basse,
     // grave moins précis). Gardé dans la session pour que l'avertissement reste
     // visible ; un rendu hors ligne (export) repasse de lui-même en qualité max.
+    // Écoute simulée : outil d'écoute, jamais gardé ni appliqué à l'export.
+    {ParamId::ListenSim,         "listen",        "Listen As",            "Listen", "",     ParamKind::Choice,     0.0,    18.0,  0.0,   18,   kListenLabels,  0.0,    0, ParamScale::Linear, false, false},
     {ParamId::LowLatency,        "low_latency",   "Latency Mode",         "Lat",    "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kLatencyLabels, 0.0,    0, ParamScale::Linear, true, false},
 
     // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence

@@ -58,11 +58,12 @@
 
 ## source/engine/
 
-- `Engine.h/cpp` (666 l.) — Moteur DSP : chaîne d'étages, PDC, bypass, mesures. · types : MeterReadout, Engine, Slot · fonctions : appendStage, setRealtimeMode, prepare, reset, setParameter, setParameterImmediate, process, meterOnly, resetLoudnessHistory, sanitizeInput, applyParameter, processChunk, recoverFromFault, applyGain
+- `Engine.h/cpp` (684 l.) — Moteur DSP : chaîne d'étages, PDC, bypass, mesures. · types : MeterReadout, Engine, Slot · fonctions : appendStage, setRealtimeMode, prepare, reset, setParameter, setParameterImmediate, process, meterOnly, setLowLatency, forceListenSim, resetLoudnessHistory, sanitizeInput, applyParameter, processChunk
+- `ListenSim.h/cpp` (358 l.) — Écoutes simulées : entendre le master comme sur des écouteurs, un téléphone, TikTok, une voiture, un club, une plateforme (normalisation de la sonie) ou un rendu spatial binaural. · types : ListenSim, Biquad · enums : Filter · fonctions : labels, prepare, reset, setPreset, process, run, design, responseDb, build
 - `MasteringChain.h/cpp` (53 l.) — Construction de la chaîne de mastering complète. · fonctions : buildMasteringChain
 - `ProdListener.h/cpp` (215 l.) — Le master écoute la prod qui passe (son entrée), en continu pendant la lecture : la barre IA et AUTO partent de ce qu'il a entendu. Seuls des nombres sont gardés (signature), jamais d'audio. · types : ProdListener, Snapshot · enums : AutoState · fonctions : prepare, release, push, forget, startAuto, cancelAuto, takeAutoResult, loop
 - `ReferenceCapture.h/cpp` (256 l.) — Écouter une référence jouée dans le DAW. · types : ReferenceCapture, Result, Frame · fonctions : prepare, release, setCompletionHandler, setMinimumSeconds, setCapturing, push, workerLoop, drain
-- `Stage.h` (66 l.) — Interface d'un étage de la chaîne de mastering. · types : ProcessSpec, Stage · fonctions : setParameter, setRealtime, setPeakGuard
+- `Stage.h` (75 l.) — Interface d'un étage de la chaîne de mastering. · types : ProcessSpec, Stage · fonctions : lowLatencyLength, setParameter, setRealtime, setPeakGuard
 
 ## source/gfx/
 
@@ -77,15 +78,15 @@
 
 ## source/params/
 
-- `Parameters.h/cpp` (648 l.) — Table unique des paramètres (DSP, VST3, outils, IA). · types : ParamSpec · enums : ParamId, ParamKind, ParamScale, MbControl, MonitorMode, MonoSlope, LinkRole, PhaseMode, Module · fonctions : matchBandHz, matchMidId, matchSideId, mbId, allParameters, findParameter, findParameterByKey, parameterIndex, toPlain, toNormalized, clampPlain, isPersistent, moduleOnId, chainOrder
+- `Parameters.h/cpp` (662 l.) — Table unique des paramètres (DSP, VST3, outils, IA). · types : ParamSpec · enums : ParamId, ParamKind, ParamScale, MbControl, MonitorMode, MonoSlope, LinkRole, PhaseMode, Module · fonctions : matchBandHz, matchMidId, matchSideId, mbId, allParameters, findParameter, findParameterByKey, parameterIndex, toPlain, toNormalized, clampPlain, isPersistent, moduleOnId, chainOrder
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (839 l.) — Contrôleur d'édition VST3 (thread UI). · types : ProposalLine, ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, ReferenceCard · enums : RefKind · fonctions : createInstance, requestProposals, answerProposal, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, startAuto, restartTutorial, pollAutomation, setPromoMode, chooseReference
-- `OmnisEditor.h/cpp` (2270 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, pumpFeed, startTutorial, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens, buildMaster, page, knobs
+- `OmnisController.h/cpp` (842 l.) — Contrôleur d'édition VST3 (thread UI). · types : ProposalLine, ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, ReferenceCard · enums : RefKind · fonctions : createInstance, requestProposals, answerProposal, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, startAuto, restartTutorial, pollAutomation, setPromoMode, chooseReference
+- `OmnisEditor.h/cpp` (2312 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, pumpFeed, startTutorial, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens, buildMaster, page, knobs
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (48 l.) — Identifiants de classes VST3.
-- `OmnisProcessor.h/cpp` (888 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, processStem, switchRole, passThrough, feedBlock, publishFeed
+- `OmnisProcessor.h/cpp` (904 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, processStem, switchRole, passThrough, feedBlock, publishFeed
 - `OmnisState.h/cpp` (121 l.) — Format binaire de l'état du processeur. · fonctions : writeState, readState, writeExtras, readExtras
 - `OmnisVersion.h` (27 l.) — Identité et version du plug-in.
 - `UiFeed.h/cpp` (108 l.) — Ce que le processeur montre à l'interface, sans passer par les paramètres de sortie (trop lents et trop maigres pour un spectre ou un goniomètre). · types : UiMeters, UiFeed · fonctions : registerFeed, unregisterFeed, findFeed
@@ -101,10 +102,10 @@
 - `ClipperStage.h/cpp` (501 l.) — Étage 5 : Smart Wave-Shaping / Mastering Clipper. · types : SplitKernelRequest, SplitKernelDesigner, ClipperStage : Stage, Band · fonctions : prepare, design, splitKernelLengthFor, applyOversamplingChoice, splitFrameBoundary, clipBand
 - `ImagerStage.h/cpp` (239 l.) — Étage 4 : Imager (largeur stéréo multibande). · types : ImagerKernelRequest, ImagerKernelDesigner, ImagerStage : Stage · fonctions : prepare, design, kernelLengthFor, frameBoundary
 - `InflatorStage.h/cpp` (408 l.) — Étage 3 : Inflator (densité et chaleur). · types : InflatorCurve, InflatorStage : Stage, Band · fonctions : exponentFor, shape, slope, splitKernelLengthFor, applyOversamplingChoice, splitFrameBoundary, harmonicsOf
-- `LimiterStage.h/cpp` (354 l.) — Étage 6 : Lookahead Brickwall Limiter (true peak). · types : LimiterStage : Stage · fonctions : detect
+- `LimiterStage.h/cpp` (355 l.) — Étage 6 : Lookahead Brickwall Limiter (true peak). · types : LimiterStage : Stage · fonctions : detect
 - `MatchEqStage.h/cpp` (160 l.) — Étage 2 : Match EQ M/S à phase linéaire. · types : MatchEqStage : Stage · fonctions : frameBoundary
 - `MatchKernelBank.h/cpp` (111 l.) — Noyaux FIR à phase linéaire du Match EQ. · types : MatchKernelRequest, MatchKernelDesigner · fonctions : matchCurveDb, prepare, design
-- `MultibandStage.h/cpp` (424 l.) — Étage 4 : dynamique multibande (« tenir la 808 »). · types : MbKernelRequest, MbKernelDesigner, MultibandStage : Stage, Band · fonctions : prepare, design, kernelLengthFor, updateKneeStart, updateTimeConstants, frameBoundary
+- `MultibandStage.h/cpp` (429 l.) — Étage 4 : dynamique multibande (« tenir la 808 »). · types : MbKernelRequest, MbKernelDesigner, MultibandStage : Stage, Band · fonctions : prepare, design, kernelLengthFor, updateKneeStart, updateTimeConstants, frameBoundary
 - `SubControlStage.h/cpp` (403 l.) — Étage 1 : Sub Control & Mono Maker. · types : SubControlStage : Stage · fonctions : kernelLengthFor, blockSizeFor, updateAnalogCoefficients, frameBoundary, processSynth
 - `SubKernelBank.h/cpp` (100 l.) — Noyaux FIR à phase linéaire du Sub Control. · types : SubKernelRequest, SubKernelDesigner · fonctions : prepare, design
 
@@ -128,13 +129,14 @@
 - `TestDeezer.cpp` (76 l.) — Lecture des réponses de l'API Deezer (omnis_refdb deezer) : sur des réponses d'exemple au format de l'API, sans réseau. · 3 tests : deezer: lecteur JSON (échappements, unicode, imbrication) ; deezer: le bon artiste (accents, fautes) et le bon titre (feat. ignoré ; deezer: adresses de recherche encodées, adresses refusées avant curl
 - `TestDrumBus.cpp` (116 l.) — Reconnaître les éléments d'un bus de drums. · 3 tests : bus de drums: kick, snare, hi-hat et open hat reconnus dans un bus com ; bus de drums: ce qui ne joue pas n'est pas inventé (kick seul, hats se ; bus de drums: la chaîne du bus suit ce qui est reconnu (snare plus lar
 - `TestDynamics.cpp` (399 l.) — Courbes ADAA, clipper suréchantillonné, limiteur. · 14 tests : courbes: pente 1 à l'origine, bornées, antidérivées cohérentes (dF/du  ; clipper: transparent sous le genou (-12 dBFS : gain 0 dB, distorsion < ; clipper: repliement d'un écrêtage dur sévère selon le suréchantillonna ; clipper: plafond respecté (dépassement < 0.4 dB en deux bandes) et DC  ; clipper deux bandes: la 808 écrêtée n'intermodule plus le haut du spec ; limiteur: aucun échantillon ni crête vraie au-dessus du plafond (+12 d ; …
-- `TestEngine.cpp` (215 l.) — Moteur : null-test, PDC, bypass, monitoring. · 7 tests : engine: chaîne neutre = null-test bit-exact (64 et 32 bits) ; engine: latence = somme des étages, bypass aligné et sans clic ; engine: gain de sortie +6.02 dB = x2 après lissage ; engine: monitoring Side sur signal mono = silence, Mid sur anti-phase  ; engine: les mesures portent sur la sortie (avant monitoring) ; engine: sortie indépendante du découpage en blocs (lissage déterminist ; …
+- `TestEngine.cpp` (249 l.) — Moteur : null-test, PDC, bypass, monitoring. · 8 tests : engine: chaîne neutre = null-test bit-exact (64 et 32 bits) ; engine: latence = somme des étages, bypass aligné et sans clic ; engine: gain de sortie +6.02 dB = x2 après lissage ; engine: monitoring Side sur signal mono = silence, Mid sur anti-phase  ; engine: les mesures portent sur la sortie (avant monitoring) ; engine: sortie indépendante du découpage en blocs (lissage déterminist ; …
 - `TestFilters.cpp` (163 l.) — SVF TPT et crossovers Linkwitz-Riley. · 5 tests : svf: passe-bas / passe-haut Butterworth = -3.01 dB à fc, pentes 12 dB/ ; svf: cloche, plateaux, passe-tout, réjecteur ; svf: stable sous modulation brutale de fc et Q (bruit, 1 s) ; linkwitz-riley: -6.02 dB par voie à fc, somme = passe-tout exact (LR4, ; crossover network: 6 bandes, somme plate à ±1e-6 dB, bandes isolées
 - `TestFramework.h` (70 l.) — Micro-framework de tests sans dépendance. · types : TestCase, Registrar · fonctions : registry, failureCount, reportFailure
 - `TestInflatorImager.cpp` (253 l.) — Étages 3 (Inflator) et 4 (Imager). · 8 tests : inflator: courbe (g(0) = 0, g(1) = 1 sans cassure, pente à l'origine m ; inflator: réglages par défaut = entrée retardée, au bit près ; inflator: densité sans crête plus haute (mix 100 %, courbe par défaut  ; inflator: chaleur = harmoniques paires, sans continu ; 4x : pas de rep ; inflator: « Inflate 808 » ne touche que le bas (50 Hz gonflé, 1 kHz in ; imager: largeurs à 100 % = entrée retardée (1e-12) ; …
 - `TestLanguage.cpp` (505 l.) — Comprendre la demande (fautes, nuances, références). · 22 tests : texte: fautes de frappe et d'orthographe comprises, sans faux amis ; lexique: la base livrée se lit sans erreur et couvre les nuances ; demande: « ça manque de crispy », « c'est trop brillant », « trop prop ; demande: un défaut nommé est une plainte, « trop » ou pas ; demande: négations (« c'est pas propre » = veut du propre, « pas de di ; demande: intensité (« un poil », « vraiment »), protection (« garde ma ; …
 - `TestLearning.cpp` (106 l.) — Apprentissage local et communautaire. · 5 tests : retours: journal relu à l'identique ; apprentissage local: « crispy » s'ajuste aux corrections, un défaut da ; apprentissage local: un mot inconnu devient un concept s'il est cohére ; communauté: export anonyme, fusion, seules les tendances confirmées en ; retours: correction déduite des courbes proposée / gardée
 - `TestLink.cpp` (247 l.) — Instances liées : master et stems d'un même groupe. · 6 tests : lien: un master voit ses stems (rôle, type, nom), pas ceux d'un autre  ; lien: le master écoute l'audio d'un stem pendant la lecture (même sign ; lien: ordres du master -> stem (jeton vérifié), reprise d'un emplaceme ; lien: stem qui écrit et master qui écoute en même temps ; changement d ; lien: un stem se reconnaît (nom de piste, puis écoute) et le master le ; lien: les retouches acceptées voyagent dans les ordres ; un nouveau ve
+- `TestListenSim.cpp` (87 l.) — Écoutes simulées : courbes, spatial, plateformes, et jamais dans un export. · 4 tests : écoute simulée: les étiquettes suivent les préréglages ; écoute simulée: téléphone sans grave, AirPods ouverts avec peu de sub, ; écoute simulée: « Off » ne touche à rien, le spatial reste fini et du  ; écoute simulée: une plateforme baisse un master fort vers sa cible, ja
 - `TestLoudness.cpp` (123 l.) — Conformité ITU-R BS.1770-4 / EBU Tech 3341 & 3342. · 6 tests : k-weighting: coefficients 48 kHz = Tables 1 et 2 de BS.1770-4 ; ebu3341: cas 1 et 2 (M, S, I) à 48 et 44.1 kHz ; ebu3341: cas 3, 4, 5 (portes absolue et relative) ; loudness: indépendance vis-à-vis du découpage en blocs ; loudness: silence -> -inf, aucune mesure intégrée ; ebu3342: LRA d'un signal stationnaire ~ 0, d'un signal à deux niveaux 
 - `TestMain.cpp` (39 l.) — tests/TestMain.cpp
 - `TestMatchEq.cpp` (177 l.) — Étage Match EQ (courbe d'intention M/S). · 6 tests : match eq: courbe Catmull-Rom (nœuds exacts, pente régulière reproduite ; match eq: courbe nulle = retard pur (null-test < 1e-12) ; match eq: nœud Mid +6 dB à 1.28 kHz, Side +3 dB à 5.12 kHz, voisins lo ; match eq: Match Amount dose la courbe (50 % de -6 dB à 40 Hz = -3 dB) ; match eq: changement de courbe en lecture sans discontinuité ; match eq: tilt +3 dB (pivot 640 Hz) : -2.4 dB à 40 Hz, 0 à 640 Hz, +2.
@@ -185,7 +187,7 @@
 
 ## tools/guishot/
 
-- `main.cpp` (189 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
+- `main.cpp` (198 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
 
 ## tools/learn/
 
@@ -198,11 +200,11 @@
 ## tools/refdb/
 
 - `main.cpp` (1261 l.) — tools/refdb — Base de références (signatures, jamais d'audio). · commandes : image, pochette, deezer, embleme, cartoon, discographie, fiche, add, scan, titres, artistes, csv, nom, noms, list, find
-- `sons_a_mesurer.py` (84 l.) — (la scène demandée, puis un titre par artiste non mesuré dans chaque famille des
+- `sons_a_mesurer.py` (113 l.) — dans un budget de 28 Go de FLAC (la scène demandée, puis tes playlists et les proches
 
 ## tools/render/
 
-- `main.cpp` (168 l.) — tools/render — Rendu hors ligne d'un WAV à travers le moteur OMNIS.
+- `main.cpp` (176 l.) — tools/render — Rendu hors ligne d'un WAV à travers le moteur OMNIS.
 
 ## tools/stems/
 

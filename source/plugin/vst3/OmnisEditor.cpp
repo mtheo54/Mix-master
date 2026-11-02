@@ -1932,12 +1932,20 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
     live_.push_back(readouts_);
 
     // Instances liées.
-    col->addView(new Caption(CRect(12, 550, W - 12, 562), "INSTANCES LIÉES", color::kText3, mono(9)));
-    const auto menu = [&](const CRect& r, ParamId pid, const char* name) {
-        col->addView(new Caption(CRect(r.left, r.top + 4, r.left + 60, r.bottom), name, color::kText3, mono(9)));
-        auto* m = new COptionMenu(CRect(r.left + 62, r.top, r.right, r.bottom), listen([this, pid](CControl* ctl) {
+    col->addView(new Caption(CRect(12, 579, W - 12, 591), "INSTANCES LIÉES", color::kText3, mono(9)));
+    const auto menu = [&](const CRect& r, ParamId pid, const char* name, int labelW = 60) {
+        col->addView(new Caption(CRect(r.left, r.top + 4, r.left + labelW, r.bottom), name, color::kText3, mono(9)));
+        auto* m = new COptionMenu(CRect(r.left + labelW + 2, r.top, r.right, r.bottom), listen([this, pid](CControl* ctl) {
             const auto* spec = params::findParameter(pid);
             setPlain(id(pid), spec->minValue + std::lround(ctl->getValue()));
+            if (pid == ParamId::ListenSim) {
+                const int v = static_cast<int>(std::lround(ctl->getValue()));
+                answer_ = v == 0 ? "Écoute normale."
+                                 : "ÉCOUTE SIMULÉE « " + std::string(spec->choices[static_cast<std::size_t>(v)]) +
+                                       " » : pour juger seulement (approximation d'OMNIS, pas une mesure du modèle). "
+                                       "Rien n'est exporté avec, et elle repart à Off à la réouverture du projet.";
+                return;
+            }
             layoutRack();
             if (pid == ParamId::LinkRole) selectPage(role() == static_cast<int>(params::LinkRole::Stem) ? kStemPage : (role() == static_cast<int>(params::LinkRole::Master) ? kConductorPage : 6));
         }), static_cast<int32_t>(pid));
@@ -1952,10 +1960,20 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
         syncs_.push_back([this, m, pid, spec] {
             const auto v = static_cast<int32_t>(std::lround(plain(id(pid)) - spec->minValue));
             if (m->getCurrentIndex() != v) m->setCurrent(v);
+            // Écoute simulée active : en rouge, on ne l'oublie pas.
+            if (pid == ParamId::ListenSim) {
+                const CColor want = v != 0 ? color::kClip : color::kText;
+                if (m->getFontColor() != want) {
+                    m->setFontColor(want);
+                    m->setFrameColor(v != 0 ? color::kClip : CColor(60, 62, 66));
+                    m->invalid();
+                }
+            }
         });
     };
-    menu(CRect(12, 568, W - 12, 590), ParamId::LinkRole, "RÔLE");
-    menu(CRect(12, 596, W - 12, 618), ParamId::LinkGroup, "GROUPE");
+    menu(CRect(12, 550, W - 12, 572), ParamId::ListenSim, "ÉCOUTE");
+    menu(CRect(12, 596, W * 64 / 100, 618), ParamId::LinkRole, "RÔLE");
+    menu(CRect(W * 64 / 100 + 6, 596, W - 12, 618), ParamId::LinkGroup, "GR", 18);
     auto* links = new Screen(CRect(12, 626, W - 12, 650), [this](CDrawContext* c, const CRect& r) {
         const int rl = role();
         const std::string s = rl == static_cast<int>(params::LinkRole::Master) ? "Stems liés : " + valueText(id(ParamId::MeterLinkStems))

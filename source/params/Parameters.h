@@ -51,6 +51,7 @@ enum class ParamId : std::uint32_t {
     GainMatch = 9,    ///< écoute au même volume que l'entrée (jamais gardé dans la session)
     DeltaListen = 10, ///< écouter seulement ce qu'un module change (jamais gardé)
     LowLatency = 11,  ///< mode travail : filtres courts, latence basse, qualité réduite
+    ListenSim = 12,   ///< écoute simulée (écouteurs, téléphone, TikTok…) : jamais gardée, jamais exportée
 
     // --- Sub Control & Mono Maker (100–199) ----------------------------------
     LowCutFreq = 100,
@@ -212,7 +213,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 143;
+inline constexpr std::size_t kParameterCount = 144;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

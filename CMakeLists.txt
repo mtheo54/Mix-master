@@ -110,6 +110,7 @@ add_library(omnis_core STATIC
     source/params/Parameters.cpp
     source/params/Parameters.h
     source/engine/Engine.cpp
+    source/engine/ListenSim.cpp
     source/engine/Engine.h
     source/engine/MasteringChain.cpp
     source/engine/MasteringChain.h
@@ -319,6 +320,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp
         tests/TestEngine.cpp
+        tests/TestListenSim.cpp
         tests/TestWav.cpp
     )
     target_link_libraries(omnis_tests PRIVATE omnis_tools_common omnis_stb omnis_compile_options)

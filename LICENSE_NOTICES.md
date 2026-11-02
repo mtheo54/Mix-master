@@ -73,7 +73,18 @@ doit respecter les règles d'usage des marques publiées par Steinberg. Les noms
 et de services cités (Deezer, FL Studio…) appartiennent à leurs propriétaires et ne sont employés
 que pour désigner leurs œuvres ou produits.
 
-## 5. Documentation de tiers
+## 5. Écoutes simulées (menu ÉCOUTE)
+
+Les préréglages d'écouteurs (AirPods, Beats, Sony, Samsung Galaxy Buds, JBL, Sennheiser,
+Audio-Technica…) sont des **approximations d'OMNIS** : quelques filtres larges par modèle, établis
+d'après leurs caractéristiques publiques. Ce ne sont pas des mesures, aucune base de mesures de
+tiers n'est copiée ni livrée, et aucun fabricant n'est associé à OMNIS : les marques ne servent
+qu'à désigner les modèles. Les cibles de sonie des plateformes (Spotify, Deezer, YouTube, Apple
+Music, TikTok) sont les valeurs couramment rapportées et peuvent changer. L'écoute « Spatial
+(binaural) » est une simulation générique (haut-parleurs virtuels) : ce n'est ni Dolby Atmos ni le
+rendu d'une marque. Les écoutes simulées ne s'appliquent jamais à un export.
+
+## 6. Documentation de tiers
 
 Les manuels d'autres logiciels consultés pendant le développement ne sont ni copiés ni livrés ;
 seuls des principes, reformulés, ont servi.
