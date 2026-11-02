@@ -42,6 +42,24 @@ jobs:
             LICENSE_NOTICES.md
           retention-days: 30
 
+      # L'installateur Windows (Inno Setup, présent sur les machines Windows de GitHub ;
+      # installé sinon) : OMNIS.vst3 dans le dossier VST3 commun + l'outil de mesure.
+      - name: Installateur Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          $v = (Select-String -Path source/plugin/vst3/OmnisVersion.h -Pattern 'OMNIS_VERSION_(MAJOR|MINOR|PATCH) (\d+)' | ForEach-Object { $_.Matches[0].Groups[2].Value }) -join '.'
+          & $iscc "/DAppVersion=$v" "/DSrcDir=..\build" installer\OMNIS.iss
+      - name: Installateur à télécharger
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OMNIS-Windows-installateur
+          path: installer/Output/*.exe
+          retention-days: 30
+
       # L'outil qui mesure les références sur le PC de l'utilisateur
       # (docs/REFERENCES.md) : omnis_refdb scan dossier/ --db references.txt
       - name: Outil de mesure des références

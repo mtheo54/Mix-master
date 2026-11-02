@@ -18,3 +18,4 @@ CMakeUserPresets.json
 *.aif
 *.aiff
 *.flac
+installer/Output/
