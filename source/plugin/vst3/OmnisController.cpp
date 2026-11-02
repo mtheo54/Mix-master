@@ -212,6 +212,26 @@ double OmnisController::plainOf(std::uint32_t pid) {
     return spec ? params::toPlain(*spec, getParamNormalized(pid)) : 0.0;
 }
 
+void OmnisController::rememberForUndo(const std::string& label) {
+    UndoStep step;
+    step.label = label;
+    for (const auto& spec : params::allParameters())
+        if (params::isPersistent(spec) && !spec.key.starts_with("link_") && spec.id != params::ParamId::LowLatency)
+            step.values.emplace_back(static_cast<std::uint32_t>(spec.id), plainOf(static_cast<std::uint32_t>(spec.id)));
+    undo_.push_back(std::move(step));
+    if (undo_.size() > 20) undo_.erase(undo_.begin());
+}
+
+std::string OmnisController::undoLast() {
+    if (undo_.empty()) return "Rien à annuler.";
+    UndoStep step = std::move(undo_.back());
+    undo_.pop_back();
+    pursuing_ = false; // la course au volume de l'action annulée s'arrête
+    applyPlan(step.values);
+    return "Annulé : la console est revenue à l'état d'avant « " + step.label + " »" +
+           (undo_.empty() ? "." : " (encore " + std::to_string(undo_.size()) + " retour(s) possible(s)).");
+}
+
 void OmnisController::applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings) {
     for (const auto& [pid, plain] : settings)
         if (const auto* spec = params::findParameter(pid)) editParameter(pid, params::toNormalized(*spec, params::clampPlain(*spec, plain)));
@@ -268,6 +288,7 @@ std::string OmnisController::ask(const std::string& request) {
                                                       "repars de zero", "on repart de zero", "efface tout", "annule tout"};
         for (const auto phrase : kReset)
             if (plain.find(phrase) != std::string::npos) {
+                rememberForUndo("remise à zéro");
                 std::vector<std::pair<std::uint32_t, double>> settings;
                 for (const auto& spec : params::allParameters())
                     if (params::isPersistent(spec) && !spec.key.starts_with("link_"))
@@ -277,6 +298,14 @@ std::string OmnisController::ask(const std::string& request) {
                 pursuing_ = false;
                 return "Tout est revenu aux réglages de départ (le rôle Master / Stem de l'instance est gardé).";
             }
+    }
+    {
+        // « annule », « undo », « ctrl z » : l'action précédente de l'IA est défaite.
+        const std::string plain = ai::normalizeText(request);
+        static constexpr std::string_view kUndo[] = {"annule", "annuler", "undo", "ctrl z", "retour arriere", "reviens en arriere",
+                                                     "defais", "remets comme avant", "remet comme avant", "c etait mieux avant", "go back"};
+        for (const auto phrase : kUndo)
+            if (plain == phrase || plain.starts_with(std::string(phrase) + " ")) return undoLast();
     }
     if (!feed_) requestFeed();
     if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
@@ -312,6 +341,7 @@ std::string OmnisController::runRequest(const std::string& text) {
     if (u.question) return *u.question;
     const auto snap = feed_->prod.snapshot();
     const auto plan = ai::planRequest(u, snap.signature, [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
+    if (!plan.settings.empty()) rememberForUndo(text);
     std::vector<std::pair<std::uint32_t, double>> settings;
     for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
     applyPlan(settings);
@@ -458,6 +488,7 @@ std::string OmnisController::runReference() {
                                         [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
     std::vector<std::pair<std::uint32_t, double>> settings;
     for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+    if (!settings.empty()) rememberForUndo("référence " + refName_);
     applyPlan(settings);
     if (plan.targetLufs) {
         loudTarget_ = *plan.targetLufs;
@@ -493,13 +524,14 @@ std::string OmnisController::pollAutomation() {
         const auto plan = chosen.empty() ? ai::planAuto(loud, lib, autoStyle_, current) : ai::planAuto(loud, chosen, refName_, current);
         std::vector<std::pair<std::uint32_t, double>> settings;
         for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+        rememberForUndo("AUTO");
         applyPlan(settings);
         if (plan.targetLufs) {
             loudTarget_ = *plan.targetLufs;
             pursuing_ = true;
             pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
         }
-        message = joined(plan.said, " · ") + ". Tout reste réglable à la main.";
+        message = joined(plan.said, " · ") + ". Tout reste réglable à la main. (« annule » pour revenir en arrière)";
     }
     // Demande en attente : appliquée dès qu'OMNIS a assez écouté.
     if (!pendingAsk_.empty() && feed_->prod.snapshot().seconds >= 8.0) {

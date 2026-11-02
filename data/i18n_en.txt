@@ -336,3 +336,10 @@ Volume : le limiteur est au maximum raisonnable ; pousse l'entrée ou le clip si
 Écrête les pics avant le limiteur ; la 808 à part.	Clips the peaks before the limiter; the 808 separately.
 ÉLÉMENT	ELEMENT
 Élément reconnu : 	Recognized element: 
+Rien à annuler.	Nothing to undo.
+Annulé : la console est revenue à l'état d'avant « 	Undone: the console is back to how it was before “
+ (encore 	 (
+ retour(s) possible(s)).	 more step(s) back possible).
+remise à zéro	reset
+référence 	reference 
+. Tout reste réglable à la main. (« annule » pour revenir en arrière)	. Everything stays adjustable by hand. (“undo” to go back)

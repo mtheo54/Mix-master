@@ -171,6 +171,14 @@ private:
     int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
     std::string runRequest(const std::string& text);
     void applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings);
+    /// Garde l'état de la console avant une action de l'IA (« annule » y revient).
+    void rememberForUndo(const std::string& label);
+    std::string undoLast();
+    struct UndoStep {
+        std::string label;
+        std::vector<std::pair<std::uint32_t, double>> values;
+    };
+    std::vector<UndoStep> undo_; ///< 20 étapes au plus
     [[nodiscard]] double plainOf(std::uint32_t id);
     std::array<std::vector<std::pair<std::uint32_t, double>>, 2> ab_;
     int abSlot_ = 0;
