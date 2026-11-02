@@ -995,6 +995,15 @@ void OmnisEditor::askAi() {
 // -----------------------------------------------------------------------------
 //  Le rack
 // -----------------------------------------------------------------------------
+bool OmnisEditor::onAfter(int first, int later) const {
+    bool seen = false;
+    for (const int m : order()) {
+        if (seen && m == later) return plain(id(params::moduleOnId(static_cast<params::Module>(later)))) >= 0.5;
+        if (m == first) seen = true;
+    }
+    return false;
+}
+
 std::array<int, 7> OmnisEditor::order() const {
     const auto o = params::chainOrder(static_cast<int>(std::lround(plain(id(ParamId::ChainOrder)))));
     std::array<int, 7> out{};
@@ -1117,12 +1126,23 @@ void OmnisEditor::buildRack(CViewContainer* root) {
                 break;
             }
             case params::Module::Clipper:
-                cb.status = [this] { return "CLIP " + fmt("%.1f dB", an_->meters.clipperGrDb); };
+                cb.status = [this] {
+                    // Sans limiteur allumé derrière lui, le clipper tient lui-même le plafond.
+                    return "CLIP " + fmt("%.1f dB", an_->meters.clipperGrDb) +
+                           (onAfter(static_cast<int>(params::Module::Clipper), static_cast<int>(params::Module::Limiter)) ? "" : " · PLAFOND TENU");
+                };
                 cb.level = [this] { return -an_->meters.clipperGrDb / 12.0; };
                 macro = model(id(ParamId::ClipDrive));
                 break;
             case params::Module::Limiter:
-                cb.status = [this] { return "GR " + fmt("%.1f dB", an_->meters.limiterGrDb); };
+                cb.status = [this] {
+                    // Un module allumé après le limiteur peut repasser son plafond.
+                    bool after = false;
+                    for (int m = 0; m < params::kModules; ++m)
+                        after = after || (m != static_cast<int>(params::Module::Limiter) &&
+                                          onAfter(static_cast<int>(params::Module::Limiter), m));
+                    return "GR " + fmt("%.1f dB", an_->meters.limiterGrDb) + (after ? " · PAS DERNIER" : "");
+                };
                 cb.level = [this] { return -an_->meters.limiterGrDb / 12.0; };
                 macro = model(id(ParamId::LimGain));
                 break;

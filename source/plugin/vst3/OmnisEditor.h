@@ -103,6 +103,8 @@ private:
     VSTGUI::CViewContainer* page(VSTGUI::CViewContainer* drawer, int index, const char* number, const char* title, const char* help);
     void knobs(VSTGUI::CViewContainer* parent, const VSTGUI::CRect& area, const char* title, const std::vector<std::uint32_t>& ids, int size = 1);
     void layoutRack();
+    /// `later` (un module) est allumé et placé après `first` dans le rack.
+    [[nodiscard]] bool onAfter(int first, int later) const;
     [[nodiscard]] std::array<int, 7> order() const;
     void dragMove(int module, double frameX);
     void drop(int module, double frameX);
