@@ -343,3 +343,17 @@ Annulé : la console est revenue à l'état d'avant « 	Undone: the console is b
 remise à zéro	reset
 référence 	reference 
 . Tout reste réglable à la main. (« annule » pour revenir en arrière)	. Everything stays adjustable by hand. (“undo” to go back)
+PRÊT À EXPORTER	READY TO EXPORT
+AVANT D'EXPORTER : 	BEFORE EXPORTING: 
+écoute SIDE active : seul le Side serait exporté	SIDE listening on: only the Side would be exported
+écoute MID active : seul le Mid serait exporté	MID listening on: only the Mid would be exported
+DELTA actif : seule la différence d'un module serait exportée	DELTA on: only one module's difference would be exported
+MATCH actif : le volume exporté serait celui de l'original	MATCH on: the exported level would be the original's
+mode TRAVAIL actif : qualité réduite (repasse en qualité max)	WORK mode on: reduced quality (switch back to max quality)
+écoute simulée active : remets ÉCOUTE sur Off	simulated listening on: set LISTEN back to Off
+BYPASS actif : OMNIS ne traite rien	BYPASS on: OMNIS processes nothing
+la sortie dépasse 0 dBTP (%.1f) : distorsion au décodage	the output goes over 0 dBTP (%.1f): distortion on playback
+true peak à %.1f dBTP : au-dessus de -1 dBTP conseillé pour le streaming	true peak at %.1f dBTP: above the -1 dBTP advised for streaming
+sonie très forte (%.1f LUFS) : les plateformes vont la baisser	very high loudness (%.1f LUFS): platforms will turn it down
+PRÊT À EXPORTER : rien ne fausse le fichier (écoute normale, qualité max, true peak sous -1 dBTP).	READY TO EXPORT: nothing distorts the file (normal listening, max quality, true peak below -1 dBTP).
+PAS ENCORE PRÊT À EXPORTER : 	NOT READY TO EXPORT YET: 

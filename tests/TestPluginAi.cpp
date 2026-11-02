@@ -285,3 +285,23 @@ OMNIS_TEST("plug-in: « annule » défait la dernière action (ici la remise à 
     OMNIS_CHECK(back.find("Annulé") != std::string::npos);
     OMNIS_CHECK(std::fabs(params::toPlain(*spec, h.ctrl->getParamNormalized(id)) - 9.0) < 1e-6);
 }
+
+OMNIS_TEST("plug-in: prêt à exporter ? les outils d'écoute oubliés sont signalés") {
+    Host h;
+    OMNIS_CHECK(h.ctrl->exportProblems().empty());
+    const auto set = [&](params::ParamId pid, double plain) {
+        const auto* spec = params::findParameter(static_cast<std::uint32_t>(pid));
+        h.ctrl->setParamNormalized(static_cast<Steinberg::Vst::ParamID>(pid), params::toNormalized(*spec, plain));
+    };
+    set(params::ParamId::LowLatency, 1.0);
+    set(params::ParamId::Monitor, 2.0);
+    const auto problems = h.ctrl->exportProblems();
+    OMNIS_CHECK(problems.size() == 2);
+    OMNIS_CHECK(problems.front().find("SIDE") != std::string::npos); // le plus grave d'abord
+    const std::string answer = h.ctrl->ask("je peux exporter ?");
+    std::printf("      %s\n", answer.c_str());
+    OMNIS_CHECK(answer.find("PAS ENCORE PRÊT") != std::string::npos);
+    set(params::ParamId::LowLatency, 0.0);
+    set(params::ParamId::Monitor, 0.0);
+    OMNIS_CHECK(h.ctrl->ask("pret a exporter").find("PRÊT À EXPORTER") == 0);
+}

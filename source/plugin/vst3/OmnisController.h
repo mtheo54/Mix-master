@@ -80,6 +80,9 @@ public:
 
     /// Barre IA : la demande en texte libre ; renvoie ce qu'OMNIS a compris et fait.
     std::string ask(const std::string& request);
+    /// Avant d'exporter : ce qui fausserait le fichier (vide = prêt). Le premier
+    /// élément est le plus grave.
+    [[nodiscard]] std::vector<std::string> exportProblems();
     /// Diagnostic du mix (ai/MixDiagnosis) sur ce qu'OMNIS a entendu de la prod.
     std::string mixDiagnosis();
     /// AUTO : écoute du passage le plus fort, puis réglage de la chaîne.

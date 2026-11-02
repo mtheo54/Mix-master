@@ -38,6 +38,15 @@
 
 namespace omnis::vst3 {
 
+namespace {
+/// Format traduit avant d'être rempli (anglais).
+std::string format(const char* f, double v) {
+    char b[200];
+    std::snprintf(b, sizeof b, i18n::tr(f).c_str(), v);
+    return b;
+}
+} // namespace
+
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 using params::ParamKind;
@@ -279,6 +288,15 @@ std::string OmnisController::ask(const std::string& request) {
             i18n::setLanguage(i18n::Lang::Fr);
             return "Interface en français. Type /en for English.";
         }
+        static constexpr std::string_view kExport[] = {"export", "exporter", "pret a exporter", "je peux exporter", "check export", "ready to export"};
+        for (const auto phrase : kExport)
+            if (plain == phrase || plain.find(std::string(phrase) + " ") == 0 || plain.find(" " + std::string(phrase)) != std::string::npos) {
+                const auto problems = exportProblems();
+                if (problems.empty()) return "PRÊT À EXPORTER : rien ne fausse le fichier (écoute normale, qualité max, true peak sous -1 dBTP).";
+                std::string s = "PAS ENCORE PRÊT À EXPORTER : ";
+                for (std::size_t i = 0; i < problems.size(); ++i) s += (i ? " ; " : "") + i18n::tr(problems[i]);
+                return s + ".";
+            }
         static constexpr std::string_view kDiag[] = {"diagnosis", "mix diagnosis", "check my mix", "whats wrong", "what s wrong","diagnostic", "diag", "analyse mon mix", "analyse le mix", "check mon mix", "mix check",
                                                      "qu est ce qui va pas", "quest ce qui va pas", "ce qui va pas", "conseils mix", "conseil mix"};
         for (const auto phrase : kDiag)
@@ -321,6 +339,25 @@ std::string OmnisController::ask(const std::string& request) {
         return "Lance la lecture : OMNIS écoute ta prod quelques secondes, puis applique ta demande.";
     }
     return runRequest(request);
+}
+
+std::vector<std::string> OmnisController::exportProblems() {
+    using P = params::ParamId;
+    const auto v = [this](P id) { return plainOf(static_cast<std::uint32_t>(id)); };
+    std::vector<std::string> out;
+    // Outils d'écoute restés allumés : le fichier exporté ne serait pas le master.
+    if (v(P::Monitor) >= 0.5) out.push_back(v(P::Monitor) >= 1.5 ? "écoute SIDE active : seul le Side serait exporté" : "écoute MID active : seul le Mid serait exporté");
+    if (v(P::DeltaListen) >= 0.5) out.push_back("DELTA actif : seule la différence d'un module serait exportée");
+    if (v(P::GainMatch) >= 0.5) out.push_back("MATCH actif : le volume exporté serait celui de l'original");
+    if (v(P::LowLatency) >= 0.5) out.push_back("mode TRAVAIL actif : qualité réduite (repasse en qualité max)");
+    if (v(P::ListenSim) >= 0.5) out.push_back("écoute simulée active : remets ÉCOUTE sur Off");
+    if (v(P::Bypass) >= 0.5) out.push_back("BYPASS actif : OMNIS ne traite rien");
+    // Le son de sortie mesuré (depuis la lecture).
+    const double tp = v(P::MeterTruePeak), lufs = v(P::MeterIntegrated);
+    if (tp > 0.0) out.push_back(format("la sortie dépasse 0 dBTP (%.1f) : distorsion au décodage", tp));
+    else if (tp > -0.9) out.push_back(format("true peak à %.1f dBTP : au-dessus de -1 dBTP conseillé pour le streaming", tp));
+    if (lufs > -60.0 && lufs > -6.0) out.push_back(format("sonie très forte (%.1f LUFS) : les plateformes vont la baisser", lufs));
+    return out;
 }
 
 std::string OmnisController::mixDiagnosis() {

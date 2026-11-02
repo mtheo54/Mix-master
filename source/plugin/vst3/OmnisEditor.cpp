@@ -1910,6 +1910,27 @@ void OmnisEditor::buildScreens(CViewContainer* root) {
     scope_->setMouseEnabled(false);
     panel->addView(scope_);
     live_.push_back(scope_);
+    // Prêt à exporter ? Vert, ou rouge avec la première raison ; un clic les dit toutes.
+    auto* ready = new Screen(CRect(230, 12, split - 14, 28), [this](CDrawContext* c, const CRect& r) {
+        const auto problems = omnis()->exportProblems();
+        const bool ok = problems.empty();
+        const CColor col = ok ? color::kGood : color::kClip;
+        c->setFrameColor(CColor(col.red, col.green, col.blue, 140));
+        c->setLineWidth(1.0);
+        c->drawRect(r, kDrawStroked);
+        // La raison la plus grave, courte (le détail : un clic) ; « +2 » s'il y en a d'autres.
+        std::string why = ok ? std::string() : i18n::tr(problems.front());
+        if (const auto cut = why.find(':'); cut != std::string::npos) why = why.substr(0, cut > 0 && why[cut - 1] == ' ' ? cut - 1 : cut);
+        const std::string s = ok ? i18n::tr("PRÊT À EXPORTER")
+                                 : i18n::tr("AVANT D'EXPORTER : ") + why + (problems.size() > 1 ? "  +" + std::to_string(problems.size() - 1) : "");
+        text(c, s, CRect(r.left + 6, r.top, r.right - 6, r.bottom), col, mono(9, true));
+    }, true);
+    ready->setMouse([this](const CPoint&, int phase, bool) {
+        if (phase == 0) answer_ = omnis()->ask("prêt à exporter");
+        return true;
+    });
+    panel->addView(ready);
+    live_.push_back(ready);
 }
 
 void OmnisEditor::paintSpectrum(CDrawContext* c, const CRect& r) {
