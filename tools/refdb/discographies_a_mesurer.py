@@ -9,7 +9,7 @@
 import csv,json,math,re,sys,unicodedata,os,collections
 ROOT=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..')+os.sep
 CAP=50
-MAX=int(os.environ.get("OMNIS_MAX_TITRES","3000"))  # titres au plus
+MAX=int(os.environ.get("OMNIS_MAX_TITRES","6000"))  # titres au plus
 def red(s):
     s=unicodedata.normalize('NFKD',s).encode('ascii','ignore').decode().lower().replace('$','s'); return re.sub(r'[^a-z0-9]','',s)
 def bare(t): return red(re.sub(r'\s*[\(\[](feat|ft|with|prod)[^\)\]]*[\)\]]','',t,flags=re.I))
@@ -57,6 +57,19 @@ for k in artists:
         if n>=quota or len(rows)>=MAX: break
         if k not in red(t['a']) or VARIANT.search(t['t']): continue
         if add(t['a'] if red(t['a'])==k else e['name'],t['t'],t['al'],fam_of[k],t['d'],t.get('i',''),t['l'],'populaire',n+1): n+=1
+# Place restante : un son populaire de plus par artiste, à tour de rôle, jusqu'au maximum.
+extra=1
+while len(rows) < MAX and extra <= 40:
+    before=len(rows)
+    for k in artists:
+        if len(rows) >= MAX: break
+        e=top.get(k)
+        if k in SCENE or not e: continue
+        for t in e['tracks']:
+            if k not in red(t['a']) or VARIANT.search(t['t']): continue
+            if add(t['a'] if red(t['a'])==k else e['name'],t['t'],t['al'],fam_of[k],t['d'],t.get('i',''),t['l'],'populaire (en plus)',PER+extra): break
+    if len(rows)==before: break
+    extra+=1
 out=ROOT+'data/discographies_a_mesurer.csv'
 with open(out,'w',newline='',encoding='utf-8-sig') as fh:
     w=csv.DictWriter(fh,fieldnames=list(rows[0].keys()),quoting=csv.QUOTE_ALL); w.writeheader(); w.writerows(rows)
