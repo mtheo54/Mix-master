@@ -20,7 +20,7 @@
         OMNIS_VERSION_BUILD)
 
 #define OMNIS_VENDOR "Abrasion Labs"
-#define OMNIS_VENDOR_URL ""
+#define OMNIS_VENDOR_URL "https://onirique.store"
 #define OMNIS_VENDOR_EMAIL ""
 #define OMNIS_PLUGIN_NAME "OMNIS"
 #define OMNIS_COPYRIGHT "(c) 2026 Abrasion Labs"
