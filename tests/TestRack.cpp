@@ -347,3 +347,30 @@ OMNIS_TEST("limiteur: Punch, upward et lien à 0 = exactement l'ancien limiteur 
     }
     OMNIS_CHECK(maxDiff(sa, sb, 0) == 0.0);
 }
+
+OMNIS_TEST("rack: un module éteint ne coûte rien ; rallumé, il revient sans clic vers le même son") {
+    const Stereo in = from(tools::signals::drumLoop(kFs, 10));
+    auto noLim = kDriven;
+    noLim.push_back({ParamId::LimOn, 0.0});
+    auto later = chain(noLim);
+    auto always = chain(kDriven);
+    // Éteint au départ (sauté), rallumé au bloc 100 (~1 s).
+    const Stereo a = render(*later, in, 100, ParamId::LimOn, 1.0);
+    const Stereo b = render(*always, in);
+    const auto settled = static_cast<std::size_t>(100 * 512 + 2 * later->latencySamples()) + static_cast<std::size_t>(0.6 * kFs);
+    const double diff = maxDiff(a, b, settled);
+    // Rallumé avec un état neuf : la mémoire lente du limiteur (relâchement
+    // automatique) rejoint celle d'un limiteur toujours allumé en quelques secondes.
+    const double late = maxDiff(a, b, static_cast<std::size_t>(7.0 * kFs));
+    std::printf("    écart juste après le fondu : %.2e (%.0f dB) ; après 7 s : %.2e\n", diff, 20.0 * std::log10(diff + 1e-30), late);
+    OMNIS_CHECK(diff < 3e-3);
+    OMNIS_CHECK(late < 1e-5);
+    double jumpOn = 0.0, jumpElsewhere = 0.0;
+    for (std::size_t i = 1; i < a.l.size(); ++i) {
+        const double j = std::fabs(a.l[i] - a.l[i - 1]);
+        const bool around = i > 100 * 512 && i < settled;
+        if (around) jumpOn = std::max(jumpOn, j);
+        else jumpElsewhere = std::max(jumpElsewhere, j);
+    }
+    OMNIS_CHECK(jumpOn <= jumpElsewhere * 1.05);
+}

@@ -159,6 +159,8 @@ private:
         OnePoleSmoother on;
         DelayLine dry;
         int latency = 0;
+        bool cold = false; ///< éteint et sauté : son état interne est périmé
+        int warmup = 0;    ///< rallumé : échantillons à calculer avant le fondu (filtres pleins)
     };
     std::vector<Slot> slots_;
     std::vector<int> order_;      ///< indices d'étages dans l'ordre de traitement

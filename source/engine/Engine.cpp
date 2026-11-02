@@ -311,6 +311,29 @@ void Engine::processChunk(int n) noexcept {
     applyGain(inputGain_, w, n);
     for (const int k : order_) {
         Slot& slot = slots_[static_cast<std::size_t>(k)];
+        // Module éteint (fondu fini, pas en écoute Delta) : on ne le calcule pas,
+        // la sortie est son entrée retardée de sa latence. CPU économisé.
+        const bool fullyOff = !slot.on.isSmoothing() && slot.on.current() == 0.0 && slot.on.target() == 0.0 && deltaActive_ != k + 1;
+        if (fullyOff) {
+            if (slot.latency > 0) slot.dry.process(w, kNumChannels, n);
+            slot.cold = true;
+            continue;
+        }
+        if (slot.cold) {
+            // Rallumé : état neuf, et le temps de remplir ses filtres avant le fondu
+            // (sinon on entendrait le silence de ses lignes à retard).
+            stages_[static_cast<std::size_t>(k)]->reset();
+            slot.warmup = slot.latency + 64;
+            slot.cold = false;
+        }
+        if (slot.warmup > 0) {
+            for (int ch = 0; ch < kNumChannels; ++ch) std::copy_n(w[ch], n, in[ch]);
+            slot.dry.process(in, kNumChannels, n);
+            stages_[static_cast<std::size_t>(k)]->process(w, n);
+            for (int ch = 0; ch < kNumChannels; ++ch) std::copy_n(in[ch], n, w[ch]); // sec, le temps du remplissage
+            slot.warmup -= n;
+            continue;
+        }
         const bool fullyOn = !slot.on.isSmoothing() && slot.on.current() == 1.0;
         const bool needDry = !fullyOn || deltaActive_ == k + 1;
         if (needDry || slot.latency > 0) {
