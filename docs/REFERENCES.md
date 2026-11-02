@@ -195,3 +195,20 @@ Les fichiers sans perte (WAV, FLAC) sont les plus justes ; un MP3 / YouTube coup
 91 titres ; **2 avec la fiche complète** (2hollis – poster boy, SLAYR – Sloppy Joe : leur audio
 était disponible ici). Les 89 autres attendent d'être re-mesurés depuis l'audio.
 Vérifié sur des fichiers dont le tempo est dans le nom : 135, 118 et 142 BPM retrouvés exactement.
+
+## Sons à mesurer en priorité
+
+`data/sons_a_mesurer.csv` (refait par `python3 tools/refdb/sons_a_mesurer.py`) liste ~140 titres :
+d'abord ta scène (GRY, Omyll, euhZ, La Fève : les titres demandés puis les plus récents), puis,
+dans chaque famille de tes playlists, un titre par artiste encore jamais mesuré, les plus présents
+dans tes playlists d'abord. Colonnes au format des exports de playlists (« Track Name »,
+« Artist Name(s) », « Album Name », « ISRC », « Genre_Classement ») + priorité, raison, lien Deezer.
+
+Une fois les fichiers sur ton PC (achetés ou obtenus légalement, en FLAC ou WAV de préférence),
+nommés « Artiste - Titre » :
+
+```
+omnis_refdb scan dossier_des_sons/ --db references_utilisateur.txt
+```
+
+Seules les mesures entrent dans la base ; les fichiers restent chez toi (jamais dans le dépôt).
