@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # Abrasion Labs // OMNIS — data/discographies_a_mesurer.csv : pour chaque artiste de
 # data/sons_a_mesurer.csv, ses sons populaires d'abord puis le reste, jusqu'à la moitié
-# de ses titres (50 au plus), 3000 titres en tout (OMNIS_MAX_TITRES). Source : Deezer /artist/{id}/top?limit=100 (top100.json,
+# de ses titres (50 au plus), 3000 titres en tout (OMNIS_MAX_TITRES).
+# Version triée : 10 sons par artiste (tes titres, puis ses plus populaires), 15 pour ta
+# scène, les artistes les plus présents dans tes playlists d'abord. Source : Deezer /artist/{id}/top?limit=100 (top100.json,
 # rempli par l'outil de collecte), plus la discographie de la scène. Noms seulement.
 #   python3 tools/refdb/discographies_a_mesurer.py chemin/vers/top100.json
 import csv,json,math,re,sys,unicodedata,os,collections
@@ -25,39 +27,36 @@ def add(artist,title,album,fam,dur,isrc,link,why,rank):
                  'Rang':rank,'Pourquoi':why,'Durée (s)':dur,'Lien Deezer':link})
     return True
 fam_of={red(r['Artist Name(s)']):r['Genre_Classement'] for r in prev}
-order=[]
-for r in prev:
-    k=red(r['Artist Name(s)'])
-    if k not in order: order.append(k)
-# 1. Ta scène demandée : toute sa discographie (petite), la plus récente d'abord.
-for k in order:
-    if k not in SCENE: continue
-    own=[x for x in scene if red(x['artiste'])==k and k in red(x['interprète']) and not VARIANT.search(x['titre'])]
-    own.sort(key=lambda x:x['date'],reverse=True)
-    for n,x in enumerate(own,1): add(x['artiste'],x['titre'],x['sortie'],fam_of[k],x['durée_s'],x['isrc'],x['lien'],'ta scène : toute la discographie',n)
-# 2. Les titres de tes playlists.
-for r in prev:
-    add(r['Artist Name(s)'],r['Track Name'],r['Album Name'],r['Genre_Classement'],r['Durée (s)'],r['ISRC'],r['Lien Deezer'],'tes playlists',0)
-# 3. Les populaires de chaque artiste, à tour de rôle (n° 1 de chacun, puis n° 2…),
-#    jusqu'à la moitié de ses titres (50 au plus), et MAX titres en tout.
-lists={}
-for k in order:
+PER=int(os.environ.get("OMNIS_PAR_ARTISTE","10"))      # sons par artiste
+PER_SCENE=int(os.environ.get("OMNIS_PAR_SCENE","15"))  # ta scène : un peu plus, pas toute la discographie
+# Les titres de tes playlists, par artiste (ceux que tu écoutes passent en premier).
+mine=collections.defaultdict(list)
+for r in prev: mine[red(r['Artist Name(s)'])].append(r)
+# Ordre des artistes : ta scène, puis les plus présents dans tes playlists.
+artists=sorted(mine, key=lambda k: (k not in SCENE, -sum(1 for r in mine[k] if r['Pourquoi'] != 'ta scène : titre demandé'), k))
+for k in artists:
+    quota=PER_SCENE if k in SCENE else PER
+    if len(rows)+min(quota,3) > MAX: break
+    n=0
+    if k in SCENE:
+        # Titres demandés d'abord, puis les plus récents.
+        for r in mine[k]:
+            if n<quota and r['Pourquoi']=='ta scène : titre demandé' and add(r['Artist Name(s)'],r['Track Name'],r['Album Name'],r['Genre_Classement'],r['Durée (s)'],r['ISRC'],r['Lien Deezer'],'ta scène : titre demandé',n+1): n+=1
+        own=[x for x in scene if red(x['artiste'])==k and k in red(x['interprète']) and not VARIANT.search(x['titre'])]
+        own.sort(key=lambda x:x['date'],reverse=True)
+        for x in own:
+            if n>=quota or len(rows)>=MAX: break
+            if add(x['artiste'],x['titre'],x['sortie'],fam_of[k],x['durée_s'],x['isrc'],x['lien'],'ta scène : récent',n+1): n+=1
+        continue
+    for r in mine[k]:
+        if n>=quota or len(rows)>=MAX: break
+        if add(r['Artist Name(s)'],r['Track Name'],r['Album Name'],r['Genre_Classement'],r['Durée (s)'],r['ISRC'],r['Lien Deezer'],'tes playlists',n+1): n+=1
     e=top.get(k)
-    if k in SCENE or not e: continue
-    uniq=[]; u=set()
+    if not e: continue
     for t in e['tracks']:
+        if n>=quota or len(rows)>=MAX: break
         if k not in red(t['a']) or VARIANT.search(t['t']): continue
-        b2=bare(t['t'])
-        if b2 and b2 not in u: u.add(b2); uniq.append(t)
-    target=CAP if len(e['tracks'])>=100 else min(CAP,math.ceil(len(uniq)/2))
-    lists[k]=(e,uniq[:max(target,min(3,len(uniq)))])
-for rank in range(CAP):
-    for k,(e,ts) in lists.items():
-        if len(rows)>=MAX: break
-        if rank<len(ts):
-            t=ts[rank]
-            add(t['a'] if red(t['a'])==k else e['name'],t['t'],t['al'],fam_of[k],t['d'],t.get('i',''),t['l'],'populaire n° %d'%(rank+1),rank+1)
-    if len(rows)>=MAX: break
+        if add(t['a'] if red(t['a'])==k else e['name'],t['t'],t['al'],fam_of[k],t['d'],t.get('i',''),t['l'],'populaire',n+1): n+=1
 out=ROOT+'data/discographies_a_mesurer.csv'
 with open(out,'w',newline='',encoding='utf-8-sig') as fh:
     w=csv.DictWriter(fh,fieldnames=list(rows[0].keys()),quoting=csv.QUOTE_ALL); w.writeheader(); w.writerows(rows)
