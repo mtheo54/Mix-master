@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
             rig.ctrl->chooseReference(omnis::vst3::OmnisController::RefKind::Title,
                                       shotRef ? shotRef : "BloodyWraith Pee - DRILL 229 (feat. Konor Marley & DAÏCO CHUP)");
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
-                                               {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-piste"}, {8, "9-chef"}};
+                                               {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-piste"}, {8, "9-chef"}, {9, "10-diagnostic"}};
         for (const auto& [page, name] : pages) {
             editor->selectPage(page);
             for (int t = 0; t < 40; ++t) {

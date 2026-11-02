@@ -18,6 +18,7 @@
 - `Feedback.h/cpp` (512 l.) — Apprendre de chaque séance, chez soi puis pour tout le monde. · types : FeedbackRecord, LearningReport, CommunityRules · fonctions : serializeFeedback, parseFeedback, appendFeedback, loadFeedback, correctionFromCurves, parseCorrection, learnFromFeedback, exportAggregate, mergeAggregates
 - `Lexicon.h/cpp` (917 l.) — Des mots de la personne aux axes sonores. · types : Descriptor, Concept, Lexicon, ConceptHit, Interpretation · enums : Axis · fonctions : axisKey, axisLabel, axisUnit, axisApplied, axisFromKey, parse, add, find, builtin, expandShorthand, interpret, isCommonWord
 - `MatchIntent.h/cpp` (625 l.) — De la référence à une intention : ressembler, pas copier. · types : MatchRequest, Understanding, MatchIntent · fonctions : regionOfBand, requestFromInterpretation, parseRequest, understandRequest, planMatch, planFromWords, tonalDistanceDb
+- `MixDiagnosis.h/cpp` (166 l.) — Diagnostic du mix : ce qu'OMNIS entend dans la prod (avant ses modules) et ce qu'il faut corriger DANS LE MIX (projet FL), en clair. Comparé à une référence (titre, style) ou, sans elle, à la moyenne des · types : MixFinding · enums : Level · fonctions : diagnoseMix, formatDiagnosis
 - `ReferenceLibrary.h/cpp` (784 l.) — La base de références : artistes, titres, genres. · types : ReferenceEntry, ReferenceMatch, ReferenceLibrary, Neighbours, NameKey, EntryKeys · enums : Kind · fonctions : parse, add, builtin, of, index, aggregateSignature, addToLibraryFile, parseArtistLink, namesMatch
 - `TextMatch.h/cpp` (197 l.) — Comprendre une demande écrite vite, avec des fautes. · fonctions : normalizeText, tokenize, phoneticKey, damerauLevenshtein, fuzzyEquals, isWord
 
@@ -82,8 +83,8 @@
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (842 l.) — Contrôleur d'édition VST3 (thread UI). · types : ProposalLine, ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, ReferenceCard · enums : RefKind · fonctions : createInstance, requestProposals, answerProposal, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, startAuto, restartTutorial, pollAutomation, setPromoMode, chooseReference
-- `OmnisEditor.h/cpp` (2312 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, pumpFeed, startTutorial, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens, buildMaster, page, knobs
+- `OmnisController.h/cpp` (861 l.) — Contrôleur d'édition VST3 (thread UI). · types : ProposalLine, ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, ReferenceCard · enums : RefKind · fonctions : createInstance, requestProposals, answerProposal, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, restartTutorial, pollAutomation, setPromoMode
+- `OmnisEditor.h/cpp` (2372 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, pumpFeed, startTutorial, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens, buildMaster, page, knobs
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (48 l.) — Identifiants de classes VST3.
 - `OmnisProcessor.h/cpp` (904 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, processStem, switchRole, passThrough, feedBlock, publishFeed
@@ -141,6 +142,7 @@
 - `TestMain.cpp` (39 l.) — tests/TestMain.cpp
 - `TestMatchEq.cpp` (177 l.) — Étage Match EQ (courbe d'intention M/S). · 6 tests : match eq: courbe Catmull-Rom (nœuds exacts, pente régulière reproduite ; match eq: courbe nulle = retard pur (null-test < 1e-12) ; match eq: nœud Mid +6 dB à 1.28 kHz, Side +3 dB à 5.12 kHz, voisins lo ; match eq: Match Amount dose la courbe (50 % de -6 dB à 40 Hz = -3 dB) ; match eq: changement de courbe en lecture sans discontinuité ; match eq: tilt +3 dB (pivot 640 Hz) : -2.4 dB à 40 Hz, 0 à 640 Hz, +2.
 - `TestMatchIntent.cpp` (240 l.) — Signature, intention d'adaptation, demande. · 10 tests : signature: bruit rose = balance plate (±0.6 dB de 28 Hz à 14 kHz) ; signature: le Match EQ appliqué se retrouve dans la signature (pente + ; signature: une autre note de 808 (41 vs 49 Hz) ne déclenche pas d'EQ ( ; signature: les silences ne comptent pas (moitié muette = même balance) ; intention: écart partiel, sub protégé (±3 dB), bande vide jamais boost ; intention: jamais de copie (ressemblance bornée à 85 %) ; …
+- `TestMixDiagnosis.cpp` (71 l.) — Le diagnostic du mix voit ce que le master ne rattrape pas, et ne fait de la 808 hors gamme qu'une remarque. · 2 tests : diagnostic: un mix qui écrête déjà, un grave en opposition de phase ; diagnostic: une 808 hors gamme n'est qu'une remarque (parfois voulue)
 - `TestMultiband.cpp` (138 l.) — Dynamique multibande. · 5 tests : multibande: réglages neutres = retard pur (null-test < 1e-12) ; multibande: compensation d'une bande = sa réponse Linkwitz-Riley (±0.0 ; multibande: courbe statique (30 Hz à -10 dBFS RMS, seuil -20, ratio 4  ; multibande: 808 tenue proprement (harmoniques < -50 dB) et voix intact ; multibande: anticipation — un coup de 808 ne dépasse pas sa valeur ten
 - `TestMusic.cpp` (149 l.) — La fiche complète d'un son (analysis/MusicDescriptors) : ce qu'elle mesure, comment elle s'écrit dans la base, ce qu'OMNIS en fait. · 4 tests : fiche: tempo, note de la 808, tonalité et stéréo d'une boucle trap ; fiche: deux canaux sans rapport = corrélation nulle, perte en mono ; u ; fiche: écrite dans la base puis relue à l'identique (et une fiche anci ; fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch, un g
 - `TestOversampling.cpp` (149 l.) — Demi-bandes HIIR et cascade 2x … 16x. · 6 tests : halfband: 120 dB / tw 0.02 -> 12 coefficients, coefficients dans ]0, 1 ; oversampling: aller-retour plat à ±0.001 dB jusqu'à 20 kHz (2x … 16x) ; oversampling: images rejetées à > 115 dB après la montée 8x ; oversampling: contenu ultrasonore rejeté à > 115 dB à la descente (ant ; oversampling: retard de phase à 1 kHz faible (< 8 échantillons) et 1x  ; halfband: traitement par bloc identique au bit près au traitement écha
@@ -159,7 +161,7 @@
 
 ## tools/analyze/
 
-- `main.cpp` (47 l.) — tools/analyze — Rapport de métriques d'un ou plusieurs fichiers WAV.
+- `main.cpp` (59 l.) — tools/analyze — Rapport de métriques d'un ou plusieurs fichiers WAV.
 
 ## tools/ask/
 

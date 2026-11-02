@@ -89,6 +89,7 @@ add_library(omnis_core STATIC
     source/ai/Lexicon.cpp
     source/ai/Lexicon.h
     source/ai/MatchIntent.cpp
+    source/ai/MixDiagnosis.cpp
     source/ai/ConsoleActions.cpp
     source/ai/MatchIntent.h
     source/ai/ReferenceLibrary.cpp
@@ -321,6 +322,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestParameters.cpp
         tests/TestEngine.cpp
         tests/TestListenSim.cpp
+        tests/TestMixDiagnosis.cpp
         tests/TestWav.cpp
     )
     target_link_libraries(omnis_tests PRIVATE omnis_tools_common omnis_stb omnis_compile_options)

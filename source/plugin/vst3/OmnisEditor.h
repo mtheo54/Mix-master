@@ -83,7 +83,7 @@ public:
     void startTutorial(int step = 0);
     [[nodiscard]] int tutorialStep() const noexcept { return tutorialStep_; }
 
-    enum Page : int { kStemPage = 7, kConductorPage = 8 };
+    enum Page : int { kStemPage = 7, kConductorPage = 8, kDiagPage = 9 };
 
 private:
     OmnisController* omnis() const;
@@ -142,8 +142,9 @@ private:
     friend class TutorialOverlay;
     std::array<gui::RackSlot*, 7> slots_{};
     VSTGUI::CViewContainer* rack_ = nullptr;
-    std::array<VSTGUI::CViewContainer*, 9> pages_{};
-    std::array<gui::Screen*, 9> pageScreens_{};
+    std::array<VSTGUI::CViewContainer*, 10> pages_{};
+    std::string diagnosis_; ///< texte du diagnostic du mix (page D)
+    std::array<gui::Screen*, 10> pageScreens_{};
     gui::Screen* spectrum_ = nullptr;
     gui::Screen* scope_ = nullptr;
     gui::Screen* meter_ = nullptr;

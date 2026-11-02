@@ -9,6 +9,7 @@
 #include "UiFeed.h"
 
 #include "ai/ConsoleActions.h"
+#include "ai/MixDiagnosis.h"
 #include "ai/TextMatch.h"
 #include "core/UserDataDir.h"
 #include "gfx/AvatarCache.h"
@@ -248,6 +249,10 @@ std::string OmnisController::ask(const std::string& request) {
         // « remets tout à zéro », « reset », « par défaut » : tous les réglages
         // reviennent au départ (le rôle de l'instance, Master / Stem, reste).
         const std::string plain = ai::normalizeText(command);
+        static constexpr std::string_view kDiag[] = {"diagnostic", "diag", "analyse mon mix", "analyse le mix", "check mon mix", "mix check",
+                                                     "qu est ce qui va pas", "quest ce qui va pas", "ce qui va pas", "conseils mix", "conseil mix"};
+        for (const auto phrase : kDiag)
+            if (plain.find(phrase) != std::string::npos) return mixDiagnosis();
         static constexpr std::string_view kReset[] = {"reset", "remet tout a zero", "remets tout a zero", "remettre a zero", "remise a zero",
                                                       "tout a zero", "reinitialise", "reinitialiser", "par defaut", "repart de zero",
                                                       "repars de zero", "on repart de zero", "efface tout", "annule tout"};
@@ -277,6 +282,18 @@ std::string OmnisController::ask(const std::string& request) {
         return "Lance la lecture : OMNIS écoute ta prod quelques secondes, puis applique ta demande.";
     }
     return runRequest(request);
+}
+
+std::string OmnisController::mixDiagnosis() {
+    if (!feed_) requestFeed();
+    if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
+    const auto snap = feed_->prod.snapshot();
+    if (snap.seconds < 8.0) return "Lance la lecture (le passage le plus chargé) : OMNIS écoute ta prod quelques secondes, puis RÉÉCOUTER.";
+    const auto lib = libraryWithUser();
+    const auto refs = referenceEntries(lib, refKind_, refName_);
+    if (refs.empty()) return ai::formatDiagnosis(ai::diagnoseMix(snap.signature, nullptr));
+    const auto target = ai::aggregateSignature(refs);
+    return ai::formatDiagnosis(ai::diagnoseMix(snap.signature, &target));
 }
 
 std::string OmnisController::runRequest(const std::string& text) {

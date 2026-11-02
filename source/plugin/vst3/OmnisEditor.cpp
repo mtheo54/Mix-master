@@ -1424,6 +1424,50 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
               {id(P::StemHpf), id(P::StemComp), id(P::StemSat), id(P::StemClean), id(P::StemWidth), id(P::StemTrim)});
     }
     {
+        // Diagnostic du mix : ce qu'OMNIS entend dans la prod, à corriger dans le projet.
+        auto* p = page(drawer, kDiagPage, "D", "DIAGNOSTIC DU MIX", "Ce que le master ne rattrape pas : à corriger dans ton projet FL.");
+        auto* list = new Screen(CRect(12, row1, W - 14, row1 + 214), [this](CDrawContext* dc, const CRect& r) {
+            // Une ligne par constat (le plus important d'abord), retours à la ligne à la main.
+            std::vector<std::pair<std::string, CColor>> lines;
+            std::size_t start = 0;
+            while (start < diagnosis_.size()) {
+                std::size_t end = diagnosis_.find('\n', start);
+                if (end == std::string::npos) end = diagnosis_.size();
+                const std::string item = diagnosis_.substr(start, end - start);
+                start = end + 1;
+                if (item.empty()) continue;
+                const CColor col = item.rfind("[IMPORTANT]", 0) == 0 ? color::kClip : item.rfind("[CONSEIL]", 0) == 0 ? color::kAccent : color::kText2;
+                std::string line;
+                bool first = true;
+                for (std::size_t i = 0; i < item.size();) {
+                    const std::size_t sp = item.find(' ', i);
+                    const std::string word = item.substr(i, sp == std::string::npos ? std::string::npos : sp - i);
+                    if (line.size() + word.size() > 74 && !line.empty()) {
+                        lines.emplace_back(line, first ? col : color::kText);
+                        line = "  ";
+                        first = false;
+                    }
+                    line += (line.empty() || line == "  " ? "" : " ") + word;
+                    if (sp == std::string::npos) break;
+                    i = sp + 1;
+                }
+                if (!line.empty()) lines.emplace_back(line, first ? col : color::kText);
+            }
+            for (std::size_t i = 0; i < lines.size() && i < 13; ++i)
+                text(dc, lines[i].first, CRect(r.left + 10, r.top + 8 + 16 * i, r.right - 10, r.top + 24 + 16 * i), lines[i].second, mono(10));
+            if (lines.size() > 13) text(dc, "…", CRect(r.left + 10, r.bottom - 18, r.right - 10, r.bottom - 4), color::kText3, mono(10));
+        }, true);
+        list->setMouseEnabled(false);
+        p->addView(list);
+        live_.push_back(list);
+        auto* again = new HwButton(CRect(12, row1 + 222, 190, row1 + 248), "RÉÉCOUTER", [] { return false; }, [this] {
+            diagnosis_ = omnis()->mixDiagnosis();
+        }, false);
+        again->setAccentText(true);
+        p->addView(again);
+        live_.push_back(again);
+    }
+    {
         auto* p = page(drawer, kConductorPage, "M", "CHEF D'ORCHESTRE", "Le master écoute les stems de son groupe et propose.");
         auto* text1 = new Screen(CRect(12, row1, W - 14, row1 + 110), [this](CDrawContext* dc, const CRect& r) {
             const auto& pending = omnis()->pendingProposals();
@@ -1565,8 +1609,9 @@ bool OmnisEditor::matchMouse(const CPoint& p, int phase, bool fine, const CRect&
 }
 
 void OmnisEditor::selectPage(int p) {
-    page_ = std::clamp(p, 0, 8);
-    for (int i = 0; i < 9; ++i) {
+    page_ = std::clamp(p, 0, static_cast<int>(kDiagPage));
+    if (page_ == kDiagPage) diagnosis_ = omnis()->mixDiagnosis(); // écouté maintenant
+    for (int i = 0; i <= kDiagPage; ++i) {
         if (pages_[static_cast<std::size_t>(i)]) pages_[static_cast<std::size_t>(i)]->setVisible(i == page_);
         if (pageScreens_[static_cast<std::size_t>(i)]) pageScreens_[static_cast<std::size_t>(i)]->setVisible(i == page_);
     }
@@ -1826,6 +1871,16 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             hint("LE MASTER DU MÊME GROUPE ENTEND CETTE PISTE");
             break;
         }
+        case kDiagPage: {
+            caption("CE QU'OMNIS ENTEND DANS TA PROD (AVANT SES MODULES)");
+            text(c, "Comparé à ta référence choisie, sinon", CRect(plot.left, plot.top + 10, plot.right, plot.top + 26), color::kText2, mono(10));
+            text(c, "à la moyenne des sons mesurés.", CRect(plot.left, plot.top + 28, plot.right, plot.top + 44), color::kText2, mono(10));
+            text(c, "ROUGE : le master ne le rattrapera pas.", CRect(plot.left, plot.top + 62, plot.right, plot.top + 78), color::kClip, mono(10));
+            text(c, "ORANGE : conseil de mix.", CRect(plot.left, plot.top + 80, plot.right, plot.top + 96), color::kAccent, mono(10));
+            text(c, "GRIS : remarque (parfois voulu).", CRect(plot.left, plot.top + 98, plot.right, plot.top + 114), color::kText2, mono(10));
+            text(c, "Écris aussi « diagnostic » dans la barre IA.", CRect(plot.left, plot.top + 132, plot.right, plot.top + 148), color::kText3, mono(10));
+            break;
+        }
         case kConductorPage: {
             caption("STEMS LIÉS : " + valueText(id(ParamId::MeterLinkStems)) + " · PROPOSITIONS : " + valueText(id(ParamId::MeterProposals)));
             text(c, "Chaque proposition attend ton accord :", CRect(plot.left, plot.top + 10, plot.right, plot.top + 26), color::kText2, mono(10));
@@ -1984,12 +2039,16 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
     links->setMouseEnabled(false);
     col->addView(links);
     live_.push_back(links);
-    auto* chef = new HwButton(CRect(12, 658, W - 12, 684), "CHEF D'ORCHESTRE", [this] { return page_ == kConductorPage; }, [this] { selectPage(kConductorPage); });
-    auto* piste = new HwButton(CRect(12, 690, W - 12, 716), "PISTE (STEM)", [this] { return page_ == kStemPage; }, [this] { selectPage(kStemPage); });
+    auto* chef = new HwButton(CRect(12, 656, W / 2 - 3, 682), "CHEF", [this] { return page_ == kConductorPage; }, [this] { selectPage(kConductorPage); });
+    auto* piste = new HwButton(CRect(W / 2 + 3, 656, W - 12, 682), "STEM", [this] { return page_ == kStemPage; }, [this] { selectPage(kStemPage); });
+    auto* diag = new HwButton(CRect(12, 690, W - 12, 716), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); });
+    diag->setAccentText(true);
     col->addView(chef);
     col->addView(piste);
+    col->addView(diag);
     live_.push_back(chef);
     live_.push_back(piste);
+    live_.push_back(diag);
 }
 
 void OmnisEditor::paintMeter(CDrawContext* c, const CRect& r) {
