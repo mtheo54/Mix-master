@@ -208,11 +208,10 @@ Colonnes au format des exports de playlists (« Track Name », « Artist Name(s)
 « ISRC », « Genre_Classement ») + priorité, raison, durée, taille, cumul, lien Deezer.
 
 **Plus large** : `data/discographies_a_mesurer.csv` (`python3 tools/refdb/discographies_a_mesurer.py top100.json`) :
-pour chacun des 647 artistes, ses sons populaires d'abord (classement Deezer) puis le reste,
-jusqu'à la moitié de ses titres, **50 au plus** ; toute la discographie de ta scène ; tous les
-titres de tes playlists. Sans live / remix / instrumental / slowed. **14 366 titres, ~807 h** :
-~58 Go au format d'origine des plateformes (~160 kb/s), ~360 Go en FLAC 16 bits. Rien à garder :
-mesurer par lots puis supprimer (voir ci-dessous).
+**3000 titres au plus** (`OMNIS_MAX_TITRES`), dans l'ordre : toute la discographie de ta scène,
+les titres de tes playlists, puis les sons populaires de chacun des 647 artistes à tour de rôle
+(le n° 1 de chacun, puis le n° 2…), sans live / remix / instrumental / slowed. ~155 h de son :
+~11 Go au format d'origine des plateformes, ~70 Go en FLAC 16 bits. Mesurer par lots puis supprimer.
 
 Une fois les fichiers sur ton PC (achetés ou obtenus légalement, en FLAC ou WAV de préférence),
 nommés « Artiste - Titre » :
