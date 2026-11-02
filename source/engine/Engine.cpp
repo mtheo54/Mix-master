@@ -287,6 +287,16 @@ void Engine::processChunk(int n) noexcept {
 
     updateReorder(n);
     updateDelta();
+    // Qui tient la crête de sortie ? Un étage n'est « dernier rempart » que si
+    // aucun limiteur allumé ne le suit dans le rack.
+    {
+        bool limited = false;
+        for (auto it = order_.rbegin(); it != order_.rend(); ++it) {
+            const auto k = static_cast<std::size_t>(*it);
+            stages_[k]->setPeakGuard(!limited);
+            if (stages_[k]->limitsPeaks() && slots_[k].on.target() >= 0.5) limited = true;
+        }
+    }
 
     // 1. Chemin sec retardé de la latence totale de la chaîne (PDC interne).
     dryDelay_.process(d, kNumChannels, n);

@@ -137,11 +137,16 @@ OMNIS_TEST("rack: éteindre un module en route = fondu sans clic vers le même s
 OMNIS_TEST("rack Delta: on n'entend que ce que le module change (limiteur en fin de chaîne, Sub seul)") {
     const Stereo in = from(tools::signals::drumLoop(kFs, 3));
     {
-        auto on = chain(kDriven);
-        auto offSettings = kDriven;
+        // Clipper éteint ici : sans limiteur derrière lui, il deviendrait le
+        // dernier rempart (plafond tenu) et changerait lui aussi entre les deux
+        // rendus ; on ne compare que ce que fait le limiteur.
+        auto driven = kDriven;
+        driven.push_back({ParamId::ClipOn, 0.0});
+        auto on = chain(driven);
+        auto offSettings = driven;
         offSettings.push_back({ParamId::LimOn, 0.0});
         auto off = chain(offSettings);
-        auto deltaSettings = kDriven;
+        auto deltaSettings = driven;
         deltaSettings.push_back({ParamId::DeltaListen, 7.0});
         auto delta = chain(deltaSettings);
         const Stereo a = render(*on, in), b = render(*off, in), d = render(*delta, in);

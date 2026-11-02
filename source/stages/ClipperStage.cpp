@@ -94,6 +94,7 @@ void ClipperStage::prepare(const ProcessSpec& spec) {
     padding_.setDelay(paddingForStages_[static_cast<std::size_t>(requestedStages_)]);
     roomLatency_ = std::max(1, static_cast<int>(std::lround(kRoomLookaheadMs * 1e-3 * sampleRate_)));
     room_.prepare(roomLatency_);
+    guard_.prepare(roomLatency_);
     roomRelease_ = 1.0 - std::exp(-1.0 / (kRoomReleaseMs * 1e-3 * sampleRate_));
     for (auto* d : {&roomDelayLow_, &roomDelayHigh_})
         for (auto& ch : *d) ch.assign(static_cast<std::size_t>(roomLatency_), 0.0);
@@ -105,6 +106,7 @@ void ClipperStage::prepare(const ProcessSpec& spec) {
     // Bloqueur de DC du 1er ordre à 3 Hz pour la composante Diode, au taux
     // suréchantillonné : y = x − x₁ + R·y₁,  R = e^(−2π·fc / (fs·facteur)).
     dcCoefficient_ = std::exp(-2.0 * std::numbers::pi * 3.0 / (sampleRate_ * low_.oversampler.factor()));
+    residualCoefficient_ = 1.0 - std::exp(-2.0 * std::numbers::pi * kResidualDcHz / (sampleRate_ * low_.oversampler.factor()));
     reset();
 }
 
@@ -122,9 +124,12 @@ void ClipperStage::reset() noexcept {
         for (auto& c : band->clippers) c.reset();
         band->dcX1.fill(0.0);
         band->dcY1.fill(0.0);
+        band->resX1.fill(0.0);
+        band->resY1.fill(0.0);
     }
     padding_.reset();
     room_.reset();
+    guard_.reset();
     for (auto* d : {&roomDelayLow_, &roomDelayHigh_})
         for (auto& ch : *d) std::fill(ch.begin(), ch.end(), 0.0);
     roomDelayPos_ = 0;
@@ -162,6 +167,7 @@ void ClipperStage::applyOversamplingChoice() noexcept {
     high_.oversampler.setStages(requestedStages_);
     padding_.setDelay(paddingForStages_[static_cast<std::size_t>(requestedStages_)]);
     dcCoefficient_ = std::exp(-2.0 * std::numbers::pi * 3.0 / (sampleRate_ * low_.oversampler.factor()));
+    residualCoefficient_ = 1.0 - std::exp(-2.0 * std::numbers::pi * kResidualDcHz / (sampleRate_ * low_.oversampler.factor()));
 }
 
 void ClipperStage::splitFrameBoundary() noexcept {
@@ -189,17 +195,32 @@ void ClipperStage::clipBand(Band& band, const std::vector<double>& gainIn, int n
         double* x = up[ch];
         auto& clip = band.clippers[static_cast<std::size_t>(ch)];
         double x1 = band.dcX1[static_cast<std::size_t>(ch)], y1 = band.dcY1[static_cast<std::size_t>(ch)];
+        double ex1 = band.resX1[static_cast<std::size_t>(ch)], ey1 = band.resY1[static_cast<std::size_t>(ch)];
         for (int j = 0; j < total; ++j) {
             const auto b = static_cast<std::size_t>(j >> stages);
-            const auto out = clip.process(x[j] * gainIn[b], knees_[b], wHard_[b], wSoft_[b], wDiode_[b]);
-            // Seule la composante Diode (asymétrique) passe dans le bloqueur de DC.
+            const double u = x[j] * gainIn[b];
+            const auto out = clip.process(u, knees_[b], wHard_[b], wSoft_[b], wDiode_[b]);
+            // La composante Diode (asymétrique) passe dans le bloqueur de DC.
             const double d = out.diode - x1 + r * y1;
             x1 = out.diode;
             y1 = d;
-            x[j] = gainOut_[b] * (out.symmetric + d);
+            // Le résidu d'écrêtage (ce que la courbe retire) perd sa moyenne :
+            // écrêter une 808 dont les crêtes ne sont pas symétriques retire plus
+            // d'un côté que de l'autre et crée un décalage continu (mesuré :
+            // jusqu'à −41 dBFS, de la marge perdue). On retire au résidu sa
+            // moyenne lente (deux pôles à 0,7 Hz) : à 30 Hz l'écart n'est que de
+            // (0,7/30)² — la crête écrêtée reste au plafond (un passe-haut d'ordre
+            // 1 la décalait de +1 dB). Signal non écrêté : résidu nul, sortie
+            // identique à l'entrée au bit près.
+            const double e = out.symmetric - u;
+            ex1 += residualCoefficient_ * (e - ex1);
+            ey1 += residualCoefficient_ * (ex1 - ey1);
+            x[j] = gainOut_[b] * (u + (e - ey1) + d);
         }
         band.dcX1[static_cast<std::size_t>(ch)] = x1;
         band.dcY1[static_cast<std::size_t>(ch)] = y1;
+        band.resX1[static_cast<std::size_t>(ch)] = ex1;
+        band.resY1[static_cast<std::size_t>(ch)] = ey1;
     }
     double* out[2] = {band.buffer[0].data(), band.buffer[1].data()};
     band.oversampler.downsample(out, numSamples);
@@ -272,15 +293,31 @@ void ClipperStage::process(double* const* channels, int numSamples) noexcept {
             roomFloorAmount_ = amount;
             roomFloor_ = dbToGain(-kRoomMaxDepthDb * amount);
         }
-        const double floor = roomFloor_;
-        const double gain = room_.process(std::max(required, floor), roomRelease_);
+        // Clipper en bout de chaîne (« clip to zero », pas de limiteur derrière) :
+        // le sub cède d'abord (jusqu'à 6 dB, comme à 100 %), puis un gain
+        // d'ensemble à la même anticipation rabote ce qui dépasse encore (la
+        // somme des bandes, le rebond du filtre de sous-échantillonnage sur les
+        // transitoires écrêtés) : le plafond réglé est tenu.
+        const double floor = peakGuard_ ? std::min(roomFloor_, kGuardFloor) : roomFloor_;
+        const double subGain = std::max(required, floor);
+        const double gain = room_.process(subGain, roomRelease_);
+        double overall = 1.0;
+        if (peakGuard_)
+            for (int ch = 0; ch < 2; ++ch) {
+                const double sum = std::fabs(subGain * low_.buffer[static_cast<std::size_t>(ch)][k] + high_.buffer[static_cast<std::size_t>(ch)][k]);
+                if (sum > c) overall = std::min(overall, c / sum);
+            }
+        const double all = guard_.process(overall, roomRelease_);
         const auto dp = static_cast<std::size_t>(roomDelayPos_);
         for (int ch = 0; ch < 2; ++ch) {
             const auto c2 = static_cast<std::size_t>(ch);
             const double lo = roomDelayLow_[c2][dp], hi = roomDelayHigh_[c2][dp];
             roomDelayLow_[c2][dp] = low_.buffer[c2][k];
             roomDelayHigh_[c2][dp] = high_.buffer[c2][k];
-            channels[ch][i] = gain * lo + hi;
+            const double y = all * (gain * lo + hi);
+            // Dernier rempart : les écarts résiduels (la 808 réellement cédée
+            // diffère un peu de l'estimation) ne passent pas le plafond.
+            channels[ch][i] = peakGuard_ ? std::clamp(y, -c, c) : y;
         }
         if (++roomDelayPos_ == roomLatency_) roomDelayPos_ = 0;
     }

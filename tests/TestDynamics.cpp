@@ -357,3 +357,42 @@ OMNIS_TEST("clipper ADAA: la courbe Diode calculée à la demande donne le même
     }
     OMNIS_CHECK(maxError == 0.0);
 }
+
+OMNIS_TEST("clipper en bout de chaîne (pas de limiteur derrière) : la somme des deux bandes tient le plafond") {
+    for (const bool guard : {false, true}) {
+        ClipperStage st;
+        st.setParameter(ParamId::ClipDrive, 12.0, true);
+        st.setParameter(ParamId::ClipCeiling, -1.0, true);
+        st.setPeakGuard(guard);
+        st.prepare({kFs, 256, 2});
+        const auto drums = tools::signals::drumLoop(kFs, 4);
+        Stereo s{drums.channels[0], drums.channels[1]};
+        run(st, s);
+        const double peakDb = gainToDb(peakOf(s, 4410));
+        std::printf("    dernier rempart %s : crête %.2f dBFS (plafond -1)\n", guard ? "oui" : "non", peakDb);
+        if (guard) OMNIS_CHECK(peakDb < -1.0 + 0.3);
+    }
+}
+
+OMNIS_TEST("clipper: écrêter une onde asymétrique (808) ne laisse pas de décalage continu") {
+    ClipperStage st;
+    st.setParameter(ParamId::ClipDrive, 12.0, true);
+    st.setParameter(ParamId::ClipSubDrive, 6.0, true);
+    st.prepare({kFs, 256, 2});
+    // 50 Hz + 2e harmonique en phase : crêtes positives bien plus hautes que les négatives.
+    Stereo s;
+    const int n = static_cast<int>(6.0 * kFs);
+    for (int i = 0; i < n; ++i) {
+        const double t = i / kFs;
+        const double v = 0.35 * std::sin(2.0 * std::numbers::pi * 50.0 * t) + 0.2 * std::cos(2.0 * std::numbers::pi * 100.0 * t);
+        s.l.push_back(v);
+        s.r.push_back(v);
+    }
+    run(st, s);
+    double mean = 0.0;
+    const auto from = static_cast<std::size_t>(3.0 * kFs);
+    for (std::size_t i = from; i < s.l.size(); ++i) mean += s.l[i];
+    mean /= static_cast<double>(s.l.size() - from);
+    std::printf("    décalage continu après écrêtage : %.2e (%.1f dBFS)\n", mean, gainToDb(std::fabs(mean) + 1e-30));
+    OMNIS_CHECK(std::fabs(mean) < 2e-4);
+}

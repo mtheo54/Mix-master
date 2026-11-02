@@ -54,6 +54,12 @@ public:
     /// délégués à des threads de fond, résultats appliqués dès qu'ils sont prêts).
     /// false : rendu hors ligne déterministe (tout est calculé immédiatement).
     virtual void setRealtime(bool /*realtime*/) noexcept {}
+
+    /// true : l'étage garantit la crête de sortie (limiteur brickwall).
+    [[nodiscard]] virtual bool limitsPeaks() const noexcept { return false; }
+    /// Appelé à chaque bloc : `guard` = aucun étage allumé après celui-ci ne
+    /// garantit la crête (l'étage est le dernier rempart avant la sortie).
+    virtual void setPeakGuard(bool /*guard*/) noexcept {}
 };
 
 } // namespace omnis

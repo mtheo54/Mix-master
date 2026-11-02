@@ -90,6 +90,9 @@ public:
     [[nodiscard]] int latencySamples() const noexcept override { return latency_; }
     void setParameter(params::ParamId id, double plainValue, bool immediate) noexcept override;
     void setRealtime(bool realtime) noexcept override { realtime_ = realtime; }
+    /// Dernier rempart (limiteur éteint ou placé avant) : le partage de marge
+    /// devient complet, la somme des deux bandes ne dépasse plus le plafond.
+    void setPeakGuard(bool guard) noexcept override { peakGuard_ = guard; }
 
     /// Longueur du FIR de séparation (résolution ~5 Hz) et taille de partition.
     static int splitKernelLengthFor(double sampleRate) noexcept;
@@ -104,6 +107,7 @@ private:
         dsp::Oversampler oversampler;
         std::array<dsp::AdaaClipper, 2> clippers{};
         std::array<double, 2> dcX1{}, dcY1{};
+        std::array<double, 2> resX1{}, resY1{}; ///< moyenne lente du résidu d'écrêtage (deux pôles)
         std::array<std::vector<double>, 2> buffer; ///< signal de la bande, taux de base
     };
 
@@ -119,6 +123,9 @@ private:
     int requestedStages_ = 3;
     std::array<int, dsp::Oversampler::kMaxStages + 1> paddingForStages_{};
     double dcCoefficient_ = 0.0;
+    double residualCoefficient_ = 0.0;
+    bool peakGuard_ = false;
+    static constexpr double kResidualDcHz = 0.7;
 
     OnePoleSmoother drive_;    ///< gain linéaire
     OnePoleSmoother subDrive_; ///< gain linéaire supplémentaire de la bande basse
@@ -145,6 +152,8 @@ private:
     static constexpr double kRoomReleaseMs = 80.0;
     static constexpr double kRoomMaxDepthDb = 6.0; ///< baisse maximale de la 808 à 100 %
     dsp::LookaheadGain room_;
+    dsp::LookaheadGain guard_; ///< gain d'ensemble, clipper en bout de chaîne seulement
+    static constexpr double kGuardFloor = 0.5011872336272722; ///< −6 dB : la 808 ne cède pas plus
     OnePoleSmoother roomAmount_; ///< 0..1
     double roomRelease_ = 0.0;
     double roomFloorAmount_ = -1.0, roomFloor_ = 1.0; ///< plancher du partage de marge, recalculé quand la dose change

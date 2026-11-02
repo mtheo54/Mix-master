@@ -65,6 +65,7 @@ public:
     void process(double* const* channels, int numSamples) noexcept override;
     [[nodiscard]] int latencySamples() const noexcept override { return latency_; }
     void setParameter(params::ParamId id, double plainValue, bool immediate) noexcept override;
+    [[nodiscard]] bool limitsPeaks() const noexcept override { return true; }
 
     static constexpr double kLookaheadMs = 10.0;
     static constexpr double kTruePeakMarginDb = 0.05;
