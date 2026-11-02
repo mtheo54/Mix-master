@@ -18,5 +18,6 @@ std::string_view slang() noexcept;      ///< abréviations, SMS, argot (data/arg
 std::string_view references() noexcept;
 std::string_view catalogue() noexcept; ///< artistes et titres connus de nom (data/catalogue.txt)
 std::string_view elements() noexcept;  ///< noms de pistes -> éléments des stems (data/elements.txt)
+std::string_view i18n() noexcept;      ///< traduction anglaise de l'interface (data/i18n_en.txt)
 
 } // namespace omnis::ai::data

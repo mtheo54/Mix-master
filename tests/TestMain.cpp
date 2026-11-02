@@ -4,11 +4,15 @@
 // =============================================================================
 #include "TestFramework.h"
 
+#include "core/I18n.h"
+
 #include <chrono>
 #include <cstring>
 #include <exception>
 
 int main(int argc, char** argv) {
+    // Les tests vérifient les textes français : langue fixée, quel que soit le système.
+    omnis::i18n::overrideLanguageForTests(omnis::i18n::Lang::Fr);
     const char* filter = argc > 1 ? argv[1] : nullptr;
     int run = 0, failedTests = 0;
     for (const auto& test : omnis::test::registry()) {

@@ -2,6 +2,7 @@
 //  Abrasion Labs // OMNIS
 //  ai/ConsoleActions.cpp
 // =============================================================================
+#include "core/I18n.h"
 #include "ConsoleActions.h"
 
 #include <algorithm>
@@ -16,8 +17,8 @@ using params::ParamId;
 namespace {
 
 std::string format(const char* f, double v) {
-    char b[96];
-    std::snprintf(b, sizeof b, f, v);
+    char b[160];
+    std::snprintf(b, sizeof b, i18n::tr(f).c_str(), v); // format traduit avant d'être rempli
     return b;
 }
 

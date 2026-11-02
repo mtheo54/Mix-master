@@ -1,0 +1,338 @@
+# OMNIS — traduction anglaise de l'interface et des réponses (français<TAB>anglais).
+# Une ligne par texte tel qu'il est écrit dans le code ; les morceaux (« Stems liés : ») se
+# remplacent aussi au milieu d'un texte composé. Espaces de début et de fin significatifs.
+   et le master écoute tout le monde. Suis le guide (2 minutes).	   and the master listens to all of them. Follow the guide (2 minutes).
+ %+.1f : réglé par 	 %+.1f: set by 
+ (%.2f %% d'échantillons écrêtés)	 (%.2f %% of samples clipped)
+ (la 808 reste propre)	 (the 808 stays clean)
+ (la réf est à %.1f : pousse le clip pour aller plus loin)	 (the ref is at %.1f: push the clipper to go further)
+ (le bas reste centré)	 (the lows stay centered)
+ (protégé : ratio limité)	 (protected: ratio limited)
+ : %.1f dB plus discret que dans ta prod	: %.1f dB more discreet than in your track
+ : %.1f dB plus présent que dans ta prod	: %.1f dB more present than in your track
+ : aucun titre mesuré dans la base.	: no measured track in the library.
+ : aucun titre mesuré, rien à viser	: no measured track, nothing to aim at
+ : en attendant, je vise ses artistes proches que j'ai écoutés (	 yet: meanwhile I aim at the related artists I have heard (
+ : la référence est à %+.1f dB, on ne bouge que de %+.1f dB (identité de ta prod)	: the reference is at %+.1f dB, we only move %+.1f dB (your track's identity)
+ : lance la lecture, OMNIS écoute ta prod quelques secondes puis règle vers elle.	: start playback, OMNIS listens to your track for a few seconds then moves toward it.
+ : le baisser de 3 dB sous 	: lower it 3 dB below 
+ : là où agir	: where to act
+ : protégé	: protected
+ : varie de %.0f dB (référence %.0f dB) -> seuil %.1f dBFS, ratio %.1f:1, attaque %.0f ms	: varies by %.0f dB (reference %.0f dB) -> threshold %.1f dBFS, ratio %.1f:1, attack %.0f ms
+ Ce grave est le cœur de 	 This low end is the heart of 
+ Couper le grave de 	 Cut the low end of 
+ couvre la voix 	 covers the vocal 
+ de 	 by 
+ de nom : en attendant, je vise le profil moyen 	 by name: meanwhile I aim at the average profile 
+ de nom, mais je n'ai encore écouté aucun son de ce style. Glisse-moi un son de 	 by name, but I haven't heard any track of this style yet. Drop me a track by 
+ déplacé : la chaîne passe au son sec le temps de se recaler.	 moved: the chain plays the dry sound while it realigns.
+ entre %s et %s, pendant %.0f s où ils jouent ensemble (il y est même plus fort, de %.0f dB).	 between %s and %s, for %.0f s while they play together (it is even louder there, by %.0f dB).
+ entre %s et %s, pendant %.0f s où ils jouent ensemble (seulement %.0f dB d'écart).	 between %s and %s, for %.0f s while they play together (only %.0f dB apart).
+ et 	 and 
+ fois, à ajouter à la base : « 	 times, to add to the library: “
+ NŒUD	 NODE
+ NŒUDS	 NODES
+ pour 	 for 
+ pour viser juste.	 to aim precisely.
+ titre écouté	 track heard
+ titres écoutés	 tracks heard
+ · aucune latence ajoutée	 · no added latency
+ · COURBE 	 · CURVE 
+ · PAS DERNIER	 · NOT LAST
+ · PLAFOND 	 · CEILING 
+ · PLAFOND TENU	 · CEILING HELD
+ · PROPOSITIONS : 	 · PROPOSALS: 
+ · RÉDUCTION 	 · REDUCTION 
+ » : pour juger seulement (approximation d'OMNIS, pas une mesure du modèle). 	”: for judging only (an OMNIS approximation, not a measurement of the model). 
+ » de 	” by 
+ À 	 AT 
+(OUI / NON, rien n'est appliqué sans ton accord).	(YES / NO, nothing is applied without your approval).
+(rien de mesuré)	(nothing measured)
+), ou dis-moi ce qui ne va pas : « ça manque de crispy », « trop de basse », « je veux que ce soit propre »…	), or tell me what's wrong: “it lacks crispiness”, “too much bass”, “I want it clean”…
+), ou glisse-moi un son de cet artiste : je l'écouterai et je l'ajouterai à la base.	), or drop me a track by this artist: I'll listen to it and add it to the library.
+, crête - sonie %.1f dB).	, peak - loudness %.1f dB).
+, hors de la gamme du morceau (	, outside the song's scale (
+, la tienne 	, yours 
+, ou cite un artiste que j'ai déjà écouté (	, or name an artist I have already heard (
+. Glisse-moi un titre de ce style, ou cite un artiste que j'ai déjà écouté (	 track yet. Drop me a track of this style, or name an artist I have already heard (
+. Pour viser juste : cite-moi un artiste proche que j'ai déjà écouté (	 yet. To aim precisely: name a related artist I have already heard (
+. Tout reste réglable à la main.	. Everything stays adjustable by hand.
+1. seul sur le master : il masterise la prod entière ;	1. alone on the master: it masters the whole track;
+100 % = INCHANGÉ · 0 % = MONO	100 % = UNCHANGED · 0 % = MONO
+2. sur tes pistes (Stem) + un Master : chaque piste est travaillée,	2. on your tracks (Stem) + one Master: each track is processed,
+21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).	21 nodes in Mid and Side, half an octave apart (20 Hz – 20 kHz).
+808 réf 	ref 808 
+[CONSEIL]	[ADVICE]
+[CONSEIL] 	[ADVICE] 
+A / B : deux réglages complets ; A>B copie l'un dans l'autre.	A / B: two complete settings; A>B copies one into the other.
+A copié dans B.	A copied into B.
+acceptée, ANNULER la retire.	accepted, UNDO removes it.
+AIGU	HIGH
+AMBRE : ÉDITÉ · BLEU : L'AUTRE CANAL	AMBER: EDITED · BLUE: THE OTHER CHANNEL
+ANALYSEUR · SORTIE	ANALYZER · OUTPUT
+ANNULER	UNDO
+APPLIQUER	APPLY
+Artistes de A à Z	Artists A to Z
+aucun pour l'instant	none for now
+Aucune (OMNIS suit tes mots)	None (OMNIS follows your words)
+Aucune : choisis un style, un artiste ou un titre dans RÉF.	None: pick a style, an artist or a track in REF.
+Aucune proposition : aucun stem n'en gêne un autre pour l'instant. Lance la lecture, OMNIS écoute.	No proposal: no stem is masking another right now. Start playback, OMNIS is listening.
+aucune référence mesurée : AUTO règle seulement le volume	no measured reference: AUTO only sets the level
+Aucune.	None.
+AUTO : joue le passage le plus fort (refrain, drop) ; OMNIS écoute 10 s puis règle la chaîne.	AUTO: play the loudest part (chorus, drop); OMNIS listens for 10 s then sets the chain.
+AUTO : joue le passage le plus fort (refrain, drop)…	AUTO: play the loudest part (chorus, drop)…
+AUTO : écoute 	AUTO: listening 
+AÉRÉ	AIRY
+B copié dans A.	B copied into A.
+Baisse la 808 de quelques dB dans le mixeur : au master, trop de sub mange la sonie de tout le reste.	Lower the 808 a few dB in the mixer: at the master, too much sub eats the loudness of everything else.
+Baisse le master de FL d'environ 6 dB (crêtes vers -6 dBFS) et retire limiteur / clipper du master : OMNIS a besoin de marge.	Lower the FL master by about 6 dB (peaks around -6 dBFS) and remove the limiter / clipper from the master: OMNIS needs headroom.
+BAS	LOW
+bas (110–230 Hz)	lows (110–230 Hz)
+Bas-médium (320–640 Hz)	Low mids (320–640 Hz)
+bas-médium (320–640 Hz)	low mids (320–640 Hz)
+BIENVENUE DANS OMNIS	WELCOME TO OMNIS
+BON	GOOD
+C'EST PARTI	LET'S GO
+CALME	QUIET
+CE QU'OMNIS ENTEND DANS TA PROD (AVANT SES MODULES)	WHAT OMNIS HEARS IN YOUR TRACK (BEFORE ITS MODULES)
+Ce que je sais de 	What I know about 
+Ce que le master ne rattrape pas : à corriger dans ton projet FL.	What the master can't fix: correct it in your FL project.
+Cette instance est un stem : choisis la référence sur l'instance Master (ou Seul).	This instance is a stem: pick the reference on the Master instance (or Alone).
+Cette instance est un stem : écris ta demande sur l'instance Master (ou Seul).	This instance is a stem: type your request on the Master instance (or Alone).
+Chaque module a un gros bouton (le réglage principal) et un voyant ON.	Each module has a big knob (the main setting) and an ON light.
+Chaque proposition attend ton accord :	Each proposal waits for your approval:
+CHAÎNE DE LA PISTE	TRACK CHAIN
+CHEF	CONDUCTOR
+CHEF D'ORCHESTRE	CONDUCTOR
+CHEF D'ORCHESTRE ET PISTE	CONDUCTOR AND TRACK
+Cherche la piste qui pique (lead, sample, voix trop compressée) et baisse-la de 2-3 dB vers 1,5 kHz.	Find the track that stings (lead, sample, over-compressed vocal) and lower it 2-3 dB around 1.5 kHz.
+Clique AUTO, puis joue le passage le plus fort (refrain, drop).	Click AUTO, then play the loudest part (chorus, drop).
+Clique un module pour ouvrir TOUS ses réglages en dessous.	Click a module to open ALL its settings below.
+Comparé à ta référence choisie, sinon	Compared to your chosen reference, otherwise
+compression / saturation de la 808, pas une question d'EQ	808 compression / saturation, not an EQ matter
+Compris :	Understood:
+Conseil : 	Tip: 
+COULEUR	COLOR
+Coupe l'infra-grave, met le bas en mono, dose le sub.	Cuts the infrasonic range, makes the lows mono, sets the sub.
+COUPE-BAS	LOW CUT
+COUPE-BAS 	LOW CUT 
+COURBE	CURVE
+COURBE M/S · ÉDITION 	M/S CURVE · EDITING 
+COURBE · 	CURVE · 
+COURBE · 808 	CURVE · 808 
+Creuse 250-400 Hz sur la mélodie, les pads et le haut de la 808 (pas sur la voix) : chaque piste y laisse un peu, tout s'empile.	Cut 250-400 Hz on the melody, the pads and the top of the 808 (not on the vocals): each track leaves a bit there, it all stacks up.
+CRÊTE MAX	MAX PEAK
+DANS LE BUS	IN THE BUS
+DELTA : n'entends que ce que le module ouvert change.	DELTA: hear only what the open module changes.
+densité / compression	density / compression
+densité : upward 	density: upward 
+Densité et chaleur, la 808 et le mix à part.	Density and warmth, the 808 and the mix separately.
+Des éléments sont en opposition de phase (doubleurs, élargisseurs, pans extrêmes) : vérifie-les en mono dans FL et réduis leur largeur.	Some elements are out of phase (doublers, wideners, extreme pans): check them in mono in FL and reduce their width.
+DIAGNOSTIC DU MIX	MIX DIAGNOSIS
+DOSE	AMOUNT
+DOSES DU MODE MANUEL (TRIM : LES DEUX)	MANUAL MODE AMOUNTS (TRIM: BOTH)
+DOUX	SOFT
+En mono, le mix perd %.1f dB.	In mono, the mix loses %.1f dB.
+ENTRÉE	INPUT
+Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.	Input / output, left / right peaks, loudness, limiter reduction.
+et amène le volume à la bonne sonie. Tout reste réglable après.	and brings the level to the right loudness. Everything stays adjustable.
+ex. plus de punch, garde ma 808	e.g. more punch, keep my 808
+Extrême aigu (%.0f kHz et plus) : la référence y est coupée (fichier compressé ?), on n'y touche pas	Extreme highs (%.0f kHz and up): the reference is cut there (compressed file?), we leave them alone
+FORT	LOUD
+Glisse les nœuds sur l'écran · Maj : fin · double-clic : 0 dB.	Drag the nodes on the screen · Shift: fine · double-click: 0 dB.
+GLISSE LES TRAITS : FRÉQUENCES DE SÉPARATION	DRAG THE LINES: CROSSOVER FREQUENCIES
+Glisse un module par son nom pour changer l'ordre de la chaîne.	Drag a module by its name to change the chain order.
+Glisse-moi un son de 	Drop me a track by 
+Glisser vers le haut / le bas · Maj : réglage fin · double-clic : défaut.	Drag up / down · Shift: fine · double-click: default.
+GONIOMÈTRE	GONIOMETER
+grave mono comme la réf (le tien : corrélation %.2f)	mono low end like the ref (yours: correlation %.2f)
+Hi-hat : dureté vers 7 kHz calmée, largeur gardée	Hi-hat: harshness around 7 kHz tamed, width kept
+IA	AI
+Il manque d'air au-dessus de 10 kHz (%.1f dB).	Air is lacking above 10 kHz (%.1f dB).
+Il manque de présence (%.1f dB vers 4-6 kHz) : la voix paraît loin.	Presence is lacking (%.1f dB around 4-6 kHz): the vocal sounds far away.
+Image stéréo plus large au-dessus de 1 kHz (Side %+.1f dB)	Wider stereo image above 1 kHz (Side %+.1f dB)
+Image stéréo plus serrée au-dessus de 1 kHz (Side %+.1f dB)	Narrower stereo image above 1 kHz (Side %+.1f dB)
+Instance en rôle Stem : la chaîne de l'élément, sans latence.	Stem role: the element's chain, with zero latency.
+Instance en rôle STEM : la chaîne de la piste agit (page PISTE). Le rack sert au master.	STEM role: the track chain is active (TRACK page). The rack is for the master.
+INSTANCES LIÉES	LINKED INSTANCES
+Je n'ai encore écouté aucun son 	I haven't heard any 
+Je n'ai pas compris ce que tu veux changer. Donne-moi un artiste ou un titre (j'ai écouté : 	I didn't understand what you want to change. Give me an artist or a track (I have heard: 
+Je n'ai pas encore écouté 	I haven't heard 
+Je ne connais pas encore 	I don't know 
+l'upward du limiteur et la glue du multibande	the limiter's upward and the multiband glue
+La 808 ou le sub a de la largeur (chorus, reverb, sample stéréo) : passe-les en mono dans FL, ou monte le Mono Maker du module Sub.	The 808 or the sub has width (chorus, reverb, stereo sample): make them mono in FL, or raise the Sub module's Mono Maker.
+La barre d'état montre ce qu'il fait en ce moment.	The status bar shows what it is doing right now.
+LA BARRE IA	THE AI BAR
+La barre IA et les références les écrivent ; ici tu les retouches.	The AI bar and the references write them; here you fine-tune them.
+La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »).	The target: the chosen REF, otherwise the style you typed (“rap us”, “rage”).
+la console	the console
+la réf %.0f : upward 	the ref %.0f: upward 
+la réf attaque plus (+%.1f dB) : Punch 	the ref hits harder (+%.1f dB): Punch 
+la réf est plus dense (%.1f dB d'attaque en moins) : upward 	the ref is denser (%.1f dB less attack): upward 
+la réf est écrêtée exprès (%.1f %% des échantillons) : clip 	the ref is clipped on purpose (%.1f %% of samples): clip 
+Lance la lecture (le passage le plus chargé) : OMNIS écoute ta prod quelques secondes, puis RÉÉCOUTER.	Start playback (the busiest part): OMNIS listens to your track for a few seconds, then LISTEN AGAIN.
+Lance la lecture : OMNIS écoute ta prod quelques secondes, puis applique ta demande.	Start playback: OMNIS listens to your track for a few seconds, then applies your request.
+LARGEUR	WIDTH
+LARGEUR PAR BANDE · CORRÉLATION 	WIDTH PER BAND · CORRELATION 
+largeur stéréo	stereo width
+Largeur stéréo par bande. 100 % = inchangé.	Stereo width per band. 100 % = unchanged.
+Latence : clic = mode travail (latence basse, qualité réduite) / qualité max (export)	Latency: click = work mode (low latency, reduced quality) / max quality (export)
+Le bas-médium s'accumule vers 250-450 Hz (+%.1f dB) : son boueux.	The low mids pile up around 250-450 Hz (+%.1f dB): muddy sound.
+Le grave manque d'attaque (%.1f dB de punch de moins que la référence).	The low end lacks attack (%.1f dB less punch than the reference).
+Le grave n'est pas mono (corrélation %.2f sous 120 Hz).	The low end isn't mono (correlation %.2f below 120 Hz).
+LE MASTER DU MÊME GROUPE ENTEND CETTE PISTE	THE MASTER OF THE SAME GROUP HEARS THIS TRACK
+Le master écoute les stems de son groupe et propose.	The master listens to the stems of its group and makes proposals.
+Le mix est déjà très fort et écrasé	The mix is already very loud and crushed
+le Punch du limiteur	the limiter's Punch
+LE RACK : 7 MODULES	THE RACK: 7 MODULES
+Le sub / la 808 est plus fort que la référence (+%.1f dB).	The sub / 808 is louder than the reference (+%.1f dB).
+Le sub manque par rapport à la référence (%.1f dB).	The sub is lacking compared to the reference (%.1f dB).
+LE TIROIR : TOUT RÉGLER	THE DRAWER: SET EVERYTHING
+Lead / synthé	Lead / synth
+Les aigus 3,5-7 kHz sont durs (+%.1f dB) : fatigue, sifflantes.	The 3.5-7 kHz highs are harsh (+%.1f dB): fatigue, sibilance.
+LES MESURES	THE METERS
+Les médiums 1-2,5 kHz ressortent (+%.1f dB) : son dur, "nasal".	The 1-2.5 kHz mids stick out (+%.1f dB): harsh, "nasal" sound.
+LIMITE	LIMIT
+Master : sur le bus master ; il entend les stems du même groupe.	Master: on the master bus; it hears the stems of the same group.
+Master à %.1f LUFS, LRA %.1f LU, PLR %.1f dB	Master at %.1f LUFS, LRA %.1f LU, PLR %.1f dB
+MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).	MATCH: listen at the same level as the original (it blinks: remember to turn it off).
+Match EQ : glisse les nœuds sur l'écran. Multiband : glisse les traits.	Match EQ: drag the nodes on the screen. Multiband: drag the lines.
+Match EQ : presque rien à changer	Match EQ: almost nothing to change
+Mets un de-esser sur la voix et baisse un peu les hats / le clap : au master, ça ne ferait que tout assombrir.	Put a de-esser on the vocal and lower the hats / clap a little: at the master, it would only darken everything.
+Mode promo : des monogrammes à la place des avatars (rien à flouter en vidéo). /fbi pour revenir.	Promo mode: monograms instead of avatars (nothing to blur on video). /fbi to go back.
+Mode promo : monogrammes à la place des avatars.	Promo mode: monograms instead of avatars.
+Mode promo désactivé : les avatars reviennent.	Promo mode off: the avatars are back.
+MODE TRAVAIL (latence ~90 ms) : qualité RÉDUITE — grave moins précis, multibande et limiteur plus durs. 	WORK MODE (latency ~90 ms): REDUCED quality — less precise low end, harder multiband and limiter. 
+Monte la 808, ou vérifie qu'un EQ / un passe-haut ne la coupe pas. Choisis une 808 qui descend vraiment (40-60 Hz).	Raise the 808, or check that an EQ / high-pass isn't cutting it. Pick an 808 that really goes low (40-60 Hz).
+Monte la voix de 1-2 dB ou ajoute de la présence sur elle (3-5 kHz) plutôt que sur tout le mix.	Raise the vocal 1-2 dB or add presence to it (3-5 kHz) rather than to the whole mix.
+Mots que je ne connais pas encore : 	Words I don't know yet: 
+MÉDIUM	MID
+Médium	Mids
+Médium (0.9–2.6 kHz)	Mids (0.9–2.6 kHz)
+médium (0.9–2.6 kHz)	mids (0.9–2.6 kHz)
+Médiums plus denses (variation %.0f dB contre %.0f dB) : mix plus compressé	Denser mids (variation %.0f dB vs %.0f dB): more compressed mix
+NON	NO
+Normal si c'est voulu (son sombre) ; sinon, un peu d'aigu sur la voix et les hats dans le mix, le module Match fera le reste.	Fine if it's on purpose (dark sound); otherwise, a bit of top end on the vocal and hats in the mix, the Match module will do the rest.
+NŒUDS ÉDITÉS	EDITED NODES
+OMNIS mixe et masterise ta prod. Deux façons de l'utiliser :	OMNIS mixes and masters your track. Two ways to use it:
+OMNIS ne trouve pas son moteur : réessaie dans un instant.	OMNIS can't find its engine: try again in a moment.
+OMNIS écoute 10 s, règle toute la chaîne vers ton style	OMNIS listens for 10 s, sets the whole chain toward your style
+OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.	OMNIS listens to your track, understands, sets the modules and tells you what it did.
+Open hat : dureté vers 6,5 kHz calmée	Open hat: harshness around 6.5 kHz tamed
+ORANGE : conseil de mix.	ORANGE: mix advice.
+OUI	YES
+Pas de référence : je ne change que ce que tu as demandé	No reference: I only change what you asked for
+Pas de référence : OMNIS suit tes mots, AUTO vise le style 	No reference: OMNIS follows your words, AUTO aims at the style 
+PASSE-HAUT	HIGH-PASS
+PASSER	SKIP
+PENTE MONO	MONO SLOPE
+PHASE DU SUB	SUB PHASE
+PISTE	TRACK
+PISTE (STEM)	TRACK (STEM)
+Plafond final, true peak. Punch : plus de relief.	Final ceiling, true peak. Punch: more contrast.
+PLR = écart crête / sonie : plus il est grand, plus ça respire.	PLR = peak-to-loudness ratio: the bigger, the more it breathes.
+plus propre : clip 	cleaner: clip 
+plus sale : clip 	dirtier: clip 
+Pour régler à l'oreille seulement : REPASSE EN QUALITÉ MAX AVANT D'EXPORTER (clic sur la case rouge). 	For tweaking by ear only: SWITCH BACK TO MAX QUALITY BEFORE EXPORTING (click the red box). 
+PROPOSITION 	PROPOSAL 
+propreté	cleanliness
+Présence (3.6–7 kHz)	Presence (3.6–7 kHz)
+présence (3.6–7 kHz)	presence (3.6–7 kHz)
+punch / attaque	punch / attack
+punch, Inflator et clip doux ; plafond -1 dBTP	punch, Inflator and soft clip; ceiling -1 dBTP
+qu'un gros réglage.	than one big move.
+QUALITÉ MAX : filtres complets, la meilleure qualité (latence ~0,7 s). C'est le réglage d'export.	MAX QUALITY: full filters, the best quality (latency ~0.7 s). This is the export setting.
+Question : 	Question: 
+RECONNU À L'ÉCOUTE	RECOGNIZED BY EAR
+Refusée, elle n'est plus reproposée ;	Rejected, it is not proposed again;
+RELIEF · STÉRÉO	CONTRAST · STEREO
+Ressemblance : %.0f %% de l'écart	Resemblance: %.0f %% of the gap
+Ressemblance : %.0f %% de l'écart, jamais la totalité	Resemblance: %.0f %% of the gap, never all of it
+ressemblance à la référence	resemblance to the reference
+RETOUCHES EN PLACE	CURRENT ADJUSTMENTS
+Rien d'alarmant	Nothing alarming
+Rien d'alarmant dans le mix : équilibre, grave mono et marge corrects. OMNIS peut masteriser tel quel.	Nothing alarming in the mix: balance, mono low end and headroom are fine. OMNIS can master it as is.
+rien n'est appliqué sans un OUI.	nothing is applied without a YES.
+Rien n'est caché : tu choisis précisément ce que tu changes.	Nothing is hidden: you choose exactly what you change.
+Rien n'est exporté avec, et elle repart à Off à la réouverture du projet.	Nothing is exported with it, and it goes back to Off when the project is reopened.
+rien à régler pour cette demande	nothing to set for this request
+ROUGE : le master ne le rattrapera pas.	RED: the master won't fix it.
+Règle cette instance en Master (même groupe que les stems) pour recevoir les propositions.	Set this instance to Master (same group as the stems) to receive proposals.
+RÉDUCTION DE GAIN · 	GAIN REDUCTION · 
+RÉDUCTION PAR BANDE (dB)	REDUCTION PER BAND (dB)
+RÉF	REF
+réf %.0f BPM	ref %.0f BPM
+RÉF : choisis un style, un artiste ou un titre de ta base ; AUTO le vise.	REF: pick a style, an artist or a track from your library; AUTO aims at it.
+réf en 	ref in 
+Référence 	Reference 
+Référence : 	Reference: 
+référence demandée 	reference requested 
+RÉFÉRENCE VISÉE	TARGET REFERENCE
+Référence écoutée	Reference heard
+RÉGLAGES	SETTINGS
+RÉPONSE DU BAS · mono sous 	LOW-END RESPONSE · mono below 
+RÉÉCOUTER	LISTEN AGAIN
+RÔLE	ROLE
+RÔLE ET GROUPE	ROLE AND GROUP
+saturation / grain	saturation / grit
+SATURE	CLIPS
+Seul	Alone
+Seul : la chaîne du master	Alone: the master chain
+Seul : OMNIS sur le master, rien d'autre à faire.	Alone: OMNIS on the master, nothing else to do.
+Si c'est voulu (dissonance, côté méchant), garde-la. Sinon, accorde-la (pitch de la 808 dans FL).	If it's on purpose (dissonance, nasty side), keep it. Otherwise, tune it (808 pitch in FL).
+SILENCE	SILENCE
+Snare / clap : +8 % de largeur	Snare / clap: +8 % width
+sonie	loudness
+Sonie demandée : %.1f LUFS	Requested loudness: %.1f LUFS
+SORTIE	OUTPUT
+Souvent le kick et la 808 tombent ensemble et se masquent : sidechain la 808 sur le kick, raccourcis le début de la 808, ou accorde le kick avec elle.	Often the kick and the 808 land together and mask each other: sidechain the 808 to the kick, shorten the start of the 808, or tune the kick with it.
+Stem : sur une piste (808, drums, voix…), sans aucune latence.	Stem: on a track (808, drums, vocals…), with zero latency.
+STEMS LIÉS : 	LINKED STEMS: 
+Stems liés : 	Linked stems: 
+STÉRÉO	STEREO
+STÉRÉO / MID / SIDE : vérifie le centre et les côtés.	STEREO / MID / SIDE: check the center and the sides.
+sub (20–80 Hz)	sub (20–80 Hz)
+Sub / 808 protégés : ±1 dB au maximum sous 100 Hz	Sub / 808 protected: ±1 dB at most below 100 Hz
+Sub beaucoup plus tenu dans le temps (variation %.0f dB contre %.0f dB) : 	Sub much steadier over time (variation %.0f dB vs %.0f dB): 
+SUIVANT	NEXT
+Sur le Master : les propositions quand un son en gêne un autre	On the Master: proposals when one sound masks another
+Sur un Stem : la page PISTE montre l'élément reconnu et sa chaîne.	On a Stem: the TRACK page shows the recognized element and its chain.
+SURÉCH.	OVERS.
+SÉPARATIONS	SPLITS
+TEMPS · GAIN	TIMING · GAIN
+Tenue déjà proche de la référence : multibande neutre	Hold already close to the reference: multiband neutral
+TERMINER	FINISH
+Tient la 808 dans le temps. Fréquences : glisse les traits de l'écran.	Holds the 808 over time. Frequencies: drag the lines on the screen.
+Tolérance tonale de la dynamique : %.1f dB	Tonal tolerance of the dynamics: %.1f dB
+ton calme est %.0f dB sous ton refrain, 	your quiet part is %.0f dB below your chorus, 
+Ton mix touche déjà 0 dBFS	Your mix already hits 0 dBFS
+tonalité ?	key ?
+Tous les titres de 	All tracks by 
+Tout est revenu aux réglages de départ (le rôle Master / Stem de l'instance est gardé).	Everything is back to the starting settings (the instance's Master / Stem role is kept).
+Tout le reste de ta prod est laissé tel quel	Everything else in your track is left as is
+Tout le style 	The whole style 
+toute la base	the whole library
+TRAVAIL	WORK
+TRUE PEAK doit rester OK (sous -1 dBTP) pour le streaming.	TRUE PEAK must stay OK (below -1 dBTP) for streaming.
+TRÈS FORT	VERY LOUD
+Tu parles d'une référence : glisse-moi le son, je l'écoute avant de toucher à ta prod.	You are talking about a reference: drop me the track, I'll listen to it before touching your mix.
+Un export hors ligne repasse de lui-même en qualité max quand FL le signale.	An offline export switches back to max quality by itself when FL reports it.
+Un groupe par projet ouvert (1 à 8).	One group per open project (1 to 8).
+Un limiteur ou un clipper est sans doute resté sur le master de FL : enlève-le, laisse OMNIS faire la sonie.	A limiter or clipper probably stayed on the FL master: remove it, let OMNIS handle the loudness.
+Volume : le limiteur est au maximum raisonnable ; pousse l'entrée ou le clip si tu veux plus fort.	Level: the limiter is at a sensible maximum; push the input or the clipper if you want it louder.
+« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…	“more punch”, “keep my 808”, “rage style”, “less muddy”…
+À gauche, tous les réglages du module ouvert ; à droite, son écran.	Left: every setting of the open module; right: its screen.
+à la moyenne des sons mesurés.	to the average of the measured tracks.
+À PLAT	FLAT
+ÉCOUTE	LISTEN
+Écoute normale.	Normal listening.
+ÉCOUTE SIMULÉE « 	SIMULATED LISTENING “
+ÉCOUTER HONNÊTEMENT	LISTEN HONESTLY
+ÉCRASÉ	CRUSHED
+Écris aussi « diagnostic » dans la barre IA.	You can also type “diagnosis” in the AI bar.
+Écris ce que tu veux, en français, en anglais ou en argot :	Type what you want, in French, English or slang:
+Écris ce que tu veux, OMNIS règle.	Type what you want, OMNIS sets it.
+ÉCRÊTAGE	CLIPPING
+Écrête les pics avant le limiteur ; la 808 à part.	Clips the peaks before the limiter; the 808 separately.
+ÉLÉMENT	ELEMENT
+Élément reconnu : 	Recognized element: 

@@ -2,6 +2,7 @@
 //  Abrasion Labs // OMNIS
 //  plugin/vst3/OmnisController.cpp
 // =============================================================================
+#include "core/I18n.h"
 #include "OmnisController.h"
 
 #include "OmnisIds.h"
@@ -249,7 +250,16 @@ std::string OmnisController::ask(const std::string& request) {
         // « remets tout à zéro », « reset », « par défaut » : tous les réglages
         // reviennent au départ (le rôle de l'instance, Master / Stem, reste).
         const std::string plain = ai::normalizeText(command);
-        static constexpr std::string_view kDiag[] = {"diagnostic", "diag", "analyse mon mix", "analyse le mix", "check mon mix", "mix check",
+        // Langue de l'interface (gardée pour les sessions suivantes).
+        if (plain == "en" || plain == "english" || plain == "in english" || plain == "en anglais" || plain == "anglais" || command == "/en") {
+            i18n::setLanguage(i18n::Lang::En);
+            return "Interface in English. Type /fr pour revenir en français.";
+        }
+        if (plain == "fr" || plain == "francais" || plain == "en francais" || plain == "french" || plain == "in french" || command == "/fr") {
+            i18n::setLanguage(i18n::Lang::Fr);
+            return "Interface en français. Type /en for English.";
+        }
+        static constexpr std::string_view kDiag[] = {"diagnosis", "mix diagnosis", "check my mix", "whats wrong", "what s wrong","diagnostic", "diag", "analyse mon mix", "analyse le mix", "check mon mix", "mix check",
                                                      "qu est ce qui va pas", "quest ce qui va pas", "ce qui va pas", "conseils mix", "conseil mix"};
         for (const auto phrase : kDiag)
             if (plain.find(phrase) != std::string::npos) return mixDiagnosis();

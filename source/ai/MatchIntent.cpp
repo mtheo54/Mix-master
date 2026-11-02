@@ -2,6 +2,7 @@
 //  Abrasion Labs // OMNIS
 //  ai/MatchIntent.cpp
 // =============================================================================
+#include "core/I18n.h"
 #include "MatchIntent.h"
 
 #include "TextMatch.h"
@@ -62,7 +63,7 @@ double loudnessAdjust(double offset) { return std::min(0.0, offset) + 0.5 * std:
 
 std::string format(const char* fmt, double a, double b = 0.0, double c = 0.0) {
     char buf[256];
-    std::snprintf(buf, sizeof(buf), fmt, a, b, c);
+    std::snprintf(buf, sizeof(buf), i18n::tr(fmt).c_str(), a, b, c);
     return buf;
 }
 

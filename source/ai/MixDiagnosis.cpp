@@ -2,6 +2,7 @@
 //  Abrasion Labs // OMNIS
 //  ai/MixDiagnosis.cpp
 // =============================================================================
+#include "core/I18n.h"
 #include "MixDiagnosis.h"
 
 #include "ReferenceLibrary.h"
@@ -15,8 +16,8 @@ namespace omnis::ai {
 namespace {
 
 std::string fmt(const char* f, double v) {
-    char b[64];
-    std::snprintf(b, sizeof b, f, v);
+    char b[256];
+    std::snprintf(b, sizeof b, i18n::tr(f).c_str(), v);
     return b;
 }
 
@@ -117,11 +118,11 @@ std::vector<MixFinding> diagnoseMix(const analysis::SpectralSignature& prod, con
 }
 
 std::string formatDiagnosis(const std::vector<MixFinding>& findings) {
-    if (findings.empty()) return "Rien d'alarmant dans le mix : équilibre, grave mono et marge corrects. OMNIS peut masteriser tel quel.";
+    if (findings.empty()) return i18n::tr("Rien d'alarmant dans le mix : équilibre, grave mono et marge corrects. OMNIS peut masteriser tel quel.");
     std::string s;
     for (const auto& f : findings) {
         const char* tag = f.level == MixFinding::Level::Important ? "[IMPORTANT] " : f.level == MixFinding::Level::Advice ? "[CONSEIL] " : "[INFO] ";
-        s += std::string(tag) + f.problem + " -> " + f.fix + "\n";
+        s += i18n::tr(tag) + i18n::tr(f.problem) + " -> " + i18n::tr(f.fix) + "\n";
     }
     return s;
 }

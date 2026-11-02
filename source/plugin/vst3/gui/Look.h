@@ -6,6 +6,8 @@
 // =============================================================================
 #pragma once
 
+#include "core/I18n.h"
+
 #include "vstgui/lib/ccolor.h"
 #include "vstgui/lib/cdrawcontext.h"
 #include "vstgui/lib/cfont.h"
@@ -84,7 +86,7 @@ inline void text(CDrawContext* c, const std::string& s, const CRect& r, const CC
                  const VSTGUI::SharedPointer<VSTGUI::CFontDesc>& font, VSTGUI::CHoriTxtAlign align = VSTGUI::kLeftText) {
     c->setFont(font);
     c->setFontColor(col);
-    c->drawString(VSTGUI::UTF8String(s), r, align, true);
+    c->drawString(VSTGUI::UTF8String(omnis::i18n::tr(s)), r, align, true); // anglais : traduit à l'affichage
 }
 
 /// Cercles par un chemin (le drawEllipse de VSTGUI sous Linux a la mauvaise échelle).

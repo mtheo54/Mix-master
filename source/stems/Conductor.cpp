@@ -2,6 +2,7 @@
 //  Abrasion Labs // OMNIS
 //  stems/Conductor.cpp
 // =============================================================================
+#include "core/I18n.h"
 #include "Conductor.h"
 
 #include <algorithm>
@@ -210,10 +211,10 @@ std::vector<Proposal> Conductor::evaluate(const std::vector<ConductorStem>& stem
             const double bandHi = kTimelineEdges[static_cast<std::size_t>(worstBand) + 1];
             char detail[200];
             if (worst >= 0.0)
-                std::snprintf(detail, sizeof detail, " entre %s et %s, pendant %.0f s où ils jouent ensemble (il y est même plus fort, de %.0f dB).",
+                std::snprintf(detail, sizeof detail, i18n::tr(" entre %s et %s, pendant %.0f s où ils jouent ensemble (il y est même plus fort, de %.0f dB).").c_str(),
                               hzText(bandLo).c_str(), hzText(bandHi).c_str(), sharedSeconds, worst);
             else
-                std::snprintf(detail, sizeof detail, " entre %s et %s, pendant %.0f s où ils jouent ensemble (seulement %.0f dB d'écart).",
+                std::snprintf(detail, sizeof detail, i18n::tr(" entre %s et %s, pendant %.0f s où ils jouent ensemble (seulement %.0f dB d'écart).").c_str(),
                               hzText(bandLo).c_str(), hzText(bandHi).c_str(), sharedSeconds, -worst);
             if (low) {
                 const double hz = std::clamp(bandHi, 60.0, 200.0);

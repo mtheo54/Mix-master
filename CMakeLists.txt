@@ -56,11 +56,13 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     references=${CMAKE_SOURCE_DIR}/data/references.txt
     catalogue=${CMAKE_SOURCE_DIR}/data/catalogue.txt
     elements=${CMAKE_SOURCE_DIR}/data/elements.txt
+    i18n=${CMAKE_SOURCE_DIR}/data/i18n_en.txt
 )
 
 add_library(omnis_core STATIC
     ${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     source/core/AudioBuffer.h
+    source/core/I18n.cpp
     source/core/Decibels.h
     source/core/DelayLine.h
     source/core/OnePoleSmoother.h
@@ -162,6 +164,9 @@ target_include_directories(omnis_core PUBLIC source)
 target_compile_features(omnis_core PUBLIC cxx_std_20)
 find_package(Threads REQUIRED)
 target_link_libraries(omnis_core PUBLIC Threads::Threads PRIVATE omnis_compile_options)
+if(APPLE)
+    target_link_libraries(omnis_core PUBLIC "-framework CoreFoundation") # langue du système (core/I18n.cpp)
+endif()
 if(UNIX AND NOT APPLE)
     # shm_open (link/SharedRegion) : dans librt avant glibc 2.34.
     target_link_libraries(omnis_core PUBLIC rt)
@@ -323,6 +328,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestEngine.cpp
         tests/TestListenSim.cpp
         tests/TestMixDiagnosis.cpp
+        tests/TestI18n.cpp
         tests/TestWav.cpp
     )
     target_link_libraries(omnis_tests PRIVATE omnis_tools_common omnis_stb omnis_compile_options)

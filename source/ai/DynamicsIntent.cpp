@@ -2,6 +2,7 @@
 //  Abrasion Labs // OMNIS
 //  ai/DynamicsIntent.cpp
 // =============================================================================
+#include "core/I18n.h"
 #include "DynamicsIntent.h"
 
 #include <algorithm>
@@ -46,7 +47,7 @@ bool bandProtected(const MatchRequest& r, double lo, double hi) {
 
 std::string format(const char* fmt, double a = 0, double b = 0, double c = 0, double d = 0, double e = 0) {
     char buf[256];
-    std::snprintf(buf, sizeof(buf), fmt, a, b, c, d, e);
+    std::snprintf(buf, sizeof(buf), i18n::tr(fmt).c_str(), a, b, c, d, e);
     return buf;
 }
 

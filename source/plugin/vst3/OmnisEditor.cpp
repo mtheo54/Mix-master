@@ -643,7 +643,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
                         "Un export hors ligne repasse de lui-même en qualité max quand FL le signale.";
         return true;
     });
-    lat->setTooltipText("Latence : clic = mode travail (latence basse, qualité réduite) / qualité max (export)");
+    lat->setTooltipText(i18n::tr("Latence : clic = mode travail (latence basse, qualité réduite) / qualité max (export)").c_str());
     r1->addView(lat);
     live_.push_back(lat);
 
@@ -659,7 +659,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     askField_->setFrameColor(CColor(0, 0, 0, 255));
     askField_->setTextInset(CPoint(8, 0));
     askField_->setHoriAlign(kLeftText);
-    askField_->setPlaceholderString("ex. plus de punch, garde ma 808");
+    askField_->setPlaceholderString(i18n::tr("ex. plus de punch, garde ma 808").c_str());
     r2->addView(askField_);
     buildReferenceMenu(r2, CRect(336, 7, 540, 33));
     auto* applyButton = new HwButton(CRect(546, 7, 640, 33), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false);
@@ -930,7 +930,7 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     menu->setFontColor(color::kText);
     menu->setBackColor(color::kScreen);
     const auto add = [picks](COptionMenu* to, const std::string& label, Kind kind, const std::string& name) {
-        auto* item = to->addEntry(UTF8String(label));
+        auto* item = to->addEntry(UTF8String(i18n::tr(label)));
         (*picks)[to][to->getNbEntries() - 1] = Pick{kind, name};
         return item;
     };
@@ -1406,7 +1406,7 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         el->setFontColor(color::kText);
         el->setBackColor(color::kScreen);
         el->setFrameColor(CColor(60, 62, 66));
-        for (const auto& l : params::findParameter(ParamId::LinkStemKind)->choices) el->addEntry(UTF8String(std::string(l)));
+        for (const auto& l : params::findParameter(ParamId::LinkStemKind)->choices) el->addEntry(UTF8String(i18n::tr(l)));
         el->setCurrent(static_cast<int32_t>(std::lround(plain(id(ParamId::LinkStemKind)))));
         p->addView(el);
         syncs_.push_back([this, el] {
@@ -1480,7 +1480,8 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
                 engraved(dc, "PROPOSITION " + std::to_string(proposalIndex_ + 1) + " / " + std::to_string(pending.size()),
                          CRect(r.left + 10, r.top + 6, r.right - 10, r.top + 18));
             }
-            // Retour à la ligne à la main (le texte tient en quelques lignes).
+            // Retour à la ligne à la main (le texte tient en quelques lignes), après traduction.
+            s = i18n::tr(s);
             std::vector<std::string> lines;
             std::string line;
             for (std::size_t i = 0; i < s.size();) {
@@ -2009,7 +2010,7 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
         m->setBackColor(color::kScreen);
         m->setFrameColor(CColor(60, 62, 66));
         const auto* spec = params::findParameter(pid);
-        for (const auto& l : spec->choices) m->addEntry(UTF8String(std::string(l)));
+        for (const auto& l : spec->choices) m->addEntry(UTF8String(i18n::tr(l)));
         m->setCurrent(static_cast<int32_t>(std::lround(plain(id(pid)) - spec->minValue)));
         col->addView(m);
         syncs_.push_back([this, m, pid, spec] {

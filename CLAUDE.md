@@ -27,6 +27,10 @@ textes d'interface en français.
 - Tout en local, sans coût ; pas de Spotify. Ne **jamais** demander une clé / un mot de passe
   dans le chat (secrets d'environnement ou Remote Control).
 - Pas de PR sans demande explicite. Licences et mentions : `LICENSE_NOTICES.md`.
+- **Deux langues** : le code écrit les textes en français ; l'anglais vient de `data/i18n_en.txt`
+  (texte français<TAB>anglais), appliqué à l'affichage par `i18n::tr` (`core/I18n.h`). Tout
+  nouveau texte visible (interface, réponses de l'IA, diagnostic) : ajouter sa ligne anglaise.
+  Les chaînes de format passent par `tr` avant d'être remplies (helpers `fmt` / `format`).
 
 ## Compiler, tester
 
