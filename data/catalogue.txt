@@ -6782,6 +6782,12 @@ titre = F*Love
 genres = rap fr | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
+[Freeze corleone]
+artiste = Freeze corleone
+alias = freeze | freeze corleone 667
+genres = rap fr | rap francais | new wave | rap
+# connu de nom : en attente d'un son pour le mesurer
+
 [Freeze corleone - Amérique du sud]
 artiste = Freeze corleone
 titre = Amérique du sud
@@ -11550,6 +11556,7 @@ artiste = Boney M.
 
 [Booba]
 artiste = Booba
+alias = b2o | kopp
 genres = rap fr | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 
@@ -13516,6 +13523,7 @@ artiste = La Caution
 
 [La Fève]
 artiste = La Fève
+alias = laf | lafeve
 genres = rap fr | rap francais | new wave | rap
 # connu de nom : en attente d'un son pour le mesurer
 

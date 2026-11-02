@@ -258,3 +258,16 @@ OMNIS_TEST("plug-in mode promo: « /fbi » bascule les monogrammes, gardé dans 
 #endif
     std::filesystem::remove_all(dir, ec);
 }
+
+OMNIS_TEST("plug-in: « remets tout à zéro » ramène chaque réglage à son départ") {
+    Host h;
+    const auto id = static_cast<Steinberg::Vst::ParamID>(params::ParamId::ClipDrive);
+    const auto* spec = params::findParameter(static_cast<std::uint32_t>(params::ParamId::ClipDrive));
+    OMNIS_CHECK(spec != nullptr);
+    h.ctrl->setParamNormalized(id, params::toNormalized(*spec, 9.0));
+    OMNIS_CHECK(h.ctrl->getParamNormalized(id) > params::toNormalized(*spec, spec->defaultValue) + 1e-6);
+    const std::string answer = h.ctrl->ask("remet tout a zero stp");
+    std::printf("      %s\n", answer.c_str());
+    OMNIS_CHECK(answer.find("départ") != std::string::npos);
+    OMNIS_CHECK(std::fabs(h.ctrl->getParamNormalized(id) - params::toNormalized(*spec, spec->defaultValue)) < 1e-9);
+}

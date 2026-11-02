@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
     std::printf("Demande : « %s »\n", argv[1]);
     std::printf("Compris :\n");
     for (const auto& s : u.request.understood) std::printf("  - %s\n", s.c_str());
-    for (const auto& s : u.request.pending) std::printf("  - (à venir) %s\n", s.c_str());
+    for (const auto& s : u.request.pending) std::printf("  - %s\n", s.c_str());
     if (!u.interpretation.unknownWords.empty()) {
         std::printf("Mots que je ne connais pas encore :");
         for (const auto& w : u.interpretation.unknownWords) std::printf(" « %s »", w.c_str());

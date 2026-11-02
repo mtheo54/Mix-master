@@ -9,6 +9,7 @@
 #include "UiFeed.h"
 
 #include "ai/ConsoleActions.h"
+#include "ai/TextMatch.h"
 #include "core/UserDataDir.h"
 #include "gfx/AvatarCache.h"
 
@@ -241,6 +242,23 @@ std::string OmnisController::ask(const std::string& request) {
             return promoMode() ? "Mode promo : des monogrammes à la place des avatars (rien à flouter en vidéo). /fbi pour revenir."
                                : "Mode promo désactivé : les avatars reviennent.";
         }
+        // « remets tout à zéro », « reset », « par défaut » : tous les réglages
+        // reviennent au départ (le rôle de l'instance, Master / Stem, reste).
+        const std::string plain = ai::normalizeText(command);
+        static constexpr std::string_view kReset[] = {"reset", "remet tout a zero", "remets tout a zero", "remettre a zero", "remise a zero",
+                                                      "tout a zero", "reinitialise", "reinitialiser", "par defaut", "repart de zero",
+                                                      "repars de zero", "on repart de zero", "efface tout", "annule tout"};
+        for (const auto phrase : kReset)
+            if (plain.find(phrase) != std::string::npos) {
+                std::vector<std::pair<std::uint32_t, double>> settings;
+                for (const auto& spec : params::allParameters())
+                    if (params::isPersistent(spec) && !spec.key.starts_with("link_"))
+                        settings.emplace_back(static_cast<std::uint32_t>(spec.id), spec.defaultValue);
+                applyPlan(settings);
+                pendingAsk_.clear();
+                pursuing_ = false;
+                return "Tout est revenu aux réglages de départ (le rôle Master / Stem de l'instance est gardé).";
+            }
     }
     if (!feed_) requestFeed();
     if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";

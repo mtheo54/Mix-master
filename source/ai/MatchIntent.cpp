@@ -141,8 +141,14 @@ MatchRequest requestFromInterpretation(const Interpretation& in) {
     if (std::fabs(clean) > 1e-9) r.understood.push_back(format("Tolérance tonale de la dynamique : %.1f dB", r.maxTonalDeviationDb));
     for (int a = 0; a < kAxisCount; ++a) {
         const auto axis = static_cast<Axis>(a);
-        if (!axisApplied(axis) && std::fabs(d[axis]) >= 0.25)
-            r.pending.push_back(std::string(axisLabel(axis)) + format(" %+.1f : noté, appliqué par l'étage dynamique / harmonique à venir", d[axis]));
+        if (!axisApplied(axis) && std::fabs(d[axis]) >= 0.25) {
+            // Pas une bande du Match EQ : un module de la console le porte.
+            const char* where = axis == Axis::Punch        ? "le Punch du limiteur"
+                                : axis == Axis::Density    ? "l'upward du limiteur et la glue du multibande"
+                                : axis == Axis::Saturation ? "l'Inflator"
+                                                           : "la console";
+            r.pending.push_back(std::string(axisLabel(axis)) + format(" %+.1f : réglé par ", d[axis]) + where);
+        }
     }
     return r;
 }
