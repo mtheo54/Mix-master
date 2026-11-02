@@ -36,7 +36,7 @@ namespace {
 
 void usage() {
     std::puts("Abrasion Labs // OMNIS — rendu hors ligne\n"
-              "  omnis_render in.wav out.wav [--set cle=valeur ...] [--block 512] [--random-blocks]\n"
+              "  omnis_render in.wav out.wav [--set cle=valeur ...] [--block 512] [--random-blocks] [--latence-basse]\n"
               "               [--format f32|f64|pcm24|pcm16] [--report]\n"
               "  omnis_render --params");
 }
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     const std::string inPath = argv[1];
     const std::string outPath = argv[2];
     int blockSize = 512;
-    bool randomBlocks = false;
+    bool randomBlocks = false, lowLatency = false;
     bool report = false;
     SampleFormat format = SampleFormat::Float32;
     std::vector<std::pair<const params::ParamSpec*, double>> settings;
@@ -96,6 +96,8 @@ int main(int argc, char** argv) {
             blockSize = std::max(1, std::atoi(argv[++i]));
         } else if (a == "--random-blocks") {
             randomBlocks = true;
+        } else if (a == "--latence-basse") {
+            lowLatency = true;
         } else if (a == "--report") {
             report = true;
         } else if (a == "--format" && i + 1 < argc) {
@@ -120,6 +122,7 @@ int main(int argc, char** argv) {
 
     Engine engine;
     buildMasteringChain(engine);
+    engine.setLowLatency(lowLatency);
     engine.prepare(input.sampleRate, blockSize);
     for (const auto& [spec, value] : settings) engine.setParameterImmediate(spec->id, value);
 

@@ -227,6 +227,23 @@ tresult PLUGIN_API OmnisProcessor::canProcessSampleSize(int32 symbolicSampleSize
     return (symbolicSampleSize == kSample32 || symbolicSampleSize == kSample64) ? kResultTrue : kResultFalse;
 }
 
+bool OmnisProcessor::wantsLowLatency(const ProcessSetup& setup) const {
+    // Mode travail demandé, sauf en rendu hors ligne (export) : qualité max d'office.
+    return setup.processMode != kOffline && plainOf(ParamId::LowLatency) >= 0.5;
+}
+
+void OmnisProcessor::prepareEngine(ProcessSetup& setup) {
+    engine_.setRealtimeMode(setup.processMode != kOffline);
+    engine_.setLowLatency(wantsLowLatency(setup));
+    engine_.prepare(setup.sampleRate, std::max<int32>(1, setup.maxSamplesPerBlock));
+    const auto all = params::allParameters();
+    for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i) {
+        if (!params::isPersistent(all[i])) continue;
+        engine_.setParameterImmediate(all[i].id,
+                                      params::toPlain(all[i], normalized_[i].load(std::memory_order_relaxed)));
+    }
+}
+
 tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
     const tresult result = AudioEffect::setupProcessing(setup);
     if (result != kResultOk) return result;
@@ -235,14 +252,7 @@ tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
     // Toutes les allocations ont lieu ici (thread non temps réel, composant
     // inactif). La latence est connue dès la sortie de cette fonction.
     // Bounce hors ligne (kOffline) : calcul déterministe et synchrone des noyaux.
-    engine_.setRealtimeMode(setup.processMode != kOffline);
-    engine_.prepare(setup.sampleRate, std::max<int32>(1, setup.maxSamplesPerBlock));
-    const auto all = params::allParameters();
-    for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i) {
-        if (!params::isPersistent(all[i])) continue;
-        engine_.setParameterImmediate(all[i].id,
-                                      params::toPlain(all[i], normalized_[i].load(std::memory_order_relaxed)));
-    }
+    prepareEngine(setup);
     pendingState_.store(false, std::memory_order_relaxed);
     sampleRate_ = setup.sampleRate;
     feed_->sampleRate.store(setup.sampleRate);
@@ -265,6 +275,9 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         meterIntervalSamples_ = std::max(1, static_cast<int>(setup.sampleRate / 30.0));
         prepared_ = true;
     }
+    // Mode de latence changé depuis la dernière préparation (l'hôte réactive après
+    // restartComponent(kLatencyChanged)) : on reprépare ici, hors thread audio.
+    if (state && prepared_ && engine_.lowLatency() != wantsLowLatency(processSetup)) prepareEngine(processSetup);
     if (state) {
         engine_.reset();
         transportWasPlaying_ = false;

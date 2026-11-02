@@ -57,6 +57,7 @@ void Engine::prepare(double sampleRate, int maxBlockSize) {
     spec_.sampleRate = sampleRate;
     spec_.maxBlockSize = std::max(1, maxBlockSize);
     spec_.numChannels = kNumChannels;
+    spec_.lowLatency = lowLatency_;
 
     latency_ = 0;
     for (std::size_t k = 0; k < stages_.size(); ++k) {

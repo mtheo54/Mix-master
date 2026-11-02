@@ -6,6 +6,7 @@
 
 #include "TestSignals.h"
 
+#include "analysis/LoudnessMeter.h"
 #include "core/Decibels.h"
 #include "core/DelayLine.h"
 #include "engine/Engine.h"
@@ -211,4 +212,37 @@ OMNIS_TEST("engine: NaN et infinis de l'hôte interceptés, la chaîne complète
     OMNIS_CHECK(std::isfinite(e.meters().integratedLufs) || e.meters().integratedLufs < -100.0);
     OMNIS_CHECK(Engine::sanitizeInput(std::numeric_limits<double>::quiet_NaN()) == 0.0);
     OMNIS_CHECK(Engine::sanitizeInput(0.25) == 0.25);
+}
+
+OMNIS_TEST("moteur: mode latence basse (travail) — latence ~8x plus basse, même son à peu près") {
+    const auto in = tools::signals::drumLoop(48000.0, 2);
+    double lufs[2] = {0, 0};
+    int latency[2] = {0, 0};
+    for (int mode = 0; mode < 2; ++mode) {
+        Engine e;
+        buildMasteringChain(e);
+        e.setLowLatency(mode == 1);
+        e.setRealtimeMode(false);
+        e.prepare(48000.0, 512);
+        latency[mode] = e.latencySamples();
+        const int n = in.numFrames() + latency[mode];
+        std::vector<double> l(static_cast<std::size_t>(n), 0.0), r(static_cast<std::size_t>(n), 0.0);
+        std::copy(in.channels[0].begin(), in.channels[0].end(), l.begin());
+        std::copy(in.channels[1].begin(), in.channels[1].end(), r.begin());
+        for (int pos = 0; pos < n; pos += 512) {
+            const int k = std::min(512, n - pos);
+            double* ch[2] = {l.data() + pos, r.data() + pos};
+            e.process(ch, ch, k);
+        }
+        for (double v : l) OMNIS_CHECK(std::isfinite(v));
+        analysis::LoudnessMeter m;
+        m.prepare(48000.0, 2);
+        double* ch[2] = {l.data() + latency[mode], r.data() + latency[mode]};
+        m.process(ch, in.numFrames());
+        lufs[mode] = m.integratedLufs();
+    }
+    std::printf("    latence : %d -> %d éch ; sonie %.2f -> %.2f LUFS\n", latency[0], latency[1], lufs[0], lufs[1]);
+    OMNIS_CHECK(latency[1] * 6 < latency[0]);
+    OMNIS_CHECK(latency[1] < static_cast<int>(0.12 * 48000.0));
+    OMNIS_CHECK(std::fabs(lufs[1] - lufs[0]) < 0.7);
 }

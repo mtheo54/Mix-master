@@ -93,7 +93,7 @@ void MultibandStage::prepare(const ProcessSpec& spec) {
         splitLog_[s].prepare(sampleRate_, params::findParameter(splits[s])->smoothingMs);
         splitLog_[s].snapTo(splitLog_[s].target());
     }
-    const int n = kernelLengthFor(sampleRate_);
+    const int n = lowLatencyLength(kernelLengthFor(sampleRate_), spec.lowLatency);
     const int blk = n / 32;
     for (int k = 0; k < kFiltered; ++k) {
         convolvers_[static_cast<std::size_t>(k)].prepare(blk, n);
@@ -105,12 +105,17 @@ void MultibandStage::prepare(const ProcessSpec& spec) {
     for (int i = 0; i < blk; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / blk);
     splitLatency_ = n / 2 + blk;
-    lookahead_ = static_cast<int>(std::lround(kLookaheadMs * 0.001 * sampleRate_));
+    // Mode travail : anticipation de 3 ms et fenêtres de mesure de 10 ms au plus
+    // (le multibande réagit plus vite et moins finement ; latence ~15 ms au lieu de 70).
+    lookahead_ = static_cast<int>(std::lround((spec.lowLatency ? 3.0 : kLookaheadMs) * 0.001 * sampleRate_));
     // Audio retardé de l'anticipation + la fenêtre la plus longue : le gain d'un
     // échantillon s est réglé sur la fenêtre [s, s + W] (vers l'avant). Au début
     // d'un coup, elle est déjà entièrement dans la note (une fenêtre centrée y
     // était à moitié dans le silence : sous-estimation, le coup passait).
-    const auto windowOf = [&](int b) { return static_cast<int>(std::lround(kRmsWindowMs[b] * 0.001 * sampleRate_)); };
+    const auto windowOf = [&](int b) {
+        const double ms = spec.lowLatency ? std::min(kRmsWindowMs[b], 10.0) : kRmsWindowMs[b];
+        return static_cast<int>(std::lround(ms * 0.001 * sampleRate_));
+    };
     int longest = 0;
     for (int b = 0; b < params::kMbBands; ++b) longest = std::max(longest, windowOf(b));
     audioDelay_ = lookahead_ + longest;

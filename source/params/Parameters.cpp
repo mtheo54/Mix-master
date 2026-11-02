@@ -20,6 +20,7 @@ constexpr std::array<std::string_view, 2> kToggleLabels{"Off", "On"};
 constexpr std::array<std::string_view, 3> kMonitorLabels{"Stereo", "Mid", "Side"};
 constexpr std::array<std::string_view, 2> kSlopeLabels{"24 dB/oct", "48 dB/oct"};
 constexpr std::array<std::string_view, 2> kPhaseLabels{"Linear", "Analog"};
+constexpr std::array<std::string_view, 2> kLatencyLabels{"Max Quality", "Low Latency"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
 constexpr std::array<std::string_view, 3> kLinkRoleLabels{"Seul", "Stem", "Master"};
@@ -56,6 +57,10 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // Outils d'écoute : jamais gardés (un export oublié en Match serait faux).
     {ParamId::GainMatch,         "gain_match",    "Gain Match",           "Match",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0, ParamScale::Linear, false, false},
     {ParamId::DeltaListen,       "delta",         "Delta Listen",         "Delta",  "",     ParamKind::Choice,     0.0,    7.0,   0.0,   7,    kDeltaLabels,   0.0,    0, ParamScale::Linear, false, false},
+    // Mode travail : filtres à phase linéaire raccourcis (latence ~10x plus basse,
+    // grave moins précis). Gardé dans la session pour que l'avertissement reste
+    // visible ; un rendu hors ligne (export) repasse de lui-même en qualité max.
+    {ParamId::LowLatency,        "low_latency",   "Latency Mode",         "Lat",    "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kLatencyLabels, 0.0,    0, ParamScale::Linear, true, false},
 
     // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence
     // (voir docs/CALIBRATION_MODULE2.md).

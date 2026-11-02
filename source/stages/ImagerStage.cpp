@@ -74,7 +74,7 @@ ImagerKernelRequest ImagerStage::orderedRequest() const noexcept {
 void ImagerStage::prepare(const ProcessSpec& spec) {
     bank_.stop();
     sampleRate_ = spec.sampleRate;
-    const int n = kernelLengthFor(sampleRate_);
+    const int n = lowLatencyLength(kernelLengthFor(sampleRate_), spec.lowLatency);
     const int b = n / 32;
     convolver_.prepare(b, n);
     bank_.prepare(sampleRate_, n, b, realtime_, orderedRequest());

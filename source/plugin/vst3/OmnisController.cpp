@@ -112,6 +112,9 @@ tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue v
         }
         if (componentHandler) componentHandler->restartComponent(kLatencyChanged);
     }
+    // Mode de latence : la latence annoncée change, l'hôte doit réactiver le plug-in.
+    if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LowLatency) && before != value && componentHandler)
+        componentHandler->restartComponent(kLatencyChanged);
     return result;
 }
 

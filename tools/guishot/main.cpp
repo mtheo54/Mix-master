@@ -132,6 +132,15 @@ int main(int argc, char** argv) {
             rig.set(ParamId::LinkStemKind, 8.0); // Drums (boucle)
             rig.set(ParamId::StemMode, 1.0);
         }
+        if (mode == "travail") {
+            // Mode travail (latence basse) : l'hôte réactive le plug-in après le changement.
+            rig.set(ParamId::LowLatency, 1.0);
+            rig.run(0.1);
+            rig.proc->setProcessing(false);
+            rig.proc->setActive(false);
+            rig.proc->setActive(true);
+            rig.proc->setProcessing(true);
+        }
         rig.set(ParamId::LimGain, 7.0);
         rig.set(ParamId::LimPunch, 35.0);
         rig.set(ParamId::InflLowEffect, 30.0);

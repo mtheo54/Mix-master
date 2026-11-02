@@ -34,7 +34,16 @@ struct ProcessSpec {
     double sampleRate = 48000.0;
     int maxBlockSize = 512;
     int numChannels = 2;
+    bool lowLatency = false; ///< mode travail : noyaux FIR courts (voir lowLatencyLength)
 };
+
+/// Longueur d'un noyau FIR en mode travail : 16 fois plus court, 1024 au minimum
+/// (latence de ~11 ms par étage au lieu de 45 à 180 ms ; grave moins précis).
+inline int lowLatencyLength(int taps, bool lowLatency) noexcept {
+    if (!lowLatency) return taps;
+    const int shorter = taps / 16;
+    return shorter < 1024 ? (taps < 1024 ? taps : 1024) : shorter;
+}
 
 class Stage {
 public:

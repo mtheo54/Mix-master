@@ -107,6 +107,9 @@ public:
 
     /// Latence totale de la chaîne, constante après prepare().
     [[nodiscard]] int latencySamples() const noexcept { return latency_; }
+    /// Mode travail (latence basse) : pris en compte au prochain prepare().
+    void setLowLatency(bool on) noexcept { lowLatency_ = on; }
+    [[nodiscard]] bool lowLatency() const noexcept { return spec_.lowLatency; }
     [[nodiscard]] double sampleRate() const noexcept { return spec_.sampleRate; }
     [[nodiscard]] int maxBlockSize() const noexcept { return spec_.maxBlockSize; }
 
@@ -171,6 +174,7 @@ private:
     OnePoleSmoother matchGain_;
     OnePoleSmoother matchMix_;
     ProcessSpec spec_{};
+    bool lowLatency_ = false;
     bool prepared_ = false;
     int latency_ = 0;
     int faults_ = 0;

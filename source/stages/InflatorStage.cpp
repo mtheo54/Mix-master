@@ -79,7 +79,7 @@ void InflatorStage::prepare(const ProcessSpec& spec) {
     }
 
     // Séparation de bandes à phase linéaire (même filtre que le clipper).
-    const int n = splitKernelLengthFor(sampleRate_);
+    const int n = lowLatencyLength(splitKernelLengthFor(sampleRate_), spec.lowLatency);
     const int b = n / 32;
     splitter_.prepare(b, n);
     bank_.prepare(sampleRate_, n, b, realtime_, SplitKernelRequest{std::exp(splitLog_.current())});

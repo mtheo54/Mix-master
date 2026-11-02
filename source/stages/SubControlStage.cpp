@@ -71,8 +71,8 @@ void SubControlStage::prepare(const ProcessSpec& spec) {
     prep(analogMix_, ParamId::SubPhaseMode);
 
     // Chemin linéaire.
-    const int n = kernelLengthFor(sampleRate_);
-    const int b = blockSizeFor(sampleRate_);
+    const int n = lowLatencyLength(kernelLengthFor(sampleRate_), spec.lowLatency);
+    const int b = n / 32;
     convolver_.prepare(b, n);
     bank_.prepare(sampleRate_, n, b, realtime_, currentRequest());
     activeSlot_ = bank_.initialSlot();

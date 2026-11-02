@@ -25,8 +25,8 @@ void MatchEqStage::prepare(const ProcessSpec& spec) {
     sampleRate_ = spec.sampleRate;
     // Même résolution que le Sub Control (~2.7 Hz) : une demi-octave à 20 Hz
     // ne fait que 8 Hz de large.
-    const int n = SubControlStage::kernelLengthFor(sampleRate_);
-    const int b = SubControlStage::blockSizeFor(sampleRate_);
+    const int n = lowLatencyLength(SubControlStage::kernelLengthFor(sampleRate_), spec.lowLatency);
+    const int b = n / 32;
     convolver_.prepare(b, n);
     bank_.prepare(sampleRate_, n, b, realtime_, request_);
     activeSlot_ = bank_.initialSlot();

@@ -67,7 +67,7 @@ void ClipperStage::prepare(const ProcessSpec& spec) {
         s->snapTo(s->target());
 
     // Séparation de bandes à phase linéaire.
-    const int n = splitKernelLengthFor(sampleRate_);
+    const int n = lowLatencyLength(splitKernelLengthFor(sampleRate_), spec.lowLatency);
     const int b = n / 32;
     splitter_.prepare(b, n);
     bank_.prepare(sampleRate_, n, b, realtime_, SplitKernelRequest{std::exp(splitLog_.current())});

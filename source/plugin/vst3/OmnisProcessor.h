@@ -79,6 +79,9 @@ public:
                                                      Steinberg::Vst::SpeakerArrangement* outputs,
                                                      Steinberg::int32 numOuts) override;
     Steinberg::tresult PLUGIN_API canProcessSampleSize(Steinberg::int32 symbolicSampleSize) override;
+    /// Prépare le moteur (mode de latence, réglages courants) ; hors thread audio.
+    void prepareEngine(Steinberg::Vst::ProcessSetup& setup);
+    bool wantsLowLatency(const Steinberg::Vst::ProcessSetup& setup) const;
     Steinberg::tresult PLUGIN_API setupProcessing(Steinberg::Vst::ProcessSetup& setup) override;
     Steinberg::tresult PLUGIN_API setActive(Steinberg::TBool state) override;
     Steinberg::tresult PLUGIN_API process(Steinberg::Vst::ProcessData& data) override;

@@ -64,7 +64,8 @@ void LimiterStage::prepare(const ProcessSpec& spec) {
     releaseCoefficient_ = 1.0 - std::exp(-1.0 / (releaseMs_ * 1e-3 * sampleRate_));
     activityCoefficient_ = 1.0 - std::exp(-1.0 / (0.5 * sampleRate_));
 
-    lookahead_ = std::max(1, static_cast<int>(std::lround(kLookaheadMs * 1e-3 * sampleRate_)));
+    // Mode travail : anticipation de 3 ms (attaque plus dure, latence basse).
+    lookahead_ = std::max(1, static_cast<int>(std::lround((spec.lowLatency ? 3.0 : kLookaheadMs) * 1e-3 * sampleRate_)));
     latency_ = lookahead_ + TruePeakMeter::kHalfLength;
     gainSmoother_.prepare(lookahead_);
     gainSmootherRight_.prepare(lookahead_);

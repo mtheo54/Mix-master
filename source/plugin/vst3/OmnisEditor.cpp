@@ -614,14 +614,38 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     r1->addView(mon);
     live_.push_back(mon);
     add(new HwButton(CRect(796, 7, 826, 33), "?", [] { return false; }, [this] { startTutorial(0); }, false));
+    // Latence : un clic bascule le mode travail (latence basse, qualité réduite).
+    // Tant qu'il est actif, la case clignote en rouge : à retirer avant l'export.
     auto* lat = new Screen(CRect(832, 9, 914, 31), [this](CDrawContext* dc, const CRect& r) {
-        engraved(dc, "LAT", CRect(r.left + 6, r.top, r.left + 30, r.bottom));
+        const bool low = plain(id(ParamId::LowLatency)) >= 0.5;
         const double ms = an_->meters.latencyMs;
+        if (low) {
+            const bool lit = (std::chrono::steady_clock::now().time_since_epoch() / std::chrono::milliseconds(600)) % 2 == 0;
+            dc->setFillColor(lit ? CColor(color::kClip.red, color::kClip.green, color::kClip.blue, 70) : CColor(0, 0, 0, 0));
+            dc->drawRect(r, kDrawFilled);
+            dc->setFrameColor(color::kClip);
+            dc->setLineWidth(1.0);
+            dc->drawRect(r, kDrawStroked);
+            text(dc, "TRAVAIL", CRect(r.left + 5, r.top, r.right, r.bottom), color::kClip, mono(9, true), kLeftText);
+            text(dc, ms > 0.0 ? fmt("%.0f", ms) : "—", CRect(r.left + 28, r.top, r.right - 5, r.bottom), color::kClip, mono(10), kRightText);
+            return;
+        }
+        engraved(dc, "LAT", CRect(r.left + 6, r.top, r.left + 30, r.bottom));
         text(dc, ms > 0.0 ? fmt("%.0f ms", ms) : "—", CRect(r.left + 28, r.top, r.right - 6, r.bottom), color::kText2, mono(10), kRightText);
+    }, true);
+    lat->setMouse([this](const CPoint&, int phase, bool) {
+        if (phase != 0) return true;
+        const bool low = plain(id(ParamId::LowLatency)) >= 0.5;
+        setPlain(id(ParamId::LowLatency), low ? 0.0 : 1.0);
+        answer_ = low ? "QUALITÉ MAX : filtres complets, la meilleure qualité (latence ~0,7 s). C'est le réglage d'export."
+                      : "MODE TRAVAIL (latence ~90 ms) : qualité RÉDUITE — grave moins précis, multibande et limiteur plus durs. "
+                        "Pour régler à l'oreille seulement : REPASSE EN QUALITÉ MAX AVANT D'EXPORTER (clic sur la case rouge). "
+                        "Un export hors ligne repasse de lui-même en qualité max quand FL le signale.";
+        return true;
     });
+    lat->setTooltipText("Latence : clic = mode travail (latence basse, qualité réduite) / qualité max (export)");
     r1->addView(lat);
     live_.push_back(lat);
-    lat->setMouseEnabled(false);
 
     // Ruban 2 : la demande à l'IA.
     auto* r2 = new Panel(CRect(kWorkL, kRibbon2, kWorkR, kRibbon2 + 40));
