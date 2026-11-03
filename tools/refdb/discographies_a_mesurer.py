@@ -77,7 +77,7 @@ with open(out,'w',newline='',encoding='utf-8-sig') as fh:
 # Petits artistes à homonymes (GRY : un DJ porte le même nom) : les crédits exacts des
 # plateformes (orthographe « GRy », featurings), pour que la recherche tombe sur le bon son.
 CREDITS={('gry','brr'):'GRy',('gry','jspcestquoilamour'):'GRy, iNESS M',('gry','cabaret'):'GRy',
-         ('gry','pharesteints'):'euhZ, GRy',('gry','jtesouhaite'):'GRy',('gry','ptn'):'GRy',('gry','veine'):'GRy',
+         ('gry','phareseteints'):'euhZ, GRy',('gry','jtesouhaite'):'GRy',('gry','ptn'):'GRy',('gry','veine'):'GRy',
          ('gry','demain'):'GRy, NOLWIN',('omyll','cestpasca'):'Omyll, GRy',('omyll','maladeux'):'mïrï, Omyll'}
 with open(ROOT+'data/spotifetch.csv','w',newline='',encoding='utf-8') as fh:
     w2=csv.writer(fh); w2.writerow(['name','artist'])
