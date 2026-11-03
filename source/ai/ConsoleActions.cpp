@@ -4,6 +4,7 @@
 // =============================================================================
 #include "core/I18n.h"
 #include "ConsoleActions.h"
+#include "ReferenceDynamics.h"
 
 #include <algorithm>
 #include <array>
@@ -34,6 +35,15 @@ void put(ConsolePlan& p, ParamId id, double v) {
             return;
         }
     p.settings.emplace_back(id, v);
+}
+
+/// L'état de la console tel que le plan le laisse (ses réglages, sinon l'état courant).
+CurrentValue withPlan(const ConsolePlan& p, const CurrentValue& cur) {
+    return [&p, cur](ParamId id) {
+        for (const auto& [k, v] : p.settings)
+            if (k == id) return v;
+        return cur(id);
+    };
 }
 
 /// La courbe d'intention dans le Match EQ, et ce qu'elle fait de plus marquant.
@@ -212,7 +222,10 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
         writeCurve(p, intent);
         if (u.hasReference()) {
             p.said.insert(p.said.begin(), "vers " + u.referenceName);
-            applyMusic(p, averageMusic(u.referenceEntries), prod.music, cur, std::fabs(d[Axis::Punch]) >= 0.25);
+            const auto refMusic = averageMusic(u.referenceEntries);
+            applyMusic(p, refMusic, prod.music, cur, std::fabs(d[Axis::Punch]) >= 0.25);
+            // Topologie et constantes de temps par la mesure ; les mots (applyAxes) passent après.
+            applyReferenceDynamics(p, prod, aggregateSignature(u.referenceEntries), refMusic, withPlan(p, cur));
         }
         if (u.hasReference() || u.request.targetLufs || std::fabs(u.request.loudnessOffsetLu) > 1e-9) p.targetLufs = intent.targetLufs;
     } else if (u.request.targetLufs || std::fabs(u.request.loudnessOffsetLu) > 1e-9) {
@@ -235,10 +248,13 @@ ConsolePlan planReference(const analysis::SpectralSignature& prod, const std::ve
         p.said.push_back(name + " : aucun titre mesuré, rien à viser");
         return p;
     }
-    const MatchIntent intent = planMatch(prod, aggregateSignature(refs), MatchRequest{});
+    const auto refSignature = aggregateSignature(refs);
+    const MatchIntent intent = planMatch(prod, refSignature, MatchRequest{});
     writeCurve(p, intent);
     p.said.insert(p.said.begin(), "vers " + name + format(" (%.0f titre", static_cast<double>(refs.size())) + (refs.size() > 1 ? "s)" : ")"));
-    applyMusic(p, averageMusic(refs), prod.music, cur, false);
+    const auto refMusic = averageMusic(refs);
+    applyMusic(p, refMusic, prod.music, cur, false);
+    applyReferenceDynamics(p, prod, refSignature, refMusic, withPlan(p, cur));
     // Même garde qu'AUTO : au-delà de -5 LUFS, le limiteur seul écraserait la prod.
     p.targetLufs = std::clamp(intent.targetLufs, -14.0, -5.0);
     p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs) +
@@ -268,7 +284,8 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<
     }
     MatchRequest request;
     request.resemblance = 0.5; // la moitié de l'écart : la prod garde son caractère
-    const MatchIntent intent = planMatch(loud, aggregateSignature(refs), request);
+    const auto refSignature = aggregateSignature(refs);
+    const MatchIntent intent = planMatch(loud, refSignature, request);
     writeCurve(p, intent);
     p.said.insert(p.said.begin(), "AUTO vers " + from + format(" (%.0f titres)", static_cast<double>(refs.size())));
     // Une base de mastering rap / trap : un peu de densité et de relief, rien de forcé.
@@ -280,11 +297,9 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<
     p.said.push_back("punch, Inflator et clip doux ; plafond -1 dBTP");
     // La fiche complète des références (punch, grave mono, sections, écrêtage) passe
     // après la base : elle la précise.
-    applyMusic(p, averageMusic(refs), loud.music, [&](ParamId id) {
-        for (const auto& [k, v] : p.settings)
-            if (k == id) return v;
-        return cur(id);
-    }, false);
+    const auto refMusic = averageMusic(refs);
+    applyMusic(p, refMusic, loud.music, withPlan(p, cur), false);
+    applyReferenceDynamics(p, loud, refSignature, refMusic, withPlan(p, cur));
     p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs));
     return p;
 }

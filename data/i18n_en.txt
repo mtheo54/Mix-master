@@ -422,3 +422,25 @@ classique	classical
 chanson pop	pop chanson
 chanson	chanson
 prod	producer
+réf aérée (PLR %.1f dB) au grave souple : sub en phase Analog	open reference (PLR %.1f dB) with a bouncy low end: sub in Analog phase
+réf aérée (PLR %.1f dB) : clip Soft Knee	open reference (PLR %.1f dB): Soft Knee clip
+ %.0f %%, sans Sub Make-Room	 %.0f %%, no Sub Make-Room
+réf très tassée (PLR %.1f dB	heavily squashed reference (PLR %.1f dB
+, la tienne %.1f) : clip 	, yours %.1f): clip 
+, Sub Make-Room %.0f %%	, Sub Make-Room %.0f %%
+, Sub Drive %.1f dB	, Sub Drive %.1f dB
+multibande à la tenue de la réf : 	multiband held like the reference: 
+multibande : ta prod est déjà aussi tenue que la réf	multiband: your track is already as controlled as the reference
+relâchements calés sur le tempo (%.0f BPM)	releases locked to the tempo (%.0f BPM)
+la réf pompe : auto-release %.0f %%	the reference pumps: auto-release %.0f %%
+sub de la réf tenu : auto-release 100 %, le grave ne module pas les médiums	the reference's sub is sustained: auto-release 100 %, the low end doesn't modulate the mids
+ta 808 plafonne la sonie (%.0f %% de l'énergie) : Inflate 808 	your 808 caps the loudness (%.0f %% of the energy): Inflate 808 
+%.0f %% plutôt que d'écraser au limiteur	%.0f %% instead of crushing it in the limiter
+bas-médium de la réf plus dense et stable : chaleur %.0f %%	the reference's low mids are denser and steadier: warmth %.0f %%
+côtés larges et vifs dans la réf : limiteur délié %.0f %% sur les attaques	wide, lively sides in the reference: limiter unlinked %.0f %% on transients
+volume vers 	loudness to 
+AUTO vers 	AUTO towards 
+vers 	towards 
+ / toi %.0f	 / you %.0f
+ (%.0f titre	 (%.0f track
+ (%.0f titres)	 (%.0f tracks)

@@ -41,7 +41,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 
 | Contrôle | Résultat |
 |---|---|
-| Tests unitaires | 199 / 199 |
+| Tests unitaires | 204 / 204 |
 | Tests plug-in | 20 / 20 |
 | Validateur Steinberg | 47 / 47 |
 | `ctest` (dont « aucune image livrée ») | 4 / 4 |
@@ -557,6 +557,149 @@ torturé. La marge de 0,05 dB couvre les cas musicaux mesurés.
 
 ---
 
+### 8.7 Adaptation dynamique et harmonique par la mesure (`ai/ReferenceDynamics`)
+
+**Principe.** Quand une référence est choisie (menu RÉF, « comme X », AUTO), la topologie des
+étages non linéaires et leurs constantes de temps découlent de l'**écart mesuré entre la prod
+entendue et la référence**. Il n'y a aucune table par genre : les genres ne servent qu'à filtrer le
+menu RÉF (§8.3) et de repli pour AUTO sans référence (§8.2).
+- Aucun paramètre ajouté : les 144 paramètres et l'état `'OMNS'` sont inchangés.
+- Aucun algorithme DSP touché.
+- Appelé par `planReference`, `planAuto` (titres choisis ou repli) et `planRequest` (demande qui
+  cite une référence). Dans ce dernier cas, les mots de la demande (`applyAxes`) passent après et
+  l'emportent.
+
+**Audit avant ce travail** (ce que `planReference` / `applyMusic` exploitaient) :
+
+| Paramètre | Avant | Maintenant |
+|---|---|---|
+| `sub_phase` | ignoré | PLR / sonie de la réf |
+| `clip_mode`, `clip_knee` | ignorés | « mur » de la réf + écart de PLR |
+| `clip_sub_room`, `clip_sub_drive` | ignorés | part du sub de la prod, écart de sub |
+| `clip_drive` | +3 dB si la réf est écrêtée à > 0,5 % | inchangé |
+| `infl_low`, `infl_curve` | ignorés (seulement par les mots « saturation ») | 808 qui plafonne face à une réf dense |
+| `infl_warmth` | ignoré | bas-médium de la réf plus dense et stable |
+| `mb_*` | ignorés (seulement « densité », même réglage sur les 4 bandes) | dynamique des nœuds par bande, micro-dynamique, tempo |
+| `lim_release`, `lim_auto_release` | ignorés | tempo, « pompe », sub tenu |
+| `lim_unlink_tr` | ignoré | largeur et dynamique des côtés de la réf |
+| `lim_punch`, `lim_upward`, mono du grave | exploités (micro-dynamique, sections, corrélation du grave) | inchangé |
+
+Mesures de la base qui ne servaient pas au réglage avant ce travail :
+- `dyn` (P90 − P10 de chacun des 21 nœuds) ;
+- `plr` ;
+- `lra` ;
+- `bpm` et `note_808`, qui n'étaient qu'affichés.
+
+**Notation.**
+
+| Grandeur | Définition |
+|---|---|
+| PLRr, PLRp | PLR de la réf, PLR de la prod (true peak − sonie intégrée) |
+| ΔPLR | PLRp − PLRr |
+| Sp[b], Sr[b] | dynamique (P90 − P10 des trames de 0,37 s) moyennée sur les nœuds de la bande b. Bandes selon les coupures courantes du multibande ; nœuds 20 et 28 Hz exclus. |
+| μ[b] | micro-dynamique de la fiche (crête 10 ms − niveau 400 ms) par zone |
+| s | part de l'énergie Mid sous la coupure du clipper : rapport de puissances, indépendant du niveau |
+| rampe(x, a, b) | vaut 0 en a et 1 en b, linéaire et bornée entre les deux |
+
+**Grandeurs de base.**
+- mur = rampe(PLRr, 8,5 → 6,5) : 0 pour une réf aérée, 1 pour un mur.
+- écart = rampe(ΔPLR, 1 → 3) : la part de l'écart de PLR qui reste à combler.
+
+**Règles.**
+
+| Cible | Règle |
+|---|---|
+| `sub_phase` | Linear si PLRr < 7,5 ou LUFSr > −7,5. Analog si PLRr > 9,5, PLRp > 9,5 et μr[sub] ≥ 4,5 dB. Sinon inchangé. |
+| `clip_mode` | Soft Knee si PLRr ≥ 8,5. Sinon Hard (Diode si le bas-médium relatif de la réf dépasse celui de la prod de 1,5 dB) quand mur = 1 et ΔPLR > 3 ; Soft Knee avant. |
+| `clip_knee` | 50 + 30·rampe(PLRr, 8,5 → 11,5) au-dessus de 8,5, sinon 50·(1 − mur). Continu en 8,5. |
+| `clip_sub_room` | 100·mur·écart·rampe(s_prod, 0,65 → 0,80). Vaut 0 si PLRr ≥ 8,5. |
+| `clip_sub_drive` | mur·écart·min(6, ½·\|écart de sub\|) dB. L'écart de sub est l'énergie sous 80 Hz relative au corps, prod − réf. |
+| `mb_<b>_ratio` | r = Sp / max(2Sr − Sp, Sp/4), borné à 4:1 (3:1 pour le sub). r = 1 si Sp ≤ Sr. |
+| `mb_<b>_thr` | niveau moyen estimé de la bande : LUFSp + 10·log10(part de la bande). |
+| `mb_<b>_makeup` | (1 − 1/r)·Sp/4, borné à 6 dB. |
+| `mb_<b>_attack` | gain = μr − μp. Si gain ≥ 0 : a0 + (80 − a0)·rampe(gain, 0 → 4). Sinon : a0·(1 − ½·rampe(−gain, 0 → 4)). a0 = défaut de la bande. |
+| `mb_<b>_release` | 60000/BPM/2 (croche) pour le sub et le bas, /4 (double-croche) au-dessus. BPM de la prod, sinon celui de la réf. |
+| `lim_release` | double-croche + (croche − double-croche)·pompe, borné à 20–400 ms. |
+| `lim_auto_release` | 100 − 80·pompe·(1 − sub tenu). Donne 20 % pour une réf qui pompe, 100 % pour un sub tenu. |
+| `infl_low` | 60·k, avec k = rampe(s_prod, 0,65 → 0,80)·écart·rampe(LUFSr, −10 → −7)·rampe(s_réf, 0,50 → 0,70). Écrit seulement si k > 0,05, jamais en dessous de la valeur courante. |
+| `infl_curve` | −30·k : la pente vers −50, c'est-à-dire une courbe plus dense. Même condition que `infl_low`. |
+| `infl_warmth` | 40·rampe(écart de niveau 226–640 Hz, 0 → 3 dB)·rampe(écart de dynamique, 0 → 3 dB). Écrit seulement si > 0,05. |
+| `lim_unlink_tr` | 70·rampe(Side − Mid au-dessus de 5 kHz, −12 → −6 dB)·rampe(μr[aigu], 6 → 9 dB). |
+
+**Deux grandeurs composées.**
+- **Pompe** = rampe((Sr[bas] + Sr[médium])/2 − LRAr, 8 → 12). Les trames de la réf bougent beaucoup
+  dans le bas-médium et le médium alors que ses sections sont plates.
+- **Sub tenu** = rampe(Sr[sub], 20 → 14 dB), à condition que la réf ait une note de 808 tenue.
+
+**Pourquoi r = Sp / (2Sr − Sp).** Le seuil est posé au niveau moyen de la bande, et la moitié haute
+de sa dynamique (Sp/2) est divisée par r. Pour que la dynamique résultante vaille celle de la réf :
+
+    Sp/2 + Sp/(2r) = Sr
+
+**Topologie et couleur ne s'écrivent pas pareil.**
+- **Topologie** (phase, clipper, multibande, release, lien) : valeurs **absolues**. Rechoisir une
+  référence ne cumule pas.
+- **Couleur** (Inflator) : écrite seulement si la mesure la demande, et jamais en dessous de la
+  valeur courante. Un réglage fait à la main n'est pas effacé par le choix d'une référence.
+
+**Calibration des ancrages sur la base mesurée** (429 titres : 91 livrés + 338 de la base perso).
+
+| Mesure | p10 | p50 | p90 |
+|---|---|---|---|
+| PLR | 8,3 | 10,3 | 13,3 dB |
+| LUFS | −13,6 | −9,6 | −7,5 |
+| part du sub (< 120 Hz) | 0,38 | 0,67 | 0,86 |
+| Sr[sub] | 12,6 | 26,9 | 40,7 dB |
+| Side − Mid > 5 kHz | −20 | −11 | −6 dB |
+
+Conséquences des ancrages de la spécification :
+- PLRr < 6,5 dB : **5 titres sur 429** (dont *poster boy*) ;
+- PLRr < 7,5 : 12 titres ;
+- PLRr ≥ 8,5 : 383 titres.
+
+La branche « mur » (Hard + Make-Room) est donc rare par construction. La plupart des références
+mènent au Soft Knee avec un genou de 50 à 80 %, et le Sub Make-Room reste coupé.
+
+**Ce qu'un ingé doit savoir (limites).**
+1. **« Attaques »** : le descripteur `coups_par_s` compte les coups par seconde, il ne mesure pas la
+   hauteur des transitoires. L'attaque du multibande est donc pilotée par la micro-dynamique par zone
+   (`micro`), la seule mesure de crête d'attaque disponible.
+2. **« Pompe »** : il n'existe pas de mesure de modulation calée sur le tempo. Le critère
+   (trames mobiles, sections plates) est un indice, pas une preuve de sidechain. Sur la base, il est
+   non nul pour 72 titres sur 429 (17 %). Il **ne reconnaît pas** *One More Time* (Daft Punk) :
+   0 avec l'ancrage retenu de 8 dB. Avec des trames de 0,37 s, une modulation à la noire ou à la
+   croche est en partie moyennée. Une vraie détection de pompe demande une mesure nouvelle :
+   l'autocorrélation de l'enveloppe du bas-médium au pas du tempo, à ajouter à la fiche
+   (`MusicDescriptors`), puis à remesurer sur la base.
+3. **Seuils du multibande** : le niveau de bande est estimé à partir de la sonie et de la part
+   spectrale du Mid. La pondération K et l'absence du Side décalent l'estimation de quelques dB. Le
+   ratio, lui, ne dépend que du rapport des dynamiques.
+4. **Dynamique du sub** : P90 − P10 compte aussi les silences entre les notes de 808. Une prod à 808
+   hachée paraît plus « dynamique » qu'elle ne l'est, d'où la borne de 3:1 sur le sub.
+5. **`sub_phase` Analog** : j'exige en plus que la **prod** ait de la marge (PLRp > 9,5). La rotation
+   de phase s'applique à la prod : sur une 808 déjà écrêtée, elle fait monter la crête (+7,8 dB
+   mesurés).
+6. **Rien n'a été écouté** : les tests vérifient les décisions sur des signatures synthétiques
+   (`tests/TestReferenceDynamics.cpp`). Le dosage se valide à l'oreille sur les prods de
+   l'utilisateur.
+
+**Diagnostic relatif à la référence.** L'alerte « mix déjà très fort et écrasé » se déclenche quand
+les deux conditions suivantes sont vraies :
+- LUFSp > max(−9, LUFSr) ;
+- PLRp < min(8, PLRr).
+
+Face à une réf à −4 LUFS et 4,5 dB de PLR, une prod à −6 / 6 n'est plus signalée ; elle l'est de
+nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,2), la règle d'origine
+(−9 / 8) reste inchangée.
+
+**Tests** (5) :
+- deux références opposées donnent deux topologies opposées (clipper, Make-Room, Inflator 808,
+  auto-release, release sur le tempo, ratios, lien stéréo) ;
+- la continuité du genou et du Make-Room quand le PLR de la réf baisse ;
+- une prod non entendue ne change rien ;
+- le diagnostic relatif ;
+- le compte rendu en anglais.
+
 ## 9. Instances liées, stems, chef d'orchestre
 
 - **Rôles** : Seul / Stem / Master, en groupes 1–8.
@@ -730,7 +873,7 @@ torturé. La marge de 0,05 dB couvre les cas musicaux mesurés.
 
 ## 15. Qualité et tests
 
-- **Tests unitaires : 199**, un fichier par domaine.
+- **Tests unitaires : 204**, un fichier par domaine.
   - **Null-tests** au bit près ou < 1e-12 pour chaque étage neutre et pour la chaîne entière.
   - **Repliement** : clipper selon le suréchantillonnage, Inflator 4× sans repliement, rejet
     ultrasonore > 115 dB.

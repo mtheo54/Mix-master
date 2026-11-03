@@ -95,6 +95,8 @@ add_library(omnis_core STATIC
     source/ai/MatchIntent.cpp
     source/ai/MixDiagnosis.cpp
     source/ai/ConsoleActions.cpp
+    source/ai/ReferenceDynamics.cpp
+    source/ai/ReferenceDynamics.h
     source/ai/MatchIntent.h
     source/ai/ReferenceLibrary.cpp
     source/ai/ReferenceLibrary.h
@@ -330,6 +332,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestEngine.cpp
         tests/TestListenSim.cpp
         tests/TestMixDiagnosis.cpp
+        tests/TestReferenceDynamics.cpp
         tests/TestI18n.cpp
         tests/TestWav.cpp
     )

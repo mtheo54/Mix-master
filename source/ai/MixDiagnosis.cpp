@@ -66,7 +66,9 @@ std::vector<MixFinding> diagnoseMix(const analysis::SpectralSignature& prod, con
     if (m.valid && (m.clipPercent > 0.02 || m.samplePeakDb > -0.1))
         out.push_back({L::Important, "Ton mix touche déjà 0 dBFS" + (m.clipPercent > 0.02 ? fmt(" (%.2f %% d'échantillons écrêtés)", m.clipPercent) : std::string()) + ".",
                        "Baisse le master de FL d'environ 6 dB (crêtes vers -6 dBFS) et retire limiteur / clipper du master : OMNIS a besoin de marge."});
-    else if (prod.integratedLufs > -9.0 && prod.plrDb < 8.0)
+    // « Écrasé » se juge face à la référence : si elle est elle-même plus forte que
+    // -9 LUFS ou plus tassée que 8 dB de PLR, la prod n'est en alerte qu'au-delà d'elle.
+    else if (prod.integratedLufs > std::max(-9.0, ref.integratedLufs) && prod.plrDb < std::min(8.0, ref.plrDb))
         out.push_back({L::Important, "Le mix est déjà très fort et écrasé" + fmt(" (%.1f LUFS", prod.integratedLufs) + fmt(", crête - sonie %.1f dB).", prod.plrDb),
                        "Un limiteur ou un clipper est sans doute resté sur le master de FL : enlève-le, laisse OMNIS faire la sonie."});
 
