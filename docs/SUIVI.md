@@ -45,6 +45,9 @@
 
 ## Fait récemment
 
+- **03/11 — Filtre RÉF famille › sous-genre** (`data/styles_artistes.txt`, ~440 artistes, co-crédits
+  reconnus) et **rapport technique complet** pour un ingé : [docs/RAPPORT_TECHNIQUE.md](RAPPORT_TECHNIQUE.md)
+  (127 artistes encore « à classer » en annexe B).
 - **Interface, première version** (VSTGUI du SDK, dessinée en code, Windows et macOS) : rôle,
   groupe, bypass ; la piste (mode, élément, élément reconnu, doses du mode Manuel) ; le master
   (LUFS, true peak, LRA, corrélation, stems liés ; entrée, Inflator, clip, limiteur, plafond,
