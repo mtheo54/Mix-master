@@ -73,6 +73,10 @@ while len(rows) < MAX and extra <= 40:
 out=ROOT+'data/discographies_a_mesurer.csv'
 with open(out,'w',newline='',encoding='utf-8-sig') as fh:
     w=csv.DictWriter(fh,fieldnames=list(rows[0].keys()),quoting=csv.QUOTE_ALL); w.writeheader(); w.writerows(rows)
+# Le même, au format de SPOTIFETCH (name,artist ; sans BOM pour que l'en-tête reste « name »).
+with open(ROOT+'data/spotifetch.csv','w',newline='',encoding='utf-8') as fh:
+    w2=csv.writer(fh); w2.writerow(['name','artist'])
+    for r in rows: w2.writerow([str(r['Track Name']).strip(),str(r['Artist Name(s)']).strip()])
 secs=sum(int(r['Durée (s)']) if str(r['Durée (s)']).isdigit() else 185 for r in rows)
 print(len(rows),'titres ;',len({red(r['Artist Name(s)']) for r in rows}),'artistes ; durée %.0f h'%(secs/3600))
 print('taille : format YouTube d\'origine (~160 kb/s) %.0f Go ; FLAC 16 bits (~1000 kb/s) %.0f Go ; à 50 Mo/titre %.0f Go'%(secs*160/8/1e6,secs*1000/8/1e6,len(rows)*0.05))
