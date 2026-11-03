@@ -218,7 +218,13 @@ Une fois les fichiers sur ton PC (achetés ou obtenus légalement, en FLAC ou WA
 nommés « Artiste - Titre » :
 
 ```
-omnis_refdb scan dossier_des_sons/ --db references_utilisateur.txt
+omnis_refdb scan dossier_des_sons/ --db references_utilisateur.txt --attendu data/discographies_a_mesurer.csv
 ```
+
+`--attendu` : la durée de chaque fichier est comparée à celle de la liste (±8 s ou ±6 %). Un
+téléchargement automatique qui est tombé sur un homonyme (GRY, Omyll…) n'a pas la bonne durée :
+il n'est pas mesuré (« sans doute pas le bon son »). Un fichier « GRy, iNESS M - Titre » est rangé
+sous le nom de la liste (« GRY »). Pour SPOTIFETCH : `data/spotifetch.csv` (name,artist), avec les
+crédits exacts des plateformes pour les petits artistes.
 
 Seules les mesures entrent dans la base ; les fichiers restent chez toi (jamais dans le dépôt).

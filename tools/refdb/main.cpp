@@ -185,9 +185,10 @@ ai::ReferenceLibrary openDb(const std::string& db) {
 }
 
 /// `threads` : threads pour CE fichier (1 quand plusieurs fichiers sont mesurés en parallèle).
-bool measure(const std::filesystem::path& path, ai::ReferenceEntry& e, std::string& error, unsigned threads = 0) {
+bool measure(const std::filesystem::path& path, ai::ReferenceEntry& e, std::string& error, unsigned threads = 0, double* fileSeconds = nullptr) {
     AudioFile f;
     if (!readAudioFile(path, f, error)) return false;
+    if (fileSeconds) *fileSeconds = f.sampleRate > 0.0 ? f.numFrames() / f.sampleRate : 0.0;
     const auto& r = f.channels[std::min<std::size_t>(1, f.channels.size() - 1)];
     e.signature = analysis::SignatureAccumulator::analyzeParallel(f.channels[0].data(), r.data(), f.numFrames(), f.sampleRate, threads);
     e.signature.music = analysis::analyzeMusic(f.channels[0].data(), r.data(), f.numFrames(), f.sampleRate);
@@ -942,8 +943,53 @@ int main(int argc, char** argv) {
     if (command == "scan") {
         if (input.empty() || db.empty()) return 1;
         std::vector<TitleLine> titleList;
-        for (int i = 2; i + 1 < argc; ++i)
+        // --attendu liste.csv (data/discographies_a_mesurer.csv) : titres, artistes et
+        // durées attendus. Un fichier dont la durée ne colle pas n'est pas mesuré
+        // (un téléchargement automatique tombe parfois sur un homonyme).
+        struct Expected {
+            std::string artist, title;
+            double seconds = 0.0;
+        };
+        std::vector<Expected> expected;
+        for (int i = 2; i + 1 < argc; ++i) {
             if (std::string(argv[i]) == "--titres") titleList = readTitleList(argv[i + 1]);
+            if (std::string(argv[i]) == "--attendu") {
+                const std::string listPath = argv[i + 1];
+                std::ifstream in(std::filesystem::path(std::u8string(listPath.begin(), listPath.end())));
+                std::string line;
+                std::getline(in, line);
+                if (line.rfind("\xEF\xBB\xBF", 0) == 0) line.erase(0, 3);
+                const auto head = csvFields(line);
+                int cTitle = -1, cArtist = -1, cDur = -1;
+                for (std::size_t c = 0; c < head.size(); ++c) {
+                    if (head[c] == "Track Name" || head[c] == "name") cTitle = static_cast<int>(c);
+                    if (head[c] == "Artist Name(s)" || head[c] == "artist") cArtist = static_cast<int>(c);
+                    if (head[c] == "Durée (s)") cDur = static_cast<int>(c);
+                }
+                while (cTitle >= 0 && cArtist >= 0 && std::getline(in, line)) {
+                    const auto f = csvFields(line);
+                    if (static_cast<int>(f.size()) <= std::max(cTitle, cArtist)) continue;
+                    Expected x{f[static_cast<std::size_t>(cArtist)], f[static_cast<std::size_t>(cTitle)], 0.0};
+                    if (cDur >= 0 && static_cast<int>(f.size()) > cDur) x.seconds = std::atof(f[static_cast<std::size_t>(cDur)].c_str());
+                    expected.push_back(std::move(x));
+                }
+                std::printf("Liste attendue : %zu titres (durées vérifiées)\n", expected.size());
+            }
+        }
+        // L'artiste d'un fichier peut être « GRy, iNESS M » : un des artistes crédités suffit.
+        const auto sameArtistAny = [](const std::string& fileArtist, const std::string& wanted) {
+            if (ai::namesMatch(fileArtist, wanted)) return true;
+            std::size_t start = 0;
+            for (std::size_t i = 0; i <= fileArtist.size(); ++i)
+                if (i == fileArtist.size() || fileArtist[i] == ',' || fileArtist[i] == '&') {
+                    std::string part = fileArtist.substr(start, i - start);
+                    while (!part.empty() && part.front() == ' ') part.erase(0, 1);
+                    while (!part.empty() && part.back() == ' ') part.pop_back();
+                    if (!part.empty() && ai::namesMatch(part, wanted)) return true;
+                    start = i + 1;
+                }
+            return false;
+        };
         auto user = openDb(db);
         std::vector<std::filesystem::path> files;
         std::error_code ec;
@@ -980,7 +1026,27 @@ int main(int argc, char** argv) {
                         for (const auto& g : l->genres)
                             if (std::find(job.entry.genres.begin(), job.entry.genres.end(), g) == job.entry.genres.end()) job.entry.genres.push_back(g);
                     }
-                    job.ok = measure(files[i], job.entry, job.error, 1);
+                    double seconds = 0.0;
+                    job.ok = measure(files[i], job.entry, job.error, 1, &seconds);
+                    if (job.ok && !expected.empty()) {
+                        const Expected* hit = nullptr;
+                        for (const auto& x : expected)
+                            if (ai::namesMatch(x.title, job.entry.title) && sameArtistAny(job.entry.artist, x.artist)) {
+                                hit = &x;
+                                break;
+                            }
+                        if (hit) {
+                            job.entry.artist = hit->artist; // le nom de la liste (« GRY », pas « GRy, iNESS M »)
+                            job.entry.title = hit->title;
+                            const double tolerance = std::max(8.0, 0.06 * hit->seconds);
+                            if (hit->seconds > 0.0 && std::fabs(seconds - hit->seconds) > tolerance) {
+                                job.ok = false;
+                                char why[200];
+                                std::snprintf(why, sizeof why, "durée %.0f s au lieu de %.0f s : sans doute pas le bon son, non mesuré", seconds, hit->seconds);
+                                job.error = why;
+                            }
+                        }
+                    }
                 }
             });
         for (auto& t : pool) t.join();
