@@ -52,12 +52,13 @@ def add(artist,title,fam,prio,why):
     k=(red(artist),bare(title))
     if k in seen or k in measured: return False
     i=info.get(k,{})
-    dur=int(i['durée_s']) if i.get('durée_s','').isdigit() else 185
+    known=i.get('durée_s','').isdigit()  # inconnue : 0 dans la liste (non contrôlée), 185 s pour la taille
+    dur=int(i['durée_s']) if known else 185
     mo=size_mo(dur)
     if total[0]+mo/1000>BUDGET_GO: return False
     seen.add(k); total[0]+=mo/1000
     rows.append({'Track Name':title,'Artist Name(s)':artist,'Album Name':i.get('sortie',''),'ISRC':i.get('isrc',''),
-                 'Genre_Classement':fam,'Priorité':prio,'Pourquoi':why,'Durée (s)':dur,'Taille estimée (Mo)':round(mo,1),
+                 'Genre_Classement':fam,'Priorité':prio,'Pourquoi':why,'Durée (s)':dur if known else 0,'Taille estimée (Mo)':round(mo,1),
                  'Cumul (Go)':round(total[0],2),'Lien Deezer':i.get('lien','')})
     return True
 famFR='Rap Français & New Wave'

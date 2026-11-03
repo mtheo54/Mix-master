@@ -2,11 +2,24 @@
 
 ## En attente de l'utilisateur
 
-- **Provenance des références.** Une partie des sons mesurés le 22/10 semble venir de YouTube :
-  des noms de chaîne à la place de l'artiste dans les tags, des titres « Music Video ». La règle
-  reste celle des sources légales (titres achetés, prods personnelles, sons fournis par les
-  artistes). Si l'utilisateur identifie des sons venus de YouTube, il faut les retirer de
-  `data/references.txt` (un bloc `[Artiste - Titre]` par son).
+- **Provenance des références (état réel au 03/11/2026).**
+  - **Base perso de l'utilisateur** (`C:\OMNIS_mesure\references_utilisateur.txt`, sur son PC, hors
+    dépôt) : 338 titres de `data/attendu_500.csv` mesurés le 03/11 à partir de **téléchargements
+    YouTube** (choix de l'utilisateur ; le lien youtube.com est dans les tags de chaque fichier et
+    `correspondance.csv` l'indique titre par titre). Aucun audio n'est gardé : seules les mesures.
+  - **Base livrée** (`data/references.txt`, embarquée dans le plug-in vendu) : la phrase de
+    `LICENSE_NOTICES.md` (« mesurées sur des fichiers obtenus légalement ») ne couvre **pas** ces
+    mesures. Elles ne sont fusionnées dans la base livrée **qu'avec l'accord explicite de
+    l'utilisateur**, et `LICENSE_NOTICES.md` doit alors être mis à jour pour dire vrai.
+  - Déjà signalé le 22/10 : une partie des sons de `data/references.txt` semble aussi venir de
+    YouTube (noms de chaîne dans les tags, titres « Music Video ») ; à trier par l'utilisateur
+    (un bloc `[Artiste - Titre]` par son).
+- **Mesure de `data/attendu_500.csv` (03/11/2026)** : 338 mesurés, 80 refusés pour mauvaise
+  durée, 82 sans fichier. 36 refus venaient d'une durée **par défaut de 185 s** écrite dans la
+  liste pour les durées inconnues (erreur des scripts, corrigée : vraie durée Deezer, ou 0 =
+  durée non contrôlée). Les 44 autres refus sont de vraies versions de clips, plus longues
+  (Thriller 822 s au lieu de 358…) : à ne pas forcer. GRY / Omyll : 9 sur 10 mesurés
+  (« Omyll - JSP » : durée inconnue, désormais non contrôlée). À remesurer : les 36.
 - **Familles à confirmer** pour 22 artistes écoutés mais sans famille. Ils servent quand on les
   nomme, mais n'entrent dans aucun profil de genre :
   - Hades 972, La Goutte au Nez, FLY, Nidjo Sensei, Keezy, A-JEY, El Hindi, BloodyWraith Pee, ALP ;

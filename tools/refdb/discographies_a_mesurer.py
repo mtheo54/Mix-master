@@ -20,11 +20,12 @@ scene=list(csv.DictReader(open(ROOT+'data/discographies/scene/titres.tsv',encodi
 SCENE={'gry','omyll','euhz','lafeve'}
 rows=[]; seen=set()
 def add(artist,title,album,fam,dur,isrc,link,why,rank):
+    known=str(dur).isdigit() and int(dur)>0  # inconnue : 0 dans la liste (--attendu ne la contrôle pas)
     k=(red(artist),bare(title))
     if not k[1] or k in seen: return False
     seen.add(k)
     rows.append({'Track Name':title,'Artist Name(s)':artist,'Album Name':album,'ISRC':isrc,'Genre_Classement':fam,
-                 'Rang':rank,'Pourquoi':why,'Durée (s)':dur,'Lien Deezer':link})
+                 'Rang':rank,'Pourquoi':why,'Durée (s)':dur if known else 0,'Lien Deezer':link})
     return True
 fam_of={red(r['Artist Name(s)']):r['Genre_Classement'] for r in prev}
 PER=int(os.environ.get("OMNIS_PAR_ARTISTE","10"))      # sons par artiste
@@ -84,7 +85,7 @@ with open(ROOT+'data/spotifetch.csv','w',newline='',encoding='utf-8') as fh:
     for r in rows:
         a=str(r['Artist Name(s)']).strip(); t=str(r['Track Name']).strip()
         w2.writerow([t,CREDITS.get((red(a),bare(t)),a)])
-secs=sum(int(r['Durée (s)']) if str(r['Durée (s)']).isdigit() else 185 for r in rows)
+secs=sum(int(r['Durée (s)']) if str(r['Durée (s)']).isdigit() and int(r['Durée (s)'])>0 else 185 for r in rows)
 print(len(rows),'titres ;',len({red(r['Artist Name(s)']) for r in rows}),'artistes ; durée %.0f h'%(secs/3600))
 print('taille : format YouTube d\'origine (~160 kb/s) %.0f Go ; FLAC 16 bits (~1000 kb/s) %.0f Go ; à 50 Mo/titre %.0f Go'%(secs*160/8/1e6,secs*1000/8/1e6,len(rows)*0.05))
 print(collections.Counter(r['Genre_Classement'] for r in rows).most_common())
