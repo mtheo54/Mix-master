@@ -144,6 +144,9 @@ private:
     VSTGUI::CViewContainer* rack_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 10> pages_{};
     std::string diagnosis_; ///< texte du diagnostic du mix (page D)
+    std::string refFamily_;               ///< filtre du menu RÉF (vide : tous les styles)
+    std::vector<std::string> refFamilies_; ///< familles proposées au filtre
+    std::function<void()> refFill_;        ///< refait le contenu du menu RÉF
     std::array<gui::Screen*, 10> pageScreens_{};
     gui::Screen* spectrum_ = nullptr;
     gui::Screen* scope_ = nullptr;

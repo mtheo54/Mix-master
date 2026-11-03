@@ -661,7 +661,47 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     askField_->setHoriAlign(kLeftText);
     askField_->setPlaceholderString(i18n::tr("ex. plus de punch, garde ma 808").c_str());
     r2->addView(askField_);
-    buildReferenceMenu(r2, CRect(336, 7, 540, 33));
+    // Filtre par famille (entonnoir) : le menu RÉF ne montre que ce style.
+    {
+        auto* filter = new COptionMenu(CRect(336, 7, 372, 33), listen([this](CControl* ctl) {
+            auto* m = dynamic_cast<COptionMenu*>(ctl);
+            if (!m) return;
+            const int i = static_cast<int>(std::lround(ctl->getValue()));
+            refFamily_ = i <= 0 || i > static_cast<int>(refFamilies_.size()) ? std::string() : refFamilies_[static_cast<std::size_t>(i - 1)];
+            if (refFill_) refFill_();
+            answer_ = refFamily_.empty() ? i18n::tr("RÉF : tous les styles.") : i18n::tr("RÉF filtré : ") + i18n::tr(refFamily_) + ".";
+        }), -1);
+        filter->setFont(mono(10.5));
+        filter->setFontColor(color::kAccent);
+        filter->setBackColor(color::kScreen);
+        filter->setFrameColor(CColor(60, 62, 66));
+        filter->setTooltipText(i18n::tr("Filtrer le menu RÉF par style").c_str());
+        refFamilies_ = omnis() ? omnis()->referenceFamilies() : std::vector<std::string>{};
+        filter->addEntry(UTF8String(i18n::tr("Tous les styles")));
+        for (const auto& f : refFamilies_) filter->addEntry(UTF8String(i18n::tr(f)));
+        filter->setCurrent(0);
+        r2->addView(filter);
+        // Le texte affiché : un entonnoir, pas le nom (la place est courte).
+        filter->setStyle(filter->getStyle() | COptionMenu::kNoTextStyle);
+        auto* funnel = new Screen(CRect(336, 7, 372, 33), [this](CDrawContext* dc, const CRect& rr) {
+            const CColor col = refFamily_.empty() ? color::kText2 : color::kAccent;
+            dc->setFillColor(col);
+            auto path = VSTGUI::owned(dc->createGraphicsPath());
+            const double cx = rr.getCenter().x, top = rr.top + 8, bot = rr.bottom - 7;
+            path->beginSubpath(CPoint(cx - 8, top));
+            path->addLine(CPoint(cx + 8, top));
+            path->addLine(CPoint(cx + 2, top + 7));
+            path->addLine(CPoint(cx + 2, bot));
+            path->addLine(CPoint(cx - 2, bot - 2));
+            path->addLine(CPoint(cx - 2, top + 7));
+            path->closeSubpath();
+            dc->drawGraphicsPath(path, CDrawContext::kPathFilled);
+        }, true);
+        funnel->setMouseEnabled(false);
+        r2->addView(funnel);
+        live_.push_back(funnel);
+    }
+    buildReferenceMenu(r2, CRect(376, 7, 540, 33));
     auto* applyButton = new HwButton(CRect(546, 7, 640, 33), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false);
     applyButton->setAccentText(true);
     r2->addView(applyButton);
@@ -905,7 +945,6 @@ void OmnisEditor::paintReferenceCard(CDrawContext* c, const CRect& r) {
 void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     using Kind = OmnisController::RefKind;
     auto* c = omnis();
-    const auto tree = c ? c->referenceTree() : OmnisController::ReferenceTree{};
     card_ = std::make_shared<Card>();
     // Ce que chaque entrée choisit, menu par menu (l'indice compte les séparateurs).
     struct Pick {
@@ -950,47 +989,57 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
         }
         return it->second;
     };
-    const auto plural = [](std::size_t n) { return std::to_string(n) + (n > 1 ? " titres" : " titre"); };
-    // Un artiste : tous ses titres, puis chacun (pochette en icône).
-    const auto artistMenu = [&](COptionMenu* to, const OmnisController::ReferenceArtist& a) {
-        auto* sub = new COptionMenu();
-        sub->setNbItemsPerColumn(30);
-        add(sub, "Tous les titres de " + a.name + " (" + plural(a.titles.size()) + ")", Kind::Artist, a.name);
-        sub->addSeparator();
-        for (const auto& t : a.titles)
-            if (auto* item = add(sub, t.title, Kind::Title, t.name)) {
-                item->setIcon(icon(t.cover, t.signature, t.name));
-                an_->iconRefs.push_back({item, t.cover, t.signature, t.name});
+    // Le contenu du menu, refait quand le filtre de famille change (même menu, mêmes liens).
+    refFill_ = [this, menu, picks, add, icon] {
+        auto* oc = omnis();
+        const auto tree = oc ? oc->referenceTree(refFamily_) : OmnisController::ReferenceTree{};
+        menu->removeAllEntry();
+        picks->clear();
+        an_->iconRefs.clear();
+        const auto plural = [](std::size_t n) { return std::to_string(n) + (n > 1 ? " titres" : " titre"); };
+        // Un artiste : tous ses titres, puis chacun (pochette en icône).
+        const auto artistMenu = [this, add, icon, plural](COptionMenu* to, const OmnisController::ReferenceArtist& a) {
+            auto* sub = new COptionMenu();
+            sub->setNbItemsPerColumn(30);
+            add(sub, "Tous les titres de " + a.name + " (" + plural(a.titles.size()) + ")", Kind::Artist, a.name);
+            sub->addSeparator();
+            for (const auto& t : a.titles)
+                if (auto* item = add(sub, t.title, Kind::Title, t.name)) {
+                    item->setIcon(icon(t.cover, t.signature, t.name));
+                    an_->iconRefs.push_back({item, t.cover, t.signature, t.name});
+                }
+            auto* item = to->addEntry(sub, UTF8String(a.name + "  (" + std::to_string(a.titles.size()) + ")"));
+            if (item && !a.titles.empty()) {
+                item->setIcon(icon(a.photo, a.titles.front().signature, a.name));
+                an_->iconRefs.push_back({item, a.photo, a.titles.front().signature, a.name});
             }
-        auto* item = to->addEntry(sub, UTF8String(a.name + "  (" + std::to_string(a.titles.size()) + ")"));
-        if (item && !a.titles.empty()) {
-            item->setIcon(icon(a.photo, a.titles.front().signature, a.name));
-            an_->iconRefs.push_back({item, a.photo, a.titles.front().signature, a.name});
+            sub->forget();
+        };
+        add(menu, "Aucune (OMNIS suit tes mots)", Kind::None, {});
+        if (!refFamily_.empty()) menu->addEntry(UTF8String(i18n::tr("Filtre : ") + i18n::tr(refFamily_)), -1, CMenuItem::kDisabled);
+        menu->addSeparator();
+        auto* styles = new COptionMenu();
+        styles->setNbItemsPerColumn(30);
+        for (const auto& st : tree.styles) {
+            auto* sub = new COptionMenu();
+            sub->setNbItemsPerColumn(30);
+            add(sub, "Tout le style " + st.name + " (" + plural(st.titleCount()) + ")", Kind::Style, st.name);
+            sub->addSeparator();
+            for (const auto& a : st.artists) artistMenu(sub, a);
+            styles->addEntry(sub, UTF8String(st.name + "  (" + std::to_string(st.titleCount()) + ")"));
+            sub->forget();
         }
-        sub->forget();
+        if (tree.styles.empty()) styles->addEntry(UTF8String(i18n::tr("(rien de mesuré)")), -1, CMenuItem::kDisabled);
+        menu->addEntry(styles, UTF8String(i18n::tr("Styles")));
+        styles->forget();
+        auto* artists = new COptionMenu();
+        artists->setNbItemsPerColumn(30);
+        for (const auto& a : tree.artists) artistMenu(artists, a);
+        if (tree.artists.empty()) artists->addEntry(UTF8String(i18n::tr("(rien de mesuré)")), -1, CMenuItem::kDisabled);
+        menu->addEntry(artists, UTF8String(i18n::tr("Artistes de A à Z")));
+        artists->forget();
     };
-    add(menu, "Aucune (OMNIS suit tes mots)", Kind::None, {});
-    menu->addSeparator();
-    auto* styles = new COptionMenu();
-    styles->setNbItemsPerColumn(30);
-    for (const auto& st : tree.styles) {
-        auto* sub = new COptionMenu();
-        sub->setNbItemsPerColumn(30);
-        add(sub, "Tout le style " + st.name + " (" + plural(st.titleCount()) + ")", Kind::Style, st.name);
-        sub->addSeparator();
-        for (const auto& a : st.artists) artistMenu(sub, a);
-        styles->addEntry(sub, UTF8String(st.name + "  (" + std::to_string(st.titleCount()) + ")"));
-        sub->forget();
-    }
-    if (tree.styles.empty()) styles->addEntry("(rien de mesuré)", -1, CMenuItem::kDisabled);
-    menu->addEntry(styles, "Styles");
-    styles->forget();
-    auto* artists = new COptionMenu();
-    artists->setNbItemsPerColumn(30);
-    for (const auto& a : tree.artists) artistMenu(artists, a);
-    if (tree.artists.empty()) artists->addEntry("(rien de mesuré)", -1, CMenuItem::kDisabled);
-    menu->addEntry(artists, "Artistes de A à Z");
-    artists->forget();
+    refFill_();
     parent->addView(menu);
     an_->promoShown = c && c->promoMode() ? 1 : 0; // icônes faites dans le mode courant
     // La face et la carte suivent le choix (fait ici, par AUTO ou relu avec la session),

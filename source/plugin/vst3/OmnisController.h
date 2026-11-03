@@ -119,7 +119,11 @@ public:
         std::vector<ReferenceStyle> styles;
         std::vector<ReferenceArtist> artists; ///< A – Z, tous styles
     };
-    [[nodiscard]] ReferenceTree referenceTree() const;
+    /// `family` : une famille de data/genres_classement.txt (« Rap Français & New Wave ») ;
+    /// vide : tous les styles.
+    [[nodiscard]] ReferenceTree referenceTree(const std::string& family = {}) const;
+    /// Les familles qui ont au moins un titre mesuré (filtre du menu RÉF).
+    [[nodiscard]] std::vector<std::string> referenceFamilies() const;
     /// La référence choisie, de quoi la montrer (vide : aucune).
     struct ReferenceCard {
         std::string name, credit, photo, cover, detail; ///< detail : « 111 BPM · Mi · -3,7 LUFS »

@@ -10,6 +10,7 @@
 #include "UiFeed.h"
 
 #include "ai/ConsoleActions.h"
+#include "ai/EmbeddedData.h"
 #include "ai/MixDiagnosis.h"
 #include "ai/TextMatch.h"
 #include "core/UserDataDir.h"
@@ -449,17 +450,66 @@ std::vector<OmnisController::ReferenceArtist> byArtist(const std::vector<const a
 
 } // namespace
 
-OmnisController::ReferenceTree OmnisController::referenceTree() const {
+namespace {
+/// data/genres_classement.txt : « Famille => mot, mot » (familles sans mots ignorées).
+std::vector<std::pair<std::string, std::vector<std::string>>> families() {
+    std::vector<std::pair<std::string, std::vector<std::string>>> out;
+    std::istringstream in{std::string(ai::data::classement())};
+    std::string line;
+    const auto trim = [](std::string s) {
+        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
+        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.erase(0, 1);
+        return s;
+    };
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        const auto arrow = line.find("=>");
+        if (arrow == std::string::npos) continue;
+        std::vector<std::string> words;
+        std::istringstream w(line.substr(arrow + 2));
+        for (std::string word; std::getline(w, word, ',');)
+            if (auto t = trim(word); !t.empty()) words.push_back(t);
+        if (!words.empty()) out.emplace_back(trim(line.substr(0, arrow)), words);
+    }
+    return out;
+}
+bool inFamily(const ai::ReferenceEntry& e, const std::vector<std::string>& words) {
+    for (const auto& g : e.genres)
+        for (const auto& w : words)
+            if (ai::namesMatch(g, w)) return true;
+    return false;
+}
+} // namespace
+
+OmnisController::ReferenceTree OmnisController::referenceTree(const std::string& family) const {
     const auto lib = libraryWithUser();
+    std::vector<std::string> words;
+    for (const auto& [name, w] : families())
+        if (name == family) words = w;
+    const bool filtered = !family.empty();
     ReferenceTree tree;
-    for (const auto& g : lib.genres())
+    for (const auto& g : lib.genres()) {
+        if (filtered && std::none_of(words.begin(), words.end(), [&](const std::string& w) { return ai::namesMatch(g, w); })) continue;
         if (auto entries = lib.measuredWithGenre(g); !entries.empty()) tree.styles.push_back({g, byArtist(entries)});
+    }
     std::sort(tree.styles.begin(), tree.styles.end(), [](const auto& a, const auto& b) { return lessNoCase(a.name, b.name); });
     std::vector<const ai::ReferenceEntry*> all;
     for (const auto& e : lib.entries())
-        if (playable(e)) all.push_back(&e);
+        if (playable(e) && (!filtered || inFamily(e, words))) all.push_back(&e);
     tree.artists = byArtist(all);
     return tree;
+}
+
+std::vector<std::string> OmnisController::referenceFamilies() const {
+    const auto lib = libraryWithUser();
+    std::vector<std::string> out;
+    for (const auto& [name, words] : families())
+        for (const auto& e : lib.entries())
+            if (playable(e) && inFamily(e, words)) {
+                out.push_back(name);
+                break;
+            }
+    return out;
 }
 
 OmnisController::ReferenceCard OmnisController::referenceCard() const {

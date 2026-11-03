@@ -46,6 +46,8 @@
 //    empilées ; artiste en rond, pochette en carré arrondi) | hd (photo à peine
 //    retouchée) | peint ; --refaire redessine ce que le cache a déjà.
 // =============================================================================
+#include "ai/EmbeddedData.h"
+#include <sstream>
 #include "AudioRead.h"
 #include "AiFiles.h"
 #include "Deezer.h"
@@ -949,7 +951,22 @@ int main(int argc, char** argv) {
         struct Expected {
             std::string artist, title;
             double seconds = 0.0;
+            std::vector<std::string> genres; ///< mots de genre de sa famille (Genre_Classement)
         };
+        // Familles -> mots de genre (data/genres_classement.txt, embarqué) : le filtre du
+        // menu RÉF range un titre mesuré dans sa famille grâce à ces mots.
+        std::map<std::string, std::vector<std::string>> familyWords;
+        {
+            std::istringstream in{std::string(ai::data::classement())};
+            for (std::string line; std::getline(in, line);) {
+                if (line.empty() || line[0] == '#') continue;
+                const auto arrow = line.find("=>");
+                if (arrow == std::string::npos) continue;
+                std::string name = line.substr(0, arrow);
+                while (!name.empty() && std::isspace(static_cast<unsigned char>(name.back()))) name.pop_back();
+                familyWords[name] = loose(line.substr(arrow + 2));
+            }
+        }
         std::vector<Expected> expected;
         for (int i = 2; i + 1 < argc; ++i) {
             if (std::string(argv[i]) == "--titres") titleList = readTitleList(argv[i + 1]);
@@ -960,8 +977,9 @@ int main(int argc, char** argv) {
                 std::getline(in, line);
                 if (line.rfind("\xEF\xBB\xBF", 0) == 0) line.erase(0, 3);
                 const auto head = csvFields(line);
-                int cTitle = -1, cArtist = -1, cDur = -1;
+                int cTitle = -1, cArtist = -1, cDur = -1, cFamily = -1;
                 for (std::size_t c = 0; c < head.size(); ++c) {
+                    if (head[c] == "Genre_Classement") cFamily = static_cast<int>(c);
                     if (head[c] == "Track Name" || head[c] == "name") cTitle = static_cast<int>(c);
                     if (head[c] == "Artist Name(s)" || head[c] == "artist") cArtist = static_cast<int>(c);
                     if (head[c] == "Durée (s)") cDur = static_cast<int>(c);
@@ -971,6 +989,8 @@ int main(int argc, char** argv) {
                     if (static_cast<int>(f.size()) <= std::max(cTitle, cArtist)) continue;
                     Expected x{f[static_cast<std::size_t>(cArtist)], f[static_cast<std::size_t>(cTitle)], 0.0};
                     if (cDur >= 0 && static_cast<int>(f.size()) > cDur) x.seconds = std::atof(f[static_cast<std::size_t>(cDur)].c_str());
+                    if (cFamily >= 0 && static_cast<int>(f.size()) > cFamily)
+                        if (const auto it = familyWords.find(f[static_cast<std::size_t>(cFamily)]); it != familyWords.end()) x.genres = it->second;
                     expected.push_back(std::move(x));
                 }
                 std::printf("Liste attendue : %zu titres (durées vérifiées)\n", expected.size());
@@ -1038,6 +1058,8 @@ int main(int argc, char** argv) {
                         if (hit) {
                             job.entry.artist = hit->artist; // le nom de la liste (« GRY », pas « GRy, iNESS M »)
                             job.entry.title = hit->title;
+                            for (const auto& g : hit->genres)
+                                if (std::find(job.entry.genres.begin(), job.entry.genres.end(), g) == job.entry.genres.end()) job.entry.genres.push_back(g);
                             const double tolerance = std::max(8.0, 0.06 * hit->seconds);
                             if (hit->seconds > 0.0 && std::fabs(seconds - hit->seconds) > tolerance) {
                                 job.ok = false;

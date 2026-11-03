@@ -305,3 +305,18 @@ OMNIS_TEST("plug-in: prêt à exporter ? les outils d'écoute oubliés sont sign
     set(params::ParamId::Monitor, 0.0);
     OMNIS_CHECK(h.ctrl->ask("pret a exporter").find("PRÊT À EXPORTER") == 0);
 }
+
+OMNIS_TEST("plug-in: filtre du menu RÉF par famille (genres_classement) : seuls ses artistes restent") {
+    Host h;
+    const auto families = h.ctrl->referenceFamilies();
+    OMNIS_CHECK(!families.empty());
+    const auto all = h.ctrl->referenceTree();
+    std::size_t biggest = 0;
+    for (const auto& f : families) {
+        const auto t = h.ctrl->referenceTree(f);
+        std::printf("      %-38s %3zu artiste(s), %2zu style(s)\n", f.c_str(), t.artists.size(), t.styles.size());
+        OMNIS_CHECK(t.artists.size() <= all.artists.size());
+        biggest = std::max(biggest, t.artists.size());
+    }
+    OMNIS_CHECK(biggest > 0 && biggest < all.artists.size()); // le filtre retire bien quelque chose
+}

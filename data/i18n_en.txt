@@ -357,3 +357,16 @@ true peak à %.1f dBTP : au-dessus de -1 dBTP conseillé pour le streaming	true 
 sonie très forte (%.1f LUFS) : les plateformes vont la baisser	very high loudness (%.1f LUFS): platforms will turn it down
 PRÊT À EXPORTER : rien ne fausse le fichier (écoute normale, qualité max, true peak sous -1 dBTP).	READY TO EXPORT: nothing distorts the file (normal listening, max quality, true peak below -1 dBTP).
 PAS ENCORE PRÊT À EXPORTER : 	NOT READY TO EXPORT YET: 
+Filtre : 	Filter: 
+RÉF : tous les styles.	REF: all styles.
+RÉF filtré : 	REF filtered: 
+Filtrer le menu RÉF par style	Filter the REF menu by style
+Tous les styles	All styles
+Styles	Styles
+Rap & Hip-Hop International (US/UK)	International Rap & Hip-Hop (US/UK)
+Rap Français & New Wave	French Rap & New Wave
+Électro, House & Dance	Electro, House & Dance
+Rock & Metal	Rock & Metal
+Hyperpop & Expérimental	Hyperpop & Experimental
+Pop, R&B & Indie	Pop, R&B & Indie
+B.O., Anime & Jeux Vidéo	Soundtracks, Anime & Video Games
