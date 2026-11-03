@@ -320,3 +320,23 @@ OMNIS_TEST("plug-in: filtre du menu RÉF par famille (genres_classement) : seuls
     }
     OMNIS_CHECK(biggest > 0 && biggest < all.artists.size()); // le filtre retire bien quelque chose
 }
+
+OMNIS_TEST("plug-in: filtre du menu RÉF par sous-genre (styles_artistes) : famille › style") {
+    Host h;
+    const auto filters = h.ctrl->referenceFilters();
+    OMNIS_CHECK(!filters.empty());
+    std::size_t withStyles = 0;
+    for (const auto& f : filters) {
+        const auto family = h.ctrl->referenceTree(f.name);
+        if (!f.styles.empty()) ++withStyles;
+        std::printf("      %-34s %4d titre(s), %2zu sous-genre(s)\n", f.name.c_str(), f.titles, f.styles.size());
+        for (const auto& [style, count] : f.styles) {
+            OMNIS_CHECK(count > 0);
+            const auto t = h.ctrl->referenceTree(f.name, style);
+            OMNIS_CHECK(!t.artists.empty());
+            OMNIS_CHECK(t.artists.size() <= family.artists.size()); // le sous-genre restreint la famille
+        }
+    }
+    std::printf("      %zu famille(s), dont %zu avec sous-genres\n", filters.size(), withStyles);
+    OMNIS_CHECK(withStyles > 0);
+}

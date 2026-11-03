@@ -145,6 +145,7 @@ private:
     std::array<VSTGUI::CViewContainer*, 10> pages_{};
     std::string diagnosis_; ///< texte du diagnostic du mix (page D)
     std::string refFamily_;               ///< filtre du menu RÉF (vide : tous les styles)
+    std::string refStyle_;                ///< sous-genre du filtre (vide : toute la famille)
     std::vector<std::string> refFamilies_; ///< familles proposées au filtre
     std::function<void()> refFill_;        ///< refait le contenu du menu RÉF
     std::array<gui::Screen*, 10> pageScreens_{};

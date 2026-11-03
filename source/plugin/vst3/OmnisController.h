@@ -121,8 +121,16 @@ public:
     };
     /// `family` : une famille de data/genres_classement.txt (« Rap Français & New Wave ») ;
     /// vide : tous les styles.
-    [[nodiscard]] ReferenceTree referenceTree(const std::string& family = {}) const;
-    /// Les familles qui ont au moins un titre mesuré (filtre du menu RÉF).
+    /// `style` : un sous-genre précis de cette famille (« drill fr ») ; vide : toute la famille.
+    [[nodiscard]] ReferenceTree referenceTree(const std::string& family = {}, const std::string& style = {}) const;
+    /// Le filtre du menu RÉF : les familles qui ont des titres mesurés, et dans chacune
+    /// ses sous-genres (avec leur nombre de titres), les plus fournis d'abord.
+    struct FamilyFilter {
+        std::string name;
+        int titles = 0;
+        std::vector<std::pair<std::string, int>> styles;
+    };
+    [[nodiscard]] std::vector<FamilyFilter> referenceFilters() const;
     [[nodiscard]] std::vector<std::string> referenceFamilies() const;
     /// La référence choisie, de quoi la montrer (vide : aucune).
     struct ReferenceCard {

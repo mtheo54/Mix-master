@@ -58,6 +58,7 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     elements=${CMAKE_SOURCE_DIR}/data/elements.txt
     i18n=${CMAKE_SOURCE_DIR}/data/i18n_en.txt
     classement=${CMAKE_SOURCE_DIR}/data/genres_classement.txt
+    styles=${CMAKE_SOURCE_DIR}/data/styles_artistes.txt
 )
 
 add_library(omnis_core STATIC

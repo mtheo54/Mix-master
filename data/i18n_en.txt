@@ -370,3 +370,55 @@ Rock & Metal	Rock & Metal
 Hyperpop & Expérimental	Hyperpop & Experimental
 Pop, R&B & Indie	Pop, R&B & Indie
 B.O., Anime & Jeux Vidéo	Soundtracks, Anime & Video Games
+Toute la famille	Whole family
+new wave fr	french new wave
+trap fr	french trap
+rap mélodique	melodic rap
+rap alternatif	alternative rap
+rage fr	french rage
+boom bap fr	french boom bap
+kickeur	lyrical spitter
+plugg fr	french plugg
+drill fr	french drill
+rock alternatif	alternative rock
+ost jeu vidéo	video game soundtrack
+électro house	electro house
+rap old school	old-school rap
+underground fr	french underground
+rap festif	party rap
+cloud fr	french cloud rap
+électropop	electropop
+rap conscient	conscious rap
+rap belge	belgian rap
+psyché trap	psychedelic trap
+metal alternatif	alternative metal
+hyperpop fr	french hyperpop
+rap expérimental	experimental rap
+r&b fr	french r&b
+pop urbaine	urban pop
+ost anime	anime soundtrack
+électro	electro
+rock classique	classic rock
+rap abstrait	abstract rap
+chanson française	french chanson
+électronique sombre	dark electronic
+électronique alternative	alternative electronic
+électronique	electronic
+électroclash	electroclash
+électro sombre	dark electro
+électro rap	electro rap
+électro hop	electro hop
+trap allemande	german trap
+psyché	psychedelic
+pop rock fr	french pop rock
+parodie	parody
+musique de film	film score
+hip-hop électronique	electronic hip-hop
+hip-hop japonais	japanese hip-hop
+folk électronique	electronic folk
+expérimental	experimental
+cumbia électronique	electronic cumbia
+classique	classical
+chanson pop	pop chanson
+chanson	chanson
+prod	producer

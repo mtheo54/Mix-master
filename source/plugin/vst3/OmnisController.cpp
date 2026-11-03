@@ -27,11 +27,13 @@
 #endif
 
 #include <algorithm>
+#include <cstring>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -170,6 +172,37 @@ void OmnisController::answerProposal(std::uint32_t key, int answer) {
 
 namespace {
 
+/// Clé d'artiste : minuscules, sans accents ni espaces (« La Fève » = « la feve »).
+std::string artistKey(const std::string& name) {
+    std::string out;
+    for (char ch : ai::normalizeText(name))
+        if (ch != ' ') out += ch;
+    return out;
+}
+
+/// data/styles_artistes.txt : « Artiste ; sous-genre, sous-genre » (embarqué).
+const std::map<std::string, std::vector<std::string>>& artistStyles() {
+    static const std::map<std::string, std::vector<std::string>> styles = [] {
+        std::map<std::string, std::vector<std::string>> out;
+        std::istringstream in{std::string(ai::data::styles())};
+        for (std::string line; std::getline(in, line);) {
+            if (line.empty() || line[0] == '#') continue;
+            const auto semi = line.find(';');
+            if (semi == std::string::npos) continue;
+            std::vector<std::string> words;
+            std::istringstream w(line.substr(semi + 1));
+            for (std::string word; std::getline(w, word, ',');) {
+                while (!word.empty() && std::isspace(static_cast<unsigned char>(word.back()))) word.pop_back();
+                while (!word.empty() && std::isspace(static_cast<unsigned char>(word.front()))) word.erase(0, 1);
+                if (!word.empty()) words.push_back(word);
+            }
+            if (!words.empty()) out[artistKey(line.substr(0, semi))] = words;
+        }
+        return out;
+    }();
+    return styles;
+}
+
 ai::ReferenceLibrary libraryWithUser() {
     ai::ReferenceLibrary lib = ai::ReferenceLibrary::builtin();
     std::ifstream in(userDataDir() / "references_utilisateur.txt");
@@ -180,7 +213,31 @@ ai::ReferenceLibrary libraryWithUser() {
         user.parse(text.str());
         for (const auto& e : user.entries()) lib.add(e);
     }
-    return lib;
+    // Sous-genres précis de l'artiste ajoutés à chaque titre (filtre du menu RÉF,
+    // demandes « un son drill fr »). Le classement de l'utilisateur reste : on
+    // ajoute, on ne remplace pas.
+    const auto& styles = artistStyles();
+    const auto addStyles = [&](ai::ReferenceEntry& e, const std::string& name) {
+        const auto it = styles.find(artistKey(name));
+        if (it == styles.end()) return false;
+        for (const auto& g : it->second)
+            if (std::find(e.genres.begin(), e.genres.end(), g) == e.genres.end()) e.genres.push_back(g);
+        return true;
+    };
+    ai::ReferenceLibrary out;
+    for (auto e : lib.entries()) {
+        // Co-crédits (« GRy, iNESS M », « Moji x Sboy », « A & B », « A feat. B ») :
+        // chaque artiste connu apporte ses sous-genres.
+        if (!addStyles(e, e.artist)) {
+            std::string rest = e.artist;
+            for (const char* sep : {" feat. ", " feat ", " ft. ", " x ", " X ", " & ", ", "})
+                for (std::size_t at; (at = rest.find(sep)) != std::string::npos;) rest.replace(at, std::strlen(sep), "\n");
+            std::istringstream parts(rest);
+            for (std::string part; std::getline(parts, part);) addStyles(e, part);
+        }
+        out.add(std::move(e));
+    }
+    return out;
 }
 
 bool playable(const ai::ReferenceEntry& e) { return e.measured; }
@@ -481,23 +538,50 @@ bool inFamily(const ai::ReferenceEntry& e, const std::vector<std::string>& words
 }
 } // namespace
 
-OmnisController::ReferenceTree OmnisController::referenceTree(const std::string& family) const {
+OmnisController::ReferenceTree OmnisController::referenceTree(const std::string& family, const std::string& style) const {
     const auto lib = libraryWithUser();
     std::vector<std::string> words;
     for (const auto& [name, w] : families())
         if (name == family) words = w;
     const bool filtered = !family.empty();
     ReferenceTree tree;
+    const auto hasStyle = [&](const ai::ReferenceEntry& e) {
+        return style.empty() || std::any_of(e.genres.begin(), e.genres.end(), [&](const std::string& g) { return g == style; });
+    };
     for (const auto& g : lib.genres()) {
-        if (filtered && std::none_of(words.begin(), words.end(), [&](const std::string& w) { return ai::namesMatch(g, w); })) continue;
-        if (auto entries = lib.measuredWithGenre(g); !entries.empty()) tree.styles.push_back({g, byArtist(entries)});
+        if (!style.empty() && g != style) continue;
+        std::vector<const ai::ReferenceEntry*> entries;
+        for (const auto* e : lib.measuredWithGenre(g))
+            if (!filtered || inFamily(*e, words)) entries.push_back(e);
+        if (!entries.empty()) tree.styles.push_back({g, byArtist(entries)});
     }
     std::sort(tree.styles.begin(), tree.styles.end(), [](const auto& a, const auto& b) { return lessNoCase(a.name, b.name); });
     std::vector<const ai::ReferenceEntry*> all;
     for (const auto& e : lib.entries())
-        if (playable(e) && (!filtered || inFamily(e, words))) all.push_back(&e);
+        if (playable(e) && (!filtered || inFamily(e, words)) && hasStyle(e)) all.push_back(&e);
     tree.artists = byArtist(all);
     return tree;
+}
+
+std::vector<OmnisController::FamilyFilter> OmnisController::referenceFilters() const {
+    const auto lib = libraryWithUser();
+    std::vector<FamilyFilter> out;
+    for (const auto& [name, words] : families()) {
+        FamilyFilter f;
+        f.name = name;
+        std::map<std::string, int> counts;
+        for (const auto& e : lib.entries()) {
+            if (!playable(e) || !inFamily(e, words)) continue;
+            ++f.titles;
+            for (const auto& g : e.genres)
+                if (std::none_of(words.begin(), words.end(), [&](const std::string& w) { return ai::namesMatch(g, w); })) ++counts[g];
+        }
+        if (f.titles == 0) continue;
+        for (const auto& [g, n] : counts) f.styles.emplace_back(g, n);
+        std::sort(f.styles.begin(), f.styles.end(), [](const auto& a, const auto& b) { return a.second != b.second ? a.second > b.second : a.first < b.first; });
+        out.push_back(std::move(f));
+    }
+    return out;
 }
 
 std::vector<std::string> OmnisController::referenceFamilies() const {

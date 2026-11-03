@@ -1,0 +1,463 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Sous-genres précis des artistes (filtre du menu RÉF)
+#
+#  Une ligne : « Artiste ; sous-genre, sous-genre ». Les sous-genres s'ajoutent à la
+#  famille de l'artiste (data/genres_classement.txt) : dans le filtre, chaque famille
+#  propose ses sous-genres. Classement d'OMNIS (connaissance publique des styles) ;
+#  le classement de l'utilisateur prime : corriger une ligne ici, ou dans
+#  data/titres_genres.txt pour un titre précis. Artistes absents : à classer
+#  (docs/RAPPORT_TECHNIQUE.md, liste « à classer »).
+# =============================================================================
+
+# --- Rap français & new wave -------------------------------------------------
+Gazo ; drill fr, trap fr
+JUL ; rap festif, rap mélodique
+Kery James ; rap conscient, rap hardcore
+La Fouine ; trap fr, rap hardcore
+Lomepal ; rap alternatif, pop urbaine
+Maes ; trap fr, rap mélodique
+Medine ; rap conscient, boom bap fr
+Naps ; rap festif, trap fr
+Dinos ; rap mélodique, rap conscient
+Carbonne ; rap mélodique, trap fr
+Hades 972 ; drill fr, trap fr
+Kerchak ; trap fr, drill fr
+La Fève ; new wave fr, plugg fr, rage fr
+euhZ ; new wave fr, rage fr, underground fr
+GRY ; new wave fr, underground fr
+Omyll ; new wave fr, underground fr
+HOUDI ; new wave fr, plugg fr
+J9ueve ; new wave fr, rap mélodique
+Jeune Lion ; new wave fr, rap mélodique
+Khali ; new wave fr, plugg fr
+Yvnnis ; new wave fr, rage fr
+Huntrill ; new wave fr, rage fr, hard clipping
+Jolagreen23 ; new wave fr, rage fr
+Luther ; new wave fr, rap mélodique, pluggnb
+Luv Resval ; rap mélodique, cloud fr
+Niska ; afro trap, trap fr
+Roshi ; new wave fr, rage fr
+TH ; drill fr, trap fr
+thaHomey ; new wave fr, plugg fr
+Travis Scott ; trap, rage, psyché trap
+21 Savage ; trap, dark trap
+Drake ; trap, rap mélodique, r&b
+Green Montana ; trap fr, rap mélodique
+Ikaz Boi ; trap fr, prod
+Klem Schen ; new wave fr, rage fr
+Lyele ; new wave fr, plugg fr
+Max DLG ; new wave fr, plugg fr
+Zuukou mayzie ; new wave fr, cloud fr, plugg fr
+8ruki ; new wave fr, rage fr
+Alpha Wann ; kickeur, boom bap fr
+Base 221 ; new wave fr
+Chief Keef ; drill, trap
+Freeze corleone ; drill fr, kickeur, dark trap
+Gambi ; trap fr, rap festif
+Hologram Lo' ; trap fr, prod
+IAM ; boom bap fr, rap old school, rap conscient
+iNESS M ; new wave fr, rap mélodique
+Josman ; trap fr, rap mélodique, cloud fr
+Jungle Jack ; boom bap fr, rap belge
+Leema ; new wave fr
+Lorenzo ; rap festif, trap fr
+Mairo ; drill fr, kickeur
+menace Santana ; new wave fr, rage fr
+mïrï ; new wave fr, underground fr
+MISCHA ; new wave fr, rap mélodique
+Népal ; boom bap fr, cloud fr, rap alternatif
+NeS ; new wave fr, rap mélodique
+NOLWIN ; new wave fr, underground fr
+Orelsan ; rap alternatif, rap mélodique
+Osirus Jack ; drill fr, trap fr
+Post Malone ; rap mélodique, pop rap
+Prince Waly ; boom bap fr, rap old school
+Rounhaa ; new wave fr, rap mélodique
+Saboteur ; new wave fr, underground fr
+Saturn Citizen ; new wave fr, plugg fr
+Seth Sad ; new wave fr, rage fr
+Sokuu ; new wave fr, plugg fr
+Tijo ; new wave fr, rage fr
+Vald ; rap alternatif, kickeur
+Wallace Cleaver ; new wave fr, rage fr
+Zeu ; new wave fr
+Ziak ; drill fr, dark trap
+Zola ; trap fr, rap mélodique
+63OG ; new wave fr, rage fr
+Alkpote ; rap hardcore, trap fr
+Benjamin Epps ; boom bap fr, kickeur, rap belge
+disiz ; rap alternatif, rap mélodique
+DJ Hamida ; pop urbaine, rap festif
+Gradur ; trap fr, drill fr
+Guy2Bezbar ; trap fr, rap mélodique
+H JeuneCrack ; new wave fr, trap fr
+Hugo TSR ; boom bap fr, kickeur, rap hardcore
+Kaaris ; trap fr, rap hardcore, dark trap
+Koba LaD ; trap fr, rap mélodique
+Laylow ; rap alternatif, cloud fr, trap fr
+LEDOUBLE ; new wave fr
+Leo SVR ; new wave fr, rap mélodique
+Lowtso ; new wave fr, rage fr
+Luidji ; rap mélodique, r&b fr
+Lunatic ; boom bap fr, rap hardcore, rap old school
+Meel B ; new wave fr, rap mélodique
+Pop Smoke ; drill, ny drill
+Stupeflip ; rap alternatif, rap old school
+Suprême NTM ; boom bap fr, rap old school, rap hardcore
+tn_490 ; new wave fr, plugg fr
+100 Blaze ; drill fr, trap fr
+34murphy ; new wave fr, rage fr, hard clipping
+404Billy ; drill fr, trap fr
+AmineMaTue ; new wave fr, plugg fr
+B.B. Jacques ; boom bap fr, kickeur
+Bekar ; rap mélodique, boom bap fr
+Booba ; trap fr, rap hardcore
+Bosh ; trap fr, rap mélodique
+Central Cee ; uk drill, rap uk
+Claude Debussy ; classique
+Damso ; rap alternatif, rap belge, trap fr
+DUSTY LOCANE ; ny drill, drill
+Edot Babyy ; ny drill, drill
+Hamza ; trap fr, rap belge, r&b fr
+Heuss L'enfoiré ; trap fr, rap festif
+Infinit' ; boom bap fr, kickeur
+Jack Uzi ; new wave fr, rage fr
+Jewel Usain ; trap fr, rap mélodique
+Kalash ; afro trap, dancehall
+Kalash Criminel ; trap fr, rap hardcore, drill fr
+Kay Flock ; ny drill, drill
+Kekra ; trap fr, cloud fr, rap alternatif
+King Von ; drill, chicago drill
+K.Maro ; r&b fr, rap old school
+Kyo Itachi ; boom bap fr, prod
+Lacrim ; trap fr, rap hardcore
+Lala &ce ; trap fr, pluggnb
+La Mano 1.9 ; drill fr, trap fr
+Le Blaze ; new wave fr
+Leto ; trap fr, rap mélodique
+Lil Mabu ; ny drill, drill
+MHD ; afro trap, trap fr
+Mister You ; trap fr, rap festif
+Nardo Wick ; trap, dark trap
+Nekfeu ; boom bap fr, rap mélodique, kickeur
+Ninho ; trap fr, rap mélodique
+Oxmo Puccino ; boom bap fr, rap old school, rap conscient
+PLK ; trap fr, rap mélodique
+Rowjay ; trap, plugg
+SCH ; trap fr, rap hardcore, rap mélodique
+Shae OT ; drill, uk drill
+Sha Gz ; ny drill, drill
+Sneazzy ; boom bap fr, kickeur
+Soso Maness ; trap fr, rap mélodique
+Squeezie ; pop urbaine
+Tears For Fears ; synth-pop, new wave 80s
+Theodora ; rap mélodique, pluggnb, pop urbaine
+Wiz Khalifa ; trap, pop rap
+Yazoo ; synth-pop, new wave 80s
+Youv Dee ; rap alternatif, rage fr, plugg fr
+ZEG P ; trap fr, prod
+
+# --- Rap & hip-hop international (US/UK) --------------------------------------
+A Tribe Called Quest ; boom bap, jazz rap, east coast
+De La Soul ; boom bap, jazz rap, east coast
+Mobb Deep ; boom bap, east coast, rap hardcore
+Mos Def ; boom bap, rap conscient, east coast
+Common ; boom bap, rap conscient, jazz rap
+DJ Muggs ; boom bap, prod
+Dr. Dre ; g-funk, west coast, prod
+Eminem ; rap hardcore, kickeur
+Ab-Soul ; rap conscient, west coast
+Isaiah Rashad ; rap alternatif, dirty south
+Denzel Curry ; trap, rap hardcore
+Kenny Mason ; trap, rap alternatif
+Bktherula ; rage, plugg
+Glokk40Spaz ; rage, trap
+Lazer Dim 700 ; rage, underground
+Samara Cyn ; rap alternatif, boom bap
+Famous Freaky ; rage, underground
+DDG ; trap, rap mélodique
+Swae Lee ; rap mélodique, trap
+The Weeknd ; r&b, synth-pop, alt r&b
+Kendrick Lamar ; west coast, rap conscient, jazz rap
+Trippie Redd ; rap mélodique, emo rap, rage
+Bruno Mars ; pop, funk, r&b
+Destroy Lonely ; rage, opium, dark trap
+Kanye West ; rap alternatif, trap, soul rap
+Pharrell Williams ; pop, funk, r&b
+Playboi Carti ; rage, opium, plugg
+¥$ ; rap alternatif, trap
+Tyler, The Creator ; rap alternatif, neo-soul, jazz rap
+Baby Keem ; trap, rap alternatif
+Childish Gambino ; rap alternatif, funk, r&b
+Don Toliver ; rap mélodique, psyché trap
+Fetty Wap ; trap, rap mélodique
+Future ; trap, dark trap
+JACKBOYS ; trap, psyché trap
+Joey Bada$$ ; boom bap, east coast
+Ken Carson ; rage, opium
+Lil Tecca ; rap mélodique, plugg
+Lil Uzi Vert ; trap, rage, emo rap
+Lil Yachty ; trap, rap alternatif, psyché
+Logic ; boom bap, rap conscient
+Mac Miller ; rap alternatif, jazz rap
+Madvillain ; boom bap, rap abstrait, underground
+Metro Boomin ; trap, dark trap, prod
+MF DOOM ; boom bap, rap abstrait, underground
+Westside Gunn ; boom bap, east coast, griselda
+Yeat ; rage, trap
+A$AP Rocky ; trap, cloud rap, east coast
+Homixide Gang ; rage, opium
+Ice Cube ; west coast, gangsta rap, g-funk
+Internet Money ; trap, rap mélodique, prod
+JAŸ-Z ; east coast, boom bap
+J Dilla ; boom bap, jazz rap, prod
+JID ; trap, kickeur
+Lil Pump ; trap, mumble rap
+Lil Wayne ; trap, dirty south
+LUCKI ; plugg, cloud rap, underground
+Migos ; trap, dirty south
+Rae Sremmurd ; trap, pop rap
+Rich Amiri ; rage, plugg
+SoulChef ; jazz rap, lo-fi hip-hop
+Young Nudy ; trap, dirty south
+2Pac ; west coast, gangsta rap
+50 Cent ; east coast, gangsta rap
+Bobby Shmurda ; trap, ny rap
+Busta Rhymes ; east coast, kickeur
+Clipse ; east coast, coke rap
+Coolio ; west coast, g-funk
+Diddy ; east coast, pop rap
+Diplo ; électro, moombahton
+Estelle ; r&b, soul
+Freddie Gibbs ; boom bap, gangsta rap
+Ghostface Killah ; boom bap, east coast
+Gucci Mane ; trap, dirty south
+Gunna ; trap, rap mélodique
+Hanumankind ; rap alternatif, kickeur
+ICYTWAT ; rage, underground, hard clipping
+JELEEL! ; rage, rap alternatif
+J Hus ; afroswing, rap uk
+JPEGMAFIA ; rap expérimental, underground
+Lil B ; cloud rap, based, underground
+Mario Judah ; rage, rock rap
+Meek Mill ; east coast, trap
+Miguel ; r&b, alt r&b
+Mustard ; west coast, ratchet, prod
+Nas ; boom bap, east coast, rap conscient
+NAV ; trap, rap mélodique
+N.E.R.D ; rap alternatif, funk rock
+Nettspend ; underground, plugg, rage
+N.W.A ; west coast, gangsta rap
+OsamaSon ; rage, underground, hard clipping
+Outkast ; dirty south, rap alternatif, funk
+Quavo ; trap, dirty south
+Robin Thicke ; r&b, pop
+Rx Papi ; trap, underground
+ScHoolboy Q ; west coast, trap
+Sheck Wes ; trap, rap hardcore
+Snoop Dogg ; west coast, g-funk
+Soulja Boy ; trap, snap
+Takeoff ; trap, dirty south
+Tana ; underground, plugg
+Tie Vlone ; pluggnb, rap mélodique
+Ufo361 ; trap allemande
+Wu-Tang Clan ; boom bap, east coast
+Yo Gotti ; trap, dirty south
+Young Thug ; trap, rap mélodique, psyché trap
+KYSLINGO ; rage, underground
+Edward Skeletrix ; rap expérimental, underground
+Ethereal ; cloud rap, prod
+Cutthroat Mafia ; underground, rage
+
+# --- Électro, house & dance ---------------------------------------------------
+Jean-Michel Jarre ; synth-pop, ambient
+Klaas ; électro house, dance-pop
+Calvin Harris ; dance-pop, house
+Daft Punk ; french touch, house, disco house
+DR. GABBA ; gabber, hardcore
+Justice ; french touch, électro house
+Kid Cudi ; cloud rap, rap alternatif
+M83 ; synth-pop, dream pop
+Ace of Base ; eurodance, pop
+Crystal Castles ; électroclash, witch house, noise pop
+Flume ; future bass, électronique alternative
+Gesaffelstein ; techno, électro sombre
+GIGI D'AGOSTINO ; italo dance, eurodance
+Knock2 ; bass house, dubstep
+Opgekonkerd ; hardcore, gabber
+Rihanna ; pop, r&b, dance-pop
+Sam Gellaitry ; future bass, house
+Skrillex ; dubstep, brostep, bass music
+Air ; french touch, downtempo
+Aphex Twin ; idm, ambient
+Armin van Buuren ; trance
+Benny Benassi ; électro house
+Boys Noize ; électro house, techno
+Breakbot ; nu-disco, french touch
+Burial ; uk garage, dubstep, ambient
+Busy P ; french touch, électro house
+Com Truise ; synthwave, chillwave
+David Guetta ; dance-pop, électro house
+Deorro ; big room, électro house
+Dion Timmer ; riddim, dubstep
+DJ Mehdi ; french touch, hip-hop électronique
+Eden FM ; chillwave, électronique
+Furacão 2000 ; funk carioca, baile funk
+J Balvin ; reggaeton, latin pop
+Julien Doré ; chanson pop
+Kavinsky ; synthwave, outrun, french touch
+Kygo ; tropical house
+Lorn ; bass music, électronique sombre
+Lykke Li ; indie pop
+Massive Attack ; trip-hop
+MC Kaique da VP ; funk carioca, baile funk
+Milk & Sugar ; house
+Mochakk ; tech house
+Modjo ; french touch, house
+Mr.Kitty ; darkwave, synth-pop
+Mr. Oizo ; électro, french touch
+PAWSA ; tech house
+Pitbull ; dance-pop, latin pop
+Prospa ; house, rave
+Renaud ; chanson française
+Robert Miles ; dream trance
+Sash! ; eurodance, trance
+SebastiAn ; électro house, french touch
+Showtek ; hardstyle, big room
+Synthwave Goose ; synthwave
+The Chemical Brothers ; big beat
+The Prodigy ; big beat, breakbeat, rave
+The Supermen Lovers ; french touch
+Tove Lo ; électropop
+Stardust ; french touch
+Starjunk 95 ; drift phonk, phonk
+
+# --- Pop, R&B & indie -----------------------------------------------------------
+Tyla ; r&b, afroswing
+Tame Impala ; psych pop, indie
+INNA ; dance-pop, eurodance
+Jamiroquai ; acid jazz, funk
+Joji ; lo-fi, indie pop, alt r&b
+Mac DeMarco ; indie rock, slacker rock
+Michael Jackson ; pop, funk, disco
+Billie Eilish ; pop alternative, bedroom pop
+Earth, Wind & Fire ; funk, disco, soul
+Fatal Bazooka ; parodie, rap festif
+Frank Ocean ; alt r&b, neo-soul
+Katy Perry ; pop, dance-pop
+PinkPantheress ; uk garage, bedroom pop
+Stromae ; électropop, chanson
+24kGoldn ; pop rap
+Alexandra Stan ; dance-pop, eurodance
+Ariana Grande ; pop, r&b
+Beach House ; dream pop
+Bomba Estéreo ; cumbia électronique
+Charles Aznavour ; chanson française
+Current Joys ; indie rock, lo-fi
+Edward Maya ; dance-pop, eurodance
+Empire Of The Sun ; synth-pop, électropop
+Far East Movement ; électro hop, dance-pop
+Harry Nilsson ; soft rock, pop 70s
+Kyo ; pop rock fr
+LE SSERAFIM ; k-pop
+Maroon 5 ; pop, pop rock
+MGMT ; indie pop, synth-pop
+Milky Chance ; folk électronique
+NewJeans ; k-pop, uk garage pop
+Perry Como ; crooner, vintage
+Pino D'Angiò ; italo disco, funk
+Rosalía ; flamenco pop, reggaeton
+Sia ; pop
+Starsailor ; britpop
+Steve Lacy ; alt r&b, funk
+Strawberry Guy ; dream pop, bedroom pop
+Synapson ; french house, électropop
+SZA ; r&b, alt r&b
+Timmy Thomas ; soul, funk
+Tomoko Aran ; city pop
+Olli ; pop
+
+# --- Rock & metal -------------------------------------------------------------
+System Of A Down ; nu-metal, metal alternatif
+Deftones ; nu-metal, metal alternatif, shoegaze
+Lil Darkie ; rap expérimental, punk rap
+Lil Peep ; emo rap, cloud rap
+Metallica ; thrash metal, heavy metal
+Nirvana ; grunge
+Radiohead ; rock alternatif, art rock
+Rage Against The Machine ; rap metal, rock alternatif
+Ski Mask The Slump God ; trap, rap hardcore
+XXXTENTACION ; emo rap, trap, rap hardcore
+Juice WRLD ; emo rap, rap mélodique
+KXLLSWXTCH ; phonk, drift phonk
+Limp Bizkit ; nu-metal, rap metal
+Muse ; rock alternatif
+Pantera ; groove metal
+Pixies ; rock alternatif, indie rock
+Red Hot Chili Peppers ; funk rock, rock alternatif
+Aerosmith ; hard rock
+Alice In Chains ; grunge, metal alternatif
+Barry Manilow ; soft rock, pop 70s
+Basement ; emo, rock alternatif
+Bass Santana ; underground, emo rap
+Black Sabbath ; heavy metal, doom
+Blonde Redhead ; noise pop, indie rock
+Blur ; britpop
+BONES ; cloud rap, emo rap, underground
+Bring Me The Horizon ; metalcore, rock alternatif
+DJ Scheme ; trap, emo rap
+Drowning Pool ; nu-metal
+Green Day ; pop punk, punk rock
+Jim Croce ; folk rock
+KISS ; hard rock, glam rock
+Korn ; nu-metal
+Led Zeppelin ; hard rock, rock classique
+Queen ; rock classique, glam rock
+R.E.M. ; rock alternatif
+Santo & Johnny ; steel guitar, instrumental
+Slipknot ; nu-metal, metal alternatif
+SOPHIE ; hyperpop, expérimental
+$uicideboy$ ; dark trap, phonk, underground
+The Kills ; garage rock, indie rock
+The Offspring ; punk rock, pop punk
+The Smashing Pumpkins ; rock alternatif, grunge
+Two Door Cinema Club ; indie rock, indie pop
+Weezer ; power pop, rock alternatif
+Yeah Yeah Yeahs ; indie rock, dance-punk
+
+# --- B.O., anime & jeux vidéo ---------------------------------------------------
+Carter Burwell ; musique de film
+C418 ; ost jeu vidéo, ambient
+Shiro SAGISU ; ost anime
+Toby Fox ; ost jeu vidéo, chiptune
+Ari Pulkkinen ; ost jeu vidéo
+Christophe Héral ; ost jeu vidéo
+Christopher Larkin ; ost jeu vidéo
+Ennio Morricone ; musique de film
+Foo Fighters ; rock alternatif
+Motoi Sakuraba ; ost jeu vidéo
+New Order ; synth-pop, post-punk
+O-Zone ; eurodance
+Patrice Rushen ; funk, r&b
+Rodrigo Amarante ; folk
+SEGA SOUND TEAM ; ost jeu vidéo
+Soundgarden ; grunge
+Teriyaki Boyz ; hip-hop japonais
+The Cure ; post-punk, new wave 80s
+Yoko Shimomura ; ost jeu vidéo
+Yoko Takahashi ; ost anime
+Yugo Kanno ; ost anime
+
+# --- Hyperpop & expérimental ----------------------------------------------------
+2hollis ; hyperpop, rage, électro rap
+100 gecs ; hyperpop
+glaive ; hyperpop, digicore
+Jane Remover ; hyperpop, digicore, shoegaze
+midwxst ; hyperpop, digicore
+Whethan ; future bass, électropop
+slayr ; hyperpop, rage, hard clipping
+Ptite Soeur ; hyperpop fr, rage fr
+Dosseh ; trap fr, rap hardcore
+Sely ; hyperpop fr
+FEMTOGO ; hyperpop fr, rage fr
+6ilverr ; hyperpop fr, rage fr

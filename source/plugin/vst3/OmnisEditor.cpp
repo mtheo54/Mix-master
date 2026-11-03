@@ -663,22 +663,44 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     r2->addView(askField_);
     // Filtre par famille (entonnoir) : le menu RÉF ne montre que ce style.
     {
-        auto* filter = new COptionMenu(CRect(336, 7, 372, 33), listen([this](CControl* ctl) {
+        // Famille puis sous-genre (menu à deux niveaux) ; l'entrée choisie dit ce qu'elle filtre.
+        auto choices = std::make_shared<std::map<COptionMenu*, std::map<int32_t, std::pair<std::string, std::string>>>>();
+        auto* filter = new COptionMenu(CRect(336, 7, 372, 33), listen([this, choices](CControl* ctl) {
             auto* m = dynamic_cast<COptionMenu*>(ctl);
             if (!m) return;
-            const int i = static_cast<int>(std::lround(ctl->getValue()));
-            refFamily_ = i <= 0 || i > static_cast<int>(refFamilies_.size()) ? std::string() : refFamilies_[static_cast<std::size_t>(i - 1)];
+            int32_t idx = -1;
+            COptionMenu* from = m->getLastItemMenu(idx);
+            const auto list = choices->find(from);
+            if (list == choices->end()) return;
+            const auto pick = list->second.find(idx);
+            if (pick == list->second.end()) return;
+            refFamily_ = pick->second.first;
+            refStyle_ = pick->second.second;
             if (refFill_) refFill_();
-            answer_ = refFamily_.empty() ? i18n::tr("RÉF : tous les styles.") : i18n::tr("RÉF filtré : ") + i18n::tr(refFamily_) + ".";
+            answer_ = refFamily_.empty() ? i18n::tr("RÉF : tous les styles.")
+                                         : i18n::tr("RÉF filtré : ") + (refStyle_.empty() ? i18n::tr(refFamily_) : refStyle_) + ".";
         }), -1);
         filter->setFont(mono(10.5));
         filter->setFontColor(color::kAccent);
         filter->setBackColor(color::kScreen);
         filter->setFrameColor(CColor(60, 62, 66));
         filter->setTooltipText(i18n::tr("Filtrer le menu RÉF par style").c_str());
-        refFamilies_ = omnis() ? omnis()->referenceFamilies() : std::vector<std::string>{};
         filter->addEntry(UTF8String(i18n::tr("Tous les styles")));
-        for (const auto& f : refFamilies_) filter->addEntry(UTF8String(i18n::tr(f)));
+        (*choices)[filter][0] = {std::string(), std::string()};
+        const auto filters = omnis() ? omnis()->referenceFilters() : std::vector<OmnisController::FamilyFilter>{};
+        for (const auto& f : filters) {
+            auto* sub = new COptionMenu();
+            sub->setNbItemsPerColumn(30);
+            sub->addEntry(UTF8String(i18n::tr("Toute la famille") + "  (" + std::to_string(f.titles) + ")"));
+            (*choices)[sub][0] = {f.name, std::string()};
+            if (!f.styles.empty()) sub->addSeparator();
+            for (const auto& [style, n] : f.styles) {
+                sub->addEntry(UTF8String(i18n::tr(style) + "  (" + std::to_string(n) + ")"));
+                (*choices)[sub][sub->getNbEntries() - 1] = {f.name, style};
+            }
+            filter->addEntry(sub, UTF8String(i18n::tr(f.name) + "  (" + std::to_string(f.titles) + ")"));
+            sub->forget();
+        }
         filter->setCurrent(0);
         r2->addView(filter);
         // Le texte affiché : un entonnoir, pas le nom (la place est courte).
@@ -992,7 +1014,7 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     // Le contenu du menu, refait quand le filtre de famille change (même menu, mêmes liens).
     refFill_ = [this, menu, picks, add, icon] {
         auto* oc = omnis();
-        const auto tree = oc ? oc->referenceTree(refFamily_) : OmnisController::ReferenceTree{};
+        const auto tree = oc ? oc->referenceTree(refFamily_, refStyle_) : OmnisController::ReferenceTree{};
         menu->removeAllEntry();
         picks->clear();
         an_->iconRefs.clear();
@@ -1016,7 +1038,8 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
             sub->forget();
         };
         add(menu, "Aucune (OMNIS suit tes mots)", Kind::None, {});
-        if (!refFamily_.empty()) menu->addEntry(UTF8String(i18n::tr("Filtre : ") + i18n::tr(refFamily_)), -1, CMenuItem::kDisabled);
+        if (!refFamily_.empty())
+            menu->addEntry(UTF8String(i18n::tr("Filtre : ") + i18n::tr(refFamily_) + (refStyle_.empty() ? std::string() : " › " + i18n::tr(refStyle_))), -1, CMenuItem::kDisabled);
         menu->addSeparator();
         auto* styles = new COptionMenu();
         styles->setNbItemsPerColumn(30);
