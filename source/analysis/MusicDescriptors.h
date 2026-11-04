@@ -23,7 +23,13 @@
 //    brillance         centre de gravité du spectre au-dessus de 200 Hz (amplitude) :
 //                      la 808 ne tire pas tout vers le bas ;
 //    crête, écrêtage   crête échantillon (dBFS), part des échantillons à −0,1 dBFS
-//                      ou plus (un master écrêté exprès, rage).
+//                      ou plus (un master écrêté exprès, rage) ;
+//    pompe             enveloppe (10 ms) du bas-médium et du médium repliée sur la
+//                      période du temps (et sur sa moitié et son double), origine au
+//                      maximum des attaques repliées : niveau de la fin du temps
+//                      (65 – 95 %) moins celui du début (8 – 30 %). Un sidechain sur
+//                      le kick creuse le début et remonte : positif. Un kick ou une
+//                      808 qui décroît donne l'inverse : négatif.
 // =============================================================================
 #pragma once
 
@@ -53,6 +59,13 @@ struct MusicDescriptors {
     double centroidHz = 0.0;
     double samplePeakDb = -200.0;
     double clipPercent = 0.0;
+    /// Pompe (sidechain) calée sur le tempo : remontée du bas-médium ou du médium
+    /// entre le début et la fin du temps (dB, enveloppe repliée sur la période).
+    /// Positif : le son est creusé après chaque temps puis remonte. Négatif ou ~0 :
+    /// coups qui décroissent, ou rien de rythmique. `hasPump` faux : fiche ancienne
+    /// ou pas de tempo net.
+    double pumpDb = 0.0;
+    bool hasPump = false;
 
     /// « Fa# mineur », « Do majeur », « ? ».
     [[nodiscard]] std::string keyName() const;

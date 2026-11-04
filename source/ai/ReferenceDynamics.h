@@ -44,7 +44,7 @@ struct ReferenceMeasures {
     double subGapDb = 0.0;      ///< part du sub, prod − réf (dB)
     std::array<double, params::kMbBands> prodSpread{}, refSpread{}; ///< P90 − P10 par bande (dB)
     std::array<double, params::kMbBands> attackGap{};                ///< micro-dynamique réf − prod (dB)
-    double pump = 0.0;          ///< 0 … 1 : la réf varie vite mais ses sections sont plates
+    double pump = 0.0;          ///< 0 … 1 : la réf pompe sur le tempo (fiche `pompe`, sinon indice des trames)
     double subHold = 0.0;       ///< 0 … 1 : le sub de la réf est tenu (faible dynamique, note tenue)
     double inflate808 = 0.0;    ///< 0 … 1 : la 808 de la prod plafonne face à une réf dense
     double warmth = 0.0;        ///< 0 … 1

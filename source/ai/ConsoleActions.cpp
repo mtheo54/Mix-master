@@ -113,6 +113,8 @@ analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>
     analysis::MusicDescriptors m;
     int n = 0;
     std::array<int, 24> keys{};
+    double pumpSum = 0.0;
+    int pumps = 0;
     for (const auto* e : refs) {
         const auto& x = e->signature.music;
         if (!x.valid) continue;
@@ -122,6 +124,10 @@ analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>
         m.lowCorrelation += x.lowCorrelation;
         m.correlation += x.correlation;
         m.clipPercent += x.clipPercent;
+        if (x.hasPump) {
+            pumpSum += x.pumpDb;
+            ++pumps;
+        }
         m.bpm += x.bpm;
         m.subHz += x.subHz;
         if (x.keyRoot >= 0) ++keys[static_cast<std::size_t>(x.keyRoot + (x.keyMinor ? 12 : 0))];
@@ -133,6 +139,10 @@ analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>
     m.lowCorrelation /= n;
     m.correlation /= n;
     m.clipPercent /= n;
+    if (pumps > 0) { // moyenne des titres qui ont la mesure (les autres : fiche ancienne)
+        m.pumpDb = pumpSum / pumps;
+        m.hasPump = true;
+    }
     if (n == 1) {
         m.bpm /= n;
         m.subHz /= n;

@@ -156,7 +156,7 @@ omnis_refdb deezer --artiste "La Fève" --refaire --db references_utilisateur.tx
 | Clé | Unité | Comment c'est mesuré | Ce qu'OMNIS en fait |
 |---|---|---|---|
 | `duree` | s | son analysé | fiabilité |
-| `bpm` | BPM | autocorrélation du flux des attaques, 85 – 170 (un trap à 142 n'est pas lu à 71) | info ; plus tard : temps de relâche calés sur le tempo |
+| `bpm` | BPM | autocorrélation du flux des attaques, 85 – 170 (un trap à 142 n'est pas lu à 71) | **relâchements** du multibande et du limiteur calés sur la croche / double-croche |
 | `cle`, `cle_confiance` | `Fm`, 0 – 1 | chroma 120 Hz – 2 kHz contre les 24 profils majeur / mineur ; absente si pas nette | info (« la réf est en Fa mineur, toi en Sol ») |
 | `sub_hz` | Hz | pic 30 – 110 Hz le plus fréquent sur les blocs forts : la note de la 808 | info (« 808 réf en Fa, la tienne en Sol ») |
 | `lufs_court` | 3 × LUFS | sonie 3 s : calme (P10), médiane, fort (P95) | **écart couplet / refrain** -> upward si ta prod est bien plus contrastée |
@@ -168,6 +168,10 @@ omnis_refdb deezer --artiste "La Fève" --refaire --db references_utilisateur.tx
 | `brillance` | Hz | centre de gravité du spectre au-dessus de 200 Hz | info, « plus brillant » |
 | `crete` | dBFS | crête échantillon | idem `tp` |
 | `ecretage` | % | part des échantillons à −0,1 dBFS ou plus | une réf **écrêtée exprès** (rage) -> clip assumé |
+| `pompe` | dB | enveloppe 10 ms du bas-médium et du médium repliée sur la période du temps (et sa moitié, son double), origine au maximum des attaques : niveau en fin de temps (65 – 95 %) moins début (8 – 30 %). Absente si pas de tempo net | **auto-release** du limiteur baissé (jusqu'à 20 %) et relâchement vers la croche quand la réf pompe (sidechain) : 1,5 dB -> rien, 3,5 dB -> tout |
+
+Repères de `pompe` : prods trap sans sidechain −3,5 à +1,1 dB ; *poster boy* (limiteur qui écrase
+chaque coup) +2,8 ; boucle house, nappe en sidechain −6 dB : +2,3 ; −16 dB : +4,5.
 
 Une fiche v1 (sans ces clés) reste lisible : OMNIS se sert simplement de ce qu'il a.
 
@@ -189,6 +193,25 @@ dans le dépôt ni sur le VPS.
 
 Les fichiers sans perte (WAV, FLAC) sont les plus justes ; un MP3 / YouTube coupe l'aigu
 (repéré et écarté : `detectCutoff`).
+
+### Remesurer pour la pompe (04/11/2026)
+
+La clé `pompe` est nouvelle : les fiches mesurées avant ne l'ont pas. OMNIS se sert alors de
+l'ancien indice (moins fiable). Pour la remplir, relance le même `scan` sur les mêmes dossiers
+avec le nouvel outil (artefact *OMNIS-pour-ONIRIQUE* ou *OMNIS-Windows-outils* de la dernière CI
+verte, ou une recompilation de `build-core`). Chaque titre déjà connu est remesuré ; ses genres,
+alias, pochettes et liens restent. Sauvegarde la base d'abord :
+
+```
+copy C:\OMNIS_mesure\references_utilisateur.txt C:\OMNIS_mesure\references_utilisateur_avant_pompe.txt
+C:\Users\psudo\OMNIS\Mix-master\build-core\Release\omnis_refdb.exe scan "D:\Claude" --db C:\OMNIS_mesure\references_utilisateur.txt --attendu C:\Users\psudo\OMNIS\Mix-master\data\attendu_500.csv
+```
+
+(Un autre dossier de sons : même commande avec son chemin.) Vérifier ensuite :
+`findstr /c:"pompe =" C:\OMNIS_mesure\references_utilisateur.txt | find /c "pompe"` donne le
+nombre de fiches qui ont la mesure. Pour voir un titre : `omnis_refdb.exe fiche "fichier"` affiche
+sa ligne « pompe ». La base livrée (`data/references.txt`) se remesure de la même façon avec
+`--db` vers elle, seulement à partir de fichiers obtenus légalement.
 
 ## État de la base (30/10)
 

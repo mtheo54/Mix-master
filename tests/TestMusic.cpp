@@ -146,3 +146,64 @@ OMNIS_TEST("fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch,
     OMNIS_CHECK(punch > 40.0);
     OMNIS_CHECK(mono == 100.0);
 }
+
+namespace {
+
+/// Une boucle house à 124 BPM : kick sur chaque temps, nappe tenue (accord), hats
+/// à contretemps. `duck` : profondeur du sidechain de la nappe sur le kick (0 = aucun).
+void houseLoop(double duck, double seconds, std::vector<double>& l, std::vector<double>& r) {
+    const double bpm = 124.0, beat = 60.0 / bpm;
+    const int n = static_cast<int>(seconds * kFs);
+    l.assign(static_cast<std::size_t>(n), 0.0);
+    r.assign(static_cast<std::size_t>(n), 0.0);
+    std::mt19937 rng(7);
+    std::uniform_real_distribution<double> u(-1.0, 1.0);
+    for (int i = 0; i < n; ++i) {
+        const double t = i / kFs, inBeat = std::fmod(t, beat), inOff = std::fmod(t + beat / 2.0, beat);
+        double pad = 0.0;
+        for (const double f : {220.0, 277.18, 329.63, 440.0, 1318.5, 1760.0}) pad += 0.05 * std::sin(2.0 * std::numbers::pi * f * t);
+        // Sidechain : creusé au temps, remonte en ~60 % du temps.
+        const double gain = 1.0 - duck * std::exp(-inBeat / (0.22 * beat));
+        double x = pad * gain;
+        if (inBeat < 0.2) x += 0.6 * std::exp(-inBeat / 0.05) * std::sin(2.0 * std::numbers::pi * (45.0 + 90.0 * std::exp(-inBeat / 0.015)) * inBeat);
+        if (inOff < 0.04) x += 0.08 * std::exp(-inOff / 0.01) * u(rng);
+        l[static_cast<std::size_t>(i)] = x;
+        r[static_cast<std::size_t>(i)] = x;
+    }
+}
+
+} // namespace
+
+OMNIS_TEST("fiche: pompe calée sur le tempo — une nappe en sidechain se voit, la même sans sidechain non") {
+    std::vector<double> l, r;
+    houseLoop(0.0, 30.0, l, r);
+    const auto plain = analyzeMusic(l.data(), r.data(), static_cast<int>(l.size()), kFs);
+    houseLoop(0.85, 30.0, l, r);
+    const auto pumped = analyzeMusic(l.data(), r.data(), static_cast<int>(l.size()), kFs);
+    std::printf("      sans sidechain : %.1f BPM, pompe %+.1f dB · avec : %.1f BPM, pompe %+.1f dB\n", plain.bpm, plain.pumpDb, pumped.bpm, pumped.pumpDb);
+    OMNIS_CHECK(plain.hasPump && pumped.hasPump);
+    OMNIS_CHECK(plain.pumpDb < 1.5);
+    OMNIS_CHECK(pumped.pumpDb > 4.0);
+    // Un sidechain courant (−6 dB au temps) se voit aussi, moins fort.
+    houseLoop(0.5, 30.0, l, r);
+    const auto mild = analyzeMusic(l.data(), r.data(), static_cast<int>(l.size()), kFs);
+    std::printf("      sidechain -6 dB : pompe %+.1f dB\n", mild.pumpDb);
+    OMNIS_CHECK(mild.pumpDb > 1.5 && mild.pumpDb < pumped.pumpDb);
+    // Une boucle trap (808 tenue, kick, hats) ne pompe pas.
+    trapLoop(140.0, 30.0, 49.0, l, r);
+    const auto trap = analyzeMusic(l.data(), r.data(), static_cast<int>(l.size()), kFs);
+    std::printf("      boucle trap : pompe %+.1f dB\n", trap.pumpDb);
+    OMNIS_CHECK(trap.pumpDb < 1.5);
+    // Écrite dans la base puis relue ; une fiche sans la ligne reste « inconnue ».
+    ai::ReferenceEntry e;
+    e.artist = "Pompe";
+    e.title = "Test";
+    e.signature.music = pumped;
+    e.signature.activeFrames = 10;
+    ai::ReferenceLibrary lib;
+    lib.add(e);
+    ai::ReferenceLibrary back;
+    back.parse(lib.serialize());
+    OMNIS_CHECK(!back.entries().empty() && back.entries().front().signature.music.hasPump);
+    OMNIS_CHECK(!back.entries().empty() && std::fabs(back.entries().front().signature.music.pumpDb - pumped.pumpDb) < 0.01);
+}

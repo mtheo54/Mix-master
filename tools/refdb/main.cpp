@@ -913,6 +913,8 @@ int main(int argc, char** argv) {
                     m.microDb[2], m.microDb[3]);
         std::printf("  stéréo : corrélation %.2f, grave %.2f, perte en mono %.1f dB\n", m.correlation, m.lowCorrelation, m.monoLossDb);
         std::printf("  %.1f coups/s · brillance %.0f Hz · crête %.2f dBFS · écrêtage %.2f %%\n", m.onsetsPerSecond, m.centroidHz, m.samplePeakDb, m.clipPercent);
+        if (m.hasPump) std::printf("  pompe (fin du temps − début, bas-médium / médium) : %+.1f dB\n", m.pumpDb);
+        else std::printf("  pompe : pas de tempo net\n");
         return 0;
     }
     if (command == "add") {

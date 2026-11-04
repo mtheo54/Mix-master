@@ -362,6 +362,63 @@ MusicDescriptors MusicAnalyzer::result() const {
             }
         }
     }
+    // Pompe : enveloppes repliées sur la période du temps (voir l'en-tête).
+    if (d.bpm > 0.0 && hops > 1000) {
+        const std::size_t start = hops > 6000 ? hops - 6000 : 0; // les mêmes 60 s que le tempo
+        // Attaques de toutes les zones, recalculées sur la même plage (flux a été rogné).
+        std::vector<double> rise(hops, 0.0);
+        for (int z = 0; z < 4; ++z) {
+            const auto& e = zoneEnv_[static_cast<std::size_t>(z)];
+            for (std::size_t i = std::max<std::size_t>(start, 5); i < e.size() && i < hops; ++i) {
+                double mean = 0.0;
+                for (std::size_t j = i - 5; j < i; ++j) mean += std::pow(10.0, e[j] / 10.0);
+                rise[i] += std::clamp(e[i] - toDb(mean / 5.0), 0.0, 30.0);
+            }
+        }
+        constexpr int kBins = 40;
+        const auto pumpFor = [&](double period) {
+            if (period < 25.0 || static_cast<double>(hops - start) < 8.0 * period) return -100.0;
+            std::array<double, kBins> onset{};
+            for (std::size_t i = start; i < hops; ++i) {
+                if (i < envelope_.size() && envelope_[i] < loudEnv - 30.0) continue;
+                const double ph = std::fmod(static_cast<double>(i), period) / period;
+                onset[static_cast<std::size_t>(std::min(kBins - 1, static_cast<int>(ph * kBins)))] += rise[i];
+            }
+            const int origin = static_cast<int>(std::max_element(onset.begin(), onset.end()) - onset.begin());
+            double best = -100.0;
+            for (int z = 1; z <= 2; ++z) {
+                const auto& e = zoneEnv_[static_cast<std::size_t>(z)];
+                std::array<double, kBins> sum{};
+                std::array<int, kBins> count{};
+                const double loud = percentile(e, 0.95);
+                for (std::size_t i = start; i < hops && i < e.size(); ++i) {
+                    if (e[i] < loud - 40.0) continue; // la zone se tait
+                    const double ph = std::fmod(static_cast<double>(i), period) / period;
+                    const int bin = (static_cast<int>(ph * kBins) - origin + kBins) % kBins;
+                    sum[static_cast<std::size_t>(bin)] += e[i];
+                    ++count[static_cast<std::size_t>(bin)];
+                }
+                const auto avg = [&](double from, double to) {
+                    double acc = 0.0;
+                    int n = 0;
+                    for (int b = static_cast<int>(from * kBins); b < static_cast<int>(to * kBins); ++b)
+                        if (count[static_cast<std::size_t>(b)] > 0) {
+                            acc += sum[static_cast<std::size_t>(b)] / count[static_cast<std::size_t>(b)];
+                            ++n;
+                        }
+                    return n > 0 ? acc / n : 0.0;
+                };
+                best = std::max(best, avg(0.65, 0.95) - avg(0.08, 0.30));
+            }
+            return best;
+        };
+        const double period = 6000.0 / d.bpm; // un temps, en pas de 10 ms
+        const double pump = std::max({pumpFor(period), pumpFor(0.5 * period), pumpFor(2.0 * period)});
+        if (pump > -100.0) {
+            d.pumpDb = pump;
+            d.hasPump = true;
+        }
+    }
     // Tonalité.
     double best = -2.0, second = -2.0;
     for (int root = 0; root < 12; ++root)

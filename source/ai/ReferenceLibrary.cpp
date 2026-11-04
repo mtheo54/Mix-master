@@ -188,6 +188,10 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
         else if (key == "brillance") number_(s.music.centroidHz);
         else if (key == "crete") number_(s.music.samplePeakDb);
         else if (key == "ecretage") number_(s.music.clipPercent);
+        else if (key == "pompe") {
+            number_(s.music.pumpDb);
+            s.music.hasPump = true;
+        }
         else if (error) *error += "ligne " + std::to_string(number) + " : clé inconnue « " + key + " » ignorée\n";
     }
     close();
@@ -257,6 +261,7 @@ std::string ReferenceLibrary::serialize() const {
             line("brillance = %.0f\n", m.centroidHz);
             line("crete = %.2f\n", m.samplePeakDb);
             line("ecretage = %.3f\n", m.clipPercent);
+            if (m.hasPump) line("pompe = %.2f\n", m.pumpDb);
         }
     }
     return out;

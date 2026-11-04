@@ -239,3 +239,23 @@ OMNIS_TEST("réf mesurée: le compte rendu passe en anglais") {
     for (const char* french : {"réf très tassée", "multibande à la tenue", "relâchements", "la réf pompe", "plafonne", "côtés larges", "sub de la réf tenu", "réf aérée"})
         OMNIS_CHECK(text.find(french) == std::string::npos);
 }
+
+OMNIS_TEST("réf mesurée: la pompe mesurée sur le tempo prime sur l'indice des trames") {
+    const auto prod = userProd();
+    // Trames immobiles (l'indice dirait « ne pompe pas »), mais la fiche mesure +4 dB.
+    SigSpec calm = airySpec();
+    calm.spread = {30.0, 9.0, 9.0, 9.0}; // sub non tenu : seule la pompe décide
+    auto pumped = entry(calm, "Pompe mesurée");
+    pumped.signature.music.pumpDb = 4.0;
+    pumped.signature.music.hasPump = true;
+    // Trames très mobiles et sections plates (l'indice dirait « pompe »), mais la fiche mesure 0.
+    SigSpec busy = wallSpec();
+    auto flat = entry(busy, "Pas de pompe");
+    flat.signature.music.pumpDb = 0.0;
+    flat.signature.music.hasPump = true;
+    const double arPumped = settingOr(ai::planReference(prod, {&pumped}, "pompe", defaultCurrent), ParamId::LimAutoRelease);
+    const double arFlat = settingOr(ai::planReference(prod, {&flat}, "plat", defaultCurrent), ParamId::LimAutoRelease);
+    std::printf("      pompe mesurée +4 dB : auto-release %.0f %% · mesurée 0 dB : %.0f %%\n", arPumped, arFlat);
+    OMNIS_CHECK(arPumped <= 25.0);
+    OMNIS_CHECK(arFlat == 100.0);
+}

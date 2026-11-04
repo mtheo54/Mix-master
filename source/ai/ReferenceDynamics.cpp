@@ -112,12 +112,18 @@ ReferenceMeasures measureReferenceGap(const analysis::SpectralSignature& prod, c
     if (refMusic.valid && prod.music.valid)
         for (std::size_t b = 0; b < m.attackGap.size(); ++b) m.attackGap[b] = refMusic.microDb[b] - prod.music.microDb[b];
 
-    // « Pompe » : la réf varie beaucoup d'une trame de 0,37 s à l'autre dans le
-    // bas-médium et le médium alors que ses sections (LRA) sont plates. C'est la
-    // trace d'une modulation rythmique (sidechain sur le kick). Le calage sur le
-    // tempo lui-même n'est pas mesuré (voir le rapport).
-    const double refLowMid = 0.5 * (m.refSpread[1] + m.refSpread[2]);
-    m.pump = ramp(refLowMid - ref.loudnessRangeLu, 8.0, 12.0);
+    // « Pompe » : mesurée sur le tempo par la fiche (`pompe` : le bas-médium ou le
+    // médium creusé au début du temps, qui remonte à la fin). Sans tempo net ni
+    // creux, 0 ; 1,5 dB -> 0 (le plus haut mesuré sur des prods trap sans
+    // sidechain : +1,1), 3,5 dB -> 1 (un sidechain de −6 dB donne +2,3, de −16 dB +4,5).
+    // Fiche ancienne (pas encore remesurée) : l'indice d'avant, trames de 0,37 s
+    // mobiles et sections plates (moins fiable : ne voit pas « One More Time »).
+    if (refMusic.valid && refMusic.hasPump) {
+        m.pump = ramp(refMusic.pumpDb, 1.5, 3.5);
+    } else {
+        const double refLowMid = 0.5 * (m.refSpread[1] + m.refSpread[2]);
+        m.pump = ramp(refLowMid - ref.loudnessRangeLu, 8.0, 12.0);
+    }
     // Sub tenu : une note de grave existe et la dynamique sous la coupure est faible.
     m.subHold = refMusic.valid && refMusic.subHz > 0.0 && count[0] > 0 ? ramp(m.refSpread[0], 20.0, 14.0) : 0.0;
 

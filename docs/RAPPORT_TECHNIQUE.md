@@ -41,7 +41,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 
 | Contrôle | Résultat |
 |---|---|
-| Tests unitaires | 204 / 204 |
+| Tests unitaires | 206 / 206 |
 | Tests plug-in | 20 / 20 |
 | Validateur Steinberg | 47 / 47 |
 | `ctest` (dont « aucune image livrée ») | 4 / 4 |
@@ -627,8 +627,16 @@ Mesures de la base qui ne servaient pas au réglage avant ce travail :
 | `lim_unlink_tr` | 70·rampe(Side − Mid au-dessus de 5 kHz, −12 → −6 dB)·rampe(μr[aigu], 6 → 9 dB). |
 
 **Deux grandeurs composées.**
-- **Pompe** = rampe((Sr[bas] + Sr[médium])/2 − LRAr, 8 → 12). Les trames de la réf bougent beaucoup
-  dans le bas-médium et le médium alors que ses sections sont plates.
+- **Pompe** = rampe(`pompe` de la fiche, 1,5 → 3,5 dB). C'est une mesure calée sur le tempo
+  (`MusicDescriptors`, 04/11) : l'enveloppe de 10 ms du bas-médium et du médium est repliée sur la
+  période du temps (et sur sa moitié et son double). L'origine est placée au maximum des attaques
+  repliées. La mesure vaut le niveau en fin de temps (65–95 %) moins celui du début (8–30 %).
+  - Un sidechain creuse le début et remonte : la valeur est positive.
+  - Un kick ou une 808 qui décroît donne l'inverse : la valeur est négative.
+  - Repères : prods trap de l'utilisateur −3,5 à +1,1 dB ; *poster boy* +2,8 (son limiteur écrase
+    chaque coup) ; boucle house avec une nappe en sidechain −6 dB : +2,3 ; −16 dB : +4,5.
+  - Fiche ancienne, sans la clé : on garde l'indice d'avant, rampe((Sr[bas] + Sr[médium])/2 − LRAr,
+    8 → 12).
 - **Sub tenu** = rampe(Sr[sub], 20 → 14 dB), à condition que la réf ait une note de 808 tenue.
 
 **Pourquoi r = Sp / (2Sr − Sp).** Le seuil est posé au niveau moyen de la bande, et la moitié haute
@@ -664,13 +672,16 @@ mènent au Soft Knee avec un genou de 50 à 80 %, et le Sub Make-Room reste coup
 1. **« Attaques »** : le descripteur `coups_par_s` compte les coups par seconde, il ne mesure pas la
    hauteur des transitoires. L'attaque du multibande est donc pilotée par la micro-dynamique par zone
    (`micro`), la seule mesure de crête d'attaque disponible.
-2. **« Pompe »** : il n'existe pas de mesure de modulation calée sur le tempo. Le critère
-   (trames mobiles, sections plates) est un indice, pas une preuve de sidechain. Sur la base, il est
-   non nul pour 72 titres sur 429 (17 %). Il **ne reconnaît pas** *One More Time* (Daft Punk) :
-   0 avec l'ancrage retenu de 8 dB. Avec des trames de 0,37 s, une modulation à la noire ou à la
-   croche est en partie moyennée. Une vraie détection de pompe demande une mesure nouvelle :
-   l'autocorrélation de l'enveloppe du bas-médium au pas du tempo, à ajouter à la fiche
-   (`MusicDescriptors`), puis à remesurer sur la base.
+2. **« Pompe »** : depuis le 04/11, elle est mesurée sur le tempo (clé `pompe`). Mais **aucune
+   fiche existante ne l'a encore** : elles ont été mesurées avant, et l'audio est sur le PC de
+   l'utilisateur. Tant qu'une fiche n'est pas remesurée (`docs/REFERENCES.md`, « Remesurer pour la
+   pompe »), OMNIS se sert de l'ancien indice. Celui-ci est non nul pour 72 titres sur 429 et ne
+   reconnaît pas *One More Time*.
+   - Limites de la mesure : il faut un tempo net. Un tempo lu au double ou à la moitié est couvert,
+     puisque la mesure prend le maximum sur les trois périodes, ce qui la biaise un peu vers le
+     haut (d'où l'ancrage à 1,5 dB).
+   - Un limiteur très agressif donne aussi une pompe (*poster boy*). C'est voulu : c'est le
+     comportement qu'on reproduit.
 3. **Seuils du multibande** : le niveau de bande est estimé à partir de la sonie et de la part
    spectrale du Mid. La pondération K et l'absence du Side décalent l'estimation de quelques dB. Le
    ratio, lui, ne dépend que du rapport des dynamiques.
@@ -873,7 +884,7 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 
 ## 15. Qualité et tests
 
-- **Tests unitaires : 204**, un fichier par domaine.
+- **Tests unitaires : 206**, un fichier par domaine.
   - **Null-tests** au bit près ou < 1e-12 pour chaque étage neutre et pour la chaîne entière.
   - **Repliement** : clipper selon le suréchantillonnage, Inflator 4× sans repliement, rejet
     ultrasonore > 115 dB.
