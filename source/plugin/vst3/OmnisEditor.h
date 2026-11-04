@@ -123,6 +123,8 @@ private:
                        const std::string& seed);
     /// Mode promo basculé (« /fbi », Maj + Alt + 5 clics sur le logo) : icônes et carte redessinées.
     void refreshPromo();
+    /// « Ajouter un fichier de référence » : le sélecteur du système, puis l'import (contrôleur).
+    void pickReferenceFile();
 
     void paintModuleScreen(int module, VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
     void paintSpectrum(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);

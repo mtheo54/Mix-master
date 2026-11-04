@@ -27,9 +27,11 @@
 #include "public.sdk/source/vst/vsteditcontroller.h"
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace omnis::vst3 {
@@ -146,6 +148,21 @@ public:
     /// d'image. Gardé d'une session à l'autre (dossier de l'utilisateur).
     [[nodiscard]] bool promoMode() const;
     void setPromoMode(bool on);
+
+    /// Ajouter un fichier de référence (menu RÉF) : mesuré, reconnu (étiquettes,
+    /// nom « Artiste - Titre » ou « Titre - Artiste », MusicBrainz si permis) et
+    /// rangé dans la base de la personne, sur son poste. En arrière-plan : la
+    /// réponse arrive par pollAutomation() ; ce qui est renvoyé tout de suite dit
+    /// que l'écoute a commencé.
+    std::string importReferenceFile(const std::string& utf8Path);
+    [[nodiscard]] bool importRunning() const;
+    /// La base a changé depuis le dernier appel (menu RÉF à refaire).
+    [[nodiscard]] bool takeLibraryChanged();
+    /// MusicBrainz (une seule requête, quand un fichier est ajouté ; rien d'autre
+    /// ne va sur internet) : permis par défaut, « non » gardé dans musicbrainz.txt.
+    [[nodiscard]] bool onlineRecognition() const;
+    void setOnlineRecognition(bool on);
+    ~OmnisController() override;
     enum class RefKind : int { None = 0, Style, Artist, Title };
     /// Choisit la référence : appliquée tout de suite (ou dès qu'OMNIS a assez
     /// écouté) ; AUTO la vise ensuite. None : AUTO revient au style des mots.
@@ -169,6 +186,15 @@ public:
     REFCOUNT_METHODS(EditController)
 
 private:
+    struct ImportJob {
+        std::atomic<bool> done{false};
+        bool ok = false;
+        std::string message;
+    };
+    std::shared_ptr<ImportJob> import_;
+    std::thread importThread_;
+    bool libraryChanged_ = false;
+    mutable int online_ = -1;
     std::vector<ProposalLine> pending_, applied_;
     std::vector<std::string> drumLines_;
     bool loadingState_ = false; ///< dans setComponentState

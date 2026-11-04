@@ -164,6 +164,13 @@ nombre de fiches qui ont la mesure. Pour voir un titre : `omnis_refdb.exe fiche 
 sa ligne « pompe ». La base livrée (`data/references.txt`) se remesure de la même façon avec
 `--db` vers elle, seulement à partir de fichiers obtenus légalement.
 
+## Ajouter un fichier de référence (plug-in, 04/11/2026)
+
+Menu RÉF -> « Ajouter un fichier de référence… ». Il faut l'**artiste et le titre** : dans les
+étiquettes du fichier, ou dans son nom, « Artiste - Titre » (ou « Titre - Artiste »). MusicBrainz
+confirme (une requête ; « Recherche MusicBrainz : coupée » dans le même menu pour rester hors
+ligne). Pour voir ce qu'un fichier donnerait : `omnis_refdb reconnaitre "fichier.mp3"`.
+
 ## Profils de genre livrés (04/11/2026)
 
 Le plug-in ne contient plus aucune fiche de titre : seulement `data/profils_genres.txt`,

@@ -444,3 +444,22 @@ vers 	towards
  / toi %.0f	 / you %.0f
  (%.0f titre	 (%.0f track
  (%.0f titres)	 (%.0f tracks)
+Ajouter un fichier de référence… (« Artiste - Titre »)	Add a reference file… (“Artist - Title”)
+Recherche MusicBrainz : activée (cliquer pour couper)	MusicBrainz lookup: on (click to turn off)
+Recherche MusicBrainz : coupée (cliquer pour activer)	MusicBrainz lookup: off (click to turn on)
+Recherche MusicBrainz activée : une requête par fichier ajouté, rien d'autre ne va sur internet.	MusicBrainz lookup on: one request per added file, nothing else goes online.
+Recherche MusicBrainz désactivée : OMNIS reconnaît les fichiers hors ligne (étiquettes, nom « Artiste - Titre »).	MusicBrainz lookup off: OMNIS recognises files offline (tags, “Artist - Title” name).
+Pas de sélecteur de fichiers ici : utilise omnis_refdb reconnaitre puis scan.	No file picker here: use omnis_refdb reconnaitre, then scan.
+Fichier de référence : « Artiste - Titre » (WAV, MP3, FLAC)	Reference file: “Artist - Title” (WAV, MP3, FLAC)
+J'écoute déjà un fichier : un instant.	Already listening to a file: one moment.
+J'écoute « 	Listening to “
+ » (et je le cherche sur MusicBrainz)…	” (and looking it up on MusicBrainz)…
+Je n'arrive pas à lire ce fichier (WAV, MP3 ou FLAC).	I can't read this file (WAV, MP3 or FLAC).
+Il me faut l'artiste et le titre : nomme le fichier « Artiste - Titre » (ou « Titre - Artiste »).	I need the artist and the title: name the file “Artist - Title” (or “Title - Artist”).
+Impossible d'écrire ta base de références.	Can't write your reference library.
+Ajouté à ta base : 	Added to your library: 
+ (confirmé par MusicBrainz).	 (confirmed by MusicBrainz).
+ (d'après le fichier, MusicBrainz ne le connaît pas).	 (from the file; not on MusicBrainz).
+ (d'après le nom du fichier, MusicBrainz ne le connaît pas).	 (from the file name; not on MusicBrainz).
+ (d'après le fichier).	 (from the file's tags).
+ (d'après le nom du fichier).	 (from the file name).

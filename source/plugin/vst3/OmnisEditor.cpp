@@ -20,6 +20,7 @@
 #include "public.sdk/source/vst/utility/stringconvert.h"
 
 #include "vstgui/lib/cbitmap.h"
+#include "vstgui/lib/cfileselector.h"
 #include "vstgui/lib/cframe.h"
 #include "vstgui/lib/coffscreencontext.h"
 #include "vstgui/lib/platform/platformfactory.h"
@@ -54,6 +55,10 @@ using namespace gui;
 namespace {
 
 std::uint32_t id(ParamId p) { return static_cast<std::uint32_t>(p); }
+
+// Entrées du menu RÉF qui ne sont pas des références (actions).
+const std::string kImportAction = "\x01import";
+const std::string kOnlineAction = "\x01musicbrainz";
 
 constexpr double kPad = 10.0;
 // Colonne de travail | colonne Master.
@@ -908,6 +913,25 @@ void OmnisEditor::paintMonogram(CDrawContext* c, const CRect& r, const std::stri
          kCenterText);
 }
 
+void OmnisEditor::pickReferenceFile() {
+    if (!omnis()) return;
+    auto* selector = CNewFileSelector::create(frame, CNewFileSelector::kSelectFile);
+    if (!selector) {
+        answer_ = "Pas de sélecteur de fichiers ici : utilise omnis_refdb reconnaitre puis scan.";
+        return;
+    }
+    selector->setTitle(UTF8String(i18n::tr("Fichier de référence : « Artiste - Titre » (WAV, MP3, FLAC)")));
+    selector->addFileExtension(CFileExtension("WAV", "wav"));
+    selector->addFileExtension(CFileExtension("MP3", "mp3"));
+    selector->addFileExtension(CFileExtension("FLAC", "flac"));
+    selector->run([this](CNewFileSelector* sel) {
+        if (sel->getNumSelectedFiles() == 0 || !omnis()) return;
+        answer_ = omnis()->importReferenceFile(sel->getSelectedFile(0));
+        if (frame) frame->invalid();
+    });
+    selector->forget();
+}
+
 void OmnisEditor::refreshPromo() {
     if (!omnis()) return;
     const int now = omnis()->promoMode() ? 1 : 0;
@@ -982,7 +1006,20 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
         const auto list = picks->find(from);
         if (list == picks->end()) return;
         const auto pick = list->second.find(idx);
-        if (pick != list->second.end()) answer_ = omnis()->chooseReference(pick->second.kind, pick->second.name);
+        if (pick == list->second.end()) return;
+        if (pick->second.name == kImportAction) {
+            pickReferenceFile();
+            return;
+        }
+        if (pick->second.name == kOnlineAction) {
+            const bool on = !omnis()->onlineRecognition();
+            omnis()->setOnlineRecognition(on);
+            answer_ = on ? "Recherche MusicBrainz activée : une requête par fichier ajouté, rien d'autre ne va sur internet."
+                         : "Recherche MusicBrainz désactivée : OMNIS reconnaît les fichiers hors ligne (étiquettes, nom « Artiste - Titre »).";
+            if (refFill_) refFill_();
+            return;
+        }
+        answer_ = omnis()->chooseReference(pick->second.kind, pick->second.name);
     }), [this] {
         auto* oc = omnis();
         return oc && oc->referenceKind() != Kind::None ? oc->referenceName() : std::string();
@@ -1038,6 +1075,9 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
             sub->forget();
         };
         add(menu, "Aucune (OMNIS suit tes mots)", Kind::None, {});
+        add(menu, "Ajouter un fichier de référence… (« Artiste - Titre »)", Kind::None, kImportAction);
+        add(menu, oc && oc->onlineRecognition() ? "Recherche MusicBrainz : activée (cliquer pour couper)" : "Recherche MusicBrainz : coupée (cliquer pour activer)",
+            Kind::None, kOnlineAction);
         if (!refFamily_.empty())
             menu->addEntry(UTF8String(i18n::tr("Filtre : ") + i18n::tr(refFamily_) + (refStyle_.empty() ? std::string() : " › " + i18n::tr(refStyle_))), -1, CMenuItem::kDisabled);
         menu->addSeparator();
@@ -2274,6 +2314,7 @@ void OmnisEditor::tick() {
     pumpFeed();
     const std::string news = omnis()->pollAutomation();
     if (!news.empty()) answer_ = news;
+    if (omnis()->takeLibraryChanged() && refFill_) refFill_(); // un fichier ajouté : le menu RÉF le montre
     if (const double pr = omnis()->autoProgress(); pr >= 0.0)
         answer_ = pr <= 0.0 ? std::string("AUTO : joue le passage le plus fort (refrain, drop)…") : "AUTO : écoute " + fmt("%.0f %%", 100.0 * pr) + "…";
     if (++ticks_ % 15 == 0 && (role() != static_cast<int>(params::LinkRole::Alone) || page_ == kConductorPage)) omnis()->requestProposals();

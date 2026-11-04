@@ -179,6 +179,44 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # -----------------------------------------------------------------------------
+#  Import d'un fichier de référence (plug-in, outils, tests) : décodeurs MP3 /
+#  FLAC, images de pochette, avatars OMNIS, étiquettes, MusicBrainz (option).
+# -----------------------------------------------------------------------------
+# Décodeurs MP3 / FLAC (domaine public, code tiers : compilé sans nos
+# avertissements stricts).
+add_library(omnis_dr_libs STATIC third_party/dr_libs/dr_libs_impl.cpp)
+target_include_directories(omnis_dr_libs PUBLIC third_party/dr_libs)
+if(NOT MSVC)
+    target_compile_options(omnis_dr_libs PRIVATE -w)
+endif()
+
+# Images (JPG / PNG) pour les cartoons de l'outil de références (domaine public).
+add_library(omnis_stb STATIC third_party/stb/stb_impl.cpp)
+target_include_directories(omnis_stb PUBLIC third_party/stb)
+if(NOT MSVC)
+    target_compile_options(omnis_stb PRIVATE -w)
+endif()
+
+# Illustrations des artistes et pochettes (gfx/OmnisAvatarStylizer) : outil et tests.
+add_library(omnis_gfx STATIC source/gfx/OmnisAvatarStylizer.cpp source/gfx/OmnisAvatarStylizer.h source/gfx/AvatarCache.h)
+target_link_libraries(omnis_gfx PUBLIC omnis_core PRIVATE omnis_stb omnis_compile_options)
+
+add_library(omnis_import STATIC
+    source/import/HttpGet.cpp
+    source/import/HttpGet.h
+    source/import/Json.cpp
+    source/import/Json.h
+    source/import/ReferenceImport.cpp
+    source/import/ReferenceImport.h
+    tools/common/AudioRead.cpp
+    tools/common/AudioRead.h
+    tools/common/WavFile.cpp
+    tools/common/WavFile.h
+)
+target_include_directories(omnis_import PUBLIC source tools/common)
+target_link_libraries(omnis_import PUBLIC omnis_core omnis_gfx PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
+
+# -----------------------------------------------------------------------------
 #  Plug-in VST3
 # -----------------------------------------------------------------------------
 if(OMNIS_BUILD_VST3)
@@ -208,7 +246,7 @@ if(OMNIS_BUILD_VST3)
     endif()
     # Pas d'omnis_compile_options ici : les en-têtes du SDK ne passent pas -Wshadow
     # / -Wnon-virtual-dtor. Le code DSP (omnis_core) reste compilé en strict.
-    target_link_libraries(OMNIS PRIVATE omnis_core sdk)
+    target_link_libraries(OMNIS PRIVATE omnis_import omnis_core sdk)
     # windows.h (inclus par certains en-têtes système) définit min/max en macros.
     target_compile_definitions(OMNIS PRIVATE $<$<PLATFORM_ID:Windows>:NOMINMAX>)
     if(OMNIS_BUILD_GUI)
@@ -249,30 +287,9 @@ endif()
 #  Outils de banc de test
 # -----------------------------------------------------------------------------
 if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
-    # Décodeurs MP3 / FLAC (domaine public, code tiers : compilé sans nos
-    # avertissements stricts).
-    add_library(omnis_dr_libs STATIC third_party/dr_libs/dr_libs_impl.cpp)
-    target_include_directories(omnis_dr_libs PUBLIC third_party/dr_libs)
-    if(NOT MSVC)
-        target_compile_options(omnis_dr_libs PRIVATE -w)
-    endif()
-
-    # Images (JPG / PNG) pour les cartoons de l'outil de références (domaine public).
-    add_library(omnis_stb STATIC third_party/stb/stb_impl.cpp)
-    target_include_directories(omnis_stb PUBLIC third_party/stb)
-    if(NOT MSVC)
-        target_compile_options(omnis_stb PRIVATE -w)
-    endif()
-
-    # Illustrations des artistes et pochettes (gfx/OmnisAvatarStylizer) : outil et tests.
-    add_library(omnis_gfx STATIC source/gfx/OmnisAvatarStylizer.cpp source/gfx/OmnisAvatarStylizer.h source/gfx/AvatarCache.h)
-    target_link_libraries(omnis_gfx PUBLIC omnis_core PRIVATE omnis_stb omnis_compile_options)
-
     add_library(omnis_tools_common STATIC
         tools/common/AiFiles.h
         tools/common/AnalysisReport.cpp
-        tools/common/AudioRead.cpp
-        tools/common/AudioRead.h
         tools/common/AnalysisReport.h
         tools/common/DistortionAnalysis.cpp
         tools/common/DistortionAnalysis.h
@@ -282,11 +299,9 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/TonalBalance.h
         tools/common/TestSignals.cpp
         tools/common/TestSignals.h
-        tools/common/WavFile.cpp
-        tools/common/WavFile.h
     )
     target_include_directories(omnis_tools_common PUBLIC tools/common)
-    target_link_libraries(omnis_tools_common PUBLIC omnis_core omnis_gfx PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
+    target_link_libraries(omnis_tools_common PUBLIC omnis_core omnis_gfx omnis_import PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
@@ -333,6 +348,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestMixDiagnosis.cpp
         tests/TestReferenceDynamics.cpp
         tests/TestGenreProfiles.cpp
+        tests/TestReferenceImport.cpp
         tests/TestI18n.cpp
         tests/TestWav.cpp
     )

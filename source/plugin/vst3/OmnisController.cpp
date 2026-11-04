@@ -14,6 +14,7 @@
 #include "ai/EmbeddedData.h"
 #include "ai/MixDiagnosis.h"
 #include "ai/TextMatch.h"
+#include "import/ReferenceImport.h"
 #include "core/UserDataDir.h"
 #include "gfx/AvatarCache.h"
 
@@ -259,6 +260,67 @@ std::string OmnisController::undoLast() {
 void OmnisController::applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings) {
     for (const auto& [pid, plain] : settings)
         if (const auto* spec = params::findParameter(pid)) editParameter(pid, params::toNormalized(*spec, params::clampPlain(*spec, plain)));
+}
+
+OmnisController::~OmnisController() {
+    if (importThread_.joinable()) importThread_.join();
+}
+
+bool OmnisController::onlineRecognition() const {
+    if (online_ < 0) {
+        std::ifstream in(userDataDir() / "musicbrainz.txt");
+        std::string word;
+        in >> word;
+        online_ = word == "non" ? 0 : 1;
+    }
+    return online_ == 1;
+}
+
+void OmnisController::setOnlineRecognition(bool on) {
+    online_ = on ? 1 : 0;
+    std::error_code ec;
+    const auto flag = userDataDir() / "musicbrainz.txt";
+    std::filesystem::create_directories(flag.parent_path(), ec);
+    std::ofstream(flag) << (on ? "oui" : "non") << "\n";
+}
+
+bool OmnisController::importRunning() const { return import_ && !import_->done.load(); }
+
+bool OmnisController::takeLibraryChanged() {
+    const bool changed = libraryChanged_;
+    libraryChanged_ = false;
+    return changed;
+}
+
+std::string OmnisController::importReferenceFile(const std::string& utf8Path) {
+    if (importRunning()) return "J'écoute déjà un fichier : un instant.";
+    if (importThread_.joinable()) importThread_.join();
+    const std::filesystem::path path(std::u8string(utf8Path.begin(), utf8Path.end()));
+    auto job = std::make_shared<ImportJob>();
+    import_ = job;
+    const bool online = onlineRecognition();
+    importThread_ = std::thread([job, path, online] {
+        const auto lib = libraryWithUser();
+        const auto known = [&lib](const std::string& name) {
+            const auto m = lib.find(name);
+            return m.kind == ai::ReferenceMatch::Kind::Artist && m.exact;
+        };
+        const auto genresOf = [&lib](const std::string& name) {
+            std::vector<std::string> out;
+            for (const auto& e : lib.entries())
+                if (!e.isProfile() && ai::namesMatch(e.artist, name))
+                    for (const auto& g : e.genres)
+                        if (std::find(out.begin(), out.end(), g) == out.end()) out.push_back(g);
+            return out;
+        };
+        const import::Fetch fetch = import::onlineFetch();
+        const auto r = import::importReferenceFile(path, userDataDir() / "references_utilisateur.txt", known, genresOf, online ? &fetch : nullptr);
+        job->ok = r.ok;
+        job->message = r.message;
+        job->done = true;
+    });
+    const auto name = path.filename().u8string();
+    return std::string("J'écoute « ") + std::string(name.begin(), name.end()) + (online ? " » (et je le cherche sur MusicBrainz)…" : " »…");
 }
 
 bool OmnisController::promoMode() const {
@@ -619,6 +681,14 @@ double OmnisController::autoProgress() const {
 }
 
 std::string OmnisController::pollAutomation() {
+    // Un fichier de référence ajouté : sa réponse.
+    if (import_ && import_->done.load()) {
+        if (import_->ok) libraryChanged_ = true;
+        std::string message = import_->message;
+        import_.reset();
+        if (importThread_.joinable()) importThread_.join();
+        return message;
+    }
     if (!feed_) return {};
     std::string message;
     // AUTO terminé : la chaîne vers le style.

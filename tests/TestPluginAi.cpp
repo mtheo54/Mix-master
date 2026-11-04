@@ -9,6 +9,7 @@
 #include "ai/ReferenceLibrary.h"
 
 #include "TestSignals.h"
+#include "WavFile.h"
 
 #include "params/Parameters.h"
 #include "plugin/vst3/OmnisController.h"
@@ -347,4 +348,58 @@ OMNIS_TEST("plug-in: filtre du menu RÉF par sous-genre (styles_artistes) : fami
     }
     std::printf("      %zu famille(s), dont %zu avec sous-genres\n", filters.size(), withStyles);
     OMNIS_CHECK(withStyles > 0);
+}
+
+OMNIS_TEST("plug-in: « Ajouter un fichier de référence » — reconnu par son nom, mesuré en arrière-plan, visible dans le menu RÉF") {
+    const auto dir = std::filesystem::temp_directory_path() / "omnis_test_import";
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    std::filesystem::create_directories(dir);
+    const std::string dirText = dir.string();
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", dirText.c_str());
+#else
+    setenv("OMNIS_USER_DATA_DIR", dirText.c_str(), 1);
+#endif
+    {
+        // Un son nommé « Titre - Artiste » (SLAYR est connu : remis dans l'ordre).
+        tools::AudioFile f;
+        f.sampleRate = 48000.0;
+        f.resize(2, 8 * 48000);
+        for (int i = 0; i < f.numFrames(); ++i)
+            f.channels[0][static_cast<std::size_t>(i)] = f.channels[1][static_cast<std::size_t>(i)] = 0.3 * std::sin(2.0 * 3.141592653589793 * 49.0 * i / 48000.0);
+        std::string error;
+        const auto file = dir / "Sloppy Joe - SLAYR.wav";
+        OMNIS_CHECK(tools::writeWav(file.string(), f, tools::SampleFormat::Pcm24, error));
+        Host h;
+        h.ctrl->setOnlineRecognition(false); // aucun réseau pendant les tests
+        OMNIS_CHECK(!h.ctrl->onlineRecognition());
+        const std::string started = h.ctrl->importReferenceFile(file.string());
+        std::printf("      %s\n", started.c_str());
+        std::string done;
+        for (int i = 0; i < 200 && done.empty(); ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            done = h.ctrl->pollAutomation();
+        }
+        std::printf("      %s\n", done.c_str());
+        OMNIS_CHECK(done.find("Ajouté à ta base : SLAYR - Sloppy Joe") == 0);
+        OMNIS_CHECK(h.ctrl->takeLibraryChanged() && !h.ctrl->takeLibraryChanged());
+        OMNIS_CHECK(std::filesystem::exists(dir / "references_utilisateur.txt"));
+        bool listed = false;
+        for (const auto& a : h.ctrl->referenceTree().artists)
+            if (a.name == "SLAYR")
+                for (const auto& t : a.titles) listed = listed || t.title == "Sloppy Joe";
+        OMNIS_CHECK(listed);
+        // Le choix « MusicBrainz coupé » est gardé (une autre instance le relit).
+        IPtr<vst3::OmnisController> other = owned(new vst3::OmnisController());
+        other->initialize(&h.app);
+        OMNIS_CHECK(!other->onlineRecognition());
+        other->terminate();
+    }
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", "");
+#else
+    unsetenv("OMNIS_USER_DATA_DIR");
+#endif
+    std::filesystem::remove_all(dir, ec);
 }

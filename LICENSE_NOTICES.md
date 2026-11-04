@@ -12,6 +12,8 @@ distribution (installateur, archive, dépôt).
 | VST 3 SDK v3.8.0 (`v3.8.0_build_66`) | Steinberg Media Technologies GmbH | MIT (texte en annexe A) | oui |
 | VSTGUI 4.15 (livré avec le SDK) | Steinberg Media Technologies GmbH | licence VSTGUI, type BSD 3 clauses (annexe B) | oui |
 | Lexiques, argot, éléments (`data/*.txt`) | Abrasion Labs | propriété d'Abrasion Labs | oui (texte) |
+| dr_flac, dr_mp3 (`third_party/dr_libs`) | David Reid | domaine public (Unlicense) ou MIT-0 | oui (lire un fichier de référence ajouté) |
+| stb_image, stb_image_write (`third_party/stb`) | Sean Barrett | domaine public (Unlicense) ou MIT | oui (pochette du fichier -> avatar) |
 | Profils de genre (`data/profils_genres.txt`) | moyennes calculées par Abrasion Labs | propriété d'Abrasion Labs | oui (texte) |
 | Catalogue de noms (`data/catalogue.txt`) et genres des artistes (`data/styles_artistes.txt`) | Abrasion Labs (faits publics : noms, genres) | propriété d'Abrasion Labs | oui (texte) |
 
@@ -42,10 +44,10 @@ VST3 ajoute d'office au paquet une icône de dossier (`PlugIn.ico`, le logo VST 
 elle est retirée à la compilation (`cmake/OmnisRemoveFolderIcon.cmake`), le logo VST n'est donc
 pas utilisé.
 
-## 2. Outils hors plug-in (`omnis_refdb` et tests)
+## 2. Bibliothèques des outils (`omnis_refdb`), des tests et de l'import
 
-Ces bibliothèques ne servent qu'à l'outil de références et aux tests ; elles ne sont pas dans
-`OMNIS.vst3`.
+Ces bibliothèques servent à l'outil de références et aux tests, et, depuis le 04/11/2026, au
+bouton « Ajouter un fichier de référence » du plug-in (elles sont donc aussi dans `OMNIS.vst3`).
 
 | Bibliothèque | Version | Licence | Rôle |
 |---|---|---|---|
@@ -69,8 +71,16 @@ et SHA-256 : `third_party/stb/README.md`, `third_party/dr_libs/README.md`.
   Comme la pochette affichée par un lecteur de musique, ces images restent la propriété de leurs
   ayants droit (artistes, labels) ; Abrasion Labs ne les distribue pas. Leur source est indiquée
   (« Pochette du fichier », crédit de la photo fournie).
-- Le **plug-in ne fait aucune requête réseau**. Seul un clic sur le lien d'une carte ouvre le
-  navigateur de l'utilisateur ; en mode promo, ce lien est désactivé.
+- **Une seule connexion : MusicBrainz, quand l'utilisateur ajoute un fichier de référence.** Le
+  plug-in envoie alors à `musicbrainz.org` l'artiste et le titre du fichier (ou son code ISRC),
+  pour confirmer qui il est : une à deux requêtes par fichier ajouté, rien d'autre (aucune
+  télémétrie, aucun son, aucune mesure). Comme pour tout site, MusicBrainz voit l'adresse IP de
+  l'utilisateur. Désactivable dans le menu RÉF (« Recherche MusicBrainz : coupée », gardé dans
+  `musicbrainz.txt`) ; coupé, la reconnaissance se fait hors ligne (étiquettes, nom du fichier).
+  Les données de MusicBrainz (noms, titres, durées, ISRC) sont publiées en domaine public (CC0)
+  par la fondation MetaBrainz ; la requête passe par `curl`, fourni par le système.
+- Un clic sur le lien d'une carte ouvre le navigateur de l'utilisateur ; en mode promo, ce lien
+  est désactivé.
 - **Mode promo** (`/fbi`, ou Maj + Alt + 5 clics sur le logo, mémorisé dans `mode_promo.txt` du
   dossier de l'utilisateur) : aucune image du cache n'est ouverte ni affichée ; les avatars sont
   remplacés par des monogrammes vectoriels dessinés par OMNIS (initiales, courbe spectrale de la

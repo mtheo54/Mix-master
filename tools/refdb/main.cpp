@@ -39,6 +39,7 @@
 // =============================================================================
 #include "ai/EmbeddedData.h"
 #include "ai/GenreProfiles.h"
+#include "import/ReferenceImport.h"
 #include <sstream>
 #include "AudioRead.h"
 #include "AiFiles.h"
@@ -283,6 +284,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb noms liste.txt --db base.txt   (« Artiste ; genre, genre ; alias »)\n"
                   "  omnis_refdb artistes liens.txt --db base.txt   (« Artiste ; famille ; styles ; proches : A, B ; traits : … »)\n"
                   "  omnis_refdb fiche titre.wav   (la fiche complète d'un son, sans rien écrire)\n"
+                  "  omnis_refdb reconnaitre titre.mp3 [--hors-ligne]   (artiste et titre : étiquettes, nom « Artiste - Titre », MusicBrainz)\n"
                   "  omnis_refdb image photo.jpg --artiste NOM --credit \"Photo : X, CC BY 4.0\" --db base.txt\n"
                   "  omnis_refdb pochette pochette.jpg --artiste NOM --titre T [--credit C] [--lien URL] --db base.txt\n"
                   "  omnis_refdb embleme image.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png] | embleme --db base.txt   (illustrations OMNIS)\n"
@@ -448,6 +450,41 @@ int main(int argc, char** argv) {
         for (auto& e : updated) user.add(e);
         if (!writeTextFile(db, user.serialize())) return 1;
         std::printf("%d illustration(s) ; les fiches ne citent plus les images d'origine de %s (tu peux les supprimer)\n", done, utf8Path(dir).c_str());
+        return 0;
+    }
+
+    if (command == "reconnaitre") {
+        // Ce que le bouton « Ajouter un fichier de référence » du plug-in comprendrait :
+        // étiquettes, nom « Artiste - Titre », MusicBrainz (--hors-ligne : sans).
+        bool online = true;
+        for (int i = 2; i < argc; ++i)
+            if (std::string(argv[i]) == "--hors-ligne") online = false;
+        if (input.empty()) {
+            std::fputs("reconnaitre : un fichier audio (WAV, MP3, FLAC)\n", stderr);
+            return 1;
+        }
+        const std::filesystem::path path(std::u8string(input.begin(), input.end()));
+        const auto tags = import::readFileTags(path);
+        const auto parts = import::splitFileName(path.stem().string());
+        std::printf("étiquettes : artiste « %s », titre « %s », ISRC « %s »\n", tags.artist.c_str(), tags.title.c_str(), tags.isrc.c_str());
+        std::printf("nom du fichier : « %s » / « %s »\n", parts.first.c_str(), parts.second.c_str());
+        std::printf("pochette intégrée : %s\n", import::readCoverImages(path).empty() ? "non" : "oui");
+        AudioFile f;
+        std::string error;
+        const double seconds = readAudioFile(path, f, error) ? f.durationSeconds() : 0.0;
+        const auto& lib = ai::ReferenceLibrary::builtin();
+        const auto known = [&lib](const std::string& name) {
+            const auto m = lib.find(name);
+            return m.kind == ai::ReferenceMatch::Kind::Artist && m.exact;
+        };
+        const import::Fetch fetch = import::onlineFetch();
+        const auto id = import::identifyFile(path, seconds, known, online ? &fetch : nullptr);
+        if (!id.problem.empty()) {
+            std::printf("refusé : %s\n", id.problem.c_str());
+            return 1;
+        }
+        std::printf("reconnu : %s - %s (d'après : %s%s) · %.1f s\n", id.artist.c_str(), id.title.c_str(), id.source.c_str(),
+                    !id.asked ? ", hors ligne" : id.confirmed ? ", confirmé par MusicBrainz" : ", absent de MusicBrainz", seconds);
         return 0;
     }
 

@@ -49,6 +49,10 @@
 
 ## Fait récemment
 
+- **04/11 — Ajouter un fichier de référence** (menu RÉF) : étiquettes, nom « Artiste - Titre » /
+  « Titre - Artiste », MusicBrainz (une requête par fichier, désactivable), pochette du fichier ;
+  `omnis_refdb reconnaitre`. Deezer retiré (API non commerciale). Notice mise à jour (seule
+  connexion : MusicBrainz).
 - **04/11 — Base livrée = profils de genre seulement** : `data/profils_genres.txt` (39 profils :
   7 familles, 32 sous-genres, ≥ 3 titres chacun), généré par `omnis_refdb profils` depuis
   `data/references.txt` (426 titres, non intégré). Chaque titre est rangé dans UN sous-genre par

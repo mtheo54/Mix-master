@@ -20,7 +20,8 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 **Le pilotage.**
 - Une **barre de texte en français** (« plus de punch, garde ma 808 », « comme GRY »). Elle comprend
   la demande, règle les étages et mène la sonie par la mesure.
-- Tout se fait **en local, sans réseau ni service payant**.
+- Tout se fait **en local, sans service payant** ; une seule requête réseau, facultative : MusicBrainz
+  quand on ajoute un fichier de référence (§8.8).
 
 **Les données.**
 - Une **base de références** : des signatures mesurées, jamais d'audio.
@@ -710,6 +711,37 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 - le diagnostic relatif ;
 - le compte rendu en anglais.
 
+### 8.8 Ajouter un fichier de référence (`import/ReferenceImport`)
+
+Menu RÉF -> « Ajouter un fichier de référence… » (sélecteur du système), ou
+`omnis_refdb reconnaitre fichier [--hors-ligne]` pour voir ce qui serait reconnu.
+
+1. **Étiquettes** : ID3v2 2.2 / 2.3 / 2.4 (MP3, ou chunk `id3` d'un WAV), commentaires Vorbis
+   (FLAC), LIST/INFO (WAV) : artiste, titre, ISRC ; pochette APIC / PICTURE.
+2. **Nom du fichier** : « Artiste - Titre » ou « Titre - Artiste ». Numéro de piste, `_`,
+   « (Clip Officiel) », « [prod. …] », « 135bpm » retirés. L'ordre est donné par le nom qu'OMNIS
+   connaît comme artiste (catalogue, base de la personne) ; sinon, l'artiste d'abord. **Sans
+   artiste ET titre : refusé** (« nomme le fichier Artiste - Titre »).
+3. **MusicBrainz** (si permis, par défaut oui ; une à trois requêtes, 1 par seconde) :
+   - par l'ISRC si le fichier en a un (exact) ;
+   - sinon par artiste + titre, puis dans l'autre sens si l'ordre était incertain ;
+   - un enregistrement n'est retenu que si l'artiste ET le titre correspondent (fautes tolérées)
+     et si la durée colle : ±max(8 s, 6 %), un extrait plus court étant accepté ;
+   - les homonymes sont écartés : GRY (rappeur) n'est pas « Gry », groupe danois.
+4. **Mesure** (signature + fiche, en arrière-plan) ; pochette du fichier -> avatar OMNIS dans le
+   cache ; ajout à `references_utilisateur.txt` avec les genres connus de l'artiste. Le nom et le
+   titre ne restent que chez la personne.
+
+Essais réels (04/11) :
+- *poster boy* (FLAC étiqueté) : confirmé par son ISRC ;
+- `Sloppy_Joe_-_SLAYR.wav` (sans étiquette, extrait de 120 s) : ordre retourné, confirmé ;
+- `omyll - plucked` : absent de MusicBrainz, nom gardé ;
+- `bissap ognion.wav` : refusé.
+
+Limites : MusicBrainz ne connaît pas GRY, Omyll ni euhZ (petits artistes), et répond parfois
+« serveur occupé » ; la requête passe par le `curl` du système (Windows 10 1803 et plus,
+macOS).
+
 ## 9. Instances liées, stems, chef d'orchestre
 
 - **Rôles** : Seul / Stem / Master, en groupes 1–8.
@@ -869,7 +901,8 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
   - dernière exécution complète verte : run 101.
 - **Installation** (`installer/INTEGRATION_ONIRIQUE.md`) :
   - copier le dossier `OMNIS.vst3` entier dans le dossier VST3 standard ;
-  - rien d'autre : aucune clé de registre, aucun service, aucun redistribuable, aucun réseau ;
+  - rien d'autre : aucune clé de registre, aucun service, aucun redistribuable ; réseau : seulement
+    MusicBrainz à l'ajout d'un fichier de référence (désactivable) ;
   - la désinstallation garde le dossier de l'utilisateur.
 - **Identité** :
   - éditeur Abrasion Labs, https://onirique.store ;
@@ -973,7 +1006,8 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 - **Risque** (ce n'est pas un avis juridique) : la notice protège de la fausse déclaration, pas de
   l'origine des fichiers. Avant la vente, la voie propre est de remesurer la base livrée sur des
   fichiers achetés, puis de corriger la notice. La question est à poser à un juriste.
-- **Données personnelles** : aucune connexion réseau du plug-in, aucune télémétrie.
+- **Données personnelles** : aucune télémétrie ; la seule connexion est MusicBrainz (artiste et
+  titre d'un fichier ajouté, désactivable).
   - **Aucune API de plate-forme** (Deezer retiré le 04/11 : ses conditions réservent l'API à un
     usage non commercial). Les avatars viennent des fichiers de l'utilisateur.
 

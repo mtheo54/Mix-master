@@ -30,7 +30,9 @@ OMNIS-pour-ONIRIQUE/
 - C'est le dossier VST3 standard : FL Studio, Ableton, Cubase, Studio One, Reaper le lisent sans
   réglage. Dans FL Studio, l'utilisateur fait une fois *Options → Manage plugins → Find plugins*.
 - Rien d'autre : **aucune clé de registre, aucun service, aucune bibliothèque partagée, aucun
-  redistribuable** (le plug-in est autonome), **aucune connexion réseau**.
+  redistribuable** (le plug-in est autonome). **Réseau** : une seule requête, vers `musicbrainz.org`,
+  quand l'utilisateur ajoute un fichier de référence (via le `curl` du système ; désactivable dans le
+  menu RÉF). Aucune autre connexion, aucune télémétrie.
 
 ## 2. Désinstallation
 
