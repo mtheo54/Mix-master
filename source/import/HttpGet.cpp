@@ -6,6 +6,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <string_view>
 #include <vector>
 
 #if defined(_WIN32)
