@@ -60,24 +60,23 @@ et SHA-256 : `third_party/stb/README.md`, `third_party/dr_libs/README.md`.
 ## 3. Avatars, pochettes et données en ligne
 
 - Les avatars d'artistes et les pochettes sont produits **sur le poste de l'utilisateur**, à partir
-  de ses propres fichiers (image intégrée à ses FLAC) ou d'une requête de **son** poste à l'API
-  publique de Deezer (`omnis_refdb deezer`). Ils sont rangés uniquement dans son cache local :
+  de ses propres fichiers (image intégrée à ses fichiers audio, ou image qu'il fournit). Aucun
+  service en ligne n'est interrogé. Ils sont rangés uniquement dans son cache local :
   - Windows : `%APPDATA%\Abrasion Labs\OMNIS\cache\avatars|covers\`
   - macOS : `~/Library/Application Support/Abrasion Labs/OMNIS/cache/…`
   - Linux : `~/.local/share/Abrasion Labs/OMNIS/cache/…`
 
   Comme la pochette affichée par un lecteur de musique, ces images restent la propriété de leurs
   ayants droit (artistes, labels) ; Abrasion Labs ne les distribue pas. Leur source est indiquée
-  (« Avatar OMNIS d'après Deezer », « Pochette du fichier »).
+  (« Pochette du fichier », crédit de la photo fournie).
 - Le **plug-in ne fait aucune requête réseau**. Seul un clic sur le lien d'une carte ouvre le
   navigateur de l'utilisateur ; en mode promo, ce lien est désactivé.
 - **Mode promo** (`/fbi`, ou Maj + Alt + 5 clics sur le logo, mémorisé dans `mode_promo.txt` du
   dossier de l'utilisateur) : aucune image du cache n'est ouverte ni affichée ; les avatars sont
   remplacés par des monogrammes vectoriels dessinés par OMNIS (initiales, courbe spectrale de la
   fiche). Crédits et liens sont masqués. Pour filmer des démonstrations.
-- Données Deezer (noms, titres, liens, images) : utilisées selon les conditions de l'API Deezer,
-  par l'outil, pour l'usage de la personne qui le lance. Les intégrer au produit vendu demanderait
-  un accord avec Deezer et les ayants droit.
+- **Aucune API de plate-forme** (Deezer, Spotify…) n'est utilisée par le plug-in ni par ses
+  outils : leurs conditions réservent l'accès à un usage non commercial.
 - Exports de playlists (CSV) : seuls les noms d'artistes et de titres sont lus ; aucune donnée
   calculée par la plate-forme d'origine n'est gardée.
 

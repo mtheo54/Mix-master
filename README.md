@@ -280,9 +280,8 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
   style, ou tous les titres de l'artiste), et les artistes de A à Z ; y compris ceux que tu as
   ajoutés (`references_utilisateur.txt`). Chaque son a sa pochette (la vraie si tu l'as mise,
   sinon dessinée d'après sa fiche), l'artiste sa photo libre avec son crédit ; la page Match EQ
-  montre la **référence visée** (un clic ouvre le titre en ligne). Photo, pochettes et liens
-  d'un artiste en une commande : `omnis_refdb deezer --artiste "La Fève"` (ou la pochette
-  intégrée à tes FLAC, via `scan`). **Mode promo** pour filmer la console : `/fbi` dans la barre
+  montre la **référence visée** (un clic ouvre le titre en ligne). Photo et pochettes : celles
+  que tu fournis (`omnis_refdb image` / `pochette`) ou la pochette intégrée à tes fichiers (`scan`). **Mode promo** pour filmer la console : `/fbi` dans la barre
   IA (ou Maj + Alt + 5 clics sur le logo) remplace toutes les images par des monogrammes
   ([images et droits](docs/REFERENCES.md#les-images-photo-dartiste-pochette)). Elle s'applique tout de suite (courbe du Match EQ, punch,
   grave mono, écart couplet / refrain, écrêtage, volume) et AUTO la vise ensuite. Le choix est

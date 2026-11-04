@@ -70,7 +70,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 | Latence, mode Travail | 4 230 éch. à 44,1 kHz (96 ms) · 4 312 à 48 kHz (90 ms) · 6 408 à 96 kHz (67 ms) |
 | CPU (rendu hors ligne, 48 kHz, 1 cœur, E/S WAV comprises) | 12,6 % au repos · 15,6 % tous étages actifs · 1,3 % tous éteints |
 | Base de références livrée | **39 profils de genre** (7 familles, 32 sous-genres, `data/profils_genres.txt`), moyennes de 426 titres mesurés (`data/references.txt`, non intégré) ; aucune fiche de titre livrée |
-| Catalogue (noms, alias, Deezer) | 17 324 lignes (`data/catalogue.txt`) |
+| Catalogue (noms, alias) | 17 324 lignes (`data/catalogue.txt`) |
 | Sous-genres | ~440 artistes classés, 180+ sous-genres distincts (`data/styles_artistes.txt`) |
 | Traduction anglaise | 424 lignes (`data/i18n_en.txt`) |
 | Historique | 111 commits sur la branche |
@@ -802,7 +802,7 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 |---|---|---|
 | `profils_genres.txt` | 39 profils : moyennes (≥ 3 titres) par famille et sous-genre, même format que la base ; + artistes de nom avec leurs genres | oui |
 | `references.txt` | 426 signatures mesurées par titre : source des profils (`omnis_refdb profils`) | **non** |
-| `catalogue.txt` | artistes, alias (laf, b2o / kopp…), titres, ids Deezer | oui |
+| `catalogue.txt` | artistes, alias (laf, b2o / kopp…), titres | oui |
 | `genres_classement.txt` | les familles de l'utilisateur → mots de genre | oui |
 | `styles_artistes.txt` | artiste → sous-genres précis (~440 artistes) | oui |
 | `titres_genres.txt` | genre d'un titre précis (fourni par l'utilisateur) | via `omnis_refdb titres` |
@@ -819,8 +819,8 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 - **Règles** :
   - aucun son dans le dépôt (`.gitignore`) ;
   - **aucune image livrée** : test ctest `omnis_no_images`. Avatars et pochettes viennent du cache
-    local de l'utilisateur (`gfx/AvatarCache.h`) : emblème géométrique tiré de l'image Deezer
-    publique, ou pochette générée depuis la fiche.
+    local de l'utilisateur (`gfx/AvatarCache.h`) : emblème géométrique tiré de la pochette
+    intégrée au fichier ou d'une image fournie, ou pochette générée depuis la fiche.
 
 ---
 
@@ -844,7 +844,7 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
   - **Artiste** : il reconnaît n'importe quel artiste co-crédité et renomme l'entrée selon l'artiste
     de la liste.
   - **Genres** : il ajoute les mots de genre de la famille (colonne `Genre_Classement`).
-- `deezer [--id | --photo | --sans-photo]` : avatars et ids.
+- `profils` : profils de genre livrés (`data/profils_genres.txt`).
 - `embleme` : avatar emblème.
 - `titres` : import des genres par titre.
 - Les discographies se mesurent aussi avec cet outil.
@@ -974,8 +974,8 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
   l'origine des fichiers. Avant la vente, la voie propre est de remesurer la base livrée sur des
   fichiers achetés, puis de corriger la notice. La question est à poser à un juriste.
 - **Données personnelles** : aucune connexion réseau du plug-in, aucune télémétrie.
-  - Les avatars passent par l'API publique Deezer, interrogée **par l'outil**, sur le poste de
-    l'utilisateur, jamais par le plug-in vendu.
+  - **Aucune API de plate-forme** (Deezer retiré le 04/11 : ses conditions réservent l'API à un
+    usage non commercial). Les avatars viennent des fichiers de l'utilisateur.
 
 ---
 

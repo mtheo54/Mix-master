@@ -11,8 +11,7 @@ textes d'interface en français.
    seulement les fichiers et les plages de lignes utiles (`sed -n a,bp`, `grep -n`).
    Après avoir ajouté / renommé des fichiers : `python3 tools/codemap/codemap.py`.
 2. **Ne jamais lire en entier** : `data/catalogue.txt` (17 000 lignes), `data/references.txt`,
-   `data/profils_genres.txt`,
-   `data/discographies/**` (dont `titres.tsv.gz`), `third_party/`, `build*/`. Utiliser `grep`.
+   `data/profils_genres.txt`, `third_party/`, `build*/`. Utiliser `grep`.
 3. Sorties longues : `ninja … 2>&1 | grep -E "error|warning" -A3`,
    `omnis_tests 2>&1 | grep -E "FAIL|ECHEC|echec\(s\)"`, `tail`.
 4. Fichiers temporaires (rendus, kits de test) : dans le scratchpad de la session, jamais à la
@@ -48,7 +47,7 @@ ctest --test-dir build                   # dont omnis_no_images
 Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --report`
 (clés : `omnis_render --params`), `omnis_testgen kit dossier --sr 48000` (signaux de test),
 `omnis_analyze`, `omnis_compare`, `omnis_ask "phrase"` (barre IA hors plug-in),
-`omnis_refdb` (base de références, Deezer, emblèmes, discographies).
+`omnis_refdb` (base de références, profils de genre, emblèmes ; plus de Deezer).
 
 ## Architecture en bref (détails : `docs/ARCHITECTURE.md`)
 
@@ -73,4 +72,4 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
 ## Docs utiles
 
 `docs/PROTOCOLE_DE_TEST.md` (critères d'acceptation DSP), `docs/REFERENCES.md` (base de
-références, Deezer, emblèmes, sons à mesurer), `docs/SUIVI.md` (historique), `docs/CALIBRATION_*`.
+références, profils, emblèmes, sons à mesurer), `docs/SUIVI.md` (historique), `docs/CALIBRATION_*`.

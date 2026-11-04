@@ -274,8 +274,6 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
         tools/common/AudioRead.cpp
         tools/common/AudioRead.h
         tools/common/AnalysisReport.h
-        tools/common/Deezer.cpp
-        tools/common/Deezer.h
         tools/common/DistortionAnalysis.cpp
         tools/common/DistortionAnalysis.h
         tools/common/LoudnessTuner.cpp
@@ -325,7 +323,6 @@ if(OMNIS_BUILD_TESTS)
         tests/TestRack.cpp
         tests/TestDrumBus.cpp
         tests/TestMusic.cpp
-        tests/TestDeezer.cpp
         tests/TestAvatarStylizer.cpp
         tests/TestConductor.cpp
         tests/TestLoudness.cpp

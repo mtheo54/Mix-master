@@ -130,7 +130,6 @@
 - `TestConductor.cpp` (210 l.) — Le master chef d'orchestre : écoute alignée sur le temps du projet, masquages, propositions, retouches appliquées. · 5 tests : chef d'orchestre: frise rangée au temps du projet (morceaux, décalage, ; chef d'orchestre: le piano qui couvre la 808 au même moment -> couper  ; chef d'orchestre: pas de fausse alerte (piano sans grave, ou qui joue  ; chef d'orchestre: une guitare qui couvre la voix dans sa présence -> l ; chef d'orchestre: la retouche acceptée s'applique au stem (même en Off
 - `TestConvolution.cpp` (133 l.) — FFT, convolution UPOLS, noyaux à phase linéaire. · 3 tests : fft: identique à la DFT directe, aller-retour exact (N = 8 … 4096) ; upols: deux canaux = convolutions directes, latence exacte B, changeme ; noyaux sub: réponse conforme à la cible, phase linéaire (symétrie), Mi
 - `TestCore.cpp` (191 l.) — Primitives temps réel. · 9 tests : smoother: 99 % atteint au temps de lissage, sans dépassement ; smoother: colle exactement à la cible et s'arrête ; smoother: temps nul = saut immédiat ; spsc: sémantique FIFO, bouclage et file pleine ; spsc: concurrence producteur/consommateur, 2 millions d'éléments ordon ; triple buffer: le lecteur ne voit jamais d'état déchiré, versions croi ; …
-- `TestDeezer.cpp` (76 l.) — Lecture des réponses de l'API Deezer (omnis_refdb deezer) : sur des réponses d'exemple au format de l'API, sans réseau. · 3 tests : deezer: lecteur JSON (échappements, unicode, imbrication) ; deezer: le bon artiste (accents, fautes) et le bon titre (feat. ignoré ; deezer: adresses de recherche encodées, adresses refusées avant curl
 - `TestDrumBus.cpp` (116 l.) — Reconnaître les éléments d'un bus de drums. · 3 tests : bus de drums: kick, snare, hi-hat et open hat reconnus dans un bus com ; bus de drums: ce qui ne joue pas n'est pas inventé (kick seul, hats se ; bus de drums: la chaîne du bus suit ce qui est reconnu (snare plus lar
 - `TestDynamics.cpp` (399 l.) — Courbes ADAA, clipper suréchantillonné, limiteur. · 14 tests : courbes: pente 1 à l'origine, bornées, antidérivées cohérentes (dF/du  ; clipper: transparent sous le genou (-12 dBFS : gain 0 dB, distorsion < ; clipper: repliement d'un écrêtage dur sévère selon le suréchantillonna ; clipper: plafond respecté (dépassement < 0.4 dB en deux bandes) et DC  ; clipper deux bandes: la 808 écrêtée n'intermodule plus le haut du spec ; limiteur: aucun échantillon ni crête vraie au-dessus du plafond (+12 d ; …
 - `TestEngine.cpp` (249 l.) — Moteur : null-test, PDC, bypass, monitoring. · 8 tests : engine: chaîne neutre = null-test bit-exact (64 et 32 bits) ; engine: latence = somme des étages, bypass aligné et sans clic ; engine: gain de sortie +6.02 dB = x2 après lissage ; engine: monitoring Side sur signal mono = silence, Mid sur anti-phase  ; engine: les mesures portent sur la sortie (avant monitoring) ; engine: sortie indépendante du découpage en blocs (lissage déterminist ; …
@@ -182,7 +181,6 @@
 - `AiFiles.h` (54 l.) — Bases livrées + fichiers utilisateur. · fonctions : readTextFile, in, writeTextFile, out, loadLexicon, loadLibrary
 - `AnalysisReport.h/cpp` (346 l.) — Rapport de métriques d'un fichier audio. · types : ChannelReport, BandReport, AnalysisReport · fonctions : analyze, analysisBandEdges
 - `AudioRead.h/cpp` (141 l.) — Lire un son quel que soit son format. · types : EmbeddedPicture · fonctions : readAudioFile, isReadableAudio, readEmbeddedPictures, readFlacPictures
-- `Deezer.h/cpp` (699 l.) — Images et liens d'une référence depuis l'API publique de Deezer (api.deezer.com, sans clé) : photo de l'artiste, pochette de chaque titre, lien vers la musique. Utilisé par omnis_refdb, sur le PC de la · types : Json, Artist, Track, Album, Page, TrackDetail, Fetcher · enums : Type · fonctions : parseJson, parseArtists, parseTracks, parseAlbums, parseArtistList, parseArtist, parseTrackDetail, parseAlbumGenre, pickArtist, sameArtist, pickTrack, urlEncode, bareTitle, artistSearchUrl
 - `DistortionAnalysis.h/cpp` (223 l.) — Mesure objective de la distorsion ajoutée. · types : DistortionBand, DistortionReport · fonctions : measureDistortion
 - `LoudnessTuner.h/cpp` (285 l.) — Atteindre une sonie cible avec le moins de distorsion possible. · types : TuningStrategy, TuningResult, TuningOptions · fonctions : loudestExcerpt, renderWithSettings, tuneStrategy, loudestClean, settingsOf
 - `TestSignals.h/cpp` (572 l.) — Générateurs de signaux de mesure. · types : SweepResult · fonctions : logSweep, pinkNoise, whiteNoise, impulse, levelSteps, drumLoop, intersamplePeak, twoTone, ebu3341, stereoImaging, applyFades, availableSignals, generate
@@ -207,10 +205,7 @@
 
 ## tools/refdb/
 
-- `discographies_a_mesurer.py` (92 l.) — data/sons_a_mesurer.csv, ses sons populaires d'abord puis le reste, jusqu'à la moitié
-- `liste_500.py` (56 l.) — l'entrée auxiliaire, aucun fichier) : les 190 premiers titres déjà faits
-- `main.cpp` (1395 l.) — tools/refdb — Base de références (signatures, jamais d'audio). · commandes : profils, image, pochette, deezer, embleme, cartoon, discographie, fiche, add, scan, titres, artistes, csv, nom, noms, list, find
-- `sons_a_mesurer.py` (114 l.) — dans un budget de 28 Go de FLAC (la scène demandée, puis tes playlists et les proches
+- `main.cpp` (908 l.) — tools/refdb — Base de références (signatures, jamais d'audio). · commandes : profils, image, pochette, embleme, cartoon, fiche, add, scan, titres, artistes, csv, nom, noms, list, find
 
 ## tools/render/
 

@@ -14,9 +14,9 @@ complète, plus OMNIS en tire : chaque champ ci-dessous dit ce qu'il mesure et �
 | `genres` | `rage \| hyperpop` | **ta** classification (elle gagne toujours) | AUTO vers un style, « genre rage » |
 | `proches` | `2hollis \| Nettspend` | artistes proches | un artiste inconnu -> ses proches mesurés |
 | `traits` | `808 saturée, voix autotune` | ce qui fait le son, en mots | expliquer pourquoi la réf sonne ainsi |
-| `image_credit` | `Avatar OMNIS d'après Deezer` | d'où vient l'avatar (illustration du cache) | carte « Référence visée » ; `image` : ancienne image (avant le cache) |
+| `image_credit` | `Photo : Auteur, CC BY-SA 4.0` | d'où vient l'avatar (illustration du cache) | carte « Référence visée » ; `image` : ancienne image (avant le cache) |
 | `pochette_credit` | `Pochette du fichier (avatar OMNIS)` | d'où vient l'illustration de la pochette | idem ; absente : OMNIS dessine une pochette d'après la fiche |
-| `lien` | `https://www.deezer.com/track/…` | la musique en ligne | carte « Référence visée » : un clic ouvre le navigateur |
+| `lien` | `https://…` (page de l'artiste ou du titre) | la musique en ligne | carte « Référence visée » : un clic ouvre le navigateur |
 
 ## Les images (photo d'artiste, pochette)
 
@@ -40,55 +40,6 @@ mais c'est une interprétation en formes, pas la photo (250 formes au plus). Art
 pochette en **carré aux coins arrondis**. `--style hd` (photo à peine retouchée) ou
 `--style peint` pour les anciens rendus ; `--refaire` redessine ce que le cache a déjà.
 
-**Depuis Deezer, d'un coup** (API publique, sans clé ni compte ; il faut internet et `curl`,
-présent dans Windows 10 et 11) :
-
-```
-omnis_refdb deezer --artiste "La Fève" --db references_utilisateur.txt
-omnis_refdb deezer --artiste "La Fève" --titre "Titre" --db references_utilisateur.txt
-```
-
-**Petits artistes, homonymes** : quand la recherche par nom tombe sur quelqu'un d'autre (le
-profil Deezer de GRY est partagé avec un DJ) ou ne trouve rien (Omyll), donne le numéro du bon
-profil (`deezer.com/artist/NUMÉRO`) avec `--id` : l'outil lit alors ses sorties une à une. Si la
-photo du profil Deezer n'est pas la bonne, `--photo capture.jpg` la prend dans un fichier (une
-capture de son profil, recadrée sur la photo), `--sans-photo` n'en met aucune :
-
-```
-omnis_refdb deezer --artiste GRY --titre "BRR" --id 1491715 --photo gry.jpg --db references_utilisateur.txt
-omnis_refdb deezer --artiste Omyll --titre "C'EST PAS ÇA" --id 243323401 --photo omyll.jpg --db references_utilisateur.txt
-```
-
-L'outil trouve l'artiste (même nom ou une lettre d'écart ; à égalité, le plus suivi), lit sa
-photo puis, pour chaque titre de cet artiste dans la base, la pochette de l'album, **en mémoire**,
-et n'en garde que l'illustration (cache) ; il écrit le lien du titre. Crédits : « Illustration
-OMNIS d'après Deezer ». Un artiste encore absent de la base y entre en fiche de nom : crédits et
-lien restent quand son son sera mesuré. Seul l'outil va sur internet : le plug-in reste hors ligne, il ne lit que
-les fichiers.
-
-**Toute la discographie, et celle des proches** :
-
-```
-omnis_refdb discographie playlist.csv --artistes "euhZ|Gry" --proches 1 --sortie discographies
-```
-
-- Les artistes : ceux de la playlist (export CSV : seule la colonne « Artist Name(s) » est
-  lue, plusieurs artistes séparés par « ; ») et ceux de `--artistes`.
-- `--proches 1` ajoute les artistes proches selon Deezer (20 par artiste, connus ou non ;
-  `--proches 2` : les proches des proches).
-- Pour chacun : toutes ses sorties (albums, EP, singles) et tous leurs titres, un titre repris
-  gardé une fois (sa première sortie).
-- Résultat : `artistes.tsv` (fans, sorties, titres, d'où il vient), `titres.tsv` (artiste,
-  titre, interprète, sortie, type, date, durée, ISRC, lien), `introuvables.txt` (pas sur
-  Deezer, homonymes). Fichiers texte à ouvrir dans Excel / LibreOffice.
-- Nom trouvé seulement s'il est le même (accents, casse, espaces mis à part) ou à une lettre
-  près : « omyll » ne devient pas « Omellette ». Un petit artiste a parfois plusieurs fiches
-  Deezer du même nom : toutes gardées, marquées « homonyme à vérifier ».
-- Long (la limite de Deezer est 50 demandes / 5 s) mais reprend où il s'était arrêté : les
-  réponses sont gardées dans un cache (`--cache dossier`, par défaut le dossier temporaire).
-- Ne contient que des noms et des liens, jamais d'audio. Les titres d'artistes absents de
-  Deezer (SoundCloud seulement…) n'y sont pas.
-
 **Avatars OMNIS** (`gfx/OmnisAvatarStylizer`) : chaque photo d'artiste et chaque pochette devient
 un avatar 256 × 256 que l'on **reconnaît au premier coup d'œil** :
 
@@ -105,7 +56,11 @@ Le style « peint » (Kuwahara, cel-shading, encre) reste une option du code.
 D'où viennent les images, toujours côté poste de la personne :
 - l'image **intégrée à ses FLAC** (bloc `METADATA_BLOCK_PICTURE`) : `omnis_refdb add` et `scan`
   en font l'avatar du titre (pochette) et, s'il y en a une, de l'artiste ;
-- l'**API publique de Deezer** : `omnis_refdb deezer` (en mémoire, aucune image d'origine écrite).
+- une image qu'elle fournit elle-même (`omnis_refdb image` / `pochette`).
+
+**Deezer retiré (04/11/2026)** : les conditions de son API réservent l'accès à un usage non
+commercial ; OMNIS étant vendu, les commandes `deezer` et `discographie`, les scripts qui en
+dépendaient et les extraits `data/discographies/` ont été supprimés.
 
 Rangement : `<dossier OMNIS>/cache/avatars/<hash>.png` (artistes), `cache/covers/<hash>.png`
 (titres), et à côté `<hash>.couleurs` (les deux couleurs dominantes). Rien dans le `.vst3` ni
@@ -122,7 +77,6 @@ l'autre ; `/fbi` à nouveau pour revenir.
 ```
 omnis_refdb embleme photo.jpg --forme rond --sortie avatar.png   (une image, pour essayer ; --formes 80 : plus abstrait)
 omnis_refdb embleme --db references_utilisateur.txt               (anciennes images de images/ -> cache)
-omnis_refdb deezer --artiste "La Fève" --refaire --db references_utilisateur.txt   (redessiner en emblèmes)
 ```
 
 **Rester réglo :**
@@ -130,9 +84,6 @@ omnis_refdb deezer --artiste "La Fève" --refaire --db references_utilisateur.tx
   CC BY-SA, CC0), avec l'auteur et la licence dans `image_credit`. OMNIS l'affiche toujours
   sous la photo ; l'outil refuse une photo sans crédit. Garder le lien de la page source dans
   un fichier à part (`sources.txt`) pour pouvoir le prouver.
-- **Images Deezer** (photo et pochettes) : pas sous licence libre non plus. Pour ton usage,
-  avec « Deezer » affiché et le lien vers la musique : oui. **Dans le plug-in vendu : non**,
-  sans un accord avec Deezer (conditions de son API) et les labels.
 - **Pochette** : elle n'est **pas** sous licence libre, elle appartient au label / à
   l'artiste. Pour ton usage, sur ton PC : oui. **Livrée avec le plug-in vendu : non**, sauf
   accord écrit du label. Sans pochette, OMNIS dessine la sienne à partir de la fiche (teinte
@@ -245,13 +196,13 @@ Vérifié sur des fichiers dont le tempo est dans le nom : 135, 118 et 142 BPM r
 ## Sons à mesurer en priorité
 
 `data/sons_a_mesurer.csv` (refait par `python3 tools/refdb/sons_a_mesurer.py`) : **1269 titres,
-~28 Go en FLAC** (estimation prudente : 1000 kb/s, durée Deezer ou 185 s). Dans l'ordre :
+~28 Go en FLAC** (estimation prudente : 1000 kb/s). Dans l'ordre :
 ta scène (GRY, Omyll, euhZ, La Fève : titres demandés puis jusqu'à 25 chacun), puis tes
 playlists et les proches de ta scène à tour de rôle (le 1er titre de chaque artiste, puis le 2e…).
 La colonne « Cumul (Go) » dit où t'arrêter si tu veux moins. Ordres de grandeur : tout ce que
 tes playlists citent ≈ 45 Go, toute la scène ≈ 105 Go, les discographies complètes ≈ 4 To.
 Colonnes au format des exports de playlists (« Track Name », « Artist Name(s) », « Album Name »,
-« ISRC », « Genre_Classement ») + priorité, raison, durée, taille, cumul, lien Deezer.
+« ISRC », « Genre_Classement ») + priorité, raison, durée, taille, cumul.
 
 **Plus large** : `data/discographies_a_mesurer.csv` (`python3 tools/refdb/discographies_a_mesurer.py top100.json`) :
 **6000 titres au plus** (`OMNIS_MAX_TITRES`) pour les 647 artistes : **10 sons chacun**
