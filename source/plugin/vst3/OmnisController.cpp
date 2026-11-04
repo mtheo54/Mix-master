@@ -10,6 +10,7 @@
 #include "UiFeed.h"
 
 #include "ai/ConsoleActions.h"
+#include "ai/GenreProfiles.h"
 #include "ai/EmbeddedData.h"
 #include "ai/MixDiagnosis.h"
 #include "ai/TextMatch.h"
@@ -172,37 +173,6 @@ void OmnisController::answerProposal(std::uint32_t key, int answer) {
 
 namespace {
 
-/// Clé d'artiste : minuscules, sans accents ni espaces (« La Fève » = « la feve »).
-std::string artistKey(const std::string& name) {
-    std::string out;
-    for (char ch : ai::normalizeText(name))
-        if (ch != ' ') out += ch;
-    return out;
-}
-
-/// data/styles_artistes.txt : « Artiste ; sous-genre, sous-genre » (embarqué).
-const std::map<std::string, std::vector<std::string>>& artistStyles() {
-    static const std::map<std::string, std::vector<std::string>> styles = [] {
-        std::map<std::string, std::vector<std::string>> out;
-        std::istringstream in{std::string(ai::data::styles())};
-        for (std::string line; std::getline(in, line);) {
-            if (line.empty() || line[0] == '#') continue;
-            const auto semi = line.find(';');
-            if (semi == std::string::npos) continue;
-            std::vector<std::string> words;
-            std::istringstream w(line.substr(semi + 1));
-            for (std::string word; std::getline(w, word, ',');) {
-                while (!word.empty() && std::isspace(static_cast<unsigned char>(word.back()))) word.pop_back();
-                while (!word.empty() && std::isspace(static_cast<unsigned char>(word.front()))) word.erase(0, 1);
-                if (!word.empty()) words.push_back(word);
-            }
-            if (!words.empty()) out[artistKey(line.substr(0, semi))] = words;
-        }
-        return out;
-    }();
-    return styles;
-}
-
 ai::ReferenceLibrary libraryWithUser() {
     ai::ReferenceLibrary lib = ai::ReferenceLibrary::builtin();
     std::ifstream in(userDataDir() / "references_utilisateur.txt");
@@ -214,27 +184,14 @@ ai::ReferenceLibrary libraryWithUser() {
         for (const auto& e : user.entries()) lib.add(e);
     }
     // Sous-genres précis de l'artiste ajoutés à chaque titre (filtre du menu RÉF,
-    // demandes « un son drill fr »). Le classement de l'utilisateur reste : on
-    // ajoute, on ne remplace pas.
-    const auto& styles = artistStyles();
-    const auto addStyles = [&](ai::ReferenceEntry& e, const std::string& name) {
-        const auto it = styles.find(artistKey(name));
-        if (it == styles.end()) return false;
-        for (const auto& g : it->second)
-            if (std::find(e.genres.begin(), e.genres.end(), g) == e.genres.end()) e.genres.push_back(g);
-        return true;
-    };
+    // demandes « un son drill fr »), co-crédits compris. Le classement de
+    // l'utilisateur reste : on ajoute, on ne remplace pas. Les profils OMNIS ont
+    // déjà le leur.
     ai::ReferenceLibrary out;
     for (auto e : lib.entries()) {
-        // Co-crédits (« GRy, iNESS M », « Moji x Sboy », « A & B », « A feat. B ») :
-        // chaque artiste connu apporte ses sous-genres.
-        if (!addStyles(e, e.artist)) {
-            std::string rest = e.artist;
-            for (const char* sep : {" feat. ", " feat ", " ft. ", " x ", " X ", " & ", ", "})
-                for (std::size_t at; (at = rest.find(sep)) != std::string::npos;) rest.replace(at, std::strlen(sep), "\n");
-            std::istringstream parts(rest);
-            for (std::string part; std::getline(parts, part);) addStyles(e, part);
-        }
+        if (!e.isProfile())
+            for (const auto& g : ai::stylesOfArtist(e.artist))
+                if (std::find(e.genres.begin(), e.genres.end(), g) == e.genres.end()) e.genres.push_back(g);
         out.add(std::move(e));
     }
     return out;
@@ -508,43 +465,9 @@ std::vector<OmnisController::ReferenceArtist> byArtist(const std::vector<const a
 } // namespace
 
 namespace {
-/// data/genres_classement.txt : « Famille => mot, mot » (familles sans mots ignorées).
-std::vector<std::pair<std::string, std::vector<std::string>>> families() {
-    std::vector<std::pair<std::string, std::vector<std::string>>> out;
-    std::istringstream in{std::string(ai::data::classement())};
-    std::string line;
-    const auto trim = [](std::string s) {
-        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
-        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.erase(0, 1);
-        return s;
-    };
-    while (std::getline(in, line)) {
-        if (line.empty() || line[0] == '#') continue;
-        const auto arrow = line.find("=>");
-        if (arrow == std::string::npos) continue;
-        std::vector<std::string> words;
-        std::istringstream w(line.substr(arrow + 2));
-        for (std::string word; std::getline(w, word, ',');)
-            if (auto t = trim(word); !t.empty()) words.push_back(t);
-        if (!words.empty()) out.emplace_back(trim(line.substr(0, arrow)), words);
-    }
-    // Un mot de plusieurs familles (« rap » : rap fr ET rap us) ne les distingue pas :
-    // il mettrait tout le rap dans les deux. Le filtre ne garde que les mots propres
-    // à une famille (les genres de la fiche, eux, gardent « rap » pour la barre IA).
-    std::map<std::string, int> uses;
-    for (const auto& [name, words] : out)
-        for (const auto& w : words) ++uses[ai::normalizeText(w)];
-    for (auto& [name, words] : out)
-        if (std::any_of(words.begin(), words.end(), [&](const std::string& w) { return uses[ai::normalizeText(w)] == 1; }))
-            std::erase_if(words, [&](const std::string& w) { return uses[ai::normalizeText(w)] > 1; });
-    return out;
-}
-bool inFamily(const ai::ReferenceEntry& e, const std::vector<std::string>& words) {
-    for (const auto& g : e.genres)
-        for (const auto& w : words)
-            if (ai::namesMatch(g, w)) return true;
-    return false;
-}
+const std::vector<std::pair<std::string, std::vector<std::string>>>& families() { return ai::genreFamilies(); }
+/// Un titre pèse ses titres : un profil OMNIS de 40 titres en compte 40.
+int weightOf(const ai::ReferenceEntry& e) { return e.isProfile() ? e.profileTitles : 1; }
 } // namespace
 
 OmnisController::ReferenceTree OmnisController::referenceTree(const std::string& family, const std::string& style) const {
@@ -561,13 +484,13 @@ OmnisController::ReferenceTree OmnisController::referenceTree(const std::string&
         if (!style.empty() && g != style) continue;
         std::vector<const ai::ReferenceEntry*> entries;
         for (const auto* e : lib.measuredWithGenre(g))
-            if (!filtered || inFamily(*e, words)) entries.push_back(e);
+            if (!filtered || ai::inGenreFamily(*e, family, words)) entries.push_back(e);
         if (!entries.empty()) tree.styles.push_back({g, byArtist(entries)});
     }
     std::sort(tree.styles.begin(), tree.styles.end(), [](const auto& a, const auto& b) { return lessNoCase(a.name, b.name); });
     std::vector<const ai::ReferenceEntry*> all;
     for (const auto& e : lib.entries())
-        if (playable(e) && (!filtered || inFamily(e, words)) && hasStyle(e)) all.push_back(&e);
+        if (playable(e) && (!filtered || ai::inGenreFamily(e, family, words)) && hasStyle(e)) all.push_back(&e);
     tree.artists = byArtist(all);
     return tree;
 }
@@ -580,10 +503,14 @@ std::vector<OmnisController::FamilyFilter> OmnisController::referenceFilters() c
         f.name = name;
         std::map<std::string, int> counts;
         for (const auto& e : lib.entries()) {
-            if (!playable(e) || !inFamily(e, words)) continue;
-            ++f.titles;
+            if (!playable(e) || !ai::inGenreFamily(e, name, words)) continue;
+            // Le profil de la famille compte ses titres ; ceux des sous-genres en font
+            // partie (pas comptés deux fois).
+            const bool familyProfile = e.isProfile() && e.title == name;
+            if (!e.isProfile() || familyProfile) f.titles += weightOf(e);
+            if (familyProfile) continue;
             for (const auto& g : e.genres)
-                if (std::none_of(words.begin(), words.end(), [&](const std::string& w) { return ai::namesMatch(g, w); })) ++counts[g];
+                if (g != name && std::none_of(words.begin(), words.end(), [&](const std::string& w) { return ai::namesMatch(g, w); })) counts[g] += weightOf(e);
         }
         if (f.titles == 0) continue;
         for (const auto& [g, n] : counts) f.styles.emplace_back(g, n);
@@ -598,7 +525,7 @@ std::vector<std::string> OmnisController::referenceFamilies() const {
     std::vector<std::string> out;
     for (const auto& [name, words] : families())
         for (const auto& e : lib.entries())
-            if (playable(e) && inFamily(e, words)) {
+            if (playable(e) && ai::inGenreFamily(e, name, words)) {
                 out.push_back(name);
                 break;
             }
@@ -612,7 +539,8 @@ OmnisController::ReferenceCard OmnisController::referenceCard() const {
     const auto refs = referenceEntries(lib, refKind_, refName_);
     if (refs.empty()) return card;
     card.name = refName_;
-    card.titles = static_cast<int>(refs.size());
+    card.titles = 0;
+    for (const auto* e : refs) card.titles += weightOf(*e); // un profil compte ses titres
     card.signature = ai::aggregateSignature(refs);
     // Photo : un artiste (ou le titre d'un seul artiste) ; pochette : un titre.
     const auto artists = byArtist(refs);
@@ -631,7 +559,7 @@ OmnisController::ReferenceCard OmnisController::referenceCard() const {
     }
     char b[96];
     const auto& m = refs.front()->signature.music;
-    if (refs.size() == 1 && m.valid) {
+    if (refs.size() == 1 && m.valid && !refs.front()->isProfile()) {
         std::snprintf(b, sizeof b, "%.0f BPM · %s · %.1f LUFS", m.bpm, m.keyRoot >= 0 ? m.keyName().c_str() : "tonalité ?", refs.front()->signature.integratedLufs);
     } else {
         std::snprintf(b, sizeof b, "%d titre%s · %.1f LUFS en moyenne", card.titles, card.titles > 1 ? "s" : "", card.signature.integratedLufs);

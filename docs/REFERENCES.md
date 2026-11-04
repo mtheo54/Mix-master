@@ -213,6 +213,29 @@ nombre de fiches qui ont la mesure. Pour voir un titre : `omnis_refdb.exe fiche 
 sa ligne « pompe ». La base livrée (`data/references.txt`) se remesure de la même façon avec
 `--db` vers elle, seulement à partir de fichiers obtenus légalement.
 
+## Profils de genre livrés (04/11/2026)
+
+Le plug-in ne contient plus aucune fiche de titre : seulement `data/profils_genres.txt`,
+généré depuis les mesures brutes `data/references.txt` (qui ne sont pas intégrées) :
+
+```
+omnis_refdb profils data/references.txt --sortie data/profils_genres.txt --min 3 --rapport docs/classement_titres.csv
+```
+
+- **Un profil = une moyenne** d'au moins 3 titres (`--min`), par famille (`genres_classement.txt`)
+  et par sous-genre (`styles_artistes.txt`). Tempo, tonalité et note de la 808 sont effacés.
+- **Chaque titre va dans UN sous-genre**, celui des sous-genres de son artiste dont le profil
+  mesuré est le plus proche (k-moyennes restreintes, 8 passes) : les titres rage de La Fève vont
+  en rage fr, ses titres plugg en plugg fr. Le détail titre par titre :
+  `docs/classement_titres.csv`. Un sous-genre de moins de 3 titres n'a pas de profil (ses titres
+  restent dans la famille).
+- Les artistes restent **connus de nom** avec les genres de leurs titres (aucun chiffre) :
+  « comme GRY » vise le profil new wave fr (le plus précis ; la famille entière ne le noie pas).
+- Titres sans famille (artistes à classer) : hors profils. Les classer dans
+  `data/styles_artistes.txt` (la section donne la famille), puis régénérer.
+- Les références que le client ajoute (son `references_utilisateur.txt`) gardent leurs noms et
+  s'affichent comme avant : ce sont ses fichiers, sur son poste.
+
 ## État de la base (30/10)
 
 **04/11/2026 : 426 titres** (base perso de 338 titres fusionnée ; liste : `docs/references_utilisees.csv`). Avant : 91 titres ; **2 avec la fiche complète** (2hollis – poster boy, SLAYR – Sloppy Joe : leur audio

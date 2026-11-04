@@ -47,6 +47,7 @@
 //    retouchée) | peint ; --refaire redessine ce que le cache a déjà.
 // =============================================================================
 #include "ai/EmbeddedData.h"
+#include "ai/GenreProfiles.h"
 #include <sstream>
 #include "AudioRead.h"
 #include "AiFiles.h"
@@ -319,6 +320,8 @@ int main(int argc, char** argv) {
                   "  omnis_refdb embleme image.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png] | embleme --db base.txt   (illustrations OMNIS)\n"
                   "  (illustrations : --style embleme|hd|peint, embleme par défaut ; --refaire redessine le cache)\n"
                   "  omnis_refdb discographie playlist.csv [--artistes \"a|b\"] [--proches 1] [--sortie dossier]   (tous les titres, et ceux des proches)\n"
+                  "  omnis_refdb profils data/references.txt --sortie data/profils_genres.txt [--min 3] [--rapport classement.csv]\n"
+                  "     (profils de genre livrés : moyennes par famille et sous-genre, aucune fiche de titre)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
         return 1;
@@ -338,8 +341,49 @@ int main(int argc, char** argv) {
             const std::string v = argv[++i];
             gStyle = v == "hd" ? gfx::OmnisAvatarStylizer::Style::HD : v == "peint" ? gfx::OmnisAvatarStylizer::Style::Painted : gfx::OmnisAvatarStylizer::Style::Emblem;
         } else if (a == "--refaire") gRedo = true;
-        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--forme" || a == "--formes" || a == "--id" || a == "--photo" || a == "--cache" || a == "--proches" || a == "--retirer") && i + 1 < argc) ++i;
+        else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--forme" || a == "--formes" || a == "--id" || a == "--photo" || a == "--cache" || a == "--proches" || a == "--retirer" || a == "--min" || a == "--rapport") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
+    }
+
+    if (command == "profils") {
+        std::string out, report;
+        int minTitles = 3;
+        for (int i = 2; i + 1 < argc; ++i) {
+            const std::string a = argv[i];
+            if (a == "--sortie") out = argv[i + 1];
+            else if (a == "--rapport") report = argv[i + 1];
+            else if (a == "--min") minTitles = std::max(1, std::atoi(argv[i + 1]));
+        }
+        std::string text;
+        if (input.empty() || out.empty() || !readTextFile(input, text)) {
+            std::fputs("profils : la base des titres (data/references.txt) et --sortie requis\n", stderr);
+            return 1;
+        }
+        ai::ReferenceLibrary raw;
+        raw.parse(text);
+        std::vector<const ai::ReferenceEntry*> entries;
+        for (const auto& e : raw.entries()) entries.push_back(&e);
+        ai::ReferenceLibrary names; // le catalogue livré : genres des artistes
+        names.parse(ai::data::catalogue());
+        const auto set = ai::buildGenreProfiles(entries, minTitles, &names);
+        if (!writeTextFile(out, ai::serializeGenreProfiles(set))) return 1;
+        int families = 0;
+        for (const auto& p : set.profiles) {
+            const bool family = p.title.find(" › ") == std::string::npos;
+            families += family ? 1 : 0;
+            std::printf("  %-60s %3d titre(s)\n", p.title.c_str(), p.profileTitles);
+        }
+        std::printf("%zu profil(s) (%d familles, %zu sous-genres, au moins %d titres) ; %zu artistes de nom -> %s\n", set.profiles.size(), families,
+                    set.profiles.size() - static_cast<std::size_t>(families), minTitles, set.artists.size(), out.c_str());
+        if (!set.unclassified.empty()) std::printf("%zu titre(s) sans famille, hors profils\n", set.unclassified.size());
+        if (!report.empty()) {
+            std::string csv = "\xEF\xBB\xBF" "Artiste;Titre;Famille;Sous-genre\n";
+            for (const auto& a : set.assignments) csv += a.artist + ";" + a.title + ";" + a.family + ";" + (a.style.empty() ? "(famille seulement)" : a.style) + "\n";
+            for (const auto& u : set.unclassified) csv += u + ";;(sans famille);\n";
+            if (!writeTextFile(report, csv)) return 1;
+            std::printf("classement titre par titre -> %s\n", report.c_str());
+        }
+        return 0;
     }
 
     if (command == "image" || command == "pochette") {

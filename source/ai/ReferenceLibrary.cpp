@@ -160,6 +160,11 @@ bool ReferenceLibrary::parse(std::string_view text, std::string* error) {
         else if (key == "pochette") current.cover = value;
         else if (key == "pochette_credit") current.coverCredit = value;
         else if (key == "lien") current.link = value;
+        else if (key == "profil") {
+            double n = 0.0;
+            number_(n);
+            current.profileTitles = std::max(0, static_cast<int>(n));
+        }
         else if (key == "lufs") number_(s.integratedLufs);
         else if (key == "lra") number_(s.loudnessRangeLu);
         else if (key == "tp") number_(s.truePeakDb);
@@ -227,6 +232,7 @@ std::string ReferenceLibrary::serialize() const {
         if (!e.cover.empty()) out += "pochette = " + e.cover + "\n";
         if (!e.coverCredit.empty()) out += "pochette_credit = " + e.coverCredit + "\n";
         if (!e.link.empty()) out += "lien = " + e.link + "\n";
+        if (e.profileTitles > 0) out += "profil = " + std::to_string(e.profileTitles) + "\n";
         if (!e.measured) {
             out += "# connu de nom : en attente d'un son pour le mesurer\n";
             continue;
@@ -481,7 +487,7 @@ std::vector<std::string> ReferenceLibrary::measuredArtists() const {
     std::vector<std::string> out;
     std::unordered_map<std::string, bool> seen;
     for (std::size_t i = 0; i < entries_.size(); ++i)
-        if (entries_[i].measured && seen.emplace(keys_[i].artist.compact, true).second) out.push_back(entries_[i].artist);
+        if (entries_[i].measured && !entries_[i].isProfile() && seen.emplace(keys_[i].artist.compact, true).second) out.push_back(entries_[i].artist);
     return out;
 }
 
@@ -637,5 +643,62 @@ analysis::SpectralSignature aggregateSignature(const std::vector<const Reference
     }
     return out;
 }
+
+analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>& refs) {
+    analysis::MusicDescriptors m;
+    int n = 0;
+    std::array<int, 24> keys{};
+    double pumpSum = 0.0;
+    int pumps = 0;
+    for (const auto* e : refs) {
+        const auto& x = e->signature.music;
+        if (!x.valid) continue;
+        ++n;
+        for (int z = 0; z < 4; ++z) m.microDb[static_cast<std::size_t>(z)] += x.microDb[static_cast<std::size_t>(z)];
+        for (int i = 0; i < 3; ++i) m.shortTermLufs[static_cast<std::size_t>(i)] += x.shortTermLufs[static_cast<std::size_t>(i)];
+        m.lowCorrelation += x.lowCorrelation;
+        m.correlation += x.correlation;
+        m.clipPercent += x.clipPercent;
+        m.monoLossDb += x.monoLossDb;
+        m.onsetsPerSecond += x.onsetsPerSecond;
+        m.centroidHz += x.centroidHz;
+        m.seconds += x.seconds;
+        if (x.hasPump) {
+            pumpSum += x.pumpDb;
+            ++pumps;
+        }
+        m.bpm += x.bpm;
+        m.subHz += x.subHz;
+        if (x.keyRoot >= 0) ++keys[static_cast<std::size_t>(x.keyRoot + (x.keyMinor ? 12 : 0))];
+    }
+    if (n == 0) return m;
+    m.valid = true;
+    for (auto& v : m.microDb) v /= n;
+    for (auto& v : m.shortTermLufs) v /= n;
+    m.lowCorrelation /= n;
+    m.correlation /= n;
+    m.clipPercent /= n;
+    m.monoLossDb /= n;
+    m.onsetsPerSecond /= n;
+    m.centroidHz /= n;
+    m.seconds /= n;
+    if (pumps > 0) { // moyenne des titres qui ont la mesure (les autres : fiche ancienne)
+        m.pumpDb = pumpSum / pumps;
+        m.hasPump = true;
+    }
+    if (n == 1) {
+        m.bpm /= n;
+        m.subHz /= n;
+        const auto k = std::max_element(keys.begin(), keys.end()) - keys.begin();
+        if (keys[static_cast<std::size_t>(k)] > 0) {
+            m.keyRoot = static_cast<int>(k % 12);
+            m.keyMinor = k >= 12;
+        }
+    } else {
+        m.bpm = m.subHz = 0.0; // une moyenne de tempos ou de notes ne veut rien dire
+    }
+    return m;
+}
+
 
 } // namespace omnis::ai

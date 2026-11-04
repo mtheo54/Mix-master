@@ -6,6 +6,8 @@
 // =============================================================================
 #include "TestFramework.h"
 
+#include "ai/ReferenceLibrary.h"
+
 #include "TestSignals.h"
 
 #include "params/Parameters.h"
@@ -177,15 +179,16 @@ OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un t
     for (const auto& a : tree.artists) titles += a.titles.size();
     std::printf("      %zu styles, %zu artistes, %zu titres mesurés\n", tree.styles.size(), tree.artists.size(), titles);
     OMNIS_CHECK(!tree.styles.empty() && !tree.artists.empty() && titles > 0);
-    // Style -> artiste -> ses titres : « rage » contient 2hollis, qui contient poster boy.
+    // Le plug-in livre des PROFILS de genre (aucun titre) : style « rage fr » ->
+    // « Profil OMNIS » -> le profil « Rap Français & New Wave › rage fr ».
     std::string title;
     for (const auto& st : tree.styles)
-        if (st.name == "rage")
+        if (st.name == "rage fr")
             for (const auto& a : st.artists)
-                if (a.name == "2hollis")
-                    for (const auto& t : a.titles)
-                        if (t.title == "poster boy") title = t.name;
-    OMNIS_CHECK(title == "2hollis - poster boy");
+                if (a.name == ai::kProfileArtist)
+                    for (const auto& t : a.titles) title = t.name;
+    OMNIS_CHECK(title == std::string(ai::kProfileArtist) + " - Rap Français & New Wave › rage fr");
+    for (const auto& a : tree.artists) OMNIS_CHECK(a.name == ai::kProfileArtist); // aucun artiste livré
     // Pas encore écouté : le choix attend la lecture.
     const std::string early = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Title, title);
     std::printf("      %s\n", early.c_str());
@@ -206,7 +209,7 @@ OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un t
     // Choisi une fois que la prod est entendue : appliqué tout de suite.
     const auto card = h.ctrl->referenceCard();
     std::printf("      carte : %s · %s\n", card.name.c_str(), card.detail.c_str());
-    OMNIS_CHECK(card.name == title && card.titles == 1 && card.detail.find("BPM") != std::string::npos);
+    OMNIS_CHECK(card.name == title && card.titles >= 3 && card.detail.find("titres") != std::string::npos); // un profil : ses titres
     const std::string now = h.ctrl->chooseReference(vst3::OmnisController::RefKind::Style, tree.styles.front().name);
     std::printf("      %s\n", now.c_str());
     OMNIS_CHECK(now.find("Fait : vers ") == 0);
@@ -310,15 +313,20 @@ OMNIS_TEST("plug-in: filtre du menu RÉF par famille (genres_classement) : seuls
     Host h;
     const auto families = h.ctrl->referenceFamilies();
     OMNIS_CHECK(!families.empty());
+    const auto count = [](const vst3::OmnisController::ReferenceTree& t) {
+        std::size_t n = 0;
+        for (const auto& a : t.artists) n += a.titles.size();
+        return n;
+    };
     const auto all = h.ctrl->referenceTree();
     std::size_t biggest = 0;
     for (const auto& f : families) {
         const auto t = h.ctrl->referenceTree(f);
-        std::printf("      %-38s %3zu artiste(s), %2zu style(s)\n", f.c_str(), t.artists.size(), t.styles.size());
-        OMNIS_CHECK(t.artists.size() <= all.artists.size());
-        biggest = std::max(biggest, t.artists.size());
+        std::printf("      %-38s %3zu profil(s), %2zu style(s)\n", f.c_str(), count(t), t.styles.size());
+        OMNIS_CHECK(count(t) <= count(all));
+        biggest = std::max(biggest, count(t));
     }
-    OMNIS_CHECK(biggest > 0 && biggest < all.artists.size()); // le filtre retire bien quelque chose
+    OMNIS_CHECK(biggest > 0 && biggest < count(all)); // le filtre retire bien quelque chose
 }
 
 OMNIS_TEST("plug-in: filtre du menu RÉF par sous-genre (styles_artistes) : famille › style") {

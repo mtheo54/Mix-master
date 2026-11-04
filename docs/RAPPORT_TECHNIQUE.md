@@ -69,7 +69,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 | Latence, mode Qualité max | 33 812 éch. à 44,1 kHz (767 ms) · 34 104 à 48 kHz (710 ms) · 68 168 à 96 kHz (710 ms) |
 | Latence, mode Travail | 4 230 éch. à 44,1 kHz (96 ms) · 4 312 à 48 kHz (90 ms) · 6 408 à 96 kHz (67 ms) |
 | CPU (rendu hors ligne, 48 kHz, 1 cœur, E/S WAV comprises) | 12,6 % au repos · 15,6 % tous étages actifs · 1,3 % tous éteints |
-| Base de références livrée | 426 titres mesurés (`data/references.txt`, ~0,5 Ko / titre) : les 91 d'origine + la base perso de l'utilisateur fusionnée le 04/11 (335 nouveaux, 3 remesurés) |
+| Base de références livrée | **39 profils de genre** (7 familles, 32 sous-genres, `data/profils_genres.txt`), moyennes de 426 titres mesurés (`data/references.txt`, non intégré) ; aucune fiche de titre livrée |
 | Catalogue (noms, alias, Deezer) | 17 324 lignes (`data/catalogue.txt`) |
 | Sous-genres | ~440 artistes classés, 180+ sous-genres distincts (`data/styles_artistes.txt`) |
 | Traduction anglaise | 424 lignes (`data/i18n_en.txt`) |
@@ -800,7 +800,8 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 
 | Fichier | Contenu | Embarqué |
 |---|---|---|
-| `references.txt` | 426 signatures mesurées : LUFS, LRA, TP, PLR, sub, Mid / Side / dynamique sur 21 nœuds, fiche musicale, durée | oui |
+| `profils_genres.txt` | 39 profils : moyennes (≥ 3 titres) par famille et sous-genre, même format que la base ; + artistes de nom avec leurs genres | oui |
+| `references.txt` | 426 signatures mesurées par titre : source des profils (`omnis_refdb profils`) | **non** |
 | `catalogue.txt` | artistes, alias (laf, b2o / kopp…), titres, ids Deezer | oui |
 | `genres_classement.txt` | les familles de l'utilisateur → mots de genre | oui |
 | `styles_artistes.txt` | artiste → sous-genres précis (~440 artistes) | oui |
@@ -961,7 +962,9 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 - **HIIR** : seule la méthode de L. de Soras est utilisée, réimplémentée ; le code n'est pas repris.
 - **Manuels de logiciels tiers** (Pro-Q, Pro-L, Ozone, Gullfoss, Trackspacer, Decapitator, KClip) :
   seuls des principes, reformulés. Rien n'est copié.
-- **Base livrée** : depuis le 04/11, la notice dit la vérité. Les mesures viennent de fichiers
+- **Base livrée** : depuis le 04/11, **profils de genre seulement** (moyennes d'au moins 3 titres,
+  sans tempo, tonalité ni nom de titre ; `ai/GenreProfiles`). La notice dit la vérité sur la
+  provenance. Les mesures viennent de fichiers
   téléchargés (YouTube et autres) sans licence ni autorisation des ayants droit. Aucun audio n'est
   gardé, seulement des nombres.
 - **Base perso** : 338 titres mesurés de la même façon, **fusionnés dans la base livrée le 04/11**

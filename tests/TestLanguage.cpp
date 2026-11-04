@@ -241,20 +241,22 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     // Connus de nom ET classés « rage » par la personne : on vise le profil
     // rage écouté (2hollis, SLAYR) en suggérant d'envoyer un son.
     const auto said = [](const Understanding& u) { return u.suggestion.value_or("") + u.question.value_or(""); };
-    // « la feve » est l'artiste, pas un de ses titres : ses sons écoutés.
+    // Le plug-in ne livre que des PROFILS de genre (aucune fiche de titre) :
+    // « la feve » est connue de nom, ses titres ont été rangés en rage fr et
+    // plugg fr ; on vise ces profils précis, pas toute la famille rap fr.
     const auto a = ask("garde ma 808 comme la feve");
-    OMNIS_CHECK(a.referenceName.find("artiste La Fève") != std::string::npos);
-    OMNIS_CHECK(a.referenceEntries.size() >= 5 && !a.question.has_value());
-    for (const auto* e : a.referenceEntries) OMNIS_CHECK(e->artist == "La Fève" && e->measured);
+    OMNIS_CHECK(a.referenceName.find("La Fève") != std::string::npos);
+    OMNIS_CHECK(!a.referenceEntries.empty() && !a.question.has_value());
+    for (const auto* e : a.referenceEntries) OMNIS_CHECK(e->isProfile() && e->title.find(" › ") != std::string::npos);
     OMNIS_CHECK(a.request.protectedRegions[0]);
+    for (const auto& e : lib.entries()) OMNIS_CHECK(!e.measured || e.isProfile()); // aucun titre mesuré livré
     // « fein de travis scott » -> le titre FE!N.
     OMNIS_CHECK(said(ask("un son comme fein de travis scott")).find("FE!N") != std::string::npos);
-    // « ken carsonn » : l'artiste (pas « carton », pas un seul de ses titres) ;
-    // ses sons sont mesurés depuis la fusion de la base (04/11).
+    // « ken carsonn » : l'artiste (pas « carton »), visé par les profils de ses genres.
     const auto k = ask("genre ken carsonn mais propre");
     OMNIS_CHECK(hitOf(k.interpretation, "carton") == nullptr);
-    OMNIS_CHECK(k.referenceName.find("artiste Ken Carson") != std::string::npos);
-    for (const auto* e : k.referenceEntries) OMNIS_CHECK(e->artist == "Ken Carson" && e->measured);
+    OMNIS_CHECK(k.referenceName.find("Ken Carson") != std::string::npos);
+    for (const auto* e : k.referenceEntries) OMNIS_CHECK(e->isProfile());
     // Prénom seul (« kanye ») ; genre en deux mots (« uk bass »).
     const std::string ks = said(ask("un son comme black skinhead de kanye"));
     OMNIS_CHECK(ks.find("quannnic") == std::string::npos);
@@ -272,14 +274,14 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     const auto rock = ask("trop brillant, genre rock"); // mesuré depuis la fusion (04/11)
     OMNIS_CHECK(!rock.question.has_value() && !rock.referenceEntries.empty());
     const auto fr = ask("trop brillant, genre rap fr");
-    OMNIS_CHECK(!fr.question.has_value() && fr.referenceEntries.size() >= 20);
+    OMNIS_CHECK(!fr.question.has_value() && !fr.referenceEntries.empty());
+    int frTitles = 0;
+    for (const auto* e : fr.referenceEntries) frTitles += e->profileTitles;
+    OMNIS_CHECK(frTitles >= 20); // le profil de la famille : des dizaines de titres
     const auto h = ask("un son hyperpop crispy");
     OMNIS_CHECK(!h.question.has_value());
-    const auto heard = [&](const char* artist) {
-        return std::any_of(h.referenceEntries.begin(), h.referenceEntries.end(), [&](const ReferenceEntry* e) { return e->artist == artist; });
-    };
-    OMNIS_CHECK(heard("2hollis") && heard("SLAYR")); // SLAYR : classé hyperpop par l'utilisateur
-    OMNIS_CHECK(heard("Luther")); // classé hyperpop par ses playlists
+    OMNIS_CHECK(std::any_of(h.referenceEntries.begin(), h.referenceEntries.end(),
+                            [](const ReferenceEntry* e) { return e->isProfile() && e->title.find("Hyperpop") != std::string::npos; }));
 }
 
 OMNIS_TEST("références: des mesures remplacent une entrée de nom sans perdre ses genres") {

@@ -318,13 +318,25 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
         for (const auto* e : m.entries)
             for (const auto& g : e->genres)
                 if (std::find(tags.begin(), tags.end(), g) == tags.end()) tags.push_back(g);
-        std::vector<std::string> used;
+        // Le profil le plus précis : si un sous-genre de l'artiste a un profil OMNIS
+        // (« new wave fr »), le profil de toute sa famille (« rap fr ») ne vient pas
+        // le noyer dans la moyenne.
+        std::vector<std::pair<std::string, std::vector<const ReferenceEntry*>>> lists;
+        bool precise = false;
         for (const auto& g : tags) {
-            const auto list = library.measuredWithGenre(g);
-            if (!list.empty()) {
-                addMeasured(list);
-                used.push_back(g);
-            }
+            auto list = library.measuredWithGenre(g);
+            if (list.empty()) continue;
+            for (const auto* e : list)
+                if (e->isProfile() && e->title.find(" › ") != std::string::npos) precise = true;
+            lists.emplace_back(g, std::move(list));
+        }
+        std::vector<std::string> used;
+        for (auto& [g, list] : lists) {
+            if (precise)
+                std::erase_if(list, [](const ReferenceEntry* e) { return e->isProfile() && e->title.find(" › ") == std::string::npos; });
+            if (list.empty()) continue;
+            addMeasured(list);
+            used.push_back(g);
         }
         if (used.empty()) {
             missing.push_back(label);

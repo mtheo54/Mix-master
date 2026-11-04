@@ -108,55 +108,6 @@ void applyAxes(ConsolePlan& p, const Descriptor& d, const MatchRequest& request,
     }
 }
 
-/// La fiche moyenne de plusieurs références (celles qui ont la fiche complète).
-analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>& refs) {
-    analysis::MusicDescriptors m;
-    int n = 0;
-    std::array<int, 24> keys{};
-    double pumpSum = 0.0;
-    int pumps = 0;
-    for (const auto* e : refs) {
-        const auto& x = e->signature.music;
-        if (!x.valid) continue;
-        ++n;
-        for (int z = 0; z < 4; ++z) m.microDb[static_cast<std::size_t>(z)] += x.microDb[static_cast<std::size_t>(z)];
-        for (int i = 0; i < 3; ++i) m.shortTermLufs[static_cast<std::size_t>(i)] += x.shortTermLufs[static_cast<std::size_t>(i)];
-        m.lowCorrelation += x.lowCorrelation;
-        m.correlation += x.correlation;
-        m.clipPercent += x.clipPercent;
-        if (x.hasPump) {
-            pumpSum += x.pumpDb;
-            ++pumps;
-        }
-        m.bpm += x.bpm;
-        m.subHz += x.subHz;
-        if (x.keyRoot >= 0) ++keys[static_cast<std::size_t>(x.keyRoot + (x.keyMinor ? 12 : 0))];
-    }
-    if (n == 0) return m;
-    m.valid = true;
-    for (auto& v : m.microDb) v /= n;
-    for (auto& v : m.shortTermLufs) v /= n;
-    m.lowCorrelation /= n;
-    m.correlation /= n;
-    m.clipPercent /= n;
-    if (pumps > 0) { // moyenne des titres qui ont la mesure (les autres : fiche ancienne)
-        m.pumpDb = pumpSum / pumps;
-        m.hasPump = true;
-    }
-    if (n == 1) {
-        m.bpm /= n;
-        m.subHz /= n;
-        const auto k = std::max_element(keys.begin(), keys.end()) - keys.begin();
-        if (keys[static_cast<std::size_t>(k)] > 0) {
-            m.keyRoot = static_cast<int>(k % 12);
-            m.keyMinor = k >= 12;
-        }
-    } else {
-        m.bpm = m.subHz = 0.0; // une moyenne de tempos ou de notes ne veut rien dire
-    }
-    return m;
-}
-
 /// Ce que la fiche complète de la référence apprend, comparée à celle de la prod :
 /// le punch, le grave mono, l'écart couplet / refrain, l'écrêtage voulu.
 void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const analysis::MusicDescriptors& prod, const CurrentValue& cur,

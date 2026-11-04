@@ -49,6 +49,11 @@
 
 ## Fait récemment
 
+- **04/11 — Base livrée = profils de genre seulement** : `data/profils_genres.txt` (39 profils :
+  7 familles, 32 sous-genres, ≥ 3 titres chacun), généré par `omnis_refdb profils` depuis
+  `data/references.txt` (426 titres, non intégré). Chaque titre est rangé dans UN sous-genre par
+  la mesure (`docs/classement_titres.csv`). Notice de licence mise à jour. 20 titres sans
+  famille (artistes à classer) restent hors profils.
 - **03/11 — Filtre RÉF famille › sous-genre** (`data/styles_artistes.txt`, ~440 artistes, co-crédits
   reconnus) et **rapport technique complet** pour un ingé : [docs/RAPPORT_TECHNIQUE.md](RAPPORT_TECHNIQUE.md)
   (127 artistes encore « à classer » en annexe B).

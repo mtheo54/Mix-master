@@ -158,6 +158,8 @@ Youv Dee ; rap alternatif, rage fr, plugg fr
 ZEG P ; trap fr, prod
 
 # --- Rap & hip-hop international (US/UK) --------------------------------------
+JAY-Z ; east coast, boom bap
+JPEGMAFIA ; rap expérimental, rap abstrait
 A Tribe Called Quest ; boom bap, jazz rap, east coast
 De La Soul ; boom bap, jazz rap, east coast
 Mobb Deep ; boom bap, east coast, rap hardcore

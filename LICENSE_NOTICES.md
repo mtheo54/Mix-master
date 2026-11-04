@@ -12,18 +12,27 @@ distribution (installateur, archive, dépôt).
 | VST 3 SDK v3.8.0 (`v3.8.0_build_66`) | Steinberg Media Technologies GmbH | MIT (texte en annexe A) | oui |
 | VSTGUI 4.15 (livré avec le SDK) | Steinberg Media Technologies GmbH | licence VSTGUI, type BSD 3 clauses (annexe B) | oui |
 | Lexiques, argot, éléments (`data/*.txt`) | Abrasion Labs | propriété d'Abrasion Labs | oui (texte) |
-| Base de références (`data/references.txt`, `data/catalogue.txt`) | mesures d'Abrasion Labs | propriété d'Abrasion Labs | oui (texte) |
+| Profils de genre (`data/profils_genres.txt`) | moyennes calculées par Abrasion Labs | propriété d'Abrasion Labs | oui (texte) |
+| Catalogue de noms (`data/catalogue.txt`) et genres des artistes (`data/styles_artistes.txt`) | Abrasion Labs (faits publics : noms, genres) | propriété d'Abrasion Labs | oui (texte) |
 
-La base de références ne contient **que des noms d'artistes et de titres, des genres et des nombres**
-(signatures spectrales, sonie, tempo…). Aucun son, aucune image, aucune parole.
+**Profils de genre.** Le plug-in ne contient **aucune fiche de titre** : seulement des **moyennes
+statistiques** par famille et par sous-genre (courbes de réponse, profils fréquentiels,
+coefficients de dynamique), chacune calculée sur au moins 3 titres, sans tempo, tonalité ni
+aucune autre donnée propre à une œuvre, et sans aucun nom de titre. Les noms d'artistes du
+catalogue servent seulement à comprendre une demande (« comme tel artiste » -> le profil de son
+genre) ; aucun chiffre ne leur est attaché.
 
-**Provenance des mesures.** Les nombres ont été calculés par Abrasion Labs à partir de fichiers
+**Provenance des mesures.** Ces moyennes ont été calculées par Abrasion Labs à partir de fichiers
 audio qui **n'ont pas été achetés ni obtenus sous licence** : ils ont été téléchargés depuis
 YouTube et d'autres sites, sans autorisation des ayants droit. Ces fichiers ont servi uniquement à
-la mesure ; aucun d'eux, ni aucun extrait, n'est conservé dans le plug-in, dans l'installateur ou
-dans les sources. Les œuvres mesurées restent la propriété de leurs ayants droit (artistes,
-labels, éditeurs) ; leur nom n'est cité que pour désigner la référence mesurée, sans lien avec
-eux ni approbation de leur part.
+la mesure ; aucun d'eux, ni aucun extrait, n'est conservé dans le plug-in ou dans l'installateur.
+Les œuvres mesurées restent la propriété de leurs ayants droit (artistes, labels, éditeurs). Toute
+référence à un style ou à un artiste est purement descriptive et ne suppose aucune affiliation,
+approbation ou partenariat.
+
+**Références ajoutées par l'utilisateur.** Elles sont mesurées sur son poste, à partir de fichiers
+qu'il fournit et dont il est seul responsable ; elles ne quittent pas son ordinateur
+(`references_utilisateur.txt` de son dossier de données).
 
 **Aucune image** n'est livrée : ni dans le `.vst3`, ni dans l'installateur, ni dans les sources
 (`data/`, `source/`). Le test `omnis_no_images` (ctest, CI) le vérifie à chaque compilation : il

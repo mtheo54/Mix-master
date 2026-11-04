@@ -52,6 +52,11 @@ struct ReferenceEntry {
     std::string link;        ///< la musique en ligne (page du titre, ou de l'artiste)
     analysis::SpectralSignature signature;
     bool measured = true; ///< false : connu de nom (et de genre) seulement, en attente d'un son
+    /// Profil de genre d'OMNIS (> 0) : moyenne de ce nombre de titres, sans
+    /// aucune donnée propre à l'un d'eux (ai/GenreProfiles). Artiste « Profil OMNIS »,
+    /// titre = le sous-genre ou la famille.
+    int profileTitles = 0;
+    [[nodiscard]] bool isProfile() const noexcept { return profileTitles > 0; }
 
     [[nodiscard]] std::string displayName() const;
 };
@@ -122,6 +127,14 @@ private:
     std::unordered_map<std::string, std::size_t> exact_; ///< « artiste|titre » compacts -> index
     std::unordered_map<std::string, std::size_t> artistLevel_; ///< artiste compact -> entrée sans titre
 };
+
+/// Nom d'artiste des profils de genre livrés.
+inline constexpr const char* kProfileArtist = "Profil OMNIS";
+
+/// La fiche moyenne de plusieurs références (celles qui ont la fiche complète).
+/// Tempo, tonalité et note de la 808 ne sont gardés que pour un seul titre
+/// (une moyenne de tempos ne veut rien dire).
+analysis::MusicDescriptors averageMusic(const std::vector<const ReferenceEntry*>& refs);
 
 /// Signature moyenne (balances relatives au corps, sonies moyennes) des
 /// entrées MESURÉES ; les entrées connues de nom seulement sont ignorées.

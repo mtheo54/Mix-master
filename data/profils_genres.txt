@@ -1,0 +1,2386 @@
+# =============================================================================
+#  Abrasion Labs // OMNIS — Profils de genre livrés (généré : omnis_refdb profils)
+#
+#  Seulement des MOYENNES par famille et par sous-genre (« profil = N » titres,
+#  au moins 3), sans aucune donnée propre à un titre ni aucun nom de titre ;
+#  puis les artistes connus de nom avec leurs genres (aucun chiffre).
+#  Ne pas modifier à la main : régénérer depuis data/references.txt.
+# =============================================================================
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK)]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK)
+genres = rap us | hip-hop | rap international | Rap & Hip-Hop International (US/UK)
+profil = 110
+lufs = -9.53
+lra = 5.42
+tp = 0.43
+plr = 9.97
+sub = 14.18
+mid = -18.06 -1.39 8.03 8.27 6.20 4.86 3.06 1.86 1.78 2.61 2.23 0.62 -0.24 -1.60 -2.94 -4.31 -5.10 -4.47 -7.29 -13.75 -23.30
+side = -32.08 -25.54 -20.95 -18.57 -17.14 -15.89 -13.73 -12.05 -10.37 -9.24 -9.43 -10.52 -11.68 -13.27 -15.09 -16.93 -18.34 -18.69 -21.55 -28.03 -39.43
+dyn = 18.28 26.39 26.80 26.04 20.02 15.57 11.50 9.03 8.85 9.50 10.94 11.81 12.22 12.08 12.38 12.60 12.26 12.46 12.97 13.87 17.15
+duree = 208.4
+lufs_court = -14.32 -10.41 -8.99
+micro = 4.74 5.75 5.45 8.05
+correlation = 0.902
+correlation_grave = 0.961
+perte_mono = -0.23
+coups_par_s = 6.11
+brillance = 4458
+crete = -200.00
+ecretage = 0.388
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › boom bap]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › boom bap
+genres = boom bap | Rap & Hip-Hop International (US/UK)
+profil = 4
+lufs = -9.42
+lra = 4.21
+tp = 0.61
+plr = 10.03
+sub = 11.22
+mid = -24.59 -13.42 -0.43 3.77 8.85 7.66 5.57 3.84 0.82 2.50 1.25 -0.78 -1.70 -2.30 -1.73 -1.91 -4.11 -7.30 -12.81 -22.13 -29.88
+side = -34.38 -29.36 -22.83 -17.04 -10.92 -12.82 -12.62 -12.94 -11.92 -10.77 -11.11 -12.45 -13.87 -14.20 -14.08 -13.67 -13.76 -15.06 -17.81 -26.00 -32.24
+dyn = 15.05 17.11 16.75 16.59 13.63 12.55 9.86 8.00 8.61 9.99 11.44 11.53 12.04 10.80 10.09 10.59 12.05 12.88 13.12 16.54 16.14
+duree = 201.1
+lufs_court = -49.05 -45.87 -45.31
+micro = 6.67 7.21 5.34 6.33
+correlation = 0.887
+correlation_grave = 0.936
+perte_mono = -0.27
+coups_par_s = 6.57
+brillance = 3420
+crete = -200.00
+ecretage = 0.077
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › dark trap]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › dark trap
+genres = dark trap | Rap & Hip-Hop International (US/UK)
+profil = 9
+lufs = -8.31
+lra = 5.03
+tp = 0.75
+plr = 9.07
+sub = 17.63
+mid = -16.02 6.67 13.80 11.58 7.52 6.71 4.33 2.63 1.83 2.26 1.35 -0.56 -0.26 -1.33 -2.46 -3.47 -4.66 -2.71 -6.88 -14.16 -19.76
+side = -27.12 -16.86 -14.69 -15.44 -16.32 -15.66 -15.82 -14.75 -13.10 -11.39 -11.95 -13.04 -12.03 -13.73 -16.86 -18.59 -21.74 -21.33 -24.53 -30.42 -39.75
+dyn = 17.29 24.74 18.69 25.35 17.89 12.59 11.29 8.44 7.69 8.13 9.83 11.35 12.16 12.32 13.93 14.91 13.88 10.91 10.42 11.24 12.48
+duree = 225.3
+lufs_court = -19.86 -15.86 -14.90
+micro = 3.86 7.06 6.11 9.36
+correlation = 0.945
+correlation_grave = 0.967
+perte_mono = -0.13
+coups_par_s = 6.87
+brillance = 4448
+crete = -200.00
+ecretage = 0.710
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › dirty south]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › dirty south
+genres = dirty south | Rap & Hip-Hop International (US/UK)
+profil = 4
+lufs = -10.37
+lra = 7.83
+tp = -0.51
+plr = 9.86
+sub = 13.41
+mid = -22.45 -2.34 9.96 7.12 3.06 0.71 0.18 0.64 0.60 2.62 2.64 1.65 1.05 -0.91 -3.76 -4.54 -5.10 -4.36 -5.33 -11.30 -21.26
+side = -37.02 -30.80 -25.78 -22.68 -20.64 -21.17 -19.63 -18.01 -15.54 -13.30 -12.58 -11.31 -12.23 -15.56 -19.01 -20.04 -19.76 -17.44 -19.75 -25.92 -37.02
+dyn = 19.49 37.61 43.01 37.09 27.57 19.02 14.35 10.28 9.16 9.39 11.94 12.33 12.03 11.90 11.80 12.38 11.52 10.90 11.41 11.72 16.94
+duree = 209.4
+lufs_court = -33.61 -27.88 -26.20
+micro = 4.31 5.49 5.02 7.08
+correlation = 0.964
+correlation_grave = 0.996
+perte_mono = -0.08
+coups_par_s = 6.08
+brillance = 4791
+crete = -200.00
+ecretage = 0.272
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › east coast]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › east coast
+genres = east coast | Rap & Hip-Hop International (US/UK)
+profil = 5
+lufs = -8.80
+lra = 3.69
+tp = 0.46
+plr = 9.26
+sub = 9.49
+mid = -26.83 -16.89 -3.32 3.84 5.80 8.52 6.18 4.24 1.22 1.99 0.87 -0.51 -1.20 -1.55 -2.06 -3.00 -3.31 -4.17 -8.94 -18.20 -31.26
+side = -40.40 -34.71 -29.76 -26.56 -23.61 -21.31 -22.68 -22.75 -24.29 -22.27 -22.23 -23.44 -23.50 -22.85 -22.67 -24.18 -25.80 -27.81 -30.54 -35.40 -48.48
+dyn = 14.37 16.20 20.69 21.24 16.89 16.03 12.18 9.62 9.35 10.72 11.78 11.98 11.32 11.25 9.65 10.62 10.83 12.85 13.93 13.84 16.54
+duree = 192.1
+lufs_court = -47.35 -44.20 -43.08
+micro = 5.58 5.75 5.81 7.64
+correlation = 0.992
+correlation_grave = 0.994
+perte_mono = -0.02
+coups_par_s = 5.85
+brillance = 3865
+crete = -200.00
+ecretage = 0.079
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › jazz rap]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › jazz rap
+genres = jazz rap | Rap & Hip-Hop International (US/UK)
+profil = 4
+lufs = -9.20
+lra = 7.64
+tp = 0.83
+plr = 10.04
+sub = 13.83
+mid = -18.49 -1.85 9.56 8.91 6.23 4.94 1.81 2.86 1.65 3.13 3.36 0.68 -0.40 -1.87 -3.45 -5.97 -6.95 -5.63 -7.54 -11.61 -18.49
+side = -32.69 -26.27 -21.06 -19.13 -14.32 -11.48 -9.88 -9.45 -8.48 -7.94 -7.87 -9.54 -10.61 -11.63 -12.72 -14.61 -16.87 -18.17 -20.29 -27.31 -36.93
+dyn = 25.12 39.45 42.16 41.10 27.99 20.98 13.02 10.00 9.17 8.68 10.16 11.84 11.48 10.52 10.54 11.90 14.70 13.86 13.23 15.55 16.43
+duree = 274.9
+lufs_court = -32.60 -26.61 -25.00
+micro = 4.56 5.72 5.21 7.64
+correlation = 0.932
+correlation_grave = 0.993
+perte_mono = -0.15
+coups_par_s = 5.51
+brillance = 4562
+crete = -200.00
+ecretage = 0.314
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › opium]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › opium
+genres = opium | Rap & Hip-Hop International (US/UK)
+profil = 3
+lufs = -8.47
+lra = 6.35
+tp = 0.83
+plr = 9.29
+sub = 19.51
+mid = -6.32 12.92 15.47 13.45 8.61 7.50 4.13 2.41 3.18 2.50 -0.07 -1.66 0.28 -1.14 -2.24 -3.26 -2.55 -0.74 -3.77 -9.45 -19.89
+side = -32.09 -26.29 -24.27 -23.44 -23.09 -20.09 -14.54 -9.98 -6.58 -7.59 -9.41 -10.72 -10.38 -11.30 -12.93 -17.23 -18.34 -17.64 -21.77 -27.65 -40.66
+dyn = 25.17 38.45 20.29 25.04 20.92 13.58 8.82 7.05 8.42 8.94 10.13 9.70 12.00 10.74 10.12 12.01 9.90 8.43 9.07 9.89 15.79
+duree = 160.0
+lufs_court = -36.70 -32.20 -30.35
+micro = 1.88 4.67 5.25 7.46
+correlation = 0.968
+correlation_grave = 0.999
+perte_mono = -0.07
+coups_par_s = 6.70
+brillance = 5157
+crete = -200.00
+ecretage = 0.261
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › plugg]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › plugg
+genres = plugg | Rap & Hip-Hop International (US/UK)
+profil = 3
+lufs = -7.11
+lra = 4.91
+tp = 1.40
+plr = 8.51
+sub = 5.45
+mid = -22.09 -5.41 1.17 -1.65 -2.68 -3.74 -2.90 1.03 -0.02 2.07 3.27 2.23 1.48 -1.32 -3.76 -4.99 -6.63 -5.60 -6.81 -12.55 -21.58
+side = -38.05 -32.93 -29.95 -29.02 -25.87 -20.42 -14.54 -10.34 -8.97 -5.83 -4.62 -5.37 -6.28 -8.16 -10.84 -13.01 -15.83 -18.42 -18.85 -25.04 -36.56
+dyn = 22.23 36.17 36.00 30.32 23.78 17.26 10.69 10.87 8.85 8.43 9.90 10.56 9.51 8.39 8.85 10.77 11.56 14.91 19.55 21.57 24.94
+duree = 172.4
+lufs_court = -44.84 -40.83 -39.79
+micro = 3.18 3.71 4.11 7.35
+correlation = 0.922
+correlation_grave = 0.998
+perte_mono = -0.17
+coups_par_s = 4.93
+brillance = 5286
+crete = -200.00
+ecretage = 2.506
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › rage]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › rage
+genres = rage | Rap & Hip-Hop International (US/UK)
+profil = 3
+lufs = -8.47
+lra = 4.81
+tp = 1.03
+plr = 9.49
+sub = 19.45
+mid = -14.06 7.83 18.16 8.85 4.81 4.87 1.43 1.59 0.77 3.32 3.13 1.24 -0.14 -2.41 -3.82 -3.68 -4.01 -1.65 -4.05 -6.87 -10.81
+side = -26.52 -20.91 -15.65 -14.41 -16.02 -13.85 -13.18 -10.65 -8.49 -8.64 -9.40 -10.59 -13.30 -15.55 -18.00 -19.32 -19.97 -20.10 -20.63 -25.26 -31.37
+dyn = 15.45 18.82 9.36 19.03 12.95 10.69 11.92 8.60 7.38 9.53 11.62 11.39 12.25 11.40 10.38 10.75 8.28 7.26 8.14 10.10 9.80
+duree = 126.4
+lufs_court = -79.72 -78.12 -77.42
+micro = 2.80 7.55 4.97 9.09
+correlation = 0.982
+correlation_grave = 0.993
+perte_mono = -0.04
+coups_par_s = 6.03
+brillance = 6928
+crete = -200.00
+ecretage = 0.587
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › rap alternatif]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › rap alternatif
+genres = rap alternatif | Rap & Hip-Hop International (US/UK)
+profil = 4
+lufs = -9.44
+lra = 5.68
+tp = 0.62
+plr = 10.06
+sub = 16.51
+mid = -19.27 -2.56 11.88 11.99 9.60 5.91 3.01 2.09 3.17 2.33 1.94 -0.05 -0.89 -1.43 -2.95 -4.20 -4.69 -5.42 -8.37 -16.10 -25.50
+side = -31.50 -25.93 -21.77 -19.96 -19.54 -18.43 -16.07 -9.15 -6.49 -6.48 -7.59 -9.36 -10.60 -11.14 -12.52 -14.70 -17.61 -18.47 -19.65 -28.44 -45.57
+dyn = 17.00 26.94 29.69 24.52 21.25 15.23 10.41 9.64 7.99 8.33 11.04 12.63 13.58 13.08 12.99 13.63 13.80 12.58 15.01 17.20 15.88
+duree = 221.2
+lufs_court = -80.29 -78.94 -77.91
+micro = 6.08 5.74 5.90 7.92
+correlation = 0.940
+correlation_grave = 0.990
+perte_mono = -0.13
+coups_par_s = 5.47
+brillance = 4182
+crete = -200.00
+ecretage = 0.580
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › rap conscient]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › rap conscient
+genres = rap conscient | Rap & Hip-Hop International (US/UK)
+profil = 3
+lufs = -10.16
+lra = 3.70
+tp = 0.68
+plr = 10.84
+sub = 14.00
+mid = -24.82 -6.94 6.21 6.90 8.90 4.99 2.99 1.35 -0.17 0.19 1.36 1.18 0.89 -0.76 -1.47 -2.56 -3.40 -3.62 -7.28 -13.94 -21.95
+side = -31.77 -22.77 -14.67 -14.96 -11.23 -15.09 -14.11 -13.71 -11.85 -13.38 -9.04 -10.23 -9.26 -11.43 -14.46 -17.49 -18.03 -18.15 -22.06 -28.43 -34.33
+dyn = 15.17 18.33 20.63 24.00 18.71 16.93 16.19 10.56 11.02 10.26 9.57 12.28 12.53 12.17 12.86 11.98 11.93 12.45 13.91 16.66 15.82
+duree = 177.0
+lufs_court = -81.35 -78.68 -78.13
+micro = 4.42 8.60 6.59 9.10
+correlation = 0.972
+correlation_grave = 0.981
+perte_mono = -0.06
+coups_par_s = 6.55
+brillance = 5014
+crete = -200.00
+ecretage = 0.955
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › rap hardcore]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › rap hardcore
+genres = rap hardcore | Rap & Hip-Hop International (US/UK)
+profil = 3
+lufs = -9.48
+lra = 8.26
+tp = 0.54
+plr = 10.03
+sub = 13.99
+mid = -22.95 -6.54 8.57 10.28 7.99 4.68 4.25 1.01 -1.19 1.18 0.98 0.42 0.44 -0.58 -0.74 -1.54 -3.95 -5.19 -8.21 -14.45 -24.70
+side = -33.40 -28.17 -20.91 -19.08 -20.33 -16.92 -10.45 -12.91 -14.64 -14.43 -14.28 -14.32 -13.09 -12.83 -12.75 -13.50 -16.02 -18.70 -20.55 -25.11 -27.67
+dyn = 11.35 13.39 15.48 15.29 15.10 12.23 9.63 7.92 8.95 10.00 10.80 9.85 10.89 12.10 10.89 10.84 9.39 8.47 8.32 8.61 13.04
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › synth-pop]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › synth-pop
+genres = synth-pop | Rap & Hip-Hop International (US/UK)
+profil = 3
+lufs = -7.67
+lra = 4.50
+tp = 1.29
+plr = 8.95
+sub = 12.75
+mid = -20.75 -4.26 4.57 10.18 6.40 5.85 3.14 1.43 3.20 2.13 3.17 0.37 -0.34 -2.09 -3.02 -4.86 -8.25 -7.28 -9.42 -14.68 -21.02
+side = -31.92 -26.69 -21.50 -15.64 -13.45 -11.83 -9.00 -5.14 -3.10 -2.99 -2.14 -4.63 -5.03 -6.68 -8.43 -11.42 -14.07 -15.43 -17.70 -21.15 -27.04
+dyn = 16.06 27.95 30.35 26.96 21.20 12.30 10.77 8.03 8.02 7.21 10.50 11.51 12.10 10.15 10.29 9.15 10.75 12.15 12.27 13.01 17.47
+duree = 238.4
+lufs_court = -34.19 -30.87 -29.77
+micro = 6.28 6.15 5.03 7.66
+correlation = 0.801
+correlation_grave = 0.956
+perte_mono = -0.46
+coups_par_s = 6.44
+brillance = 4346
+crete = -200.00
+ecretage = 0.583
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › trap]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › trap
+genres = trap | Rap & Hip-Hop International (US/UK)
+profil = 17
+lufs = -9.45
+lra = 5.47
+tp = 0.78
+plr = 10.23
+sub = 15.23
+mid = -14.73 5.15 11.32 8.28 4.37 3.20 1.52 0.93 1.63 2.99 2.40 0.59 -0.00 -1.50 -2.85 -4.20 -4.30 -3.27 -6.24 -12.22 -22.30
+side = -33.10 -25.53 -20.82 -19.04 -18.78 -16.88 -13.88 -10.63 -9.15 -6.95 -7.94 -8.58 -10.59 -12.72 -14.68 -16.75 -17.73 -17.29 -20.56 -26.85 -40.04
+dyn = 24.08 38.65 37.75 31.63 23.85 17.75 13.03 8.77 8.77 9.43 10.20 11.27 11.84 12.11 12.89 13.79 11.42 11.03 9.92 10.76 15.65
+duree = 208.3
+lufs_court = -18.37 -14.28 -12.57
+micro = 3.76 5.05 5.32 8.58
+correlation = 0.898
+correlation_grave = 0.963
+perte_mono = -0.24
+coups_par_s = 6.10
+brillance = 4566
+crete = -200.00
+ecretage = 0.263
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › underground]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › underground
+genres = underground | Rap & Hip-Hop International (US/UK)
+profil = 4
+lufs = -10.31
+lra = 10.05
+tp = 0.47
+plr = 10.78
+sub = 19.73
+mid = -11.14 2.68 13.91 14.07 9.13 6.49 4.66 1.39 2.85 3.59 2.34 1.03 0.15 -2.23 -3.97 -5.15 -4.10 -2.51 -6.78 -13.89 -28.95
+side = -27.63 -22.65 -19.17 -15.42 -15.50 -14.05 -11.20 -12.12 -8.94 -5.30 -7.01 -8.75 -11.86 -16.95 -20.27 -20.02 -14.99 -12.15 -16.64 -24.49 -41.96
+dyn = 20.13 16.79 21.33 23.49 19.16 15.67 9.47 8.55 8.13 9.92 11.98 12.70 13.32 15.37 14.09 11.89 11.72 14.92 14.32 13.23 17.54
+duree = 110.4
+lufs_court = -93.19 -81.34 -80.24
+micro = 4.44 5.58 7.65 10.15
+correlation = 0.968
+correlation_grave = 1.000
+perte_mono = -0.07
+coups_par_s = 5.21
+brillance = 4480
+crete = -200.00
+ecretage = 0.001
+
+[Profil OMNIS - Rap & Hip-Hop International (US/UK) › west coast]
+artiste = Profil OMNIS
+titre = Rap & Hip-Hop International (US/UK) › west coast
+genres = west coast | Rap & Hip-Hop International (US/UK)
+profil = 4
+lufs = -9.46
+lra = 2.71
+tp = -0.40
+plr = 9.06
+sub = 14.47
+mid = -15.25 1.60 5.81 8.98 6.88 3.86 1.08 0.10 1.24 2.21 2.44 2.22 0.50 -0.92 -2.84 -4.95 -7.02 -6.41 -7.07 -12.62 -24.76
+side = -27.79 -22.63 -18.88 -15.03 -13.30 -8.13 -7.23 -6.77 -5.60 -5.77 -4.69 -5.03 -6.33 -8.55 -10.52 -11.66 -14.00 -15.84 -19.27 -27.14 -41.33
+dyn = 10.96 16.25 15.22 17.00 10.93 9.41 7.52 7.86 8.63 9.64 11.65 14.29 13.85 12.71 12.77 12.95 13.60 15.81 19.23 20.85 18.28
+duree = 251.4
+lufs_court = -28.39 -26.97 -25.69
+micro = 4.95 5.92 5.77 8.11
+correlation = 0.807
+correlation_grave = 0.970
+perte_mono = -0.46
+coups_par_s = 6.30
+brillance = 4186
+crete = -200.00
+ecretage = 0.295
+
+[Profil OMNIS - Rap Français & New Wave]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave
+genres = rap fr | rap francais | new wave | Rap Français & New Wave
+profil = 246
+lufs = -10.16
+lra = 7.34
+tp = 0.60
+plr = 10.76
+sub = 14.83
+mid = -18.58 0.07 9.32 9.47 6.27 4.83 4.16 3.26 3.52 3.51 2.31 0.53 -0.89 -3.31 -4.16 -4.76 -5.00 -3.33 -4.83 -10.29 -20.32
+side = -31.04 -24.15 -19.26 -16.96 -15.56 -12.59 -9.40 -6.77 -4.97 -4.50 -5.09 -6.82 -8.69 -11.59 -13.71 -15.20 -16.33 -15.94 -17.89 -23.73 -35.76
+dyn = 21.40 34.28 37.04 34.77 27.00 17.91 11.97 9.82 9.06 9.35 11.00 11.66 12.20 12.40 13.11 14.01 14.42 15.39 16.64 17.73 20.25
+duree = 167.8
+lufs_court = -15.96 -10.54 -8.79
+micro = 4.32 5.04 5.52 7.87
+correlation = 0.858
+correlation_grave = 0.959
+perte_mono = -0.33
+coups_par_s = 6.13
+brillance = 4864
+crete = -200.00
+ecretage = 0.276
+
+[Profil OMNIS - Rap Français & New Wave › boom bap fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › boom bap fr
+genres = boom bap fr | Rap Français & New Wave
+profil = 4
+lufs = -9.98
+lra = 7.40
+tp = 0.77
+plr = 10.75
+sub = 13.40
+mid = -19.15 -1.98 7.36 8.45 8.36 6.61 4.66 4.51 3.51 2.95 2.21 0.44 -0.88 -2.82 -4.37 -5.55 -5.66 -5.19 -7.41 -13.40 -20.25
+side = -28.97 -24.67 -18.63 -12.38 -7.39 -6.63 -6.39 -4.66 -5.03 -4.99 -6.10 -8.16 -10.51 -13.36 -15.41 -15.46 -16.56 -16.92 -18.43 -24.41 -31.49
+dyn = 16.44 32.42 36.75 30.28 24.11 19.44 12.69 9.85 10.04 10.37 13.56 14.24 14.63 14.70 15.83 15.44 13.45 12.45 14.57 13.68 20.82
+duree = 206.2
+lufs_court = -39.34 -33.46 -32.02
+micro = 5.52 6.60 6.90 8.69
+correlation = 0.840
+correlation_grave = 0.944
+perte_mono = -0.37
+coups_par_s = 7.19
+brillance = 4232
+crete = -200.00
+ecretage = 0.182
+
+[Profil OMNIS - Rap Français & New Wave › cloud fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › cloud fr
+genres = cloud fr | Rap Français & New Wave
+profil = 6
+lufs = -9.68
+lra = 7.35
+tp = 0.71
+plr = 10.38
+sub = 12.17
+mid = -17.76 2.80 7.88 6.55 4.13 3.53 2.91 2.32 4.23 4.85 2.98 0.44 -1.09 -4.10 -4.70 -4.93 -6.30 -5.12 -6.24 -13.19 -23.41
+side = -32.95 -23.74 -20.60 -21.41 -21.35 -18.56 -13.99 -8.70 -5.88 -5.13 -6.31 -8.10 -9.99 -13.46 -15.38 -15.93 -16.53 -17.20 -19.16 -25.36 -39.58
+dyn = 27.47 42.70 48.91 45.88 37.91 25.48 14.37 9.24 8.85 8.93 11.03 10.93 10.74 11.30 12.94 13.83 13.78 15.20 16.81 18.56 22.14
+duree = 267.4
+lufs_court = -26.83 -21.39 -19.50
+micro = 4.56 5.57 6.04 8.16
+correlation = 0.892
+correlation_grave = 0.994
+perte_mono = -0.24
+coups_par_s = 6.17
+brillance = 4225
+crete = -200.00
+ecretage = 0.228
+
+[Profil OMNIS - Rap Français & New Wave › dark trap]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › dark trap
+genres = dark trap | Rap Français & New Wave
+profil = 3
+lufs = -8.94
+lra = 7.51
+tp = 1.00
+plr = 9.94
+sub = 14.72
+mid = -23.52 -7.17 7.67 11.00 6.55 5.47 1.48 1.52 1.16 0.57 0.79 1.96 0.65 -0.82 -1.81 -4.02 -4.12 -2.34 -3.82 -8.43 -18.06
+side = -34.57 -29.50 -26.32 -24.05 -22.07 -20.09 -14.87 -11.33 -5.61 -9.05 -6.68 -6.25 -7.73 -8.95 -11.26 -12.04 -12.24 -12.00 -14.85 -20.77 -33.29
+dyn = 20.26 31.12 35.77 43.34 35.36 25.14 15.57 8.92 11.24 10.91 10.12 10.18 9.64 8.97 9.42 9.73 7.72 6.77 9.40 10.04 10.67
+duree = 230.3
+lufs_court = -38.03 -32.22 -30.82
+micro = 4.55 5.61 5.75 7.65
+correlation = 0.912
+correlation_grave = 0.998
+perte_mono = -0.20
+coups_par_s = 7.42
+brillance = 5334
+crete = -200.00
+ecretage = 0.268
+
+[Profil OMNIS - Rap Français & New Wave › drill fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › drill fr
+genres = drill fr | Rap Français & New Wave
+profil = 3
+lufs = -10.37
+lra = 7.63
+tp = 0.22
+plr = 10.59
+sub = 15.54
+mid = -16.05 -2.81 10.41 11.29 6.39 5.61 6.85 3.70 4.40 4.59 2.58 1.06 -0.79 -4.56 -4.75 -6.22 -7.89 -6.11 -5.94 -10.21 -20.36
+side = -33.50 -28.38 -25.15 -23.41 -23.02 -19.10 -10.84 -6.85 -7.13 -7.24 -9.36 -9.68 -10.34 -14.02 -14.51 -15.07 -17.29 -16.68 -16.46 -23.33 -39.09
+dyn = 18.15 27.76 30.77 35.45 27.80 16.57 11.06 11.20 9.71 12.28 13.28 13.67 13.95 12.94 15.83 14.99 15.87 19.71 20.34 20.00 24.03
+duree = 144.8
+lufs_court = -39.69 -33.33 -32.07
+micro = 4.56 5.59 6.21 8.68
+correlation = 0.928
+correlation_grave = 0.998
+perte_mono = -0.16
+coups_par_s = 7.59
+brillance = 4712
+crete = -200.00
+ecretage = 0.091
+
+[Profil OMNIS - Rap Français & New Wave › hard clipping]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › hard clipping
+genres = hard clipping | Rap Français & New Wave
+profil = 5
+lufs = -7.32
+lra = 7.58
+tp = 1.02
+plr = 8.33
+sub = 20.81
+mid = -14.12 9.52 18.59 10.83 6.10 6.24 4.07 1.32 2.38 2.78 0.58 1.04 -0.63 -2.80 -2.30 -2.36 -1.30 -0.36 -2.98 -7.91 -17.55
+side = -29.53 -23.75 -19.84 -20.48 -17.67 -13.17 -8.51 -6.47 -6.56 -4.53 -6.59 -6.32 -6.68 -9.87 -11.90 -12.31 -13.49 -13.42 -15.69 -21.13 -32.81
+dyn = 18.12 31.16 17.61 19.80 15.52 8.76 9.98 8.15 10.31 9.97 10.03 10.21 9.83 9.92 10.23 10.85 9.77 7.68 7.87 6.84 7.70
+duree = 142.2
+lufs_court = -27.30 -21.17 -19.91
+micro = 2.43 5.00 6.11 7.72
+correlation = 0.943
+correlation_grave = 0.998
+perte_mono = -0.13
+coups_par_s = 7.50
+brillance = 5463
+crete = -200.00
+ecretage = 2.665
+
+[Profil OMNIS - Rap Français & New Wave › kickeur]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › kickeur
+genres = kickeur | Rap Français & New Wave
+profil = 4
+lufs = -9.23
+lra = 10.83
+tp = 0.86
+plr = 10.10
+sub = 15.74
+mid = -19.11 0.97 10.88 11.03 8.32 6.28 5.43 3.35 1.90 3.50 2.39 1.79 -0.39 -3.10 -4.61 -4.82 -5.85 -5.37 -7.20 -11.74 -22.46
+side = -33.06 -27.29 -23.07 -20.24 -18.02 -14.80 -12.15 -8.27 -6.98 -5.51 -5.85 -6.69 -7.69 -10.26 -12.09 -13.07 -14.45 -12.94 -16.02 -20.34 -31.98
+dyn = 24.44 42.23 48.86 44.29 31.66 20.18 14.29 8.83 7.01 9.30 9.89 11.05 10.04 9.65 8.71 9.70 12.00 10.66 11.02 12.33 15.41
+duree = 201.7
+lufs_court = -34.92 -27.66 -24.18
+micro = 4.16 5.09 5.39 7.74
+correlation = 0.913
+correlation_grave = 0.996
+perte_mono = -0.20
+coups_par_s = 6.69
+brillance = 4314
+crete = -200.00
+ecretage = 0.591
+
+[Profil OMNIS - Rap Français & New Wave › new wave fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › new wave fr
+genres = new wave fr | Rap Français & New Wave
+profil = 54
+lufs = -10.24
+lra = 6.77
+tp = 0.46
+plr = 10.70
+sub = 15.08
+mid = -17.96 1.51 9.37 9.51 6.39 5.06 4.69 3.67 3.59 3.46 2.56 0.41 -1.08 -3.42 -4.26 -4.92 -4.94 -2.91 -4.26 -9.33 -19.30
+side = -30.12 -23.26 -18.77 -16.06 -14.33 -11.51 -8.45 -6.06 -4.69 -3.98 -4.24 -6.29 -8.03 -10.69 -12.68 -14.27 -15.42 -14.69 -16.25 -21.95 -33.78
+dyn = 20.65 33.04 34.31 32.27 24.01 15.51 10.85 9.71 8.76 8.80 10.35 10.83 11.27 11.22 11.97 13.02 13.85 14.87 15.40 16.44 19.43
+duree = 157.6
+lufs_court = -16.52 -11.45 -9.84
+micro = 4.25 4.83 5.27 7.65
+correlation = 0.858
+correlation_grave = 0.960
+perte_mono = -0.33
+coups_par_s = 6.01
+brillance = 5006
+crete = -200.00
+ecretage = 0.233
+
+[Profil OMNIS - Rap Français & New Wave › plugg fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › plugg fr
+genres = plugg fr | Rap Français & New Wave
+profil = 14
+lufs = -8.99
+lra = 8.28
+tp = 1.03
+plr = 10.02
+sub = 16.75
+mid = -17.35 5.55 12.22 9.52 5.97 3.85 2.05 0.16 1.46 2.71 2.48 1.16 0.29 -1.66 -2.86 -3.74 -3.10 -0.30 -2.93 -8.32 -19.90
+side = -31.78 -24.12 -18.76 -17.96 -18.08 -15.30 -12.61 -10.23 -7.54 -6.26 -5.56 -7.77 -9.51 -11.69 -13.43 -15.28 -15.77 -14.46 -17.42 -23.50 -35.89
+dyn = 20.80 36.94 40.69 38.12 29.44 18.30 12.86 11.01 9.32 9.79 11.49 12.71 13.07 13.56 13.23 13.28 12.47 12.96 13.49 15.16 20.56
+duree = 152.4
+lufs_court = -20.92 -14.25 -12.67
+micro = 3.66 5.15 5.36 7.76
+correlation = 0.904
+correlation_grave = 0.972
+perte_mono = -0.22
+coups_par_s = 6.19
+brillance = 5368
+crete = -200.00
+ecretage = 0.492
+
+[Profil OMNIS - Rap Français & New Wave › pluggnb]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › pluggnb
+genres = pluggnb | Rap Français & New Wave
+profil = 3
+lufs = -9.52
+lra = 7.94
+tp = 0.77
+plr = 10.30
+sub = 15.67
+mid = -18.73 -5.46 8.01 12.12 8.10 6.19 7.10 5.32 5.48 4.26 2.31 -0.09 -1.69 -4.48 -5.93 -5.21 -5.47 -3.86 -6.25 -12.64 -22.74
+side = -27.11 -20.04 -10.51 -1.65 -3.38 -2.06 -2.68 0.01 0.24 -1.41 -3.11 -5.07 -7.04 -11.02 -12.84 -13.30 -13.45 -10.01 -10.87 -16.49 -32.14
+dyn = 20.23 28.27 37.30 29.99 21.55 14.35 13.25 9.22 10.67 12.87 13.68 17.17 21.88 28.16 33.15 39.61 45.06 49.05 49.39 44.55 43.66
+duree = 188.2
+lufs_court = -47.37 -44.45 -41.25
+micro = 4.08 4.65 5.21 7.21
+correlation = 0.736
+correlation_grave = 0.825
+perte_mono = -0.62
+coups_par_s = 5.88
+brillance = 3907
+crete = -200.00
+ecretage = 1.055
+
+[Profil OMNIS - Rap Français & New Wave › rage fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › rage fr
+genres = rage fr | Rap Français & New Wave
+profil = 25
+lufs = -9.53
+lra = 7.21
+tp = 0.85
+plr = 10.38
+sub = 16.90
+mid = -16.25 4.64 13.20 10.39 4.78 4.35 3.28 2.42 3.71 3.33 2.09 0.46 -0.71 -2.99 -4.10 -4.21 -3.09 -0.53 -1.48 -6.67 -17.99
+side = -30.53 -24.14 -19.62 -17.30 -16.10 -12.52 -8.75 -6.45 -4.27 -3.62 -3.62 -4.78 -6.24 -9.22 -11.98 -13.63 -13.98 -13.45 -15.08 -21.31 -35.04
+dyn = 21.58 37.17 37.66 32.66 24.02 13.18 9.27 7.91 7.50 7.66 9.47 9.45 9.25 9.09 9.84 10.22 9.23 9.03 9.96 10.88 12.53
+duree = 152.5
+lufs_court = -18.62 -13.10 -11.60
+micro = 3.31 4.82 5.29 7.06
+correlation = 0.894
+correlation_grave = 0.989
+perte_mono = -0.24
+coups_par_s = 6.51
+brillance = 5856
+crete = -200.00
+ecretage = 0.343
+
+[Profil OMNIS - Rap Français & New Wave › rap alternatif]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › rap alternatif
+genres = rap alternatif | Rap Français & New Wave
+profil = 4
+lufs = -7.87
+lra = 6.25
+tp = 0.61
+plr = 8.47
+sub = 14.00
+mid = -23.09 -10.87 5.95 10.52 9.62 7.74 5.39 3.45 4.17 3.80 2.19 0.40 -0.74 -3.48 -4.08 -5.70 -5.79 -5.14 -7.83 -14.60 -23.02
+side = -28.60 -24.72 -15.06 -10.23 -8.06 -7.09 -5.25 -3.78 -3.04 -2.93 -3.09 -3.69 -4.37 -7.50 -10.26 -13.97 -16.71 -16.01 -18.14 -23.86 -35.97
+dyn = 12.66 19.29 22.25 17.87 14.46 10.85 7.54 6.87 8.03 9.36 12.40 14.51 14.82 13.26 12.42 13.16 14.36 16.38 16.36 16.87 20.65
+duree = 193.9
+lufs_court = -47.17 -43.41 -41.34
+micro = 6.04 5.44 5.81 6.62
+correlation = 0.806
+correlation_grave = 0.929
+perte_mono = -0.45
+coups_par_s = 5.66
+brillance = 3864
+crete = -200.00
+ecretage = 0.464
+
+[Profil OMNIS - Rap Français & New Wave › rap conscient]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › rap conscient
+genres = rap conscient | Rap Français & New Wave
+profil = 3
+lufs = -9.39
+lra = 8.48
+tp = 1.26
+plr = 10.64
+sub = 11.22
+mid = -28.84 -15.21 -0.87 9.13 5.28 2.60 1.61 2.42 3.44 2.70 3.33 1.83 -0.07 -3.53 -5.04 -5.08 -5.39 -4.49 -4.41 -11.82 -18.02
+side = -30.42 -24.98 -19.30 -10.79 -7.49 -7.08 -6.10 -4.73 -2.90 -1.99 -1.48 -2.70 -5.76 -9.11 -11.32 -14.17 -14.93 -15.80 -15.46 -24.44 -22.38
+dyn = 14.16 24.82 32.82 33.04 26.03 18.35 12.50 10.70 10.92 9.11 10.90 11.71 11.89 11.97 10.98 13.87 10.62 12.73 15.78 16.62 17.76
+
+[Profil OMNIS - Rap Français & New Wave › rap festif]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › rap festif
+genres = rap festif | Rap Français & New Wave
+profil = 3
+lufs = -8.61
+lra = 7.18
+tp = 1.01
+plr = 9.62
+sub = 9.81
+mid = -18.73 -12.87 -0.07 6.85 4.06 1.89 1.49 1.29 3.01 2.66 1.90 0.79 0.83 -1.74 -3.88 -4.86 -5.82 -5.05 -6.13 -12.47 -24.03
+side = -32.00 -27.66 -23.52 -21.58 -21.40 -19.71 -17.93 -12.15 -8.29 -8.64 -7.63 -9.33 -8.29 -11.42 -14.89 -15.98 -16.91 -18.07 -19.91 -25.22 -37.78
+dyn = 27.11 24.92 33.53 36.96 34.13 28.86 16.95 11.92 10.72 10.61 9.60 11.60 13.05 13.97 12.33 12.87 11.66 13.94 15.57 16.76 19.35
+duree = 185.6
+lufs_court = -86.68 -79.42 -77.53
+micro = 6.17 7.36 5.48 7.53
+correlation = 0.941
+correlation_grave = 0.980
+perte_mono = -0.14
+coups_par_s = 6.54
+brillance = 4405
+crete = -200.00
+ecretage = 0.176
+
+[Profil OMNIS - Rap Français & New Wave › rap hardcore]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › rap hardcore
+genres = rap hardcore | Rap Français & New Wave
+profil = 3
+lufs = -8.72
+lra = 9.62
+tp = 1.32
+plr = 10.05
+sub = 14.28
+mid = -18.63 -2.87 9.83 8.49 4.01 2.54 -0.84 -1.27 1.40 2.47 2.96 1.90 0.49 -1.56 -2.66 -3.72 -4.05 -4.46 -4.22 -8.74 -18.98
+side = -33.31 -25.78 -14.98 -16.20 -14.22 -14.70 -15.55 -11.96 -8.32 -6.70 -7.04 -8.47 -10.64 -10.89 -12.07 -13.39 -14.71 -14.96 -15.83 -21.56 -33.59
+dyn = 17.58 21.26 13.81 18.66 22.07 17.23 14.43 11.68 13.01 11.92 14.63 15.20 14.86 13.87 12.12 13.34 12.65 9.14 7.86 8.96 12.24
+
+[Profil OMNIS - Rap Français & New Wave › rap mélodique]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › rap mélodique
+genres = rap mélodique | Rap Français & New Wave
+profil = 12
+lufs = -10.04
+lra = 8.34
+tp = 0.60
+plr = 10.64
+sub = 16.77
+mid = -16.61 0.46 10.64 11.91 9.09 6.63 4.51 3.57 4.08 3.16 2.02 -0.22 -1.66 -3.75 -3.61 -3.59 -4.93 -3.46 -5.52 -11.39 -21.97
+side = -31.09 -23.66 -18.77 -16.16 -15.31 -11.94 -10.04 -7.31 -4.94 -4.82 -6.39 -8.88 -11.32 -14.36 -15.89 -16.87 -18.32 -18.10 -21.32 -28.65 -40.90
+dyn = 22.21 32.92 37.86 35.43 26.72 17.38 10.78 8.55 9.18 8.85 13.15 12.66 13.22 13.31 14.02 13.90 12.57 12.21 14.92 17.25 22.03
+duree = 170.4
+lufs_court = -24.67 -18.40 -16.19
+micro = 4.20 5.13 6.14 8.70
+correlation = 0.934
+correlation_grave = 0.989
+perte_mono = -0.15
+coups_par_s = 6.31
+brillance = 4712
+crete = -200.00
+ecretage = 0.174
+
+[Profil OMNIS - Rap Français & New Wave › trap fr]
+artiste = Profil OMNIS
+titre = Rap Français & New Wave › trap fr
+genres = trap fr | Rap Français & New Wave
+profil = 10
+lufs = -10.56
+lra = 7.51
+tp = 0.53
+plr = 11.09
+sub = 12.33
+mid = -18.85 -2.76 6.73 7.84 6.21 4.22 4.37 3.82 3.77 4.23 3.00 0.05 -0.90 -4.10 -4.77 -5.09 -5.84 -4.87 -6.58 -12.71 -23.65
+side = -30.49 -20.37 -15.24 -16.84 -16.52 -14.48 -10.38 -8.84 -6.29 -3.74 -4.25 -6.53 -8.48 -11.83 -13.94 -14.64 -15.60 -15.08 -16.48 -22.83 -36.74
+dyn = 22.20 35.15 39.11 38.62 29.64 20.46 15.28 12.00 9.22 9.86 11.31 11.25 11.74 10.61 11.38 13.29 13.31 12.63 13.78 14.66 16.83
+duree = 211.1
+lufs_court = -84.13 -79.87 -78.11
+micro = 5.20 6.57 6.53 8.90
+correlation = 0.572
+correlation_grave = 0.492
+perte_mono = -1.05
+coups_par_s = 8.35
+brillance = 4776
+crete = -200.00
+ecretage = 0.005
+
+[Profil OMNIS - Électro, House & Dance]
+artiste = Profil OMNIS
+titre = Électro, House & Dance
+genres = electro | house | dance | electronique | Électro, House & Dance
+profil = 11
+lufs = -10.93
+lra = 6.39
+tp = 0.07
+plr = 11.01
+sub = 11.35
+mid = -21.98 -8.94 2.75 7.05 5.66 4.49 3.72 2.75 3.15 2.16 2.38 1.09 0.00 -1.82 -4.10 -5.62 -7.49 -7.50 -8.74 -12.64 -22.42
+side = -33.42 -27.24 -19.42 -15.16 -14.15 -11.69 -8.76 -6.35 -3.56 -3.52 -4.04 -5.19 -5.99 -7.17 -9.40 -11.74 -13.89 -14.56 -15.50 -19.53 -31.48
+dyn = 17.93 24.02 26.14 22.14 18.33 13.99 11.90 9.64 9.99 9.72 10.86 11.63 11.45 11.73 11.70 11.67 12.35 14.15 16.28 18.44 24.49
+duree = 215.6
+lufs_court = -22.99 -18.31 -16.64
+micro = 5.45 5.91 4.64 7.03
+correlation = 0.765
+correlation_grave = 0.959
+perte_mono = -0.60
+coups_par_s = 5.64
+brillance = 4506
+crete = -200.00
+ecretage = 1.157
+
+[Profil OMNIS - Rock & Metal]
+artiste = Profil OMNIS
+titre = Rock & Metal
+genres = rock | metal | Rock & Metal
+profil = 10
+lufs = -8.69
+lra = 6.58
+tp = 0.92
+plr = 9.60
+sub = 8.73
+mid = -25.87 -12.96 -1.92 4.12 5.64 4.47 2.48 1.15 -0.13 0.43 0.88 0.76 0.03 0.02 -0.70 -2.44 -4.90 -6.02 -8.23 -13.40 -21.82
+side = -32.21 -26.65 -19.73 -15.21 -10.36 -6.87 -5.48 -5.93 -6.85 -8.04 -8.31 -8.82 -8.54 -8.26 -8.05 -9.42 -12.69 -15.56 -17.28 -21.67 -33.00
+dyn = 12.08 16.58 18.98 16.36 10.98 10.94 7.98 7.54 7.61 9.73 11.31 12.55 12.13 12.99 12.83 12.91 13.89 16.77 18.16 18.79 19.20
+duree = 226.6
+lufs_court = -20.53 -15.53 -13.98
+micro = 6.36 5.26 4.31 6.77
+correlation = 0.771
+correlation_grave = 0.908
+perte_mono = -0.54
+coups_par_s = 4.91
+brillance = 4331
+crete = -200.00
+ecretage = 0.642
+
+[Profil OMNIS - Rock & Metal › nu-metal]
+artiste = Profil OMNIS
+titre = Rock & Metal › nu-metal
+genres = nu-metal | Rock & Metal
+profil = 3
+lufs = -6.35
+lra = 7.87
+tp = 1.59
+plr = 7.94
+sub = 7.35
+mid = -28.68 -18.75 -7.67 2.16 4.83 3.89 1.07 -0.09 -2.07 -1.95 0.67 1.54 1.09 1.03 0.53 -0.75 -4.53 -6.15 -7.62 -11.25 -20.58
+side = -31.33 -27.36 -23.10 -15.03 -8.93 -3.29 -4.29 -5.27 -7.65 -10.53 -7.96 -7.07 -6.26 -5.45 -4.28 -5.77 -10.40 -15.58 -16.17 -19.18 -30.18
+dyn = 8.82 11.68 15.43 11.79 9.73 8.57 7.81 6.11 6.78 9.67 11.83 13.08 11.34 10.65 9.77 8.98 9.61 10.85 10.13 9.95 11.73
+duree = 206.8
+lufs_court = -35.64 -29.55 -27.77
+micro = 5.87 5.33 3.78 5.25
+correlation = 0.706
+correlation_grave = 0.876
+perte_mono = -0.69
+coups_par_s = 4.75
+brillance = 4608
+crete = -200.00
+ecretage = 1.028
+
+[Profil OMNIS - Hyperpop & Expérimental]
+artiste = Profil OMNIS
+titre = Hyperpop & Expérimental
+genres = hyperpop | experimental | Hyperpop & Expérimental
+profil = 12
+lufs = -7.93
+lra = 7.38
+tp = 1.18
+plr = 9.10
+sub = 12.05
+mid = -16.76 0.67 5.32 6.30 4.36 3.08 2.85 1.41 1.51 2.49 2.07 0.76 -0.57 -1.73 -2.44 -3.50 -3.75 -3.53 -5.22 -9.86 -17.54
+side = -26.76 -16.84 -13.03 -12.64 -11.67 -9.18 -7.36 -6.69 -5.11 -4.19 -4.27 -5.36 -6.69 -7.56 -8.75 -9.57 -10.08 -10.95 -12.79 -17.39 -28.15
+dyn = 23.44 36.18 37.50 35.20 28.72 23.03 14.60 10.93 10.02 9.23 9.46 9.43 9.51 9.08 9.74 11.62 13.07 14.20 14.38 14.88 17.78
+duree = 141.3
+lufs_court = -19.39 -13.48 -12.07
+micro = 5.17 5.30 4.27 6.48
+correlation = 0.774
+correlation_grave = 0.916
+perte_mono = -0.53
+coups_par_s = 5.50
+brillance = 5090
+crete = -200.00
+ecretage = 0.973
+
+[Profil OMNIS - Pop, R&B & Indie]
+artiste = Profil OMNIS
+titre = Pop, R&B & Indie
+genres = pop | rnb | indie | Pop, R&B & Indie
+profil = 10
+lufs = -10.85
+lra = 6.17
+tp = -0.01
+plr = 10.84
+sub = 10.19
+mid = -26.48 -12.14 2.04 6.64 5.19 3.81 2.44 1.45 1.82 2.17 2.56 2.12 0.54 -1.34 -3.83 -5.48 -7.31 -8.48 -9.60 -14.91 -23.45
+side = -33.31 -26.31 -19.65 -13.96 -12.84 -12.20 -10.33 -8.61 -6.93 -5.66 -4.94 -5.40 -7.22 -9.18 -11.80 -13.50 -15.52 -16.75 -18.25 -23.97 -34.33
+dyn = 15.10 22.66 29.24 24.91 21.95 16.32 11.13 9.27 8.37 9.43 10.49 11.42 11.20 10.78 11.24 10.88 11.05 11.43 10.86 11.14 12.45
+duree = 208.7
+lufs_court = -23.29 -18.87 -16.97
+micro = 6.48 5.97 4.50 7.54
+correlation = 0.826
+correlation_grave = 0.972
+perte_mono = -0.40
+coups_par_s = 4.94
+brillance = 3894
+crete = -200.00
+ecretage = 0.072
+
+[Profil OMNIS - B.O., Anime & Jeux Vidéo]
+artiste = Profil OMNIS
+titre = B.O., Anime & Jeux Vidéo
+genres = bo | ost | anime | jeux video | bande originale | B.O., Anime & Jeux Vidéo
+profil = 7
+lufs = -13.59
+lra = 8.07
+tp = -0.99
+plr = 12.60
+sub = 7.53
+mid = -24.04 -14.76 -7.08 1.75 3.79 2.18 2.87 4.74 4.86 5.60 4.15 2.09 0.46 -3.01 -7.47 -11.43 -16.34 -20.29 -23.38 -27.02 -27.01
+side = -30.17 -26.20 -23.62 -15.39 -8.97 -6.93 -5.98 -3.52 -1.45 -2.50 -3.55 -5.56 -7.73 -10.77 -14.85 -18.43 -23.08 -26.84 -31.20 -36.93 -38.64
+dyn = 17.25 21.17 22.76 22.00 18.94 13.88 14.22 10.29 10.00 12.85 12.85 12.85 14.42 13.36 12.29 12.46 11.89 11.97 12.09 12.32 12.54
+duree = 196.5
+lufs_court = -30.43 -25.40 -22.84
+micro = 5.70 4.90 4.04 5.74
+correlation = 0.655
+correlation_grave = 0.817
+perte_mono = -0.92
+coups_par_s = 4.67
+brillance = 2800
+crete = -200.00
+ecretage = 0.015
+
+[100 gecs]
+artiste = 100 gecs
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[15.grammes]
+artiste = 15.grammes
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[21 Savage]
+artiste = 21 Savage
+genres = rap us | hip-hop | rap international | dark trap | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[2hollis]
+artiste = 2hollis
+alias = 2 hollis | two hollis
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[2Pac]
+artiste = 2Pac
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[34murphy]
+artiste = 34murphy
+genres = rap fr | rap francais | new wave | hard clipping
+# connu de nom : en attente d'un son pour le mesurer
+
+[404Billy]
+artiste = 404Billy
+genres = rap fr | rap francais | new wave | drill fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[55ASKY]
+artiste = 55ASKY
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[63OG]
+artiste = 63OG
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[6minaprès]
+artiste = 6minaprès
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[7rusk]
+artiste = 7rusk
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[8ruki]
+artiste = 8ruki
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[9lives]
+artiste = 9lives
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[A$AP Rocky]
+artiste = A$AP Rocky
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ab-Soul]
+artiste = Ab-Soul
+genres = rap us | hip-hop | rap international | rap conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Abcrap]
+artiste = Abcrap
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[abel31]
+artiste = abel31
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[Advm]
+artiste = Advm
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[AETHĘR]
+artiste = AETHĘR
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Alexandra Stan]
+artiste = Alexandra Stan
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Alice In Chains]
+artiste = Alice In Chains
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Alkpote]
+artiste = Alkpote
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Alpha Wann]
+artiste = Alpha Wann
+genres = rap fr | rap francais | new wave | boom bap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Aphex Twin]
+artiste = Aphex Twin
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ari Pulkkinen]
+artiste = Ari Pulkkinen
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[A Tribe Called Quest]
+artiste = A Tribe Called Quest
+genres = rap us | hip-hop | rap international | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[baby hayabusa]
+artiste = baby hayabusa
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Baby Keem]
+artiste = Baby Keem
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Base 221]
+artiste = Base 221
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Benjamin Epps]
+artiste = Benjamin Epps
+genres = rap fr | rap francais | new wave | kickeur
+# connu de nom : en attente d'un son pour le mesurer
+
+[BES]
+artiste = BES
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Bktherula]
+artiste = Bktherula
+genres = rap us | hip-hop | rap international | plugg
+# connu de nom : en attente d'un son pour le mesurer
+
+[BONES]
+artiste = BONES
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Booba]
+artiste = Booba
+genres = rap fr | rap francais | new wave | rap hardcore
+# connu de nom : en attente d'un son pour le mesurer
+
+[Bouzbor]
+artiste = Bouzbor
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Boxxy]
+artiste = Boxxy
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Bruno Mars]
+artiste = Bruno Mars
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[BU$HI]
+artiste = BU$HI
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[C418]
+artiste = C418
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[Carbonne]
+artiste = Carbonne
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Carter Burwell]
+artiste = Carter Burwell
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[César]
+artiste = César
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[CesTenS]
+artiste = CesTenS
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Chief Keef]
+artiste = Chief Keef
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Childish Gambino]
+artiste = Childish Gambino
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Cikey]
+artiste = Cikey
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Common]
+artiste = Common
+genres = rap us | hip-hop | rap international | rap conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Daft Punk]
+artiste = Daft Punk
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Damso]
+artiste = Damso
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[DDG]
+artiste = DDG
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[De La Soul]
+artiste = De La Soul
+genres = rap us | hip-hop | rap international | east coast
+# connu de nom : en attente d'un son pour le mesurer
+
+[Denzel Curry]
+artiste = Denzel Curry
+genres = rap us | hip-hop | rap international | rap hardcore
+# connu de nom : en attente d'un son pour le mesurer
+
+[Destroy Lonely]
+artiste = Destroy Lonely
+genres = rap us | hip-hop | rap international | opium
+# connu de nom : en attente d'un son pour le mesurer
+
+[Dinos]
+artiste = Dinos
+genres = rap fr | rap francais | new wave | rap conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Disiz]
+artiste = Disiz
+genres = rap fr | rap francais | new wave | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[DJ Hamida]
+artiste = DJ Hamida
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[DJ Muggs]
+artiste = DJ Muggs
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Dom Corleo]
+artiste = Dom Corleo
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Dr. Dre]
+artiste = Dr. Dre
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Drake]
+artiste = Drake
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Dreamville]
+artiste = Dreamville
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Earth, Wind & Fire]
+artiste = Earth, Wind & Fire
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Emile]
+artiste = Emile
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Eminem]
+artiste = Eminem
+genres = rap us | hip-hop | rap international | rap hardcore
+# connu de nom : en attente d'un son pour le mesurer
+
+[Empty7]
+artiste = Empty7
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ethereal]
+artiste = Ethereal
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[euhZ]
+artiste = euhZ
+genres = rap fr | rap francais | new wave | rage fr | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Famous Freaky]
+artiste = Famous Freaky
+genres = rap us | hip-hop | rap international | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[Frank Ocean]
+artiste = Frank Ocean
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Freeze corleone]
+artiste = Freeze corleone
+genres = rap fr | rap francais | new wave | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Future]
+artiste = Future
+genres = rap us | hip-hop | rap international | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[GADBOY]
+artiste = GADBOY
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gambi]
+artiste = Gambi
+genres = rap fr | rap francais | new wave | rap festif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gazo]
+artiste = Gazo
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Geek Music]
+artiste = Geek Music
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gemen]
+artiste = Gemen
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gesaffelstein]
+artiste = Gesaffelstein
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ghostface Killah]
+artiste = Ghostface Killah
+genres = rap us | hip-hop | rap international | east coast
+# connu de nom : en attente d'un son pour le mesurer
+
+[Glokk40Spaz]
+artiste = Glokk40Spaz
+genres = rap us | hip-hop | rap international | rage
+# connu de nom : en attente d'un son pour le mesurer
+
+[Grace Grace]
+artiste = Grace Grace
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Green Montana]
+artiste = Green Montana
+genres = rap fr | rap francais | new wave | rap mélodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[GRY]
+artiste = GRY
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Gucci Mane]
+artiste = Gucci Mane
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Guydelafonsdal]
+artiste = Guydelafonsdal
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Hades 972]
+artiste = Hades 972
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Haiko]
+artiste = Haiko
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Hamza]
+artiste = Hamza
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Haybabe]
+artiste = Haybabe
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Haycci]
+artiste = Haycci
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Headband Andy]
+artiste = Headband Andy
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Heuss L'enfoiré]
+artiste = Heuss L'enfoiré
+genres = rap fr | rap francais | new wave | rap festif
+# connu de nom : en attente d'un son pour le mesurer
+
+[H JeuneCrack]
+artiste = H JeuneCrack
+genres = rap fr | rap francais | new wave | trap fr | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Hologram Lo']
+artiste = Hologram Lo'
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Homixide Gang]
+artiste = Homixide Gang
+genres = rap us | hip-hop | rap international | opium
+# connu de nom : en attente d'un son pour le mesurer
+
+[Hotel Blue]
+artiste = Hotel Blue
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[HOUDI]
+artiste = HOUDI
+genres = rap fr | rap francais | new wave | plugg fr | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Hugo TSR]
+artiste = Hugo TSR
+genres = rap fr | rap francais | new wave | boom bap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Huntrill]
+artiste = Huntrill
+genres = rap fr | rap francais | new wave | hard clipping
+# connu de nom : en attente d'un son pour le mesurer
+
+[HXG]
+artiste = HXG
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[ICYTWAT]
+artiste = ICYTWAT
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ikaz Boi]
+artiste = Ikaz Boi
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Infinit']
+artiste = Infinit'
+genres = rap fr | rap francais | new wave | kickeur
+# connu de nom : en attente d'un son pour le mesurer
+
+[Isaiah Rashad]
+artiste = Isaiah Rashad
+genres = rap us | hip-hop | rap international | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Izumø]
+artiste = Izumø
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[J9ueve]
+artiste = J9ueve
+genres = rap fr | rap francais | new wave | rap mélodique | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jace!]
+artiste = Jace!
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[jahhde]
+artiste = jahhde
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jamiroquai]
+artiste = Jamiroquai
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[JAY-Z]
+artiste = JAY-Z
+genres = rap us | hip-hop | rap international | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[J Dilla]
+artiste = J Dilla
+genres = rap us | hip-hop | rap international | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jean-Michel Jarre]
+artiste = Jean-Michel Jarre
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jeeno]
+artiste = Jeeno
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jeune CN]
+artiste = Jeune CN
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jeune Lion]
+artiste = Jeune Lion
+genres = rap fr | rap francais | new wave | rap mélodique | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jeunesaint]
+artiste = Jeunesaint
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jewel Usain]
+artiste = Jewel Usain
+genres = rap fr | rap francais | new wave | rap mélodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[JID]
+artiste = JID
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[JJ ODB]
+artiste = JJ ODB
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[joaqm]
+artiste = joaqm
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jody]
+artiste = Jody
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Joey Bada$$]
+artiste = Joey Bada$$
+genres = rap us | hip-hop | rap international | east coast
+# connu de nom : en attente d'un son pour le mesurer
+
+[Joga]
+artiste = Joga
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Joji]
+artiste = Joji
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jolagreen23]
+artiste = Jolagreen23
+genres = rap fr | rap francais | new wave | rage fr | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Josman]
+artiste = Josman
+genres = rap fr | rap francais | new wave | cloud fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[JPEGMAFIA]
+artiste = JPEGMAFIA
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[JUL]
+artiste = JUL
+genres = rap fr | rap francais | new wave | rap festif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Justice]
+artiste = Justice
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Jxsh]
+artiste = Jxsh
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kaaris]
+artiste = Kaaris
+genres = rap fr | rap francais | new wave | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Karma]
+artiste = Karma
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Katy Perry]
+artiste = Katy Perry
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kekra]
+artiste = Kekra
+genres = rap fr | rap francais | new wave | cloud fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ken Carson]
+artiste = Ken Carson
+genres = rap us | hip-hop | rap international | opium
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kendrick Lamar]
+artiste = Kendrick Lamar
+genres = rap us | hip-hop | rap international | west coast | jazz rap | rap conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kenny Mason]
+artiste = Kenny Mason
+genres = rap us | hip-hop | rap international | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kerchak]
+artiste = Kerchak
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kery James]
+artiste = Kery James
+genres = rap fr | rap francais | new wave | rap conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Khali]
+artiste = Khali
+genres = rap fr | rap francais | new wave | new wave fr | plugg fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Kid Cudi]
+artiste = Kid Cudi
+genres = rap us | hip-hop | rap international | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Klaas]
+artiste = Klaas
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Klem Schen]
+artiste = Klem Schen
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Knock2]
+artiste = Knock2
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Koba LaD]
+artiste = Koba LaD
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[kurffew]
+artiste = kurffew
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[KYSLINGO]
+artiste = KYSLINGO
+genres = rap us | hip-hop | rap international | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lacrim]
+artiste = Lacrim
+genres = rap fr | rap francais | new wave | rap hardcore
+# connu de nom : en attente d'un son pour le mesurer
+
+[La Fève]
+artiste = La Fève
+genres = rap fr | rap francais | new wave | rage fr | plugg fr | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[La Fouine]
+artiste = La Fouine
+genres = rap fr | rap francais | new wave | rap hardcore
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lamo]
+artiste = Lamo
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Laylow]
+artiste = Laylow
+genres = rap fr | rap francais | new wave | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lazer Dim 700]
+artiste = Lazer Dim 700
+genres = rap us | hip-hop | rap international | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[LEDOUBLE]
+artiste = LEDOUBLE
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Leema]
+artiste = Leema
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lesram]
+artiste = Lesram
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lester]
+artiste = Lester
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Leto]
+artiste = Leto
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lil B]
+artiste = Lil B
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lil Pump]
+artiste = Lil Pump
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lil Purpx]
+artiste = Lil Purpx
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lil Wayne]
+artiste = Lil Wayne
+genres = rap us | hip-hop | rap international | dirty south
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lil Yachty]
+artiste = Lil Yachty
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lomepal]
+artiste = Lomepal
+genres = rap fr | rap francais | new wave | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[Loonzii]
+artiste = Loonzii
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Loptik]
+artiste = Loptik
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lucboy]
+artiste = Lucboy
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Luccv]
+artiste = Luccv
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[LUCKI]
+artiste = LUCKI
+genres = rap us | hip-hop | rap international | underground
+# connu de nom : en attente d'un son pour le mesurer
+
+[lucky]
+artiste = lucky
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Luidji]
+artiste = Luidji
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Luther]
+artiste = Luther
+genres = rap fr | rap francais | new wave | pluggnb | rap mélodique | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Luv Resval]
+artiste = Luv Resval
+genres = rap fr | rap francais | new wave | cloud fr | rap mélodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lyele]
+artiste = Lyele
+genres = rap fr | rap francais | new wave | plugg fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lyonzon]
+artiste = Lyonzon
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Lyre]
+artiste = Lyre
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mac DeMarco]
+artiste = Mac DeMarco
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mac Miller]
+artiste = Mac Miller
+genres = rap us | hip-hop | rap international | jazz rap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Madvillain]
+artiste = Madvillain
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Maes]
+artiste = Maes
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mairo]
+artiste = Mairo
+genres = rap fr | rap francais | new wave | kickeur
+# connu de nom : en attente d'un son pour le mesurer
+
+[Malo]
+artiste = Malo
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Max DLG]
+artiste = Max DLG
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Medine]
+artiste = Medine
+genres = rap fr | rap francais | new wave | rap conscient
+# connu de nom : en attente d'un son pour le mesurer
+
+[Meek Mill]
+artiste = Meek Mill
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Meel B]
+artiste = Meel B
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[menace Santana]
+artiste = menace Santana
+genres = rap fr | rap francais | new wave | rage fr | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metallica]
+artiste = Metallica
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Metro Boomin]
+artiste = Metro Boomin
+genres = rap us | hip-hop | rap international | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[MF DOOM]
+artiste = MF DOOM
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Migos]
+artiste = Migos
+genres = rap us | hip-hop | rap international | dirty south
+# connu de nom : en attente d'un son pour le mesurer
+
+[Miguel]
+artiste = Miguel
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[MISCHA]
+artiste = MISCHA
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mobb Deep]
+artiste = Mobb Deep
+genres = rap us | hip-hop | rap international | rap hardcore
+# connu de nom : en attente d'un son pour le mesurer
+
+[Moji x Sboy]
+artiste = Moji x Sboy
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mora]
+artiste = Mora
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[morphée.]
+artiste = morphée.
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mos Def]
+artiste = Mos Def
+genres = rap us | hip-hop | rap international | east coast
+# connu de nom : en attente d'un son pour le mesurer
+
+[Muse]
+artiste = Muse
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Mustard]
+artiste = Mustard
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Naps]
+artiste = Naps
+genres = rap fr | rap francais | new wave | trap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nas]
+artiste = Nas
+genres = rap us | hip-hop | rap international | east coast
+# connu de nom : en attente d'un son pour le mesurer
+
+[nash]
+artiste = nash
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[nate sib]
+artiste = nate sib
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[NAV]
+artiste = NAV
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nekfeu]
+artiste = Nekfeu
+genres = rap fr | rap francais | new wave | rap mélodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Népal]
+artiste = Népal
+genres = rap fr | rap francais | new wave | boom bap fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[NeS]
+artiste = NeS
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nettspend]
+artiste = Nettspend
+genres = rap us | hip-hop | rap international | rage | plugg
+# connu de nom : en attente d'un son pour le mesurer
+
+[NOLWIN]
+artiste = NOLWIN
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Nosky]
+artiste = Nosky
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[OENN]
+artiste = OENN
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Omyll]
+artiste = Omyll
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Opgekonkerd]
+artiste = Opgekonkerd
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Osirus Jack]
+artiste = Osirus Jack
+genres = rap fr | rap francais | new wave | drill fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pharrell Williams]
+artiste = Pharrell Williams
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pilar]
+artiste = Pilar
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[PinkPantheress]
+artiste = PinkPantheress
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Playboi Carti]
+artiste = Playboi Carti
+genres = rap us | hip-hop | rap international | plugg
+# connu de nom : en attente d'un son pour le mesurer
+
+[poissonchat]
+artiste = poissonchat
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pop Smoke]
+artiste = Pop Smoke
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Post Malone]
+artiste = Post Malone
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Prince Waly]
+artiste = Prince Waly
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ptite Soeur]
+artiste = Ptite Soeur
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[Pxrselow]
+artiste = Pxrselow
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rae Sremmurd]
+artiste = Rae Sremmurd
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rage Against The Machine]
+artiste = Rage Against The Machine
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[RAMA]
+artiste = RAMA
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ratu$]
+artiste = Ratu$
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rei Afaa]
+artiste = Rei Afaa
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rich Amiri]
+artiste = Rich Amiri
+genres = rap us | hip-hop | rap international | rage
+# connu de nom : en attente d'un son pour le mesurer
+
+[Robin Thicke]
+artiste = Robin Thicke
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Roland Cristal]
+artiste = Roland Cristal
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Roshi]
+artiste = Roshi
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rounhaa]
+artiste = Rounhaa
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Rx Papi]
+artiste = Rx Papi
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[S.KEY.S]
+artiste = S.KEY.S
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Saboteur]
+artiste = Saboteur
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Saïf]
+artiste = Saïf
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Samara Cyn]
+artiste = Samara Cyn
+genres = rap us | hip-hop | rap international | rap alternatif
+# connu de nom : en attente d'un son pour le mesurer
+
+[ScHoolboy Q]
+artiste = ScHoolboy Q
+genres = rap us | hip-hop | rap international | west coast
+# connu de nom : en attente d'un son pour le mesurer
+
+[Sed]
+artiste = Sed
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Seth Sad]
+artiste = Seth Sad
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Sheck Wes]
+artiste = Sheck Wes
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[SheyKo]
+artiste = SheyKo
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Shiro SAGISU]
+artiste = Shiro SAGISU
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[Siji]
+artiste = Siji
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[SLAYR]
+artiste = SLAYR
+alias = slayer
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[snorunt]
+artiste = snorunt
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[SoulChef]
+artiste = SoulChef
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Spider ZED]
+artiste = Spider ZED
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Starjunk 95]
+artiste = Starjunk 95
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Steve Lacy]
+artiste = Steve Lacy
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Suprême NTM]
+artiste = Suprême NTM
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Swae Lee]
+artiste = Swae Lee
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[System Of A Down]
+artiste = System Of A Down
+genres = rock | metal | nu-metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Takeoff]
+artiste = Takeoff
+genres = rap us | hip-hop | rap international | dirty south
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tame Impala]
+artiste = Tame Impala
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tarik Azzouz]
+artiste = Tarik Azzouz
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[TH]
+artiste = TH
+genres = rap fr | rap francais | new wave | drill fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[thaHomey]
+artiste = thaHomey
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[THBW]
+artiste = THBW
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[The Weeknd]
+artiste = The Weeknd
+genres = rap us | hip-hop | rap international | synth-pop
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tijo]
+artiste = Tijo
+genres = rap fr | rap francais | new wave | rage fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tim Kta]
+artiste = Tim Kta
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[TKKF]
+artiste = TKKF
+genres = hyperpop | experimental
+# connu de nom : en attente d'un son pour le mesurer
+
+[tn_490]
+artiste = tn_490
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Toby Fox]
+artiste = Toby Fox
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[Toly]
+artiste = Toly
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Travis Scott]
+artiste = Travis Scott
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Trippie Redd]
+artiste = Trippie Redd
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tsune]
+artiste = Tsune
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tydi S]
+artiste = Tydi S
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tyla]
+artiste = Tyla
+genres = pop | rnb | indie
+# connu de nom : en attente d'un son pour le mesurer
+
+[Tyler, The Creator]
+artiste = Tyler, The Creator
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Unfamouslouie]
+artiste = Unfamouslouie
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Vald]
+artiste = Vald
+genres = rap fr | rap francais | new wave | kickeur
+# connu de nom : en attente d'un son pour le mesurer
+
+[Video Game Players]
+artiste = Video Game Players
+genres = bo | ost | anime | jeux video | bande originale
+# connu de nom : en attente d'un son pour le mesurer
+
+[Vilhelm.]
+artiste = Vilhelm.
+genres = electro | house | dance | electronique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Wall.E]
+artiste = Wall.E
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Westside Gunn]
+artiste = Westside Gunn
+genres = rap us | hip-hop | rap international
+# connu de nom : en attente d'un son pour le mesurer
+
+[Willyod]
+artiste = Willyod
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Wu-Tang Clan]
+artiste = Wu-Tang Clan
+genres = rap us | hip-hop | rap international | boom bap
+# connu de nom : en attente d'un son pour le mesurer
+
+[X.I]
+artiste = X.I
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[XXXTENTACION]
+artiste = XXXTENTACION
+genres = rock | metal
+# connu de nom : en attente d'un son pour le mesurer
+
+[Yeat]
+artiste = Yeat
+genres = rap us | hip-hop | rap international | trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[YH 261]
+artiste = YH 261
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Young Nudy]
+artiste = Young Nudy
+genres = rap us | hip-hop | rap international | dirty south
+# connu de nom : en attente d'un son pour le mesurer
+
+[YUZMV]
+artiste = YUZMV
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Yvnnis]
+artiste = Yvnnis
+genres = rap fr | rap francais | new wave | new wave fr | rage fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Zepo]
+artiste = Zepo
+genres = rap fr | rap francais | new wave
+# connu de nom : en attente d'un son pour le mesurer
+
+[Zeu]
+artiste = Zeu
+genres = rap fr | rap francais | new wave | new wave fr
+# connu de nom : en attente d'un son pour le mesurer
+
+[Ziak]
+artiste = Ziak
+genres = rap fr | rap francais | new wave | dark trap
+# connu de nom : en attente d'un son pour le mesurer
+
+[Zola]
+artiste = Zola
+genres = rap fr | rap francais | new wave | rap mélodique
+# connu de nom : en attente d'un son pour le mesurer
+
+[Zuukou mayzie]
+artiste = Zuukou mayzie
+genres = rap fr | rap francais | new wave | cloud fr
+# connu de nom : en attente d'un son pour le mesurer

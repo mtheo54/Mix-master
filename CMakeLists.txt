@@ -53,7 +53,7 @@ include(cmake/OmnisEmbedData.cmake)
 omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     lexicon=${CMAKE_SOURCE_DIR}/data/lexique_fr.txt
     slang=${CMAKE_SOURCE_DIR}/data/argot.txt
-    references=${CMAKE_SOURCE_DIR}/data/references.txt
+    references=${CMAKE_SOURCE_DIR}/data/profils_genres.txt
     catalogue=${CMAKE_SOURCE_DIR}/data/catalogue.txt
     elements=${CMAKE_SOURCE_DIR}/data/elements.txt
     i18n=${CMAKE_SOURCE_DIR}/data/i18n_en.txt
@@ -89,6 +89,8 @@ add_library(omnis_core STATIC
     source/ai/DynamicsIntent.h
     source/ai/EmbeddedData.h
     source/ai/Feedback.cpp
+    source/ai/GenreProfiles.cpp
+    source/ai/GenreProfiles.h
     source/ai/Feedback.h
     source/ai/Lexicon.cpp
     source/ai/Lexicon.h
@@ -333,6 +335,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestListenSim.cpp
         tests/TestMixDiagnosis.cpp
         tests/TestReferenceDynamics.cpp
+        tests/TestGenreProfiles.cpp
         tests/TestI18n.cpp
         tests/TestWav.cpp
     )

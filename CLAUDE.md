@@ -11,6 +11,7 @@ textes d'interface en français.
    seulement les fichiers et les plages de lignes utiles (`sed -n a,bp`, `grep -n`).
    Après avoir ajouté / renommé des fichiers : `python3 tools/codemap/codemap.py`.
 2. **Ne jamais lire en entier** : `data/catalogue.txt` (17 000 lignes), `data/references.txt`,
+   `data/profils_genres.txt`,
    `data/discographies/**` (dont `titres.tsv.gz`), `third_party/`, `build*/`. Utiliser `grep`.
 3. Sorties longues : `ninja … 2>&1 | grep -E "error|warning" -A3`,
    `omnis_tests 2>&1 | grep -E "FAIL|ECHEC|echec\(s\)"`, `tail`.
@@ -59,6 +60,10 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
 - `source/analysis/` : sonie BS.1770, true peak, signature spectrale, descripteurs musicaux.
 - `source/ai/` : lexique (`data/lexique_fr.txt`), compréhension des demandes, références,
   actions console (`ConsoleActions`), apprentissage.
+- **Base livrée = profils de genre seulement** (`data/profils_genres.txt`, généré par
+  `omnis_refdb profils data/references.txt --sortie data/profils_genres.txt`, `ai/GenreProfiles`) :
+  aucune fiche de titre dans le plug-in. `data/references.txt` = mesures brutes par titre (source,
+  non intégrée) ; après l'avoir modifiée, régénérer les profils.
 - `source/params/` : tous les paramètres (`Parameters.cpp`, ids stables).
 - `source/plugin/vst3/` : processeur, contrôleur (`ask()` : barre IA, `/fbi` mode promo,
   « remets tout à zéro »), éditeur VSTGUI (`OmnisEditor.cpp`).

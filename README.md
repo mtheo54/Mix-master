@@ -207,7 +207,9 @@ l'étape suivante. Elle se calibrera sur de vrais stems.
   direction (« fire », « chanmé ») sont retirés au lieu d'être pris pour des mots inconnus.
 - **Sujet et niveau** : « la 808 est trop forte » baisse la 808 sans toucher la sonie du master ;
   « the vocals are too quiet » monte la voix ; « la basse et le kick sont trop forts » baisse les deux.
-- **Base de références** (`data/references.txt`) : signatures mesurées, jamais d'audio. Recherche
+- **Base de références** : le plug-in livre seulement des **profils de genre** (`data/profils_genres.txt`,
+  moyennes d'au moins 3 titres par famille et sous-genre, aucune fiche de titre), calculés par
+  `omnis_refdb profils` depuis les mesures brutes `data/references.txt`. Jamais d'audio. Recherche
   par titre, artiste, alias ou genre. Un artiste **connu de nom** utilise le profil de ses genres
   en attendant un son ; s'il est **inconnu**, le plug-in demande un artiste proche ou un son, et
   ajoute ce son à la base. Lecture WAV, MP3 et FLAC, en local.
@@ -353,7 +355,8 @@ source/
   stages/     étages de la chaîne (Sub Control, Match EQ, Multibande, Clipper, Limiteur + noyaux FIR)
   ai/         compréhension de la demande (fautes, lexique), base de références, intention
               d'adaptation, apprentissage (précurseur du module 5)
-data/         lexique_fr.txt, argot.txt, references.txt, catalogue.txt (compilés dans le plug-in, éditables),
+data/         lexique_fr.txt, argot.txt, profils_genres.txt, catalogue.txt (compilés dans le plug-in, éditables ;
+              references.txt = mesures brutes, source des profils, non compilée),
               genres_classement.txt (familles de playlists -> mots de genre)
 third_party/  dr_libs (décodeurs MP3 / FLAC, domaine public)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
