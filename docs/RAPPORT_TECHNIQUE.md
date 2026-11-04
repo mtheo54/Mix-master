@@ -69,8 +69,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 | Latence, mode Qualité max | 33 812 éch. à 44,1 kHz (767 ms) · 34 104 à 48 kHz (710 ms) · 68 168 à 96 kHz (710 ms) |
 | Latence, mode Travail | 4 230 éch. à 44,1 kHz (96 ms) · 4 312 à 48 kHz (90 ms) · 6 408 à 96 kHz (67 ms) |
 | CPU (rendu hors ligne, 48 kHz, 1 cœur, E/S WAV comprises) | 12,6 % au repos · 15,6 % tous étages actifs · 1,3 % tous éteints |
-| Base de références livrée | 91 titres mesurés (`data/references.txt`, ~0,5 Ko / titre) |
-| Base perso de l'utilisateur | 338 titres (hors dépôt, `C:\OMNIS_mesure\references_utilisateur.txt`) |
+| Base de références livrée | 426 titres mesurés (`data/references.txt`, ~0,5 Ko / titre) : les 91 d'origine + la base perso de l'utilisateur fusionnée le 04/11 (335 nouveaux, 3 remesurés) |
 | Catalogue (noms, alias, Deezer) | 17 324 lignes (`data/catalogue.txt`) |
 | Sous-genres | ~440 artistes classés, 180+ sous-genres distincts (`data/styles_artistes.txt`) |
 | Traduction anglaise | 424 lignes (`data/i18n_en.txt`) |
@@ -801,7 +800,7 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 
 | Fichier | Contenu | Embarqué |
 |---|---|---|
-| `references.txt` | 91 signatures mesurées : LUFS, LRA, TP, PLR, sub, Mid / Side / dynamique sur 21 nœuds, fiche musicale, durée | oui |
+| `references.txt` | 426 signatures mesurées : LUFS, LRA, TP, PLR, sub, Mid / Side / dynamique sur 21 nœuds, fiche musicale, durée | oui |
 | `catalogue.txt` | artistes, alias (laf, b2o / kopp…), titres, ids Deezer | oui |
 | `genres_classement.txt` | les familles de l'utilisateur → mots de genre | oui |
 | `styles_artistes.txt` | artiste → sous-genres précis (~440 artistes) | oui |
@@ -965,8 +964,9 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 - **Base livrée** : depuis le 04/11, la notice dit la vérité. Les mesures viennent de fichiers
   téléchargés (YouTube et autres) sans licence ni autorisation des ayants droit. Aucun audio n'est
   gardé, seulement des nombres.
-- **Base perso** : 338 titres mesurés de la même façon, sur le PC de l'utilisateur. **Elle n'est pas
-  fusionnée** dans la base livrée sans son accord.
+- **Base perso** : 338 titres mesurés de la même façon, **fusionnés dans la base livrée le 04/11**
+  avec l'accord explicite de l'utilisateur (426 titres livrés). Liste complète :
+  `docs/references_utilisees.csv`.
 - **Risque** (ce n'est pas un avis juridique) : la notice protège de la fausse déclaration, pas de
   l'origine des fichiers. Avant la vente, la voie propre est de remesurer la base livrée sur des
   fichiers achetés, puis de corriger la notice. La question est à poser à un juriste.

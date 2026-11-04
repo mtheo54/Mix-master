@@ -215,7 +215,7 @@ sa ligne « pompe ». La base livrée (`data/references.txt`) se remesure de la 
 
 ## État de la base (30/10)
 
-91 titres ; **2 avec la fiche complète** (2hollis – poster boy, SLAYR – Sloppy Joe : leur audio
+**04/11/2026 : 426 titres** (base perso de 338 titres fusionnée ; liste : `docs/references_utilisees.csv`). Avant : 91 titres ; **2 avec la fiche complète** (2hollis – poster boy, SLAYR – Sloppy Joe : leur audio
 était disponible ici). Les 89 autres attendent d'être re-mesurés depuis l'audio.
 Vérifié sur des fichiers dont le tempo est dans le nom : 135, 118 et 142 BPM retrouvés exactement.
 

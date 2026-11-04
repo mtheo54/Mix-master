@@ -528,6 +528,15 @@ std::vector<std::pair<std::string, std::vector<std::string>>> families() {
             if (auto t = trim(word); !t.empty()) words.push_back(t);
         if (!words.empty()) out.emplace_back(trim(line.substr(0, arrow)), words);
     }
+    // Un mot de plusieurs familles (« rap » : rap fr ET rap us) ne les distingue pas :
+    // il mettrait tout le rap dans les deux. Le filtre ne garde que les mots propres
+    // à une famille (les genres de la fiche, eux, gardent « rap » pour la barre IA).
+    std::map<std::string, int> uses;
+    for (const auto& [name, words] : out)
+        for (const auto& w : words) ++uses[ai::normalizeText(w)];
+    for (auto& [name, words] : out)
+        if (std::any_of(words.begin(), words.end(), [&](const std::string& w) { return uses[ai::normalizeText(w)] == 1; }))
+            std::erase_if(words, [&](const std::string& w) { return uses[ai::normalizeText(w)] > 1; });
     return out;
 }
 bool inFamily(const ai::ReferenceEntry& e, const std::vector<std::string>& words) {

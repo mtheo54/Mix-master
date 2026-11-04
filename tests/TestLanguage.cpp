@@ -249,10 +249,12 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     OMNIS_CHECK(a.request.protectedRegions[0]);
     // « fein de travis scott » -> le titre FE!N.
     OMNIS_CHECK(said(ask("un son comme fein de travis scott")).find("FE!N") != std::string::npos);
-    // « ken carsonn » : l'artiste (pas « carton », pas « Ken Carson - Pots »).
+    // « ken carsonn » : l'artiste (pas « carton », pas un seul de ses titres) ;
+    // ses sons sont mesurés depuis la fusion de la base (04/11).
     const auto k = ask("genre ken carsonn mais propre");
     OMNIS_CHECK(hitOf(k.interpretation, "carton") == nullptr);
-    OMNIS_CHECK(said(k).find("Ken Carson de nom") != std::string::npos);
+    OMNIS_CHECK(k.referenceName.find("artiste Ken Carson") != std::string::npos);
+    for (const auto* e : k.referenceEntries) OMNIS_CHECK(e->artist == "Ken Carson" && e->measured);
     // Prénom seul (« kanye ») ; genre en deux mots (« uk bass »).
     const std::string ks = said(ask("un son comme black skinhead de kanye"));
     OMNIS_CHECK(ks.find("quannnic") == std::string::npos);
@@ -266,7 +268,9 @@ OMNIS_TEST("catalogue livré: artistes et titres reconnus sans faux amis, répon
     const auto i = ask("intro un peu plus large");
     OMNIS_CHECK(!i.hasReference() && !i.question.has_value());
     // Genre sans aucun son écouté : on le dit ; genre écouté : on y va.
-    OMNIS_CHECK(ask("trop brillant, genre rock").question.value_or("").find("aucun son rock") != std::string::npos);
+    OMNIS_CHECK(ask("trop brillant, genre phonk").question.value_or("").find("aucun son phonk") != std::string::npos);
+    const auto rock = ask("trop brillant, genre rock"); // mesuré depuis la fusion (04/11)
+    OMNIS_CHECK(!rock.question.has_value() && !rock.referenceEntries.empty());
     const auto fr = ask("trop brillant, genre rap fr");
     OMNIS_CHECK(!fr.question.has_value() && fr.referenceEntries.size() >= 20);
     const auto h = ask("un son hyperpop crispy");

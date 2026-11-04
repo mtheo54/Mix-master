@@ -10,8 +10,10 @@
   - **Base livrée** (`data/references.txt`, embarquée dans le plug-in vendu) : selon
     l'utilisateur (04/11), ses mesures viennent elles aussi de fichiers **non obtenus légalement**
     (téléchargements YouTube et autres). `LICENSE_NOTICES.md` a été corrigé le 04/11 pour le dire
-    (il affirmait « fichiers obtenus légalement »). La base perso n'est toujours **pas** fusionnée
-    dans la base livrée sans accord explicite.
+    (il affirmait « fichiers obtenus légalement »). **04/11 : base perso fusionnée dans la base
+    livrée avec l'accord explicite de l'utilisateur** (426 titres : 91 + 335 nouveaux, 3 remesurés ;
+    familles reprises de `attendu_500.csv`, co-crédits GRY / Omyll rangés sous le nom de la liste).
+    Liste : `docs/references_utilisees.csv`.
   - **Risque à trancher avant la vente** (pas un avis juridique) : vendre un produit dont la base
     est dérivée de téléchargements sans licence, et l'écrire dans sa notice, expose l'éditeur.
     Voie propre : remesurer la base livrée sur des fichiers achetés (FLAC / WAV de Bandcamp,
