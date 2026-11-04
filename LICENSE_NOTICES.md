@@ -15,8 +15,15 @@ distribution (installateur, archive, dépôt).
 | Base de références (`data/references.txt`, `data/catalogue.txt`) | mesures d'Abrasion Labs | propriété d'Abrasion Labs | oui (texte) |
 
 La base de références ne contient **que des noms d'artistes et de titres, des genres et des nombres**
-(signatures spectrales, sonie, tempo…), mesurés sur des fichiers obtenus légalement. Aucun son,
-aucune image, aucune parole.
+(signatures spectrales, sonie, tempo…). Aucun son, aucune image, aucune parole.
+
+**Provenance des mesures.** Les nombres ont été calculés par Abrasion Labs à partir de fichiers
+audio qui **n'ont pas été achetés ni obtenus sous licence** : ils ont été téléchargés depuis
+YouTube et d'autres sites, sans autorisation des ayants droit. Ces fichiers ont servi uniquement à
+la mesure ; aucun d'eux, ni aucun extrait, n'est conservé dans le plug-in, dans l'installateur ou
+dans les sources. Les œuvres mesurées restent la propriété de leurs ayants droit (artistes,
+labels, éditeurs) ; leur nom n'est cité que pour désigner la référence mesurée, sans lien avec
+eux ni approbation de leur part.
 
 **Aucune image** n'est livrée : ni dans le `.vst3`, ni dans l'installateur, ni dans les sources
 (`data/`, `source/`). Le test `omnis_no_images` (ctest, CI) le vérifie à chaque compilation : il

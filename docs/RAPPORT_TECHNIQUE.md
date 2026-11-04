@@ -962,13 +962,14 @@ nouveau au-delà de la réf. Face à la moyenne de la base (−9,4 LUFS, PLR 10,
 - **HIIR** : seule la méthode de L. de Soras est utilisée, réimplémentée ; le code n'est pas repris.
 - **Manuels de logiciels tiers** (Pro-Q, Pro-L, Ozone, Gullfoss, Trackspacer, Decapitator, KClip) :
   seuls des principes, reformulés. Rien n'est copié.
-- **Base livrée** : la notice dit « mesurées sur des fichiers obtenus légalement ».
-  - Une partie des 91 sons de `data/references.txt` semble venir de YouTube (tags). C'est à trier.
-- **Base perso** : 338 titres mesurés à partir de téléchargements YouTube, sur le PC de l'utilisateur.
-  - **Elle n'est pas fusionnée dans la base livrée** sans son accord.
-  - En cas de fusion, la notice doit être mise à jour pour dire vrai.
-  - Seules des mesures sont gardées, jamais d'audio. Une signature spectrale moyenne ne permet pas de
-    reconstituer l'œuvre, mais la question de la source reste à trancher par l'éditeur.
+- **Base livrée** : depuis le 04/11, la notice dit la vérité. Les mesures viennent de fichiers
+  téléchargés (YouTube et autres) sans licence ni autorisation des ayants droit. Aucun audio n'est
+  gardé, seulement des nombres.
+- **Base perso** : 338 titres mesurés de la même façon, sur le PC de l'utilisateur. **Elle n'est pas
+  fusionnée** dans la base livrée sans son accord.
+- **Risque** (ce n'est pas un avis juridique) : la notice protège de la fausse déclaration, pas de
+  l'origine des fichiers. Avant la vente, la voie propre est de remesurer la base livrée sur des
+  fichiers achetés, puis de corriger la notice. La question est à poser à un juriste.
 - **Données personnelles** : aucune connexion réseau du plug-in, aucune télémétrie.
   - Les avatars passent par l'API publique Deezer, interrogée **par l'outil**, sur le poste de
     l'utilisateur, jamais par le plug-in vendu.

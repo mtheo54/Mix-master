@@ -7,13 +7,15 @@
     dépôt) : 338 titres de `data/attendu_500.csv` mesurés le 03/11 à partir de **téléchargements
     YouTube** (choix de l'utilisateur ; le lien youtube.com est dans les tags de chaque fichier et
     `correspondance.csv` l'indique titre par titre). Aucun audio n'est gardé : seules les mesures.
-  - **Base livrée** (`data/references.txt`, embarquée dans le plug-in vendu) : la phrase de
-    `LICENSE_NOTICES.md` (« mesurées sur des fichiers obtenus légalement ») ne couvre **pas** ces
-    mesures. Elles ne sont fusionnées dans la base livrée **qu'avec l'accord explicite de
-    l'utilisateur**, et `LICENSE_NOTICES.md` doit alors être mis à jour pour dire vrai.
-  - Déjà signalé le 22/10 : une partie des sons de `data/references.txt` semble aussi venir de
-    YouTube (noms de chaîne dans les tags, titres « Music Video ») ; à trier par l'utilisateur
-    (un bloc `[Artiste - Titre]` par son).
+  - **Base livrée** (`data/references.txt`, embarquée dans le plug-in vendu) : selon
+    l'utilisateur (04/11), ses mesures viennent elles aussi de fichiers **non obtenus légalement**
+    (téléchargements YouTube et autres). `LICENSE_NOTICES.md` a été corrigé le 04/11 pour le dire
+    (il affirmait « fichiers obtenus légalement »). La base perso n'est toujours **pas** fusionnée
+    dans la base livrée sans accord explicite.
+  - **Risque à trancher avant la vente** (pas un avis juridique) : vendre un produit dont la base
+    est dérivée de téléchargements sans licence, et l'écrire dans sa notice, expose l'éditeur.
+    Voie propre : remesurer la base livrée sur des fichiers achetés (FLAC / WAV de Bandcamp,
+    Qobuz…) avant la sortie, puis remettre la notice en « achetés ». À voir avec un juriste.
 - **Mesure de `data/attendu_500.csv` (03/11/2026)** : 338 mesurés, 80 refusés pour mauvaise
   durée, 82 sans fichier. 36 refus venaient d'une durée **par défaut de 185 s** écrite dans la
   liste pour les durées inconnues (erreur des scripts, corrigée : vraie durée Deezer, ou 0 =
