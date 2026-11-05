@@ -248,7 +248,9 @@ tresult PLUGIN_API OmnisProcessor::setupProcessing(ProcessSetup& setup) {
     // Hôte qui annonce n'importe quoi : refusé (fréquence nulle ou NaN : division par
     // zéro dans les filtres), taille de bloc ramenée à ce que le moteur prépare
     // (au-delà, il découpe ; sans borne, 2^30 échantillons = des Go réservés).
-    if (!(setup.sampleRate >= 8000.0 && setup.sampleRate <= 768000.0)) return kInvalidArgument;
+    // Plage large : le validateur Steinberg essaie 1 234,568 Hz et 1 234 567,8 Hz et
+    // compte un refus comme une erreur (MSBuild arrête alors la compilation).
+    if (!(setup.sampleRate >= 1000.0 && setup.sampleRate <= 2.0e6)) return kInvalidArgument;
     setup.maxSamplesPerBlock = std::clamp<int32>(setup.maxSamplesPerBlock, 1, 16384);
     const tresult result = AudioEffect::setupProcessing(setup);
     if (result != kResultOk) return result;

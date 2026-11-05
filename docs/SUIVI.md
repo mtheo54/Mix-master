@@ -51,7 +51,7 @@
 
 - **05/11 — Bilan de robustesse** (rapport §15.1) : ASan / UBSan / TSan / fuzz / validateur
   étendu / clang-tidy. Corrigés : lecture de session (malloc / delete[], chaîne sans zéro),
-  allocations de l'écoute simulée sur le thread audio, hôte aberrant (fréquence, bloc), sûreté de
+  allocations de l'écoute simulée sur le thread audio, hôte aberrant (fréquence hors 1 kHz – 2 MHz, bloc), sûreté de
   l'import. Nouveaux tests permanents : `TestRobustness`, `TestPluginRealtime`, sessions
   corrompues, hôte aberrant.
 - **04/11 — Ajouter un fichier de référence** (menu RÉF) : étiquettes, nom « Artiste - Titre » /

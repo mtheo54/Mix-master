@@ -967,7 +967,7 @@ Défauts trouvés et corrigés :
 2. **Écoute simulée** : sa recette de filtres allouait sur le thread audio à chaque changement
    d'écoute (35 à 51 allocations / 1 500 blocs). Tableau fixe : 0 allocation.
 3. **Hôte aberrant** : fréquence 0 / NaN acceptée (division par zéro), taille de bloc sans borne
-   (Go réservés). Fréquence hors 8 – 768 kHz refusée, préparation plafonnée à 16 384 (le moteur
+   (Go réservés). Fréquence hors 1 kHz – 2 MHz refusée, préparation plafonnée à 16 384 (le moteur
    découpe au-delà).
 4. **Import** : exception possible dans le thread (arrêt du DAW) -> rattrapée ; tout le fichier lu
    pour ses étiquettes -> seulement les blocs d'étiquettes ; fichiers > 15 min refusés ; écriture
