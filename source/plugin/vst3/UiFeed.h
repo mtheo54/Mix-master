@@ -36,6 +36,7 @@ struct UiMeters {
     float limiterGrDb = 0.0f;                ///< <= 0
     float clipperGrDb = 0.0f;
     float multibandGrDb[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float dynamicGainDb[4] = {0.0f, 0.0f, 0.0f, 0.0f}; ///< EQ dynamique du Match EQ, par bande
     float gainMatchDb = 0.0f;                ///< compensation de Gain Match
     float latencyMs = 0.0f;
     float samplePeakMaxDb = -120.0f;

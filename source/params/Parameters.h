@@ -72,6 +72,11 @@ enum class ParamId : std::uint32_t {
     MatchTilt = 201, ///< pente d'ensemble : +T dB à 20 kHz, −T à 20 Hz, pivot 640 Hz (Mid et Side)
     MatchMidFirst = 210,  ///< … 230
     MatchSideFirst = 250, ///< … 270
+    // EQ dynamique (4 bandes, après la courbe à phase linéaire, sans latence) :
+    // chaque bande n'agit que quand elle dépasse son équilibre habituel dans le mix.
+    MatchDynAttack = 272,  ///< attaque commune, ms
+    MatchDynRelease = 273, ///< relâchement commun, ms
+    MatchDynFirst = 274,   ///< bande b, réglage r : 274 + 6·b + r (… 297), voir DynControl
     MatchOn = 299,
 
     // --- Inflator (300–399) ------------------------------------------------------
@@ -172,6 +177,16 @@ inline ParamId matchSideId(int band) noexcept {
     return static_cast<ParamId>(static_cast<std::uint32_t>(ParamId::MatchSideFirst) + static_cast<std::uint32_t>(band));
 }
 
+/// EQ dynamique du Match EQ : 4 bandes, 6 réglages chacune.
+inline constexpr int kDynBands = 4;
+enum class DynControl : int { On = 0, Freq = 1, Q = 2, Range = 3, Threshold = 4, Channel = 5 };
+/// Ce que la bande écoute et corrige : les deux côtés liés, le centre ou les côtés.
+enum class DynChannel : int { Stereo = 0, Mid = 1, Side = 2 };
+inline ParamId dynId(int band, DynControl control) noexcept {
+    return static_cast<ParamId>(static_cast<std::uint32_t>(ParamId::MatchDynFirst) + 6u * static_cast<std::uint32_t>(band) +
+                                static_cast<std::uint32_t>(control));
+}
+
 /// Multibande : 4 bandes, 5 réglages chacune.
 inline constexpr int kMbBands = 4;
 enum class MbControl : int { Threshold = 0, Ratio = 1, Attack = 2, Release = 3, Makeup = 4 };
@@ -213,7 +228,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 144;
+inline constexpr std::size_t kParameterCount = 170;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

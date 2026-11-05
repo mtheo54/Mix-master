@@ -484,3 +484,27 @@ DIAGNOSTIC DU MIX (en bas) : ce que le master ne rattrape pas.	MIX DIAGNOSIS (at
 Sur un Stem : la page STEM montre l'élément reconnu et sa chaîne.	On a Stem: the STEM page shows the recognised element and its chain.
 DIAGNOSTIC DU MIX : ce qui se corrige dans ton projet, pas au master.	MIX DIAGNOSIS: what to fix in your project, not on the master.
 Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.	The ? button (or "tuto" in the AI bar) starts this guide again.
+EQ dynamique : les sifflantes (7 kHz, centre) retenues quand elles sortent, jusqu'à %.0f dB	Dynamic EQ: sibilance (7 kHz, centre) held back when it sticks out, up to %.0f dB
+EQ dynamique : les aigus qui piquent (3,5 kHz) retenus quand ils sortent, jusqu'à %.0f dB	Dynamic EQ: piercing highs (3.5 kHz) held back when they stick out, up to %.0f dB
+BANDE DYNAMIQUE	DYNAMIC BAND
+TEMPS (4 BANDES)	TIMING (4 BANDS)
+ACTIVE	ACTIVE
+CANAL	CHANNEL
+BANDE 1	BAND 1
+BANDE 2	BAND 2
+BANDE 3	BAND 3
+BANDE 4	BAND 4
+EN CE MOMENT	RIGHT NOW
+RETENUE	HELD BACK
+RESSORT	LIFTED
+AU REPOS	AT REST
+BANDE ÉTEINTE	BAND OFF
+Une bande n'agit que quand elle sort de son équilibre habituel dans le mix (seuil, en dB).	A band only acts when it rises above its usual balance in the mix (threshold, in dB).
+Plage < 0 : retenue · > 0 : ressort. Glisse ses nœuds sur l'écran · double-clic : allumer.	Range < 0: held back · > 0: lifted. Drag its nodes on the screen · double-click: on/off.
+Glisse les nœuds · Maj : fin · 2 clics : 0 dB	Drag the nodes · Shift: fine · double-click: 0 dB
+Stéréo	Stereo
+EQ DYNAMIQUE	DYNAMIC EQ
+Match EQ > DYN : 4 bandes qui n'agissent que quand un son sort du lot	Match EQ > DYN: 4 bands that only act when a sound sticks out
+(sifflante, note de 808 qui gonfle, hi-hat qui pique) ; le reste du temps, rien.	(sibilance, an 808 note that swells, a piercing hi-hat); the rest of the time, nothing.
+Plage < 0 : retient · > 0 : fait ressortir · seuil : dB au-dessus de l'habitude.	Range < 0: holds back · > 0: lifts · threshold: dB above the usual level.
+Écris « ça siffle » dans la barre IA : OMNIS en allume une.	Type "it's sibilant" in the AI bar: OMNIS turns one on.

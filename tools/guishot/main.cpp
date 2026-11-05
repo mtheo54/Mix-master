@@ -182,6 +182,24 @@ int main(int argc, char** argv) {
             const std::string path = dir + "/omnis-" + mode + "-" + name + ".png";
             std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
         }
+        // Match EQ, vue DYN : deux bandes allumées (808 et sifflantes).
+        {
+            using omnis::params::DynControl;
+            rig.set(omnis::params::dynId(0, DynControl::On), 1.0);
+            rig.set(omnis::params::dynId(0, DynControl::Threshold), 0.0);
+            rig.set(omnis::params::dynId(3, DynControl::On), 1.0);
+            rig.set(omnis::params::dynId(3, DynControl::Range), -8.0);
+            rig.set(omnis::params::dynId(3, DynControl::Threshold), 0.0);
+            editor->selectPage(1);
+            editor->showMatchView(1, 3);
+            for (int t = 0; t < 60; ++t) {
+                rig.run(1.0 / 30.0);
+                editor->tick();
+            }
+            const std::string path = dir + "/omnis-" + mode + "-2-match-dyn.png";
+            std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
+            editor->showMatchView(0, 0);
+        }
         frame->forget();
         editor->forget();
         rig.proc->setProcessing(false);

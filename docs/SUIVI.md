@@ -46,9 +46,20 @@
   l'identité des prods de l'utilisateur.
 - Genres : sa propre classification (8 familles de playlists, `data/genres_classement.txt`) ;
   2hollis et SLAYR : rage, hyperpop.
+- (05/11) Licence et signature Mac : gérées par ONIRIQUE. Windows : pas de certificat (SmartScreen
+  se calme avec les téléchargements). Base de références livrée gardée telle quelle ; titres
+  rachetés et remesurés plus tard, avec les ventes. Écoute : un ingé / producteur testera.
+  Lancement : 89 €, puis 150 € après environ un mois ; mise en ligne d'ici 2 à 4 semaines.
 
 ## Fait récemment
 
+- **05/11 — EQ dynamique** dans le Match EQ (vue DYN, `dsp/DynamicEq`) : 4 bandes Mid / Side après
+  la courbe à phase linéaire, sans latence, qui n'agissent que quand la bande sort de son
+  équilibre habituel dans le mix (seuil en dB au-dessus de l'habitude, indépendant du volume).
+  26 paramètres (272–297), 170 au total. « ça siffle » / « agressif » en allument une (barre IA).
+  Tests : `TestDynamicEq` (6), barre IA. CPU : non mesurable.
+- **05/11 — Guide** : 14 étapes (RÉF / import, EQ dynamique, latence, écoutes et export) ;
+  « tuto » / « aide » dans la barre IA ; après une mise à jour, seules les étapes nouvelles.
 - **05/11 — Bilan de robustesse** (rapport §15.1) : ASan / UBSan / TSan / fuzz / validateur
   étendu / clang-tidy. Corrigés : lecture de session (malloc / delete[], chaîne sans zéro),
   allocations de l'écoute simulée sur le thread audio, hôte aberrant (fréquence hors 1 kHz – 2 MHz, bloc), sûreté de
@@ -187,8 +198,7 @@ et ce qu'OMNIS dit de son bus de drums (est-ce juste ?).
 documentation : minutes GitHub Actions épuisées (pas le code). Elle reviendra avec le
 nouveau mois ; d'ici là, construire sous Windows avec Visual Studio Build Tools (README).
 
-**Encore à faire** : AU pour Logic ; anti-résonances spectral ; EQ dynamique par bande dans le
-rack ; écoute simulée téléphone / voiture ; aperçu MP3 ; la voix et la prod ensemble ; Punch
+**Encore à faire** : AU pour Logic ; anti-résonances spectral ; écoute simulée téléphone / voiture ; aperçu MP3 ; la voix et la prod ensemble ; Punch
 réglé à l'oreille sur de vraies prods.
 
 Compréhension corrigée (25/10) : dans « la 808 est trop dirty », la 808 dit seulement OÙ

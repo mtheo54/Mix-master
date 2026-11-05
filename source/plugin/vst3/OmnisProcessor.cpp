@@ -12,6 +12,7 @@
 #include "engine/MasteringChain.h"
 #include "stages/ClipperStage.h"
 #include "stages/LimiterStage.h"
+#include "stages/MatchEqStage.h"
 #include "stages/MultibandStage.h"
 
 #include "pluginterfaces/base/ibstream.h"
@@ -86,6 +87,7 @@ OmnisProcessor::OmnisProcessor() {
     limiter_ = dynamic_cast<LimiterStage*>(engine_.stage(static_cast<int>(params::Module::Limiter)));
     clipper_ = dynamic_cast<ClipperStage*>(engine_.stage(static_cast<int>(params::Module::Clipper)));
     multiband_ = dynamic_cast<MultibandStage*>(engine_.stage(static_cast<int>(params::Module::Multiband)));
+    matchEq_ = dynamic_cast<MatchEqStage*>(engine_.stage(static_cast<int>(params::Module::Match)));
     feedToken_ = registerFeed(feed_);
 }
 
@@ -132,6 +134,7 @@ void OmnisProcessor::publishFeed() noexcept {
     m.limiterGrDb = limiter_ && !stem ? static_cast<float>(limiter_->gainReductionDb()) : 0.0f;
     m.clipperGrDb = clipper_ && !stem ? static_cast<float>(clipper_->reductionDb()) : 0.0f;
     for (int b = 0; b < 4; ++b) m.multibandGrDb[b] = multiband_ && !stem ? static_cast<float>(multiband_->gainReductionDb(b)) : 0.0f;
+    for (int b = 0; b < params::kDynBands; ++b) m.dynamicGainDb[b] = matchEq_ && !stem ? static_cast<float>(matchEq_->dynamicGainDb(b)) : 0.0f;
     m.gainMatchDb = static_cast<float>(engine_.gainMatchDb());
     m.latencyMs = static_cast<float>(1000.0 * getLatencySamples() / std::max(1.0, sampleRate_));
     m.samplePeakMaxDb = static_cast<float>(engine_.meters().samplePeakDb);

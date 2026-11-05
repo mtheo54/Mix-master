@@ -64,7 +64,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 | Élément | Valeur |
 |---|---|
 | Code (source/, tools/, tests/) | ~36 400 lignes C++ / CMake, 128 fichiers dans `source/` |
-| Paramètres | 144 (ids stables), dont 130 réglables, le reste en mesures en lecture seule |
+| Paramètres | 170 (ids stables), dont 156 réglables, le reste en mesures en lecture seule |
 | Étages | 7, ordre libre (5040 permutations, code de Lehmer) |
 | Fréquences d'échantillonnage | toutes ; noyaux FIR proportionnels (résolution en Hz constante) |
 | Latence, mode Qualité max | 33 812 éch. à 44,1 kHz (767 ms) · 34 104 à 48 kHz (710 ms) · 68 168 à 96 kHz (710 ms) |
@@ -200,6 +200,22 @@ Ordre par défaut : celui ci-dessous.
 - **21 bandes par canal M/S**, espacées d'une demi-octave de 20 Hz à 20,48 kHz, chacune ±12 dB.
 - **Match Amount** 0–100 % et **Tilt** ±6 dB.
 - Les 43 paramètres `match_*` sont écrits par l'IA (`ai::planMatch` / `planReference`), ou à la main.
+- **EQ dynamique** (vue DYN de la page, `dsp/DynamicEq`, 26 paramètres `dyn_*`, ids 272–297) :
+  4 bandes après la courbe, en Mid / Side, **sans latence ajoutée**.
+  - Par bande : on, fréquence 20 Hz – 20 kHz, Q 0,3–8, plage −18…+12 dB (négative : retient ;
+    positive : fait ressortir), seuil 0–18 dB, canal Stéréo (liés) / Mid / Side. Attaque
+    0,5–50 ms et relâchement 20–1000 ms communs.
+  - Filtre : SVF TPT, `y = x + (G − 1)·bp` avec `bp = k·v1` (0 dB au centre) ; la même sortie
+    passe-bande sert à la détection. G = 1 : sortie identique au bit près.
+  - Détection **relative au mix** : `r = 10·log10(E_bande / E_canal)` (enveloppes de puissance,
+    attaque / relâchement), comparé à son habitude `h` (moyenne lente ~4 s, qui monte deux fois
+    moins vite qu'elle ne descend ; figée sous −70 dB). Dépassement `d = r − h − seuil` (coude
+    doux de 2 dB), retiré en entier, borné par la plage. Indépendant du volume d'entrée et de la
+    sonie de la prod (test : même retenue à 0,3 dB près avec 20 dB de moins).
+  - Contrôle toutes les 32 trames : le gain glisse linéairement, fréquence et Q glissent en log.
+  - Barre IA : « ça siffle » allume une bande à 7 kHz au centre (−6 dB, puis −2 dB à chaque
+    plainte, jusqu'à −12) ; « agressif dans les aigus » une bande à 3,5 kHz (−4 dB). La correction
+    fixe du Match EQ reste.
 
 **Implémentation.**
 - Courbe interpolée entre les nœuds, puis FIR **16 384 taps** à phase linéaire (même longueur que le
@@ -350,7 +366,7 @@ torturé. La marge de 0,05 dB couvre les cas musicaux mesurés.
 
 - **Dither TPDF / noise-shaping** : prévu (8ᵉ étage), non implémenté. Pour un export 16 bits, il
   faut aujourd'hui le dither du DAW.
-- EQ dynamique par bande dans le rack master, et anti-résonances spectral : non implémentés.
+- Anti-résonances spectral : non implémenté. (L'EQ dynamique à 4 bandes est dans le Match EQ, §3.2.)
 
 ---
 
@@ -563,7 +579,7 @@ torturé. La marge de 0,05 dB couvre les cas musicaux mesurés.
 étages non linéaires et leurs constantes de temps découlent de l'**écart mesuré entre la prod
 entendue et la référence**. Il n'y a aucune table par genre : les genres ne servent qu'à filtrer le
 menu RÉF (§8.3) et de repli pour AUTO sans référence (§8.2).
-- Aucun paramètre ajouté : les 144 paramètres et l'état `'OMNS'` sont inchangés.
+- Aucun paramètre ajouté par ce module : il écrit des paramètres existants ; l'état `'OMNS'` est inchangé.
 - Aucun algorithme DSP touché.
 - Appelé par `planReference`, `planAuto` (titres choisis ou repli) et `planRequest` (demande qui
   cite une référence). Dans ce dernier cas, les mots de la demande (`applyAxes`) passent après et
@@ -1055,7 +1071,7 @@ macOS, hôtes réels (Ableton, Cubase, Reaper…) ; une fuite mémoire du banc d
 | Mesures | Remesurer les 36 refus « 185 s » (`data/remesure_36.txt`), les 82 titres sans fichier, les 133 fichiers hors liste. |
 | Sous-genres | Classer les 127 artistes de l'annexe B (ou laisser l'utilisateur le faire). |
 | Écoute | Masters « 808 tenue » (m6, SLAYR, poster boy) et la dernière version dans FL Studio. |
-| Produit | AU ; EQ dynamique et anti-résonances dans le rack ; retouches du chef gardées ; modèle de langue local. |
+| Produit | AU ; anti-résonances dans le rack ; retouches du chef gardées ; modèle de langue local. |
 
 ---
 
@@ -1066,7 +1082,7 @@ macOS, hôtes réels (Ableton, Cubase, Reaper…) ; une fuite mémoire du banc d
 | Global | `bypass`, `input_gain`, `output_gain`, `monitor`, `ref_capture`, `chain_order`, `low_latency`, `gain_match`, `delta`, `listen` |
 | Lien | `link_role`, `link_group`, `link_stem` |
 | Sub | `low_cut`, `mono_freq`, `mono_amount`, `mono_slope`, `sub_gain`, `sub_freq`, `sub_synth`, `sub_phase`, `sub_on` |
-| Match EQ | `match_amount`, `match_tilt`, `match_m_<Hz>` ×21, `match_s_<Hz>` ×21, `match_on` |
+| Match EQ | `match_amount`, `match_tilt`, `match_m_<Hz>` ×21, `match_s_<Hz>` ×21, `dyn_attack`, `dyn_release`, `dyn<n>_on/freq/q/range/thr/ch` ×4, `match_on` |
 | Inflator | `infl_low`, `infl_high`, `infl_drive`, `infl_curve`, `infl_warmth`, `infl_output`, `infl_split`, `infl_os`, `infl_on` |
 | Imager | `img_split_low/mid/high`, `img_width_low/lmid/hmid/high`, `img_on` |
 | Multibande | `mb_split_low/mid/high`, `mb_<bande>_thr/ratio/attack/release/makeup` ×4, `mb_on` |

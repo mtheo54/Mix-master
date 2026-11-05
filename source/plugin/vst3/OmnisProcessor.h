@@ -58,6 +58,7 @@ namespace omnis {
 class LimiterStage;
 class ClipperStage;
 class MultibandStage;
+class MatchEqStage;
 } // namespace omnis
 
 namespace omnis::vst3 {
@@ -172,6 +173,7 @@ private:
     omnis::LimiterStage* limiter_ = nullptr;
     omnis::ClipperStage* clipper_ = nullptr;
     omnis::MultibandStage* multiband_ = nullptr;
+    omnis::MatchEqStage* matchEq_ = nullptr;
     template <typename Sample>
     void feedBlock(Sample** inputs, Sample** outputs, Steinberg::int32 numSamples, bool beforeProcessing) noexcept;
     void publishFeed() noexcept;

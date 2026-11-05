@@ -289,6 +289,40 @@ OMNIS_TEST("plug-in: « tuto », « aide », « comment ça marche » rouvrent l
     OMNIS_CHECK(!h.ctrl->takeTutorialRequest());
 }
 
+OMNIS_TEST("plug-in barre IA: « ça siffle » allume une bande de l'EQ dynamique (7 kHz, centre) ; redit, elle se creuse ; « annule » la rend") {
+    Host h;
+    const auto plainOf = [&](params::ParamId pid) {
+        const auto* spec = params::findParameter(pid);
+        return params::toPlain(*spec, h.ctrl->getParamNormalized(static_cast<Steinberg::Vst::ParamID>(pid)));
+    };
+    using params::DynControl;
+    OMNIS_CHECK(plainOf(params::dynId(3, DynControl::On)) < 0.5);
+    (void)h.ctrl->ask("les voix sifflent, ça siffle trop"); // gardée jusqu'à ce que la prod soit entendue
+    h.run(16.0, true);
+    for (int i = 0; i < 80 && plainOf(params::dynId(3, DynControl::On)) < 0.5; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    OMNIS_CHECK(plainOf(params::dynId(3, DynControl::On)) >= 0.5);
+    OMNIS_CHECK_NEAR(plainOf(params::dynId(3, DynControl::Freq)), 7000.0, 1.0);
+    OMNIS_CHECK_NEAR(plainOf(params::dynId(3, DynControl::Range)), -6.0, 0.01);
+    OMNIS_CHECK_NEAR(plainOf(params::dynId(3, DynControl::Channel)), 1.0, 1e-9); // Mid
+    const std::string again = h.ctrl->ask("ça siffle encore");
+    std::printf("      %s\n", again.c_str());
+    OMNIS_CHECK(again.find("EQ dynamique") != std::string::npos);
+    OMNIS_CHECK_NEAR(plainOf(params::dynId(3, DynControl::Range)), -8.0, 0.01);
+    // Les autres bandes n'ont pas bougé.
+    OMNIS_CHECK(plainOf(params::dynId(0, DynControl::On)) < 0.5);
+    OMNIS_CHECK(plainOf(params::dynId(1, DynControl::On)) < 0.5);
+    (void)h.ctrl->ask("annule");
+    OMNIS_CHECK_NEAR(plainOf(params::dynId(3, DynControl::Range)), -6.0, 0.01);
+    // Une demande sans plainte de ce genre ne touche pas l'EQ dynamique.
+    Host g;
+    (void)g.ctrl->ask("plus de punch");
+    OMNIS_CHECK(params::toPlain(*params::findParameter(params::dynId(2, DynControl::On)),
+                                g.ctrl->getParamNormalized(static_cast<Steinberg::Vst::ParamID>(params::dynId(2, DynControl::On)))) < 0.5);
+}
+
 OMNIS_TEST("plug-in: « annule » défait la dernière action (ici la remise à zéro), pas à pas") {
     Host h;
     const auto id = static_cast<Steinberg::Vst::ParamID>(params::ParamId::ClipDrive);

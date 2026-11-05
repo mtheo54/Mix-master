@@ -35,11 +35,13 @@ void MatchEqStage::prepare(const ProcessSpec& spec) {
     for (int i = 0; i < b; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / b);
     latency_ = n / 2 + b;
+    dynamic_.prepare(sampleRate_);
     reset();
 }
 
 void MatchEqStage::reset() noexcept {
     convolver_.reset();
+    dynamic_.reset();
     framePos_ = 0;
     if (fadingSlot_) {
         MatchKernelBank::release(fadingSlot_);
@@ -53,6 +55,10 @@ void MatchEqStage::setParameter(ParamId id, double plain, bool /*immediate*/) no
     const auto midFirst = static_cast<std::uint32_t>(ParamId::MatchMidFirst);
     const auto sideFirst = static_cast<std::uint32_t>(ParamId::MatchSideFirst);
     constexpr auto bands = static_cast<std::uint32_t>(params::kMatchBands);
+    if (raw >= static_cast<std::uint32_t>(ParamId::MatchDynAttack) && raw < static_cast<std::uint32_t>(ParamId::MatchDynFirst) + 6u * params::kDynBands) {
+        dynamic_.setParameter(id, plain);
+        return;
+    }
     if (id == ParamId::MatchAmount)
         request_.amount = plain * 0.01;
     else if (id == ParamId::MatchTilt)
@@ -81,6 +87,7 @@ void MatchEqStage::frameBoundary() noexcept {
 void MatchEqStage::process(double* const* channels, int numSamples) noexcept {
     double* left = channels[0];
     double* right = channels[1];
+    const bool dynamic = dynamic_.active();
     for (int i = 0; i < numSamples; ++i) {
         convolver_.write(framePos_, 0.5 * (left[i] + right[i]), 0.5 * (left[i] - right[i]));
         double mid = convolver_.outputA(framePos_);
@@ -90,6 +97,7 @@ void MatchEqStage::process(double* const* channels, int numSamples) noexcept {
             mid = convolver_.secondaryA(framePos_) + t * (mid - convolver_.secondaryA(framePos_));
             side = convolver_.secondaryB(framePos_) + t * (side - convolver_.secondaryB(framePos_));
         }
+        if (dynamic) dynamic_.process(mid, side);
         left[i] = mid + side;
         right[i] = mid - side;
         if (++framePos_ == convolver_.blockSize()) frameBoundary();

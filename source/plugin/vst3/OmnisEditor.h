@@ -83,6 +83,8 @@ public:
     void startTutorial(int step = 0);
     [[nodiscard]] int tutorialStep() const noexcept { return tutorialStep_; }
     [[nodiscard]] static int tutorialSteps() noexcept;
+    /// Match EQ : vue 0 (la courbe) ou 1 (EQ dynamique, bande `band` au tiroir).
+    void showMatchView(int view, int band);
 
     enum Page : int { kStemPage = 7, kConductorPage = 8, kDiagPage = 9 };
 
@@ -170,6 +172,15 @@ private:
     int matchSide_ = 0;  ///< Match EQ : 0 édite le Mid, 1 le Side
     int matchNode_ = -1; ///< nœud tenu à la souris
     double matchStartY_ = 0.0, matchStartDb_ = 0.0;
+    // Match EQ, vue DYN : l'EQ dynamique (4 bandes).
+    int matchView_ = 0; ///< 0 : la courbe (EQ), 1 : les bandes dynamiques (DYN)
+    int dynBand_ = 0;   ///< bande montrée dans le tiroir
+    bool dynHeld_ = false;
+    double dynStartX_ = 0.0, dynStartY_ = 0.0, dynStartHz_ = 0.0, dynStartRange_ = 0.0;
+    VSTGUI::CViewContainer* matchStatic_ = nullptr;
+    VSTGUI::CViewContainer* matchDynamic_ = nullptr;
+    std::array<VSTGUI::CViewContainer*, 4> dynBandViews_{};
+    bool dynMouse(const VSTGUI::CPoint& p, int phase, bool fine, const VSTGUI::CRect& r);
     int proposalIndex_ = 0, ticks_ = 0;
     std::string answer_;
     struct Card;

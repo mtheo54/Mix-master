@@ -85,6 +85,8 @@ add_library(omnis_core STATIC
     source/dsp/StereoConvolver.cpp
     source/dsp/StereoConvolver.h
     source/dsp/SvfFilter.h
+    source/dsp/DynamicEq.cpp
+    source/dsp/DynamicEq.h
     source/ai/DynamicsIntent.cpp
     source/ai/DynamicsIntent.h
     source/ai/EmbeddedData.h
@@ -326,6 +328,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestDynamics.cpp
         tests/TestSubControl.cpp
         tests/TestMatchEq.cpp
+        tests/TestDynamicEq.cpp
         tests/TestMultiband.cpp
         tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp

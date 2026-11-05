@@ -157,6 +157,55 @@ void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const ana
     if (!info.empty()) p.said.push_back(info);
 }
 
+/// Les plaintes qui reviennent par moments (sifflantes, aigus qui piquent) : une
+/// bande de l'EQ dynamique, qui ne retient que quand le défaut sort du lot. La
+/// correction fixe du Match EQ reste. Une seconde plainte au même endroit creuse
+/// la bande (jusqu'à -12 dB).
+void applyDynamicComplaints(ConsolePlan& p, const Interpretation& in, const CurrentValue& cur0) {
+    struct Recipe {
+        const char* conceptId;
+        int preferred; ///< bande dont le réglage d'usine est là
+        double hz, q, rangeDb, thresholdDb;
+        params::DynChannel channel;
+        const char* said;
+    };
+    static constexpr Recipe kRecipes[] = {
+        {"siffle", 3, 7000.0, 2.0, -6.0, 3.0, params::DynChannel::Mid, "EQ dynamique : les sifflantes (7 kHz, centre) retenues quand elles sortent, jusqu'à %.0f dB"},
+        {"agressif", 2, 3500.0, 1.2, -4.0, 3.0, params::DynChannel::Stereo, "EQ dynamique : les aigus qui piquent (3,5 kHz) retenus quand ils sortent, jusqu'à %.0f dB"},
+    };
+    for (const auto& r : kRecipes) {
+        // Une plainte a un poids négatif (le défaut est à corriger).
+        const bool named = std::any_of(in.hits.begin(), in.hits.end(), [&](const ConceptHit& h) { return h.conceptId == r.conceptId && h.weight < 0.0; });
+        if (!named) continue;
+        const CurrentValue cur = withPlan(p, cur0);
+        const auto at = [](int b, params::DynControl c) { return params::dynId(b, c); };
+        // Une bande déjà allumée à moins d'une demi-octave : on la creuse.
+        int band = -1;
+        for (int b = 0; b < params::kDynBands && band < 0; ++b)
+            if (cur(at(b, params::DynControl::On)) >= 0.5 && std::fabs(std::log2(cur(at(b, params::DynControl::Freq)) / r.hz)) < 0.5) band = b;
+        double range = r.rangeDb;
+        if (band >= 0) {
+            range = std::max(-12.0, std::min(cur(at(band, params::DynControl::Range)), r.rangeDb) - 2.0);
+        } else {
+            band = r.preferred;
+            if (cur(at(band, params::DynControl::On)) >= 0.5)
+                for (int b = 0; b < params::kDynBands; ++b)
+                    if (cur(at(b, params::DynControl::On)) < 0.5) {
+                        band = b;
+                        break;
+                    }
+            put(p, at(band, params::DynControl::Freq), r.hz);
+            put(p, at(band, params::DynControl::Q), r.q);
+            put(p, at(band, params::DynControl::Threshold), r.thresholdDb);
+            put(p, at(band, params::DynControl::Channel), static_cast<double>(r.channel));
+        }
+        put(p, at(band, params::DynControl::On), 1.0);
+        put(p, at(band, params::DynControl::Range), range);
+        put(p, ParamId::MatchOn, 1.0);
+        p.said.push_back(format(r.said, range));
+    }
+}
+
 } // namespace
 
 std::vector<std::pair<ParamId, double>> glueSettings(double t) {
@@ -194,6 +243,7 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
         p.targetLufs = u.request.targetLufs ? *u.request.targetLufs : prod.integratedLufs + u.request.loudnessOffsetLu;
     }
     applyAxes(p, d, u.request, cur);
+    applyDynamicComplaints(p, u.interpretation, cur);
     if (p.targetLufs) {
         p.targetLufs = std::clamp(*p.targetLufs, -20.0, -4.0);
         p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs));

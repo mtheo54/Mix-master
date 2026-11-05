@@ -26,6 +26,7 @@ constexpr std::array<std::string_view, 19> kListenLabels{
     "Off", "AirPods (2/3)", "AirPods Pro 2", "AirPods Max", "Beats Studio Pro", "Sony WH-1000XM5", "Galaxy Buds2 Pro",
     "JBL Tune 510BT", "Sennheiser HD 600", "Audio-Technica M50x", "Phone speaker", "TikTok (phone)", "Car", "Club PA",
     "Spatial (binaural)", "Spotify -14 LUFS", "Deezer -15 LUFS", "YouTube -14 LUFS", "Apple Music -16 LUFS"};
+constexpr std::array<std::string_view, 3> kDynChannelLabels{"Stéréo", "Mid", "Side"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
 constexpr std::array<std::string_view, 3> kLinkRoleLabels{"Seul", "Stem", "Master"};
@@ -127,6 +128,34 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(268), "match_s_10240", "Match Side 10k",      "S10k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(269), "match_s_14482", "Match Side 14k",      "S14k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(270), "match_s_20480", "Match Side 20k",      "S20k",   "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
+    // EQ dynamique : bandes éteintes par défaut (l'étage reste au bit près). Plage
+    // négative : la bande est retenue quand elle dépasse ; positive : elle ressort.
+    {ParamId::MatchDynAttack,    "dyn_attack",    "Dyn EQ Attack",        "DAtt",   "ms",   ParamKind::Continuous, 0.5,    50.0,  5.0,   0,    {},             0.0,    1, kLog},
+    {ParamId::MatchDynRelease,   "dyn_release",   "Dyn EQ Release",       "DRel",   "ms",   ParamKind::Continuous, 20.0,   1000.0, 150.0, 0,   {},             0.0,    0, kLog},
+    {static_cast<ParamId>(274), "dyn1_on",     "Dyn EQ 1 On",         "D1On",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
+    {static_cast<ParamId>(275), "dyn1_freq",   "Dyn EQ 1 Freq",       "D1Hz",  "Hz",   ParamKind::Continuous, 20.0,   20000.0, 70.0, 0,  {},             0.0,    0, kLog},
+    {static_cast<ParamId>(276), "dyn1_q",      "Dyn EQ 1 Q",          "D1Q",   "",     ParamKind::Continuous, 0.3,    8.0,   1.4,   0,    {},             0.0,    2, kLog},
+    {static_cast<ParamId>(277), "dyn1_range",  "Dyn EQ 1 Range",      "D1Rng", "dB",   ParamKind::Continuous, -18.0,  12.0,  -4.0,  0,    {},             0.0,    1},
+    {static_cast<ParamId>(278), "dyn1_thr",    "Dyn EQ 1 Threshold",  "D1Thr", "dB",   ParamKind::Continuous, 0.0,    18.0,  4.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(279), "dyn1_ch",     "Dyn EQ 1 Channel",    "D1Ch",  "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kDynChannelLabels, 0.0, 0},
+    {static_cast<ParamId>(280), "dyn2_on",     "Dyn EQ 2 On",         "D2On",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
+    {static_cast<ParamId>(281), "dyn2_freq",   "Dyn EQ 2 Freq",       "D2Hz",  "Hz",   ParamKind::Continuous, 20.0,   20000.0, 300.0, 0,  {},             0.0,    0, kLog},
+    {static_cast<ParamId>(282), "dyn2_q",      "Dyn EQ 2 Q",          "D2Q",   "",     ParamKind::Continuous, 0.3,    8.0,   1.0,   0,    {},             0.0,    2, kLog},
+    {static_cast<ParamId>(283), "dyn2_range",  "Dyn EQ 2 Range",      "D2Rng", "dB",   ParamKind::Continuous, -18.0,  12.0,  -4.0,  0,    {},             0.0,    1},
+    {static_cast<ParamId>(284), "dyn2_thr",    "Dyn EQ 2 Threshold",  "D2Thr", "dB",   ParamKind::Continuous, 0.0,    18.0,  4.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(285), "dyn2_ch",     "Dyn EQ 2 Channel",    "D2Ch",  "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kDynChannelLabels, 0.0, 0},
+    {static_cast<ParamId>(286), "dyn3_on",     "Dyn EQ 3 On",         "D3On",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
+    {static_cast<ParamId>(287), "dyn3_freq",   "Dyn EQ 3 Freq",       "D3Hz",  "Hz",   ParamKind::Continuous, 20.0,   20000.0, 3500.0, 0,  {},             0.0,    0, kLog},
+    {static_cast<ParamId>(288), "dyn3_q",      "Dyn EQ 3 Q",          "D3Q",   "",     ParamKind::Continuous, 0.3,    8.0,   1.2,   0,    {},             0.0,    2, kLog},
+    {static_cast<ParamId>(289), "dyn3_range",  "Dyn EQ 3 Range",      "D3Rng", "dB",   ParamKind::Continuous, -18.0,  12.0,  -4.0,  0,    {},             0.0,    1},
+    {static_cast<ParamId>(290), "dyn3_thr",    "Dyn EQ 3 Threshold",  "D3Thr", "dB",   ParamKind::Continuous, 0.0,    18.0,  4.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(291), "dyn3_ch",     "Dyn EQ 3 Channel",    "D3Ch",  "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kDynChannelLabels, 0.0, 0},
+    {static_cast<ParamId>(292), "dyn4_on",     "Dyn EQ 4 On",         "D4On",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
+    {static_cast<ParamId>(293), "dyn4_freq",   "Dyn EQ 4 Freq",       "D4Hz",  "Hz",   ParamKind::Continuous, 20.0,   20000.0, 7000.0, 0,  {},             0.0,    0, kLog},
+    {static_cast<ParamId>(294), "dyn4_q",      "Dyn EQ 4 Q",          "D4Q",   "",     ParamKind::Continuous, 0.3,    8.0,   2.0,   0,    {},             0.0,    2, kLog},
+    {static_cast<ParamId>(295), "dyn4_range",  "Dyn EQ 4 Range",      "D4Rng", "dB",   ParamKind::Continuous, -18.0,  12.0,  -4.0,  0,    {},             0.0,    1},
+    {static_cast<ParamId>(296), "dyn4_thr",    "Dyn EQ 4 Threshold",  "D4Thr", "dB",   ParamKind::Continuous, 0.0,    18.0,  4.0,   0,    {},             0.0,    1},
+    {static_cast<ParamId>(297), "dyn4_ch",     "Dyn EQ 4 Channel",    "D4Ch",  "",     ParamKind::Choice,     0.0,    2.0,   1.0,   2,    kDynChannelLabels, 0.0, 0},
     {ParamId::MatchOn,           "match_on",      "Match EQ Module",      "MatchOn","",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Inflator (étage 3) : neutre par défaut (effets à 0 %, sortie = entrée).

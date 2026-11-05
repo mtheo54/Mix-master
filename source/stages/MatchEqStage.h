@@ -14,11 +14,16 @@
 //  recalculés en tâche de fond quand la courbe change et fondus sur une trame.
 //
 //  Latence : N/2 + B, comme le Sub Control (8704 échantillons à 44.1 kHz).
+//
+//  Après la courbe : l'EQ dynamique (dsp/DynamicEq, 4 bandes Mid / Side, sans
+//  latence ajoutée), qui ne retient une bande que lorsqu'elle sort de son
+//  équilibre habituel. Bandes éteintes : l'étage est inchangé au bit près.
 // =============================================================================
 #pragma once
 
 #include "MatchKernelBank.h"
 
+#include "dsp/DynamicEq.h"
 #include "dsp/StereoConvolver.h"
 #include "engine/Stage.h"
 
@@ -39,6 +44,9 @@ public:
     void setParameter(params::ParamId id, double plainValue, bool immediate) noexcept override;
     void setRealtime(bool realtime) noexcept override { realtime_ = realtime; }
 
+    /// Gain que la bande dynamique applique en ce moment (dB, 0 : rien).
+    [[nodiscard]] double dynamicGainDb(int band) const noexcept { return dynamic_.gainDb(band); }
+
 private:
     void frameBoundary() noexcept;
 
@@ -54,6 +62,7 @@ private:
     MatchKernelBank::Slot* fadingSlot_ = nullptr;
     std::vector<double> fadeRamp_;
     int framePos_ = 0;
+    dsp::DynamicEq dynamic_;
 };
 
 } // namespace omnis

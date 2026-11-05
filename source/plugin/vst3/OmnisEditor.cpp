@@ -274,7 +274,7 @@ struct TutorialStep {
 /// à la personne qui avait déjà vu le guide.
 constexpr int kTutorialVersion = 2;
 
-const std::array<TutorialStep, 13> kTutorial{{
+const std::array<TutorialStep, 14> kTutorial{{
     {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
      {"OMNIS mixe et masterise ta prod. Deux façons de l'utiliser :", "1. seul sur le master : il masterise la prod entière ;",
       "2. sur tes pistes (Stem) + un Master : chaque piste est travaillée,", "   et le master écoute tout le monde. Suis le guide (2 minutes)."}},
@@ -287,6 +287,9 @@ const std::array<TutorialStep, 13> kTutorial{{
     {CRect(10, 314, 932, 604), "LE TIROIR : TOUT RÉGLER",
      {"À gauche, tous les réglages du module ouvert ; à droite, son écran.", "Glisser vers le haut / le bas · Maj : réglage fin · double-clic : défaut.",
       "Match EQ : glisse les nœuds sur l'écran. Multiband : glisse les traits.", "Rien n'est caché : tu choisis précisément ce que tu changes."}},
+    {CRect(140, 106, 272, 306), "EQ DYNAMIQUE",
+     {"Match EQ > DYN : 4 bandes qui n'agissent que quand un son sort du lot", "(sifflante, note de 808 qui gonfle, hi-hat qui pique) ; le reste du temps, rien.",
+      "Plage < 0 : retient · > 0 : fait ressortir · seuil : dB au-dessus de l'habitude.", "Écris « ça siffle » dans la barre IA : OMNIS en allume une."}, 2},
     {CRect(10, 58, 932, 98), "LA BARRE IA",
      {"Écris ce que tu veux, en français, en anglais ou en argot :", "« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…",
       "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "RÉF : choisis un style, un artiste ou un titre de ta base ; AUTO le vise."}},
@@ -1206,6 +1209,16 @@ void OmnisEditor::buildRack(CViewContainer* root) {
                     int n = 0;
                     for (int k = 0; k < params::kMatchBands; ++k)
                         if (std::fabs(plain(id(params::matchMidId(k)))) > 0.05 || std::fabs(plain(id(params::matchSideId(k)))) > 0.05) ++n;
+                    // EQ dynamique allumée : sa retenue la plus forte du moment.
+                    int dynOn = 0;
+                    double dynDb = 0.0;
+                    for (int b = 0; b < params::kDynBands; ++b)
+                        if (plain(id(params::dynId(b, params::DynControl::On))) >= 0.5) {
+                            ++dynOn;
+                            const double g = an_->meters.dynamicGainDb[b];
+                            if (std::fabs(g) > std::fabs(dynDb)) dynDb = g;
+                        }
+                    if (dynOn > 0) return std::to_string(n) + (n > 1 ? " NŒUDS" : " NŒUD") + " · DYN " + fmt("%+.1f", std::fabs(dynDb) < 0.05 ? 0.0 : dynDb);
                     return "TILT " + fmt("%+.1f", plain(id(ParamId::MatchTilt))) + " · " + std::to_string(n) + (n > 1 ? " NŒUDS" : " NŒUD");
                 };
                 cb.level = [this] {
@@ -1442,7 +1455,8 @@ void OmnisEditor::knobs(CViewContainer* parent, const CRect& area, const char* t
         const std::string name = spec ? std::string(spec->shortName) : std::string();
         // Noms lisibles : le nom d'affichage sans le préfixe du module.
         std::string label = spec ? std::string(spec->name) : name;
-        for (const char* prefix : {"Inflate ", "Limiter ", "Clip ", "MB Sub ", "MB Low ", "MB Mid ", "MB High ", "Imager ", "Match ", "Stem "})
+        for (const char* prefix : {"Inflate ", "Limiter ", "Clip ", "MB Sub ", "MB Low ", "MB Mid ", "MB High ", "Imager ", "Match ", "Stem ", "Dyn EQ 1 ",
+                                   "Dyn EQ 2 ", "Dyn EQ 3 ", "Dyn EQ 4 ", "Dyn EQ "})
             if (label.rfind(prefix, 0) == 0) label = label.substr(std::string(prefix).size());
         for (auto& ch : label) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
         const double x = area.left + 4 + i * w;
@@ -1478,19 +1492,28 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         seg(p, CRect(380, row2 + 30, W - 14, row2 + 54), "PHASE DU SUB", P::SubPhaseMode);
     }
     {
-        auto* p = page(drawer, 1, "2", "MATCH EQ", "Glisse les nœuds sur l'écran · Maj : fin · double-clic : 0 dB.");
-        knobs(p, CRect(12, row1, 250, row1 + 104), "COURBE", {id(P::MatchAmount), id(P::MatchTilt)});
-        p->addView(new Caption(CRect(270, row1 + 2, W - 14, row1 + 14), "NŒUDS ÉDITÉS", color::kText3, mono(9)));
+        auto* pg = page(drawer, 1, "2", "MATCH EQ", "Glisse les nœuds · Maj : fin · 2 clics : 0 dB");
+        const CRect inner(0, 0, pg->getViewSize().getWidth(), pg->getViewSize().getHeight());
+        // Deux vues : la courbe à phase linéaire (EQ) et l'EQ dynamique (DYN).
+        auto* view = new SegControl(CRect(W - 118, 8, W - 14, 30), {"EQ", "DYN"}, [this] { return matchView_; }, [this](int i) { showMatchView(i, dynBand_); });
+        pg->addView(view);
+        live_.push_back(view);
+        auto* st = new CViewContainer(inner);
+        st->setTransparency(true);
+        pg->addView(st);
+        matchStatic_ = st;
+        knobs(st, CRect(12, row1, 250, row1 + 104), "COURBE", {id(P::MatchAmount), id(P::MatchTilt)});
+        st->addView(new Caption(CRect(270, row1 + 2, W - 14, row1 + 14), "NŒUDS ÉDITÉS", color::kText3, mono(9)));
         auto* side = new SegControl(CRect(270, row1 + 18, W - 14, row1 + 42), {"MID", "SIDE"}, [this] { return matchSide_; }, [this](int i) {
             matchSide_ = i;
             if (pageScreens_[1]) pageScreens_[1]->markDirty();
         });
-        p->addView(side);
+        st->addView(side);
         live_.push_back(side);
         auto* flat = new HwButton(CRect(270, row1 + 54, 400, row1 + 80), "À PLAT", [] { return false; }, [this] {
             for (int k = 0; k < params::kMatchBands; ++k) setPlain(id(matchSide_ == 0 ? params::matchMidId(k) : params::matchSideId(k)), 0.0);
         }, false);
-        p->addView(flat);
+        st->addView(flat);
         live_.push_back(flat);
         // La référence visée : pochette, photo (avec son crédit), tempo, tonalité, sonie.
         cardScreen_ = new Screen(CRect(12, row2 - 4, W - 14, row2 + 80), [this](CDrawContext* dc, const CRect& r) { paintReferenceCard(dc, r); }, false);
@@ -1499,10 +1522,64 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
             if (phase == 0) gui::openUrl(card_->data.link);
             return true;
         });
-        p->addView(cardScreen_);
+        st->addView(cardScreen_);
         live_.push_back(cardScreen_);
-        p->addView(new Caption(CRect(12, row2 + 86, W - 14, row2 + 100), "21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).", color::kText3, mono(9)));
-        p->addView(new Caption(CRect(12, row2 + 102, W - 14, row2 + 116), "La barre IA et les références les écrivent ; ici tu les retouches.", color::kText3, mono(9)));
+        st->addView(new Caption(CRect(12, row2 + 86, W - 14, row2 + 100), "21 nœuds en Mid et en Side, d'une demi-octave (20 Hz – 20 kHz).", color::kText3, mono(9)));
+        st->addView(new Caption(CRect(12, row2 + 102, W - 14, row2 + 116), "La barre IA et les références les écrivent ; ici tu les retouches.", color::kText3, mono(9)));
+        // --- Vue DYN : 4 bandes qui n'agissent que quand elles sortent du lot ---
+        auto* dy = new CViewContainer(inner);
+        dy->setTransparency(true);
+        pg->addView(dy);
+        matchDynamic_ = dy;
+        dy->addView(new Caption(CRect(12, row1 + 2, 250, row1 + 14), "BANDE DYNAMIQUE", color::kText3, mono(9)));
+        auto* bands = new SegControl(CRect(12, row1 + 18, 250, row1 + 42), {"1", "2", "3", "4"}, [this] { return dynBand_; }, [this](int i) { showMatchView(1, i); });
+        dy->addView(bands);
+        live_.push_back(bands);
+        knobs(dy, CRect(372, row1, W - 14, row1 + 104), "TEMPS (4 BANDES)", {id(P::MatchDynAttack), id(P::MatchDynRelease)});
+        for (int b = 0; b < params::kDynBands; ++b) {
+            auto* bv = new CViewContainer(inner);
+            bv->setTransparency(true);
+            dy->addView(bv);
+            dynBandViews_[static_cast<std::size_t>(b)] = bv;
+            const auto dyn = [b](params::DynControl c) { return params::dynId(b, c); };
+            auto* on = new HwButton(CRect(258, row1 + 18, 364, row1 + 42), "ACTIVE", [this, dyn] { return plain(id(dyn(params::DynControl::On))) >= 0.5; },
+                                    [this, dyn] { setPlain(id(dyn(params::DynControl::On)), plain(id(dyn(params::DynControl::On))) >= 0.5 ? 0.0 : 1.0); });
+            bv->addView(on);
+            live_.push_back(on);
+            bv->addView(new Caption(CRect(12, row1 + 52, 364, row1 + 64), "CANAL", color::kText3, mono(9)));
+            auto* ch = new SegControl(CRect(12, row1 + 68, 364, row1 + 92), {"STÉRÉO", "MID", "SIDE"},
+                                      [this, dyn] { return static_cast<int>(std::lround(plain(id(dyn(params::DynControl::Channel))))); },
+                                      [this, dyn](int i) { setPlain(id(dyn(params::DynControl::Channel)), i); });
+            bv->addView(ch);
+            live_.push_back(ch);
+            knobs(bv, CRect(12, row2, 364, row2 + 104), b == 0 ? "BANDE 1" : b == 1 ? "BANDE 2" : b == 2 ? "BANDE 3" : "BANDE 4",
+                  {id(dyn(params::DynControl::Freq)), id(dyn(params::DynControl::Q)), id(dyn(params::DynControl::Range)), id(dyn(params::DynControl::Threshold))});
+            // Ce que la bande fait en ce moment.
+            auto* now = new Screen(CRect(372, row2, W - 14, row2 + 104), [this, b, dyn](CDrawContext* dc, const CRect& r) {
+                engraved(dc, "EN CE MOMENT", CRect(r.left + 10, r.top + 6, r.right - 8, r.top + 18));
+                const bool active = plain(id(dyn(params::DynControl::On))) >= 0.5;
+                const double g = an_->meters.dynamicGainDb[b];
+                text(dc, active ? fmt("%+.1f dB", std::fabs(g) < 0.05 ? 0.0 : g) : std::string("—"), CRect(r.left + 8, r.top + 28, r.right - 8, r.top + 58),
+                     std::fabs(g) >= 0.05 ? color::kAccent : color::kText2, mono(18, true), kCenterText);
+                text(dc, active ? (g < -0.05 ? "RETENUE" : (g > 0.05 ? "RESSORT" : "AU REPOS")) : "BANDE ÉTEINTE", CRect(r.left + 8, r.top + 64, r.right - 8, r.top + 80),
+                     color::kText3, mono(9), kCenterText);
+                const double range = plain(id(dyn(params::DynControl::Range)));
+                const double fill = active && std::fabs(range) > 0.05 ? std::clamp(g / range, 0.0, 1.0) : 0.0;
+                const CRect bar(r.left + 12, r.bottom - 14, r.right - 12, r.bottom - 8);
+                dc->setFillColor(CColor(0, 0, 0, 255));
+                dc->drawRect(bar, kDrawFilled);
+                if (fill > 0.005) {
+                    dc->setFillColor(color::kAccent);
+                    dc->drawRect(CRect(bar.left, bar.top, bar.left + fill * bar.getWidth(), bar.bottom), kDrawFilled);
+                }
+            }, true);
+            now->setMouseEnabled(false);
+            bv->addView(now);
+            live_.push_back(now);
+        }
+        dy->addView(new Caption(CRect(12, row2 + 108, W - 14, row2 + 120), "Une bande n'agit que quand elle sort de son équilibre habituel dans le mix (seuil, en dB).", color::kText3, mono(9)));
+        dy->addView(new Caption(CRect(12, row2 + 122, W - 14, row2 + 134), "Plage < 0 : retenue · > 0 : ressort. Glisse ses nœuds sur l'écran · double-clic : allumer.", color::kText3, mono(9)));
+        showMatchView(0, 0);
     }
     {
         auto* p = page(drawer, 2, "3", "INFLATOR", "Densité et chaleur, la 808 et le mix à part.");
@@ -1682,7 +1759,8 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
     if (pageScreens_[1])
         pageScreens_[1]->setMouse([this](const CPoint& p, int phase, bool fine) {
             const CRect r = pageScreens_[1]->getViewSize();
-            return matchMouse(p, phase, fine, CRect(0, 0, r.getWidth(), r.getHeight()));
+            return matchView_ == 1 ? dynMouse(p, phase, fine, CRect(0, 0, r.getWidth(), r.getHeight()))
+                                   : matchMouse(p, phase, fine, CRect(0, 0, r.getWidth(), r.getHeight()));
         });
     // Multibande : les trois fréquences de séparation se glissent sur l'écran.
     if (pageScreens_[4])
@@ -1749,6 +1827,77 @@ bool OmnisEditor::matchMouse(const CPoint& p, int phase, bool fine, const CRect&
     if (phase == 2) {
         omnis()->endGesture(pid);
         matchNode_ = -1;
+    }
+    return true;
+}
+
+void OmnisEditor::showMatchView(int view, int band) {
+    matchView_ = std::clamp(view, 0, 1);
+    dynBand_ = std::clamp(band, 0, params::kDynBands - 1);
+    if (matchStatic_) matchStatic_->setVisible(matchView_ == 0);
+    if (matchDynamic_) matchDynamic_->setVisible(matchView_ == 1);
+    for (int b = 0; b < params::kDynBands; ++b)
+        if (auto* v = dynBandViews_[static_cast<std::size_t>(b)]) v->setVisible(b == dynBand_);
+    if (pages_[1]) pages_[1]->invalid();
+    if (pageScreens_[1]) pageScreens_[1]->markDirty();
+}
+
+namespace {
+// Écran de l'EQ dynamique : ±18 dB (la plage des bandes va de -18 à +12).
+constexpr double kDynTopDb = 18.0, kDynBottomDb = -18.0;
+
+/// Réponse d'une bande dynamique (y = x + (G − 1)·passe-bande), en dB.
+double dynBandDb(double f, double hz, double q, double gainDb) {
+    const double w = f / hz;
+    const std::complex<double> bp = std::complex<double>(0.0, w / q) / std::complex<double>(1.0 - w * w, w / q);
+    const double g = std::pow(10.0, gainDb / 20.0);
+    return 20.0 * std::log10(std::max(std::abs(1.0 + (g - 1.0) * bp), 1e-6));
+}
+} // namespace
+
+bool OmnisEditor::dynMouse(const CPoint& p, int phase, bool fine, const CRect& r) {
+    const CRect plot(10, 24, r.getWidth() - 10, r.getHeight() - 20);
+    const auto yOfDb = [&](double db) { return plot.top + (kDynTopDb - db) / (kDynTopDb - kDynBottomDb) * plot.getHeight(); };
+    const auto dyn = [](int b, params::DynControl c) { return id(params::dynId(b, c)); };
+    if (phase == 0 || phase == 3) {
+        int picked = -1;
+        double best = 14.0;
+        for (int b = 0; b < params::kDynBands; ++b) {
+            const double x = xOfHz(plain(dyn(b, params::DynControl::Freq)), 20.0, 20000.0, plot), y = yOfDb(plain(dyn(b, params::DynControl::Range)));
+            const double d = std::hypot(x - p.x, y - p.y);
+            if (d < best) {
+                best = d;
+                picked = b;
+            }
+        }
+        if (picked < 0) return false;
+        showMatchView(1, picked);
+        if (phase == 3) { // double-clic : allumer / éteindre la bande
+            setPlain(dyn(picked, params::DynControl::On), plain(dyn(picked, params::DynControl::On)) >= 0.5 ? 0.0 : 1.0);
+            return true;
+        }
+        dynHeld_ = true;
+        dynStartX_ = p.x;
+        dynStartY_ = p.y;
+        dynStartHz_ = plain(dyn(picked, params::DynControl::Freq));
+        dynStartRange_ = plain(dyn(picked, params::DynControl::Range));
+        omnis()->beginGesture(dyn(picked, params::DynControl::Freq));
+        omnis()->beginGesture(dyn(picked, params::DynControl::Range));
+        return true;
+    }
+    if (!dynHeld_) return false;
+    const double scale = fine ? 0.2 : 1.0;
+    // x : la fréquence (en octaves), y : la plage.
+    const double octaves = (p.x - dynStartX_) / plot.getWidth() * std::log2(20000.0 / 20.0) * scale;
+    const double hz = std::clamp(dynStartHz_ * std::pow(2.0, octaves), 20.0, 20000.0);
+    const double range = std::clamp(dynStartRange_ + (dynStartY_ - p.y) * (kDynTopDb - kDynBottomDb) / plot.getHeight() * scale, -18.0, 12.0);
+    const auto f = dyn(dynBand_, params::DynControl::Freq), g = dyn(dynBand_, params::DynControl::Range);
+    omnis()->performGesture(f, params::toNormalized(*params::findParameter(f), hz));
+    omnis()->performGesture(g, params::toNormalized(*params::findParameter(g), range));
+    if (phase == 2) {
+        omnis()->endGesture(f);
+        omnis()->endGesture(g);
+        dynHeld_ = false;
     }
     return true;
 }
@@ -1869,7 +2018,37 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             hint("COUPE-BAS " + fmt("%.0f Hz", fc) + " · SUB " + fmt("%+.1f dB", sg) + " À " + fmt("%.0f Hz", sf));
             break;
         }
-        case 1: { // Match EQ : nœuds éditables
+        case 1: { // Match EQ : nœuds éditables (vue EQ) ou bandes dynamiques (vue DYN)
+            if (matchView_ == 1) {
+                const auto dyn = [](int b, params::DynControl ctl) { return id(params::dynId(b, ctl)); };
+                caption("EQ DYNAMIQUE · BANDE " + std::to_string(dynBand_ + 1) + " · " +
+                        valueText(dyn(dynBand_, params::DynControl::Channel)));
+                const double lo = 20.0, hi = 20000.0;
+                gridLines(c, plot, lo, hi, true);
+                zeroLine();
+                for (int db : {-12, -6, 6, 12}) {
+                    const double y = plot.top + (kDynTopDb - db) / (kDynTopDb - kDynBottomDb) * plot.getHeight();
+                    c->setFrameColor(color::kGrid);
+                    c->drawLine(CPoint(plot.left, y), CPoint(plot.right, y));
+                    text(c, fmt("%+.0f", db), CRect(plot.left + 2, y - 11, plot.left + 30, y - 1), color::kText3, mono(8));
+                }
+                for (int b = 0; b < params::kDynBands; ++b) {
+                    const bool on = plain(dyn(b, params::DynControl::On)) >= 0.5, sel = b == dynBand_;
+                    const double hz = plain(dyn(b, params::DynControl::Freq)), q = plain(dyn(b, params::DynControl::Q));
+                    const double range = plain(dyn(b, params::DynControl::Range)), now = an_->meters.dynamicGainDb[b];
+                    // La plage (jusqu'où la bande peut aller), puis ce qu'elle fait maintenant.
+                    if (on || sel)
+                        curve(lo, hi, kDynTopDb, [&](double f) { return dynBandDb(f, hz, q, range); },
+                              withAlpha(sel ? color::kAccent : color::kCool, on ? 0.45 : 0.2), false);
+                    if (on && std::fabs(now) > 0.05) curve(lo, hi, kDynTopDb, [&](double f) { return dynBandDb(f, hz, q, now); }, color::kAccent, true);
+                    const double x = xOfHz(hz, lo, hi, plot), y = plot.top + (kDynTopDb - range) / (kDynTopDb - kDynBottomDb) * plot.getHeight();
+                    fillCircle(c, CPoint(x, y), sel ? 7.0 : 6.0, on ? (sel ? color::kAccent : color::kCool) : CColor(90, 90, 94));
+                    text(c, std::to_string(b + 1), CRect(x - 6, y - 6, x + 6, y + 6), CColor(10, 10, 12), mono(8.5, true), kCenterText);
+                }
+                hint(hzText(plain(dyn(dynBand_, params::DynControl::Freq))) + " Hz · PLAGE " + valueText(dyn(dynBand_, params::DynControl::Range)) + " · SEUIL +" +
+                     valueText(dyn(dynBand_, params::DynControl::Threshold)) + " · MAINTENANT " + fmt("%+.1f dB", an_->meters.dynamicGainDb[dynBand_]));
+                break;
+            }
             caption(std::string("COURBE M/S · ÉDITION ") + (matchSide_ == 0 ? "MID" : "SIDE") + " · TILT " + fmt("%+.1f dB", plain(id(ParamId::MatchTilt))));
             const double lo = 20.0, hi = 20480.0;
             gridLines(c, plot, lo, hi, true);
