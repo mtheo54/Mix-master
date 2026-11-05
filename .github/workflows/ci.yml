@@ -98,7 +98,7 @@ jobs:
           cp -R "$(find art/win -type d -name OMNIS.vst3 -prune | head -1)" $out/Windows/
           cp -R "$(find art/mac -type d -name OMNIS.vst3 -prune | head -1)" $out/macOS/
           cp "$(find art/tools -name omnis_refdb.exe | head -1)" $out/outils/
-          cp LICENSE_NOTICES.md docs/REFERENCES.md installer/INTEGRATION_ONIRIQUE.md $out/
+          cp LICENSE_NOTICES.md docs/REFERENCES.md docs/MODE_D_EMPLOI.md docs/USER_MANUAL.md installer/INTEGRATION_ONIRIQUE.md $out/
           v=$(grep -E 'OMNIS_VERSION_(MAJOR|MINOR|PATCH) ' source/plugin/vst3/OmnisVersion.h | awk '{print $3}' | paste -sd.)
           { echo "OMNIS $v — Abrasion Labs — https://onirique.store"
             echo "Commit : $GITHUB_SHA"

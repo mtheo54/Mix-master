@@ -50,7 +50,7 @@
 ## source/dsp/
 
 - `Crossover.h` (151 l.) — Crossovers Linkwitz-Riley (LR4 / LR8) et réseau N bandes. · types : LinkwitzRileyAllpass, LinkwitzRileyCrossover, CrossoverNetwork · enums : CrossoverSlope · fonctions : setup, reset, process, assert
-- `DynamicEq.h/cpp` (294 l.) — EQ dynamique à 4 bandes, en Mid / Side, sans latence. · types : DynamicEq, BandSettings, Svf, Band · fonctions : prepare, reset, setParameter, process, control, updateTimes
+- `DynamicEq.h/cpp` (295 l.) — EQ dynamique à 4 bandes, en Mid / Side, sans latence. · types : DynamicEq, BandSettings, Svf, Band · fonctions : prepare, reset, setParameter, process, control, updateTimes
 - `Fft.h/cpp` (135 l.) — FFT complexe radix-2 en double précision, sans dépendance. · types : Fft · fonctions : cmul, prepare
 - `FirKernelBank.h` (150 l.) — Banque de noyaux FIR sans verrou (thread audio / calcul). · types : FirKernelBank, Slot · fonctions : prepare, stop, request, takeReady, initialSlot, markRetiring, release, acquireForWriting, workerLoop
 - `Halfband.h/cpp` (277 l.) — Filtres demi-bande polyphase IIR (méthode de L. de Soras, HIIR). · types : AllpassChain, Halfband2x · fonctions : designHalfband, setCoefficients, reset, process, upsample, downsample, upsampleBlock, downsampleBlock

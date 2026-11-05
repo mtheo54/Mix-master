@@ -508,3 +508,4 @@ Match EQ > DYN : 4 bandes qui n'agissent que quand un son sort du lot	Match EQ >
 (sifflante, note de 808 qui gonfle, hi-hat qui pique) ; le reste du temps, rien.	(sibilance, an 808 note that swells, a piercing hi-hat); the rest of the time, nothing.
 Plage < 0 : retient · > 0 : fait ressortir · seuil : dB au-dessus de l'habitude.	Range < 0: holds back · > 0: lifts · threshold: dB above the usual level.
 Écris « ça siffle » dans la barre IA : OMNIS en allume une.	Type "it's sibilant" in the AI bar: OMNIS turns one on.
+Manuel	Manual

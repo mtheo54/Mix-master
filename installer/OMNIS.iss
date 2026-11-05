@@ -64,6 +64,8 @@ en.CompTools=Reference measuring tool (omnis_refdb)
 ; Le paquet VST3 (un dossier) va dans le dossier VST3 commun, là où les hôtes le cherchent.
 Source: "{#SrcDir}\VST3\Release\OMNIS.vst3\*"; DestDir: "{commoncf64}\VST3\OMNIS.vst3"; Components: plugin; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\LICENSE_NOTICES.md"; DestDir: "{app}"; Components: plugin; Flags: ignoreversion
+Source: "..\docs\MODE_D_EMPLOI.md"; DestDir: "{app}"; Components: plugin; Flags: ignoreversion
+Source: "..\docs\USER_MANUAL.md"; DestDir: "{app}"; Components: plugin; Flags: ignoreversion
 Source: "{#SrcDir}\bin\Release\omnis_refdb.exe"; DestDir: "{app}"; Components: tools; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\docs\REFERENCES.md"; DestDir: "{app}"; Components: tools; Flags: ignoreversion
 

@@ -294,7 +294,7 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
 - **Colonne Master** : entrée / sortie, bargraphe, mesures avec leur verdict en mots, rôle,
   groupe, stems liés, pages Chef d'orchestre et Piste (stem : élément reconnu, et dans un bus
   de drums chaque élément nommé avec ce qui en est fait).
-- **Guide** à la première ouverture (10 étapes), relancé par « ? ».
+- **Guide** à la première ouverture (14 étapes), relancé par « ? » ou « tuto ». Mode d'emploi complet : [docs/MODE_D_EMPLOI.md](docs/MODE_D_EMPLOI.md) (anglais : [docs/USER_MANUAL.md](docs/USER_MANUAL.md)).
 
 ## Compilation
 

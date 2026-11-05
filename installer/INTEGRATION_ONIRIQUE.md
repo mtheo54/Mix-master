@@ -24,6 +24,7 @@ OMNIS-pour-ONIRIQUE/
 | macOS 10.15 et plus | `macOS/OMNIS.vst3` (paquet) | `/Library/Audio/Plug-Ins/VST3/OMNIS.vst3` (tous les utilisateurs) ou `~/Library/Audio/Plug-Ins/VST3/` | administrateur pour `/Library` |
 | Windows (facultatif) | `outils/omnis_refdb.exe` + `REFERENCES.md` | le dossier des outils ONIRIQUE / Abrasion, par ex. `C:\Program Files\Abrasion Labs\OMNIS\` | administrateur |
 | toujours | `LICENSE_NOTICES.md` | à côté des autres mentions ONIRIQUE (ou dans `C:\Program Files\Abrasion Labs\OMNIS\`), et/ou affiché par l'installateur | — |
+| conseillé | `MODE_D_EMPLOI.md` (français), `USER_MANUAL.md` (anglais) | à côté des mentions, ou en lien depuis la fiche du produit | — |
 
 - Copier **le dossier `OMNIS.vst3` entier**, avec son arborescence (`Contents/…`, `Resources/moduleinfo.json`) :
   ce n'est pas un fichier unique. Écraser une version précédente au même endroit.
