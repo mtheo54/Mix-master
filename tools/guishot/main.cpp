@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
         auto* editor = new omnis::vst3::OmnisEditor(rig.ctrl);
         auto* frame = new VSTGUI::CFrame(VSTGUI::CRect(0, 0, omnis::vst3::OmnisEditor::kWidth, omnis::vst3::OmnisEditor::kHeight), editor);
         editor->buildInto(frame);
-        for (int step = 0; step < 10; ++step) {
+        for (int step = 0; step < omnis::vst3::OmnisEditor::tutorialSteps(); ++step) {
             editor->startTutorial(step);
             editor->tick();
             const std::string path = dir + "/omnis-" + mode + "-tuto-" + std::to_string(step + 1) + ".png";

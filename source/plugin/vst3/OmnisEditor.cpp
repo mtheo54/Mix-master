@@ -267,13 +267,18 @@ struct TutorialStep {
     CRect focus; ///< zone éclairée (coordonnées du cadre)
     const char* title;
     std::array<const char*, 4> lines;
+    int since = 1; ///< version du guide qui a ajouté l'étape (montrée après une mise à jour)
 };
 
-const std::array<TutorialStep, 10> kTutorial{{
+/// Version du guide : quand elle monte, les étapes nouvelles se montrent une fois
+/// à la personne qui avait déjà vu le guide.
+constexpr int kTutorialVersion = 2;
+
+const std::array<TutorialStep, 13> kTutorial{{
     {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
      {"OMNIS mixe et masterise ta prod. Deux façons de l'utiliser :", "1. seul sur le master : il masterise la prod entière ;",
       "2. sur tes pistes (Stem) + un Master : chaque piste est travaillée,", "   et le master écoute tout le monde. Suis le guide (2 minutes)."}},
-    {CRect(942, 560, 1190, 730), "RÔLE ET GROUPE",
+    {CRect(942, 600, 1190, 664), "RÔLE ET GROUPE",
      {"Seul : OMNIS sur le master, rien d'autre à faire.", "Stem : sur une piste (808, drums, voix…), sans aucune latence.",
       "Master : sur le bus master ; il entend les stems du même groupe.", "Un groupe par projet ouvert (1 à 8)."}},
     {CRect(10, 106, 932, 306), "LE RACK : 7 MODULES",
@@ -285,23 +290,49 @@ const std::array<TutorialStep, 10> kTutorial{{
     {CRect(10, 58, 932, 98), "LA BARRE IA",
      {"Écris ce que tu veux, en français, en anglais ou en argot :", "« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…",
       "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "RÉF : choisis un style, un artiste ou un titre de ta base ; AUTO le vise."}},
+    {CRect(344, 62, 552, 94), "TES RÉFÉRENCES",
+     {"L'entonnoir filtre le menu RÉF : une famille, puis un sous-genre.", "RÉF > « Ajouter un fichier de référence… » : nomme-le « Artiste - Titre ».",
+      "OMNIS le mesure (le son n'est jamais gardé) et peut le confirmer sur", "MusicBrainz, sa seule connexion (désactivable dans ce menu)."}, 2},
     {CRect(196, 10, 272, 50), "AUTO",
      {"Clique AUTO, puis joue le passage le plus fort (refrain, drop).", "OMNIS écoute 10 s, règle toute la chaîne vers ton style",
       "et amène le volume à la bonne sonie. Tout reste réglable après.", "La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »)."}},
     {CRect(270, 10, 830, 50), "ÉCOUTER HONNÊTEMENT",
      {"A / B : deux réglages complets ; A>B copie l'un dans l'autre.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
       "DELTA : n'entends que ce que le module ouvert change.", "STÉRÉO / MID / SIDE : vérifie le centre et les côtés."}},
+    {CRect(840, 16, 926, 44), "LATENCE",
+     {"Qualité max : ~710 ms de latence, normale en mastering (le DAW la compense).", "Un clic : mode TRAVAIL (~90 ms) pour jouer en direct, qualité réduite.",
+      "Il clignote en rouge tant qu'il est actif :", "remets la qualité max avant d'exporter."}, 2},
     {CRect(942, 10, 1190, 552), "LES MESURES",
      {"Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.", "Chaque mesure a son verdict en mots : BON, FORT, DENSE, PUNCHY…",
       "TRUE PEAK doit rester OK (sous -1 dBTP) pour le streaming.", "PLR = écart crête / sonie : plus il est grand, plus ça respire."}},
-    {CRect(942, 654, 1190, 720), "CHEF D'ORCHESTRE ET PISTE",
+    {CRect(942, 556, 1190, 596), "ÉCOUTES ET EXPORT",
+     {"ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…", "Elle reste en rouge et ne part jamais dans l'export : remets-la sur Off.",
+      "Écris « export » dans la barre IA : OMNIS dit si tout est prêt.", "DIAGNOSTIC DU MIX (en bas) : ce que le master ne rattrape pas."}, 2},
+    {CRect(942, 654, 1190, 728), "CHEF D'ORCHESTRE ET PISTE",
      {"Sur le Master : les propositions quand un son en gêne un autre", "(OUI / NON, rien n'est appliqué sans ton accord).",
-      "Sur un Stem : la page PISTE montre l'élément reconnu et sa chaîne.", ""}},
+      "Sur un Stem : la page STEM montre l'élément reconnu et sa chaîne.", "DIAGNOSTIC DU MIX : ce qui se corrige dans ton projet, pas au master."}},
     {CRect(796, 10, 830, 50), "C'EST PARTI",
-     {"Le bouton ? relance ce guide quand tu veux.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
+     {"Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
 }};
 
+/// Le guide déjà vu : un petit fichier dans le dossier de la personne (jamais dans
+/// le VST3, que le système protège en écriture), avec la version du guide.
 std::filesystem::path tutorialFlag() { return userDataDir() / "tutoriel_vu.txt"; }
+
+/// Étape où ouvrir le guide : 0 la première fois, la première étape nouvelle après
+/// une mise à jour du guide, -1 s'il est à jour.
+int tutorialStartStep() {
+    std::error_code ec;
+    if (!std::filesystem::exists(tutorialFlag(), ec)) return 0;
+    std::ifstream in(tutorialFlag());
+    std::string word;
+    int seen = 0;
+    in >> word >> seen;
+    if (seen <= 0) seen = 1; // « vu » seul (avant le 05/11) : version 1
+    for (std::size_t i = 0; i < kTutorial.size(); ++i)
+        if (kTutorial[i].since > seen) return static_cast<int>(i);
+    return -1;
+}
 
 } // namespace
 
@@ -378,12 +409,14 @@ private:
     CRect card_, next_, skip_, back_;
 };
 
+int OmnisEditor::tutorialSteps() noexcept { return static_cast<int>(kTutorial.size()); }
+
 void OmnisEditor::startTutorial(int step) {
     tutorialStep_ = step;
     if (step < 0) {
         std::error_code ec;
         std::filesystem::create_directories(tutorialFlag().parent_path(), ec);
-        std::ofstream(tutorialFlag()) << "vu\n";
+        std::ofstream(tutorialFlag()) << "vu " << kTutorialVersion << "\n";
     }
     if (tutorial_) {
         tutorial_->setVisible(step >= 0);
@@ -569,8 +602,7 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     // Le guide, par-dessus tout ; montré tout seul à la toute première ouverture.
     tutorial_ = new TutorialOverlay(CRect(0, 0, kWidth, kHeight), *this);
     root->addView(tutorial_);
-    std::error_code ec;
-    startTutorial(std::filesystem::exists(tutorialFlag(), ec) ? -1 : 0);
+    startTutorial(tutorialStartStep());
 }
 
 // -----------------------------------------------------------------------------
@@ -2315,6 +2347,7 @@ void OmnisEditor::tick() {
     const std::string news = omnis()->pollAutomation();
     if (!news.empty()) answer_ = news;
     if (omnis()->takeLibraryChanged() && refFill_) refFill_(); // un fichier ajouté : le menu RÉF le montre
+    if (omnis()->takeTutorialRequest()) startTutorial(0);      // « tuto » écrit dans la barre IA
     if (const double pr = omnis()->autoProgress(); pr >= 0.0)
         answer_ = pr <= 0.0 ? std::string("AUTO : joue le passage le plus fort (refrain, drop)…") : "AUTO : écoute " + fmt("%.0f %%", 100.0 * pr) + "…";
     if (++ticks_ % 15 == 0 && (role() != static_cast<int>(params::LinkRole::Alone) || page_ == kConductorPage)) omnis()->requestProposals();

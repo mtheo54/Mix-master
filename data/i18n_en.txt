@@ -296,7 +296,6 @@ Sub / 808 protégés : ±1 dB au maximum sous 100 Hz	Sub / 808 protected: ±1 dB
 Sub beaucoup plus tenu dans le temps (variation %.0f dB contre %.0f dB) : 	Sub much steadier over time (variation %.0f dB vs %.0f dB): 
 SUIVANT	NEXT
 Sur le Master : les propositions quand un son en gêne un autre	On the Master: proposals when one sound masks another
-Sur un Stem : la page PISTE montre l'élément reconnu et sa chaîne.	On a Stem: the TRACK page shows the recognized element and its chain.
 SURÉCH.	OVERS.
 SÉPARATIONS	SPLITS
 TEMPS · GAIN	TIMING · GAIN
@@ -466,3 +465,22 @@ Ajouté à ta base : 	Added to your library:
 Je n'ai pas pu ajouter ce fichier : 	I couldn't add this file: 
 Je n'ai pas pu ajouter ce fichier.	I couldn't add this file.
 Fichier trop long pour une référence (15 minutes au plus).	File too long for a reference (15 minutes at most).
+Le guide s'ouvre : SUIVANT pour avancer, PASSER pour le fermer. Le mode d'emploi complet est livré avec le plug-in.	The guide is opening: NEXT to go on, SKIP to close it. The full user manual comes with the plug-in.
+TES RÉFÉRENCES	YOUR REFERENCES
+L'entonnoir filtre le menu RÉF : une famille, puis un sous-genre.	The funnel filters the REF menu: a family, then a sub-genre.
+RÉF > « Ajouter un fichier de référence… » : nomme-le « Artiste - Titre ».	REF > "Add a reference file…": name it "Artist - Title".
+OMNIS le mesure (le son n'est jamais gardé) et peut le confirmer sur	OMNIS measures it (the audio is never kept) and can confirm it on
+MusicBrainz, sa seule connexion (désactivable dans ce menu).	MusicBrainz, its only connection (can be turned off in the same menu).
+LATENCE	LATENCY
+Qualité max : ~710 ms de latence, normale en mastering (le DAW la compense).	Max quality: ~710 ms of latency, normal for mastering (the DAW compensates it).
+Un clic : mode TRAVAIL (~90 ms) pour jouer en direct, qualité réduite.	One click: WORK mode (~90 ms) to play live, reduced quality.
+Il clignote en rouge tant qu'il est actif :	It blinks red while it is on:
+remets la qualité max avant d'exporter.	switch back to max quality before exporting.
+ÉCOUTES ET EXPORT	LISTENING AND EXPORT
+ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…	LISTEN: hear your master on earbuds, phone, TikTok, in a car…
+Elle reste en rouge et ne part jamais dans l'export : remets-la sur Off.	It stays red and never goes into the export: set it back to Off.
+Écris « export » dans la barre IA : OMNIS dit si tout est prêt.	Type "export" in the AI bar: OMNIS tells you if everything is ready.
+DIAGNOSTIC DU MIX (en bas) : ce que le master ne rattrape pas.	MIX DIAGNOSIS (at the bottom): what the master can't fix.
+Sur un Stem : la page STEM montre l'élément reconnu et sa chaîne.	On a Stem: the STEM page shows the recognised element and its chain.
+DIAGNOSTIC DU MIX : ce qui se corrige dans ton projet, pas au master.	MIX DIAGNOSIS: what to fix in your project, not on the master.
+Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.	The ? button (or "tuto" in the AI bar) starts this guide again.

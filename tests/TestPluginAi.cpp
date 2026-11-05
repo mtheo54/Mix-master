@@ -276,6 +276,19 @@ OMNIS_TEST("plug-in: « remets tout à zéro » ramène chaque réglage à son d
     OMNIS_CHECK(std::fabs(h.ctrl->getParamNormalized(id) - params::toNormalized(*spec, spec->defaultValue)) < 1e-9);
 }
 
+OMNIS_TEST("plug-in: « tuto », « aide », « comment ça marche » rouvrent le guide ; une demande de son ne le rouvre pas") {
+    Host h;
+    OMNIS_CHECK(!h.ctrl->takeTutorialRequest());
+    for (const char* ask : {"tuto", "Aide", "comment ça marche ?", "relance le tuto stp", "help"}) {
+        const std::string answer = h.ctrl->ask(ask);
+        OMNIS_CHECK(answer.find("guide") != std::string::npos);
+        OMNIS_CHECK(h.ctrl->takeTutorialRequest());
+        OMNIS_CHECK(!h.ctrl->takeTutorialRequest()); // pris une seule fois
+    }
+    (void)h.ctrl->ask("plus de punch, aide moi a garder ma 808");
+    OMNIS_CHECK(!h.ctrl->takeTutorialRequest());
+}
+
 OMNIS_TEST("plug-in: « annule » défait la dernière action (ici la remise à zéro), pas à pas") {
     Host h;
     const auto id = static_cast<Steinberg::Vst::ParamID>(params::ParamId::ClipDrive);

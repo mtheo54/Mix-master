@@ -32,6 +32,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace omnis::vst3 {
@@ -89,8 +90,10 @@ public:
     std::string mixDiagnosis();
     /// AUTO : écoute du passage le plus fort, puis réglage de la chaîne.
     void startAuto();
-    /// Tutoriel : relancer depuis le bouton « ? ».
-    void restartTutorial();
+    /// Tutoriel : relancer (« tuto », « aide » dans la barre IA). L'éditeur le prend
+    /// à sa minuterie avec takeTutorialRequest().
+    void restartTutorial() { tutorialRequested_ = true; }
+    [[nodiscard]] bool takeTutorialRequest() { return std::exchange(tutorialRequested_, false); }
     /// Interface, à chaque minuterie : AUTO qui termine, demande en attente
     /// d'écoute, volume mené vers la cible. Renvoie un message nouveau (ou vide).
     std::string pollAutomation();
@@ -195,6 +198,7 @@ private:
     std::shared_ptr<ImportJob> import_;
     std::thread importThread_;
     bool libraryChanged_ = false;
+    bool tutorialRequested_ = false;
     mutable int online_ = -1;
     std::vector<ProposalLine> pending_, applied_;
     std::vector<std::string> drumLines_;

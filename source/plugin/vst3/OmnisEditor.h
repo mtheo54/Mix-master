@@ -82,6 +82,7 @@ public:
     /// Tutoriel : montré à la première ouverture, relancé par « ? ». step < 0 : fermé.
     void startTutorial(int step = 0);
     [[nodiscard]] int tutorialStep() const noexcept { return tutorialStep_; }
+    [[nodiscard]] static int tutorialSteps() noexcept;
 
     enum Page : int { kStemPage = 7, kConductorPage = 8, kDiagPage = 9 };
 

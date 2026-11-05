@@ -379,6 +379,17 @@ std::string OmnisController::ask(const std::string& request) {
             i18n::setLanguage(i18n::Lang::Fr);
             return "Interface en français. Type /en for English.";
         }
+        // « tuto », « aide », « comment ça marche » : le guide se rouvre.
+        static constexpr std::string_view kHelpExact[] = {"aide", "help", "guide", "le guide", "?", "aide moi", "tuto", "tutoriel", "tutorial"};
+        static constexpr std::string_view kHelpPart[] = {"tuto", "comment ca marche", "comment ça marche", "how does it work", "how it works",
+                                                         "mode d emploi", "explique moi le plugin", "explique le plugin"};
+        bool help = false;
+        for (const auto phrase : kHelpExact) help = help || plain == phrase || command == phrase;
+        for (const auto phrase : kHelpPart) help = help || plain.find(phrase) != std::string::npos;
+        if (help) {
+            restartTutorial();
+            return "Le guide s'ouvre : SUIVANT pour avancer, PASSER pour le fermer. Le mode d'emploi complet est livré avec le plug-in.";
+        }
         static constexpr std::string_view kExport[] = {"export", "exporter", "pret a exporter", "je peux exporter", "check export", "ready to export"};
         for (const auto phrase : kExport)
             if (plain == phrase || plain.find(std::string(phrase) + " ") == 0 || plain.find(" " + std::string(phrase)) != std::string::npos) {
@@ -762,8 +773,6 @@ std::string OmnisController::pollAutomation() {
     if (!message.empty()) lastMessage_ = message;
     return message;
 }
-
-void OmnisController::restartTutorial() {}
 
 void OmnisController::requestFeed() {
     IPtr<IMessage> message = owned(allocateMessage());
