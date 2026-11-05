@@ -150,6 +150,9 @@ private:
     std::string refStyle_;                ///< sous-genre du filtre (vide : toute la famille)
     std::vector<std::string> refFamilies_; ///< familles proposées au filtre
     std::function<void()> refFill_;        ///< refait le contenu du menu RÉF
+    /// Vivant tant que l'éditeur existe : un rappel tardif (sélecteur de fichiers
+    /// asynchrone sur macOS) ne touche pas un éditeur détruit.
+    std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
     std::array<gui::Screen*, 10> pageScreens_{};
     gui::Screen* spectrum_ = nullptr;
     gui::Screen* scope_ = nullptr;

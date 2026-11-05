@@ -31,6 +31,18 @@ std::string readAll(const std::filesystem::path& path) {
     return std::string(std::istreambuf_iterator<char>(in), {});
 }
 
+/// `count` octets à partir de `offset` (moins en fin de fichier).
+std::string readPart(std::ifstream& in, std::uint64_t offset, std::size_t count) {
+    std::string out(count, '\0');
+    in.clear();
+    in.seekg(static_cast<std::streamoff>(offset));
+    in.read(out.data(), static_cast<std::streamsize>(count));
+    out.resize(static_cast<std::size_t>(std::max<std::streamsize>(0, in.gcount())));
+    return out;
+}
+
+constexpr std::size_t kMaxTagBytes = 32u << 20; // étiquettes et pochettes : 32 Mo au plus
+
 std::uint32_t u8(const std::string& b, std::size_t i) { return i < b.size() ? static_cast<unsigned char>(b[i]) : 0u; }
 std::uint32_t le32(const std::string& b, std::size_t i) { return u8(b, i) | (u8(b, i + 1) << 8) | (u8(b, i + 2) << 16) | (u8(b, i + 3) << 24); }
 std::uint32_t be32(const std::string& b, std::size_t i) { return (u8(b, i) << 24) | (u8(b, i + 1) << 16) | (u8(b, i + 2) << 8) | u8(b, i + 3); }
@@ -288,9 +300,51 @@ FileTags readWavTags(const std::string& b) {
     return t;
 }
 
+namespace {
+
+/// Seulement les octets où vivent les étiquettes, jamais tout le son (un WAV peut
+/// peser des centaines de Mo) : début d'un FLAC (blocs de métadonnées), bloc ID3v2
+/// et 128 derniers octets d'un MP3, chunks LIST / id3 d'un WAV (où qu'ils soient),
+/// remis dans un RIFF minimal que readWavTags lit tel quel.
+std::string tagBytes(const std::filesystem::path& path, const std::string& ext) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) return {};
+    in.seekg(0, std::ios::end);
+    const auto size = static_cast<std::uint64_t>(std::max<std::streamoff>(0, in.tellg()));
+    if (ext == "flac") return readPart(in, 0, static_cast<std::size_t>(std::min<std::uint64_t>(size, kMaxTagBytes)));
+    if (ext == "wav") {
+        const std::string head = readPart(in, 0, 12);
+        if (head.size() < 12 || head.compare(0, 4, "RIFF") != 0 || head.compare(8, 4, "WAVE") != 0) return {};
+        std::string kept;
+        for (std::uint64_t pos = 12; pos + 8 <= size;) {
+            const std::string h = readPart(in, pos, 8);
+            if (h.size() < 8) break;
+            const std::uint64_t len = le32(h, 4);
+            const std::string id = h.substr(0, 4);
+            if ((id == "LIST" || id == "id3 " || id == "ID3 ") && len <= kMaxTagBytes && kept.size() + len <= kMaxTagBytes)
+                kept += h + readPart(in, pos + 8, static_cast<std::size_t>(len)) + (len & 1 ? std::string(1, '\0') : std::string());
+            pos += 8 + len + (len & 1);
+        }
+        return "RIFF" + std::string(4, '\0') + "WAVE" + kept;
+    }
+    // MP3 : bloc ID3v2 en tête (taille dans son en-tête), ID3v1 en fin.
+    std::string out = readPart(in, 0, 10);
+    if (out.size() == 10 && out.compare(0, 3, "ID3") == 0)
+        out += readPart(in, 10, static_cast<std::size_t>(std::min<std::uint64_t>(syncsafe(out, 6), kMaxTagBytes)));
+    else
+        out.clear();
+    if (size >= 128) {
+        const std::string tail = readPart(in, size - 128, 128);
+        if (tail.compare(0, 3, "TAG") == 0) out += tail;
+    }
+    return out;
+}
+
+} // namespace
+
 FileTags readFileTags(const std::filesystem::path& path) {
     const std::string e = extensionOf(path);
-    const std::string bytes = readAll(path);
+    const std::string bytes = tagBytes(path, e);
     if (e == "flac") return readFlacTags(bytes);
     if (e == "wav") return readWavTags(bytes);
     return readId3Tags(bytes);
@@ -298,14 +352,14 @@ FileTags readFileTags(const std::filesystem::path& path) {
 
 std::vector<std::string> readCoverImages(const std::filesystem::path& path) {
     const std::string e = extensionOf(path);
+    const std::string bytes = tagBytes(path, e);
     if (e == "flac") {
-        auto pictures = tools::readEmbeddedPictures(path);
+        auto pictures = tools::readFlacPictures(reinterpret_cast<const unsigned char*>(bytes.data()), bytes.size());
         std::stable_sort(pictures.begin(), pictures.end(), [](const auto& a, const auto& b) { return (a.type == 3) > (b.type == 3); });
         std::vector<std::string> out;
         for (auto& p : pictures) out.push_back(std::move(p.bytes));
         return out;
     }
-    const std::string bytes = readAll(path);
     return id3Pictures(e == "wav" ? wavId3Chunk(bytes) : bytes);
 }
 
@@ -381,7 +435,7 @@ bool parseMusicBrainz(const std::string& json, const std::string& artist, const 
 Fetch onlineFetch() {
     return [](const std::string& url, std::string& body) {
         std::string error;
-        return httpGet(url, body, error, 10);
+        return httpGet(url, body, error, 6);
     };
 }
 
@@ -439,6 +493,14 @@ ImportResult importReferenceFile(const std::filesystem::path& path, const std::f
                                  const std::function<bool(const std::string&)>& knownArtist,
                                  const std::function<std::vector<std::string>(const std::string&)>& genresOf, const Fetch* fetch) {
     ImportResult r;
+    // Une référence, pas un mix d'une heure : décodé en double précision, un WAV de
+    // 400 Mo occupe déjà ~1 Go de mémoire dans le DAW.
+    std::error_code sizeError;
+    const auto bytes = std::filesystem::file_size(path, sizeError);
+    if (!sizeError && bytes > (extensionOf(path) == "mp3" ? (60ull << 20) : (400ull << 20))) {
+        r.message = "Fichier trop long pour une référence (15 minutes au plus).";
+        return r;
+    }
     tools::AudioFile audio;
     std::string error;
     if (!tools::readAudioFile(path, audio, error) || audio.numFrames() <= 0) {
@@ -490,8 +552,16 @@ ImportResult importReferenceFile(const std::filesystem::path& path, const std::f
             return r;
         }
     }
-    std::filesystem::rename(temp, userBase, ec);
+    // Windows : remplacer un fichier qu'un autre thread lit en ce moment peut échouer
+    // un instant (partage) : quelques essais.
+    for (int attempt = 0; attempt < 10; ++attempt) {
+        ec.clear();
+        std::filesystem::rename(temp, userBase, ec);
+        if (!ec) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
     if (ec) {
+        std::filesystem::remove(temp, ec);
         r.message = "Impossible d'écrire ta base de références.";
         return r;
     }

@@ -924,8 +924,8 @@ void OmnisEditor::pickReferenceFile() {
     selector->addFileExtension(CFileExtension("WAV", "wav"));
     selector->addFileExtension(CFileExtension("MP3", "mp3"));
     selector->addFileExtension(CFileExtension("FLAC", "flac"));
-    selector->run([this](CNewFileSelector* sel) {
-        if (sel->getNumSelectedFiles() == 0 || !omnis()) return;
+    selector->run([this, alive = std::weak_ptr<bool>(alive_)](CNewFileSelector* sel) {
+        if (alive.expired() || sel->getNumSelectedFiles() == 0 || !omnis()) return;
         answer_ = omnis()->importReferenceFile(sel->getSelectedFile(0));
         if (frame) frame->invalid();
     });

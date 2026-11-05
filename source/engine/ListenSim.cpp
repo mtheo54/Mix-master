@@ -7,7 +7,9 @@
 #include "../params/Parameters.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <initializer_list>
 #include <complex>
 #include <numbers>
 
@@ -19,8 +21,23 @@ struct Band {
     ListenSim::Filter type;
     double freq, gainDb, q;
 };
+/// Les filtres d'une écoute, sans allocation : la recette est refaite sur le
+/// thread audio quand on change d'écoute (un std::vector y allouait).
+struct Bands {
+    static constexpr int kMax = 8;
+    std::array<Band, kMax> v{};
+    int n = 0;
+    Bands() = default;
+    Bands(std::initializer_list<Band> list) {
+        for (const auto& b : list)
+            if (n < kMax) v[static_cast<std::size_t>(n++)] = b;
+    }
+    [[nodiscard]] const Band* begin() const { return v.data(); }
+    [[nodiscard]] const Band* end() const { return v.data() + n; }
+};
+
 struct Recipe {
-    std::vector<Band> bands;
+    Bands bands;
     bool mono = false, sideLowCut = false;
     int spatial = 0;
     double targetLufs = 0.0;

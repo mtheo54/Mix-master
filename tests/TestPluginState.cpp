@@ -197,3 +197,89 @@ OMNIS_TEST("plug-in: une écoute de moins de 60 s n'est pas retenue") {
     p->terminate();
     fs::remove_all(dir, ec);
 }
+
+// -----------------------------------------------------------------------------
+//  Une session abîmée (fichier de projet tronqué, autre version, octets au
+//  hasard) : l'hôte nous la donne telle quelle. Rien ne doit planter.
+// -----------------------------------------------------------------------------
+#include "plugin/vst3/OmnisController.h"
+
+#include <random>
+
+OMNIS_TEST("plug-in: état de session tronqué ou corrompu (processeur, contrôleur, composant) : refusé ou lu, jamais de plantage") {
+    // Un état valide, puis ses variantes.
+    IPtr<MemoryStream> good = owned(new MemoryStream());
+    OMNIS_CHECK(vst3::writeState(good, [](std::uint32_t) { return 0.37; }));
+    int64 size = 0;
+    good->seek(0, IBStream::kIBSeekEnd, &size);
+    std::string bytes(static_cast<std::size_t>(size), '\0');
+    good->seek(0, IBStream::kIBSeekSet, nullptr);
+    int32 got = 0;
+    good->read(bytes.data(), static_cast<int32>(bytes.size()), &got);
+    std::mt19937 rng(31);
+    std::uniform_int_distribution<int> byte(0, 255);
+    std::vector<std::string> cases;
+    for (std::size_t n = 0; n <= bytes.size(); n += 3) cases.push_back(bytes.substr(0, n));
+    for (int i = 0; i < 400; ++i) {
+        std::string s = bytes;
+        for (int e = 0; e < 1 + i % 8; ++e) s[static_cast<std::size_t>(byte(rng)) % s.size()] = static_cast<char>(byte(rng));
+        cases.push_back(s);
+    }
+    for (int i = 0; i < 50; ++i) {
+        std::string s(static_cast<std::size_t>(byte(rng)) * 4, '\0');
+        for (auto& c : s) c = static_cast<char>(byte(rng));
+        cases.push_back(s);
+    }
+    IPtr<vst3::OmnisProcessor> processor = owned(new vst3::OmnisProcessor());
+    IPtr<vst3::OmnisController> controller = owned(new vst3::OmnisController());
+    int accepted = 0;
+    for (const auto& s : cases) {
+        IPtr<MemoryStream> in = owned(new MemoryStream());
+        in->write(const_cast<char*>(s.data()), static_cast<int32>(s.size()), nullptr);
+        in->seek(0, IBStream::kIBSeekSet, nullptr);
+        if (processor->setState(in) == kResultOk) ++accepted;
+        in->seek(0, IBStream::kIBSeekSet, nullptr);
+        (void)controller->setState(in);
+        in->seek(0, IBStream::kIBSeekSet, nullptr);
+        (void)controller->setComponentState(in);
+        // Ce qui a été lu reste dans les bornes.
+        IPtr<MemoryStream> out = owned(new MemoryStream());
+        OMNIS_CHECK(processor->getState(out) == kResultOk);
+        out->seek(0, IBStream::kIBSeekSet, nullptr);
+        int outOfRange = 0;
+        OMNIS_CHECK(vst3::readState(out, [&outOfRange](std::uint32_t, double v) {
+            if (!(v >= 0.0 && v <= 1.0)) ++outOfRange;
+        }));
+        OMNIS_CHECK(outOfRange == 0);
+    }
+    std::printf("      %zu sessions essayées, %d acceptées\n", cases.size(), accepted);
+}
+
+using namespace Steinberg::Vst;
+
+OMNIS_TEST("plug-in: hôte aberrant (fréquence 0 / NaN / 10 MHz, bloc de 2^30, bloc plus grand qu'annoncé) : refusé ou absorbé") {
+    IPtr<vst3::OmnisProcessor> p = owned(new vst3::OmnisProcessor());
+    p->initialize(nullptr);
+    SpeakerArrangement ins[2] = {SpeakerArr::kStereo, SpeakerArr::kStereo}, outs[1] = {SpeakerArr::kStereo};
+    p->setBusArrangements(ins, 2, outs, 1);
+    for (const double bad : {0.0, -48000.0, std::nan(""), 1.0e7}) {
+        ProcessSetup setup{kRealtime, kSample32, 512, bad};
+        OMNIS_CHECK(p->setupProcessing(setup) != kResultOk);
+    }
+    ProcessSetup huge{kRealtime, kSample32, 1 << 30, 48000.0};
+    OMNIS_CHECK(p->setupProcessing(huge) == kResultOk); // préparé à 16384, pas à 2^30
+    p->setActive(true);
+    p->setProcessing(true);
+    HostProcessData data;
+    data.prepare(*p, 40000, kSample32);
+    for (int c = 0; c < 2; ++c)
+        for (int i = 0; i < 40000; ++i) data.inputs[0].channelBuffers32[c][i] = 0.25f * static_cast<float>(std::sin(0.01 * i));
+    data.numSamples = 40000; // plus grand que la taille préparée : découpé par le moteur
+    OMNIS_CHECK(p->process(data) == kResultOk);
+    bool finite = true;
+    for (int i = 0; i < 40000; ++i) finite = finite && std::isfinite(data.outputs[0].channelBuffers32[0][i]);
+    OMNIS_CHECK(finite);
+    p->setProcessing(false);
+    p->setActive(false);
+    p->terminate();
+}

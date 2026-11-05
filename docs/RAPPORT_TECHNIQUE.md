@@ -42,7 +42,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 
 | Contrôle | Résultat |
 |---|---|
-| Tests unitaires | 206 / 206 |
+| Tests unitaires | 213 / 213 |
 | Tests plug-in | 20 / 20 |
 | Validateur Steinberg | 47 / 47 |
 | `ctest` (dont « aucune image livrée ») | 4 / 4 |
@@ -917,7 +917,7 @@ macOS).
 
 ## 15. Qualité et tests
 
-- **Tests unitaires : 206**, un fichier par domaine.
+- **Tests unitaires : 213**, un fichier par domaine.
   - **Null-tests** au bit près ou < 1e-12 pour chaque étage neutre et pour la chaîne entière.
   - **Repliement** : clipper selon le suréchantillonnage, Inflator 4× sans repliement, rejet
     ultrasonore > 115 dB.
@@ -949,6 +949,36 @@ macOS).
   `docs/BILAN.md` §2.
 
 ---
+
+### 15.1 Bilan de robustesse du 05/11/2026
+
+| Contrôle | Résultat |
+|---|---|
+| ASan + UBSan (mémoire, comportement indéfini) : 213 tests unitaires, 24 plug-in, validateur | propre |
+| TSan (courses entre threads) : 213 unitaires + 22 plug-in (noyaux FIR, lien, écoute, import) | aucune course |
+| Fuzz : ~9 000 étiquettes ID3 / FLAC / WAV abîmées, ~3 000 réponses MusicBrainz et bases texte, ~650 fichiers audio abîmés, ~975 sessions corrompues | aucun plantage |
+| Temps réel : allocations pendant `process()` (1 500 blocs aléatoires, automation de tout, 32 / 64 bits) | 0 (test permanent) |
+| Validateur Steinberg étendu (`-e`) | 537 / 537 |
+| clang-tidy (bugprone, analyseur, concurrence) : 187 avertissements triés | aucun défaut réel |
+
+Défauts trouvés et corrigés :
+1. **Lecture de session** (contrôleur) : chaîne du SDK libérée avec `delete[]` alors qu'elle vient de
+   `malloc`, et lue sans zéro final sur une session abîmée. Lecture refaite, bornée.
+2. **Écoute simulée** : sa recette de filtres allouait sur le thread audio à chaque changement
+   d'écoute (35 à 51 allocations / 1 500 blocs). Tableau fixe : 0 allocation.
+3. **Hôte aberrant** : fréquence 0 / NaN acceptée (division par zéro), taille de bloc sans borne
+   (Go réservés). Fréquence hors 8 – 768 kHz refusée, préparation plafonnée à 16 384 (le moteur
+   découpe au-delà).
+4. **Import** : exception possible dans le thread (arrêt du DAW) -> rattrapée ; tout le fichier lu
+   pour ses étiquettes -> seulement les blocs d'étiquettes ; fichiers > 15 min refusés ; écriture
+   de la base réessayée (Windows) ; rappel du sélecteur de fichiers sur un éditeur détruit ->
+   protégé ; fermeture du DAW pendant un import -> requêtes annulées, 6 s au plus.
+5. **Contrôle « aucune image »** : faux positif sur les constantes des codeurs -> cherche de vraies
+   images (vérifié sur un vrai PNG / JPEG cachés).
+
+Restent hors de portée ici : écoute réelle dans FL Studio, rendu de la console sous Windows /
+macOS, hôtes réels (Ableton, Cubase, Reaper…) ; une fuite mémoire du banc de test du SDK
+(`HostApplication`, test seulement).
 
 ## 16. Limites connues (à dire à un ingé)
 

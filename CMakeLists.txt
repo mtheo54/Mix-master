@@ -349,6 +349,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestReferenceDynamics.cpp
         tests/TestGenreProfiles.cpp
         tests/TestReferenceImport.cpp
+        tests/TestRobustness.cpp
         tests/TestI18n.cpp
         tests/TestWav.cpp
     )
@@ -367,6 +368,7 @@ if(OMNIS_BUILD_TESTS)
             tests/TestPluginLink.cpp
             tests/TestPluginSlotToggle.cpp
             tests/TestPluginAi.cpp
+            tests/TestPluginRealtime.cpp
             source/plugin/vst3/OmnisController.cpp
             source/plugin/vst3/OmnisProcessor.cpp
             source/plugin/vst3/UiFeed.cpp

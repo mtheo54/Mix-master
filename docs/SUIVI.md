@@ -49,6 +49,11 @@
 
 ## Fait récemment
 
+- **05/11 — Bilan de robustesse** (rapport §15.1) : ASan / UBSan / TSan / fuzz / validateur
+  étendu / clang-tidy. Corrigés : lecture de session (malloc / delete[], chaîne sans zéro),
+  allocations de l'écoute simulée sur le thread audio, hôte aberrant (fréquence, bloc), sûreté de
+  l'import. Nouveaux tests permanents : `TestRobustness`, `TestPluginRealtime`, sessions
+  corrompues, hôte aberrant.
 - **04/11 — Ajouter un fichier de référence** (menu RÉF) : étiquettes, nom « Artiste - Titre » /
   « Titre - Artiste », MusicBrainz (une requête par fichier, désactivable), pochette du fichier ;
   `omnis_refdb reconnaitre`. Deezer retiré (API non commerciale). Notice mise à jour (seule

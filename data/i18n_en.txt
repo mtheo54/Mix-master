@@ -463,3 +463,6 @@ Ajouté à ta base : 	Added to your library:
  (d'après le nom du fichier, MusicBrainz ne le connaît pas).	 (from the file name; not on MusicBrainz).
  (d'après le fichier).	 (from the file's tags).
  (d'après le nom du fichier).	 (from the file name).
+Je n'ai pas pu ajouter ce fichier : 	I couldn't add this file: 
+Je n'ai pas pu ajouter ce fichier.	I couldn't add this file.
+Fichier trop long pour une référence (15 minutes au plus).	File too long for a reference (15 minutes at most).

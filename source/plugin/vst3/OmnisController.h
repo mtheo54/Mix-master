@@ -188,6 +188,7 @@ public:
 private:
     struct ImportJob {
         std::atomic<bool> done{false};
+        std::atomic<bool> cancel{false}; ///< fermeture : plus de requête MusicBrainz
         bool ok = false;
         std::string message;
     };

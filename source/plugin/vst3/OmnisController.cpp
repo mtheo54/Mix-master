@@ -263,6 +263,10 @@ void OmnisController::applyPlan(const std::vector<std::pair<std::uint32_t, doubl
 }
 
 OmnisController::~OmnisController() {
+    // Le DAW se ferme pendant un import : les requêtes restantes sont abandonnées
+    // (au plus une en cours, 6 s), puis on attend le thread (le code du plug-in ne
+    // doit pas disparaître sous lui).
+    if (import_) import_->cancel = true;
     if (importThread_.joinable()) importThread_.join();
 }
 
@@ -300,6 +304,8 @@ std::string OmnisController::importReferenceFile(const std::string& utf8Path) {
     import_ = job;
     const bool online = onlineRecognition();
     importThread_ = std::thread([job, path, online] {
+        // Rien ne doit sortir de ce thread : une exception non rattrapée arrêterait le DAW.
+        try {
         const auto lib = libraryWithUser();
         const auto known = [&lib](const std::string& name) {
             const auto m = lib.find(name);
@@ -313,10 +319,18 @@ std::string OmnisController::importReferenceFile(const std::string& utf8Path) {
                         if (std::find(out.begin(), out.end(), g) == out.end()) out.push_back(g);
             return out;
         };
-        const import::Fetch fetch = import::onlineFetch();
+        const import::Fetch online = import::onlineFetch();
+        const import::Fetch fetch = [job, online](const std::string& url, std::string& body) { return !job->cancel && online(url, body); };
         const auto r = import::importReferenceFile(path, userDataDir() / "references_utilisateur.txt", known, genresOf, online ? &fetch : nullptr);
         job->ok = r.ok;
         job->message = r.message;
+        } catch (const std::exception& e) {
+            job->ok = false;
+            job->message = std::string("Je n'ai pas pu ajouter ce fichier : ") + e.what();
+        } catch (...) {
+            job->ok = false;
+            job->message = "Je n'ai pas pu ajouter ce fichier.";
+        }
         job->done = true;
     });
     const auto name = path.filename().u8string();
@@ -817,11 +831,20 @@ tresult PLUGIN_API OmnisController::setState(IBStream* state) {
     }
     // Version 2 : la référence choisie au menu (gardée avec la session).
     int32 kind = 0;
-    if (version >= 2 && s.readInt32(kind)) {
-        std::unique_ptr<char8[]> name(s.readStr8());
-        if (kind > 0 && kind <= static_cast<int32>(RefKind::Title) && name && *name.get()) {
+    int32 length = 0;
+    if (version >= 2 && s.readInt32(kind) && s.readInt32(length)) {
+        // Même format que FStreamer::writeStr8 (longueur, zéro final compris), lu ici
+        // à la main : readStr8 rend une mémoire de malloc (pas de delete[]) et, sur
+        // une session tronquée ou abîmée, une chaîne sans zéro final.
+        std::string name;
+        if (length > 0 && length <= 4096) {
+            name.resize(static_cast<std::size_t>(length));
+            if (s.readRaw(name.data(), length) != length) name.clear();
+            name.resize(std::strlen(name.c_str()));
+        }
+        if (kind > 0 && kind <= static_cast<int32>(RefKind::Title) && !name.empty()) {
             refKind_ = static_cast<RefKind>(kind);
-            refName_ = name.get();
+            refName_ = name;
             if (refKind_ == RefKind::Style) autoStyle_ = refName_;
         }
     }
