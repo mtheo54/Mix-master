@@ -64,6 +64,12 @@ public:
         }
     }
 
+    /// Côté producteur seulement (le thread qui appelle push : audio, ou un test) :
+    /// secondes de son en attente d'analyse dans la file.
+    [[nodiscard]] double queuedSeconds() noexcept {
+        return sampleRate_ > 0.0 ? static_cast<double>(ring_.capacity() - ring_.freeSpace()) / (2.0 * sampleRate_) : 0.0;
+    }
+
     struct Snapshot {
         analysis::SpectralSignature signature;
         double seconds = 0.0; ///< secondes de son non silencieux entendues

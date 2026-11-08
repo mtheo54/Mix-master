@@ -33,6 +33,10 @@ void play(ProdListener& listener, double seconds, double dbfs, double& phase) {
         }
         listener.push(l.data(), r.data(), 512);
         if (b % 12 == 11) std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        // Machine lente (sanitizers, CI) : attendre que l'écoute suive, la file (8 s) ne
+        // déborde pas (sinon des échantillons manquent à l'analyse, jamais au son).
+        if (b % 12 == 11)
+            for (int w = 0; w < 2000 && listener.queuedSeconds() > 2.0; ++w) std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 }
 
