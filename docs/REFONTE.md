@@ -1,18 +1,19 @@
-# OMNIS 2 — Refonte : un mix, puis un master
+# OMNIS 2 — Refonte : le mastering des beatmakers
 
-*Plan du 08/11/2026. Décisions de l'utilisateur, après ses essais dans FL Studio.*
+*Plan du 08/11/2026, revu le 09/11 : OMNIS devient un plug-in de **mastering seulement**.*
 
-## 1. Décisions
+## 1. Décisions de l'utilisateur
 
 | Sujet | Choix |
 |---|---|
-| Structure | **Deux plug-ins** dans le même paquet `OMNIS.vst3` : **OMNIS Mix** (pistes / bus) et **OMNIS Master** (master). Plus de menu « Rôle ». |
-| Mixage | **OMNIS mixe tout seul**, la personne ajuste (un curseur par piste, ou en mots) ; « annule » reste possible. |
+| Produit | **Un seul plug-in de mastering**, pour les beatmakers. Le mixage (instances liées Stem / Master, chef d'orchestre, chaînes par piste, voix) est **retiré**. |
+| Public | Beatmakers : prods instrumentales (808, drums, mélodies). Aucune voix à traiter. |
 | Barre IA | **Gardée, discrète** : tout se fait sans elle. |
 | Tutoriel | Gardé, raccourci ; l'interface doit se comprendre sans lui. |
 | IA | **Refaite** avec un **modèle de langue local, hors ligne** (le lexique reste pour l'instantané et en secours). |
+| Apprentissage | Un **système qui apprend** (« neuronal ») : une base propre de ce qui se passe, un petit réseau qui s'ajuste, et plus tard une mise en commun anonyme via le serveur d'un ami de l'utilisateur. |
 | Visuels | **Originaux**, dessinés par OMNIS (aucune pochette ni photo de rappeur livrée : droits des labels). |
-| Ordre | **Le son d'abord** (règles, deux plug-ins, rack modulaire, AUTO précis), puis l'IA, puis l'interface finale. |
+| Méthode | Étapes enchaînées en autonomie, **vérifiées à chaque fois** (tests, mesures sur les prods de l'utilisateur, validateur, CI) ; l'utilisateur teste quand une étape est prête. |
 
 ## 2. Constat mesuré (« à la millanaise 2 », sans / avec OMNIS, preset rap FR)
 
@@ -52,120 +53,104 @@ mixage « bascule », pas à chaque fois.
 
 ## 3. Règles du son (non négociables, testées)
 
-1. **Ne jamais combattre la personne.** Aucune compensation de niveau continue, ni sur une piste
-   ni au master. Le volume se règle **une fois** (AUTO), puis il est figé. Une automation de fader
-   donne exactement le fondu demandé (test : fondu de −20 dB d'une piste = −20 dB à la sortie de
-   cette piste, ±0,5 dB).
-2. **Le contraste reste.** LRA de sortie ≥ 70 % de celui de l'entrée par défaut (plus compact
-   seulement si la personne le demande).
+1. **Ne jamais combattre la personne.** Aucune compensation de niveau continue. Le volume se règle
+   **une fois** (AUTO), puis il est figé. Couper une piste dans le projet ne doit pas faire
+   « remonter » le reste plus que la réduction du limiteur ne l'impose (limiteur peu poussé par
+   défaut, part du clip réglée par AUTO).
+2. **Le contraste reste.** Par défaut, LRA de sortie ≥ 70 % de celui de l'entrée au niveau
+   « Équilibré » ; plus compact seulement au niveau « Fort » ou sur demande.
 3. **Le bas-médium se nettoie, il ne se gonfle pas.** Aucune correction automatique ne monte
-   200–600 Hz de plus de +1 dB ; la boue est retirée en priorité (EQ dynamique).
-4. **Les graves au centre.** La largeur n'augmente jamais sous 300 Hz ; le bas-médium jamais au-delà
-   de 100 % sans demande.
+   200–600 Hz de plus de +1 dB.
+4. **Les graves au centre.** La largeur n'augmente jamais sous 320 Hz sans demande.
 5. **Sortie propre.** DC < 1000 ppm (−60 dBFS), true peak tenu.
-6. **Latence.** OMNIS Mix : 0. OMNIS Master : inchangée (qualité max / travail).
+6. **Latence.** Inchangée (qualité max ~710 ms / travail ~90 ms).
 
 ## 4. Architecture cible
 
-### Un paquet, deux plug-ins
-- `OMNIS.vst3` déclare deux classes : **OMNIS Master** (UID actuel, sessions existantes relues) et
-  **OMNIS Mix** (nouvel UID). Moteur, mesures et IA partagés.
-- Le lien entre instances (`link/`) reste : chaque OMNIS Mix rejoint le groupe du projet ; le
-  groupe se règle dans « Avancé » (utile seulement avec deux projets ouverts).
-
-### OMNIS Mix (sur chaque piste ou bus)
-- **0 latence**, bâti sur `stems/StemChain`, refait selon les règles du §3.
-- **Une fenêtre**, petite : l'élément reconnu (menu pour corriger), un gros bouton **DOSE**
-  (0–100 %), trois curseurs **NIVEAU** (dans le mix, ±6 dB), **PRÉSENCE**, **LARGEUR**, et une ligne
-  « ce que je fais » (« voix : boue −2 dB, sifflantes retenues, compression 3 dB »).
-- **Mixage dans les règles**, par élément : gain d'entrée (niveau de travail), coupe-bas selon
-  l'élément, EQ soustractive dynamique (boue, résonances), compression adaptée, de-esser (voix),
-  saturation légère (808), graves en mono, largeur au-dessus du grave.
-- **Équilibre entre pistes** (avec le Master) : niveaux relatifs par rôle (voix devant, 808 et kick
-  qui se partagent le bas : la 808 s'efface sur les coups de kick), masquages corrigés
-  automatiquement (chef d'orchestre, appliqué au lieu de proposé).
-
-### OMNIS Master (sur le master) — deux fenêtres
-- **MIX** : toutes les pistes OMNIS Mix du projet sur un seul écran (nom, élément, niveau, ce qui
-  est fait, curseur par piste), bouton **MIXER** (équilibre automatique), conflits corrigés. Sans
-  aucune piste OMNIS Mix : un message clair (« Mets OMNIS Mix sur tes pistes pour le mixage ; le
-  mastering marche déjà seul »).
-- **MASTER** : **STYLE** (menu RÉF simplifié), **NIVEAU** (Streaming −14 · Équilibré −11 ·
-  Fort −9 · Très fort −7 LUFS), **AUTO**, **AVANT / APRÈS** (à volume égal), voyant **PRÊT À
-  EXPORTER**. Le rack de 7 modules passe dans **AVANCÉ**.
-- La barre IA : une ligne discrète en haut des deux fenêtres.
+### Un plug-in, une fenêtre simple, un rack « Avancé »
+- **Écran principal** : **STYLE** (presets par style, avec emblème), **NIVEAU** (Streaming −14 ·
+  Équilibré −11 · Fort −9 · Très fort −7 LUFS), **AUTO**, **AVANT / APRÈS** (à volume égal),
+  voyant **PRÊT À EXPORTER**, la barre IA en une ligne discrète, glisser-déposer d'un fichier.
+- **AVANCÉ** : le rack modulaire.
 
 ### Rack modulaire, modules à caractère
-- Les modules se **retirent, s'ajoutent et se déplacent** (glisser-déposer), sur le Master comme
-  sur chaque piste. Une chaîne = une liste ordonnée de modules ; l'état garde la liste.
+- Les modules se **retirent, s'ajoutent et se déplacent** (glisser-déposer). Une chaîne = une liste
+  ordonnée de modules ; l'état garde la liste.
 - Chaque type de module a plusieurs **caractères**, choisis à la main ou par l'IA :
-  - **Compresseur** : *Opto* (lent, doux, programme), *FET* (rapide, mordant), *VCA bus*
-    (colle, propre), *Vari-mu* (lampes, arrondi) ;
+  - **Compresseur de bus** : *Opto* (lent, doux), *FET* (rapide, mordant), *VCA* (colle, propre),
+    *Vari-mu* (lampes, arrondi) ;
   - **Saturation multibande** (remplace l'Inflator seul) : *Bande*, *Lampe*, *Transistor*,
     *Inflate* (l'actuel), par bande avec dosage ;
-  - **EQ** : *Propre* (phase linéaire), *Analogique* (cloches larges, à pentes douces), *Dynamique* ;
-  - **Imager** : *Bandes* (actuel), *Haas / profondeur*, *Mono-maker* ;
-  - **Clipper**, **Limiteur**, **De-esser**, **Transient**, **Sub / 808** : un ou deux caractères.
-- Aucun nom de marque dans l'interface (« Opto », pas « LA-2A ») ; les principes seulement,
-  reformulés (règle du projet).
-- L'IA choisit les modules et leur caractère selon l'élément, le style et ce qu'elle entend, et
-  dit pourquoi (« voix : compresseur Opto, la dynamique est large et le style est doux »).
+  - **EQ** : *Propre* (phase linéaire), *Analogique* (cloches larges), *Dynamique* (l'actuelle) ;
+  - **Imager** : *Bandes* (actuel), *Profondeur*, *Mono du grave* ;
+  - **Clipper**, **Limiteur**, **Transient**, **Sub / 808** : un ou deux caractères.
+- Aucun nom de marque dans l'interface (« Opto », pas « LA-2A ») ; principes reformulés seulement.
+- L'IA choisit modules et caractères selon le style et ce qu'elle entend, et dit pourquoi.
 
 ### AUTO précis
-- **Tout le morceau** est écouté (ou le **fichier glissé** : analyse complète sans le rejouer),
-  découpé en **parties** (intro, couplets, refrains, passages à part) ; aucune partie n'est oubliée.
-- **Plusieurs essais** : des chaînes candidates sont rendues hors ligne sur l'audio entendu
-  (gardé en mémoire le temps du calcul, jamais écrit), notées sur les critères du §6 et sur l'écart
-  au style, et la meilleure est gardée. La personne voit le résultat et pourquoi.
+- **Tout le morceau** est écouté (ou le **fichier glissé**, analysé en entier sans le rejouer),
+  découpé en **parties** (intro, couplets, refrains, passages à part).
+- **Plusieurs essais** : des chaînes candidates sont rendues hors ligne sur l'audio entendu (gardé en
+  mémoire le temps du calcul, jamais écrit), notées sur les critères du §6 et l'écart au style ; la
+  meilleure est gardée, et OMNIS dit pourquoi.
 
 ### IA (après le son)
-- **Modèle de langue local** (1,5 à 3 Go, licence commerciale vérifiée, CPU, thread à part,
-  sortie en JSON contraint vers les réglages) : comprend toutes les façons de parler, l'argot, les
-  fautes, les phrases longues ; explique ce qu'il fait ; ne fait jamais l'inverse (test : chaque
-  demande d'une banque de phrases réelles, avec le sens attendu).
-- Le lexique actuel répond tout de suite et sert de secours si le modèle n'est pas là.
-- **Glisser un fichier audio sur la barre IA** : reconnaissance (étiquettes, nom, MusicBrainz si
-  activé), mesure, et le style de la prod visé.
+- **Modèle de langue local** (1,5 à 3 Go, licence commerciale vérifiée, CPU, thread à part, sortie
+  JSON contrainte vers les réglages) : comprend toutes les façons de parler, l'argot, les fautes ;
+  explique ce qu'il fait ; ne fait jamais l'inverse (banque de phrases réelles en test).
+- Le lexique répond tout de suite et sert de secours.
+- **Glisser un fichier audio sur la barre IA** : reconnaissance, mesure, style visé.
+
+### Apprentissage (le « système neuronal »)
+1. **Une base propre, sur le PC** (`apprentissage/` dans le dossier de la personne) : un journal
+   versionné d'événements — AUTO lancé (mesures de la prod, style, réglages proposés), retouches
+   faites ensuite (écarts), demandes en mots et ce qui a été fait, « annule » (= mauvais choix),
+   A / B choisi, réglages au moment de l'export (= bon choix). Jamais d'audio, jamais de nom de
+   fichier ; des nombres.
+2. **Un petit réseau de neurones local** (quelques milliers de poids) qui apprend de ce journal
+   les écarts que la personne applique d'habitude selon la prod et le style, et corrige AUTO en
+   conséquence — toujours dans les bornes du §3. Entraîné sur le PC, en tâche de fond.
+3. **Plus tard, la mise en commun** : avec l'accord explicite de la personne, un export anonyme
+   (mesures + écarts, aucun audio ni nom) vers le serveur de l'ami de l'utilisateur ; le serveur
+   entraîne un modèle commun, redistribué comme mise à jour de données. Côté serveur : un service
+   séparé, déployé par l'utilisateur (accès SSH à son ami, jamais dans le plug-in ni dans le chat).
 
 ### Interface et visuels (en dernier)
-- Fenêtres propres et lisibles ; **presets par style** (avec emblème), aperçu avant / après.
-- **Visuels originaux** dessinés par le code, dans l'esprit rap FR (emblèmes de styles,
-  textures, petites illustrations). Aucune image livrée sous droits de tiers.
+- Fenêtre propre et lisible ; presets par style avec emblème ; aperçu avant / après.
+- Visuels originaux dessinés par le code, dans l'esprit rap FR.
 
 ## 5. Étapes
 
 | # | Étape | Fin quand |
 |---|---|---|
-| 0 ✅ | **Reproduire** : rendu hors ligne des stems de l'utilisateur (DRUMS, 808, MELO du 24/10) et de « à la millanaise 2 » avec le code actuel ; confirmer les causes du §2. Les sons restent hors dépôt. | causes chiffrées |
-| 1 | **Règles du §3 dans le moteur actuel** : plus de compensation continue, upward éteint par défaut, bas-médium et largeur bornés, filtre DC. | critères §6 tenus sur les fichiers |
-| 2 | **Deux plug-ins** : fabrique, UID, processeur / contrôleur par variante, état, validateur pour les deux. | validateur 2 × vert, sessions anciennes relues |
-| 3 | **Rack modulaire** : chaîne = liste de modules ; modules à caractère (compresseurs Opto / FET / VCA / Vari-mu, saturation multibande, EQ, imagers…). | chaque caractère testé (réponse, distorsion, null-test neutre) |
-| 4 | **Chaîne OMNIS Mix** refaite par élément + équilibre entre pistes + 808 / kick ; l'IA choisit les modules. | critères §6 sur les stems |
-| 5 | **AUTO précis** : morceau entier ou fichier glissé, parties, essais multiples notés. | critères §6 sur « à la millanaise 2 » |
-| 6 | **IA locale** : modèle de langue, banque de phrases réelles, glisser-déposer de fichiers. | 0 contresens sur la banque |
-| 7 | **Interfaces** : fenêtre Mix ; Master MIX / MASTER / AVANCÉ ; presets ; visuels originaux. | rendus `guishot` relus |
+| 0 ✅ | **Reproduire** et mesurer les causes (`omnis_auto`). | causes chiffrées |
+| 1 | **Mastering seul** : retirer instances liées, stems, chef d'orchestre, pages et réglages du mixage. | tests, validateur, CI verts |
+| 2 | **Règles du son** dans le moteur actuel : NIVEAU au choix, AUTO qui répartit clip / limiteur selon le contraste à garder. | critères §6 sur les prods de l'utilisateur |
+| 3 | **AUTO précis** : morceau entier ou fichier glissé, parties, essais multiples notés. | critères §6 |
+| 4 | **Rack modulaire** à caractères (compresseurs, saturations, EQ, imagers…). | chaque caractère testé (réponse, distorsion, null-test neutre) |
+| 5 | **Apprentissage** : journal, réseau local, tests ; export anonyme prêt pour le serveur. | tests, base relue à l'identique |
+| 6 | **IA locale** : modèle de langue, banque de phrases réelles, glisser-déposer. | 0 contresens sur la banque |
+| 7 | **Interface** : écran principal, AVANCÉ, presets, visuels originaux. | rendus `guishot` relus |
 | 8 | **Guide et mode d'emploi** raccourcis. | |
-| 9 | **Vérification** : tests, ASan / TSan, validateur, CI Windows / macOS, critères mesurés. | tout vert |
+| 9 | **Vérification** finale : tests, ASan / TSan, validateur, CI Windows / macOS, critères mesurés. | tout vert |
 
 ## 6. Critères d'acceptation (mesurés sur les fichiers de l'utilisateur)
 
-- 250 Hz – 1 kHz : écart à l'original ≤ +1 dB (Mid), sauf demande.
+- 200–600 Hz : écart de courbe automatique ≤ +1 dB (Mid), sauf demande.
 - LRA de sortie ≥ 70 % de l'entrée ; passages calmes relevés ≤ +4 dB de plus que les forts.
 - Side / Mid sous 300 Hz : jamais plus large que l'original.
 - DC < 1000 ppm ; true peak ≤ plafond.
-- Fondu de −20 dB d'une piste (automation) : −20 dB ±0,5 dB à la sortie, avec OMNIS Mix et Master.
-- OMNIS Mix : 0 échantillon de latence, aucune allocation dans `process()`.
+- Aucune allocation dans `process()` ; validateur Steinberg vert.
 
 ## 7. Ce qu'il faut de l'utilisateur
 
-- **Des stems complets d'un morceau avec la voix** (voix lead, backs, 808, drums, mélo) : sans voix,
-  l'équilibre « voix devant » ne peut pas être réglé ni vérifié.
-- Un essai dans FL Studio à la fin des étapes 1, 4, 5 et 7.
-- Une **banque de phrases** : comment toi et ton testeur parlez à OMNIS (copier-coller de vraies
-  demandes, avec ce que vous attendiez) ; c'est le test de l'IA.
+- Des **prods de beatmaker** (instrumentales), entières, et si possible une version masterisée
+  à son goût d'une ou deux d'entre elles (la cible).
+- Une **banque de phrases** : comment lui et ses potes parlent à OMNIS, avec ce qu'ils
+  attendaient ; c'est le test de l'IA.
+- Un essai dans FL Studio à la fin des étapes 2, 3, 4 et 7.
 
 ## 8. À part : le carnet des genres (pour l'utilisateur seulement)
 
-Une page privée : chaque genre et sous-genre, ses rappeurs, leurs albums et titres marquants, les
-pochettes affichées par lien (Cover Art Archive, sans copie). Pour se repérer ; jamais livrée dans
-le plug-in.
+Page privée : chaque style, ses rappeurs, leurs albums (pochettes en lien, Cover Art Archive),
+les titres mesurés. Jamais livrée dans le plug-in.
