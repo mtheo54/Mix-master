@@ -119,32 +119,10 @@ tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue v
     const tresult result = EditController::setParamNormalized(tag, value);
     // Pendant setComponentState (projet rechargé), le processeur a déjà son état :
     // pas de message ni de redémarrage demandé à l'hôte au milieu de son appel.
-    if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LinkRole) && before != value) {
-        // Le processeur change de rôle tout de suite (sans attendre une réactivation).
-        if (IPtr<IMessage> message = owned(allocateMessage())) {
-            message->setMessageID(kRoleMessage);
-            message->getAttributes()->setInt(kRoleAttribute, static_cast<int64>(std::lround(value * 2.0)));
-            sendMessage(message);
-        }
-        if (componentHandler) componentHandler->restartComponent(kLatencyChanged);
-    }
     // Mode de latence : la latence annoncée change, l'hôte doit réactiver le plug-in.
     if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LowLatency) && before != value && componentHandler)
         componentHandler->restartComponent(kLatencyChanged);
     return result;
-}
-
-tresult PLUGIN_API OmnisController::setChannelContextInfos(IAttributeList* list) {
-    if (!list) return kInvalidArgument;
-    String128 name{};
-    if (list->getString(ChannelContext::kChannelNameKey, name, sizeof(name)) != kResultTrue) return kResultOk;
-    const std::string utf8 = StringConvert::convert(name);
-    IPtr<IMessage> message = owned(allocateMessage());
-    if (!message) return kResultOk;
-    message->setMessageID(vst3::kTrackNameMessage);
-    message->getAttributes()->setBinary(vst3::kTrackNameAttribute, utf8.data(), static_cast<uint32>(utf8.size()));
-    sendMessage(message);
-    return kResultOk;
 }
 
 IPlugView* PLUGIN_API OmnisController::createView(FIDString name) {
@@ -154,22 +132,6 @@ IPlugView* PLUGIN_API OmnisController::createView(FIDString name) {
     (void)name;
 #endif
     return nullptr;
-}
-
-void OmnisController::requestProposals() {
-    IPtr<IMessage> message = owned(allocateMessage());
-    if (!message) return;
-    message->setMessageID(kProposalsRequest);
-    sendMessage(message);
-}
-
-void OmnisController::answerProposal(std::uint32_t key, int answer) {
-    IPtr<IMessage> message = owned(allocateMessage());
-    if (!message) return;
-    message->setMessageID(kAnswerMessage);
-    message->getAttributes()->setInt(kAnswerKeyAttribute, static_cast<int64>(key));
-    message->getAttributes()->setInt(kAnswerAttribute, answer);
-    sendMessage(message);
 }
 
 namespace {
@@ -241,7 +203,7 @@ void OmnisController::rememberForUndo(const std::string& label) {
     UndoStep step;
     step.label = label;
     for (const auto& spec : params::allParameters())
-        if (params::isPersistent(spec) && !spec.key.starts_with("link_") && spec.id != params::ParamId::LowLatency)
+        if (params::isPersistent(spec) && spec.id != params::ParamId::LowLatency)
             step.values.emplace_back(static_cast<std::uint32_t>(spec.id), plainOf(static_cast<std::uint32_t>(spec.id)));
     undo_.push_back(std::move(step));
     if (undo_.size() > 20) undo_.erase(undo_.begin());
@@ -368,7 +330,7 @@ std::string OmnisController::ask(const std::string& request) {
                                : "Mode promo désactivé : les avatars reviennent.";
         }
         // « remets tout à zéro », « reset », « par défaut » : tous les réglages
-        // reviennent au départ (le rôle de l'instance, Master / Stem, reste).
+        // reviennent au départ.
         const std::string plain = ai::normalizeText(command);
         // Langue de l'interface (gardée pour les sessions suivantes).
         if (plain == "en" || plain == "english" || plain == "in english" || plain == "en anglais" || plain == "anglais" || command == "/en") {
@@ -411,12 +373,12 @@ std::string OmnisController::ask(const std::string& request) {
                 rememberForUndo("remise à zéro");
                 std::vector<std::pair<std::uint32_t, double>> settings;
                 for (const auto& spec : params::allParameters())
-                    if (params::isPersistent(spec) && !spec.key.starts_with("link_"))
+                    if (params::isPersistent(spec))
                         settings.emplace_back(static_cast<std::uint32_t>(spec.id), spec.defaultValue);
                 applyPlan(settings);
                 pendingAsk_.clear();
                 pursuing_ = false;
-                return "Tout est revenu aux réglages de départ (le rôle Master / Stem de l'instance est gardé).";
+                return "Tout est revenu aux réglages de départ.";
             }
     }
     {
@@ -429,8 +391,6 @@ std::string OmnisController::ask(const std::string& request) {
     }
     if (!feed_) requestFeed();
     if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
-    if (std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LinkRole))) == static_cast<long>(params::LinkRole::Stem))
-        return "Cette instance est un stem : écris ta demande sur l'instance Master (ou Seul).";
     // Un style nommé sert aussi à AUTO.
     const auto lib = libraryWithUser();
     for (const auto& g : lib.genres())
@@ -656,8 +616,6 @@ OmnisController::ReferenceCard OmnisController::referenceCard() const {
 }
 
 std::string OmnisController::chooseReference(RefKind kind, const std::string& name) {
-    if (std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LinkRole))) == static_cast<long>(params::LinkRole::Stem))
-        return "Cette instance est un stem : choisis la référence sur l'instance Master (ou Seul).";
     pendingRef_ = false;
     if (kind == RefKind::None || name.empty()) {
         refKind_ = RefKind::None;
@@ -801,10 +759,6 @@ std::vector<std::pair<std::uint32_t, double>> OmnisController::snapshot() {
 
 void OmnisController::apply(const std::vector<std::pair<std::uint32_t, double>>& values) {
     for (const auto& [id, v] : values) {
-        // Le rôle et le groupe tiennent à la place de l'instance dans le projet : pas dans A / B.
-        if (id == static_cast<std::uint32_t>(params::ParamId::LinkRole) || id == static_cast<std::uint32_t>(params::ParamId::LinkGroup) ||
-            id == static_cast<std::uint32_t>(params::ParamId::LinkStemKind))
-            continue;
         if (getParamNormalized(id) != v) editParameter(id, v);
     }
 }
@@ -885,34 +839,7 @@ tresult PLUGIN_API OmnisController::notify(IMessage* message) {
             feed_ = findFeed(static_cast<std::uint64_t>(token));
         return kResultOk;
     }
-    if (!message || !message->getMessageID() || std::string_view(message->getMessageID()) != kProposalsMessage)
-        return EditController::notify(message);
-    const void* data = nullptr;
-    uint32 size = 0;
-    if (!message->getAttributes() || message->getAttributes()->getBinary(kProposalsAttribute, data, size) != kResultTrue) return kResultOk;
-    pending_.clear();
-    applied_.clear();
-    drumLines_.clear();
-    std::istringstream in(std::string(static_cast<const char*>(data), size));
-    std::string line;
-    static const char* kKinds[] = {"", "passe-haut", "cloche", "plateau grave"};
-    while (std::getline(in, line)) {
-        std::vector<std::string> f;
-        std::size_t start = 0;
-        for (std::size_t tab; (tab = line.find('\t', start)) != std::string::npos; start = tab + 1) f.push_back(line.substr(start, tab - start));
-        f.push_back(line.substr(start));
-        if (f.size() >= 2 && f[0] == "D") {
-            drumLines_.push_back(f[1]);
-        } else if (f.size() >= 3 && f[0] == "P") {
-            pending_.push_back({static_cast<std::uint32_t>(std::strtoul(f[1].c_str(), nullptr, 10)), f[2], {}});
-        } else if (f.size() >= 6 && f[0] == "A") {
-            const int kind = std::atoi(f[3].c_str());
-            std::string d = "« " + f[2] + " » : " + (kind >= 1 && kind <= 3 ? kKinds[kind] : "retouche") + " " + f[4] + " Hz";
-            if (kind != 1) d += ", " + f[5] + " dB";
-            applied_.push_back({static_cast<std::uint32_t>(std::strtoul(f[1].c_str(), nullptr, 10)), {}, d});
-        }
-    }
-    return kResultOk;
+    return EditController::notify(message);
 }
 
 tresult PLUGIN_API OmnisController::setComponentState(IBStream* state) {

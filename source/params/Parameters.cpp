@@ -29,19 +29,6 @@ constexpr std::array<std::string_view, 19> kListenLabels{
 constexpr std::array<std::string_view, 3> kDynChannelLabels{"Stéréo", "Mid", "Side"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
-constexpr std::array<std::string_view, 3> kLinkRoleLabels{"Seul", "Stem", "Master"};
-// Même ordre que stems::Element (vérifié par les tests) : Auto, puis les 21 éléments.
-constexpr std::array<std::string_view, 22> kStemKindLabels{
-    "Auto",           "Kick",          "Snare",          "Clap",            "Hi-hat",  "Open hat",        "Cymbale",
-    "Percu",          "Drums (boucle)", "808",           "Basse",           "Piano / clavier", "Guitare", "Cuivres / vents",
-    "Cordes",         "Nappe",         "Lead / synthé",  "Pluck / cloche",  "Voix lead", "Backs / adlibs", "FX", "Autre"};
-// Afficheur « élément reconnu » : « — » tant que rien n'est reconnu.
-constexpr std::array<std::string_view, 22> kElementMeterLabels{
-    "—",              "Kick",          "Snare",          "Clap",            "Hi-hat",  "Open hat",        "Cymbale",
-    "Percu",          "Drums (boucle)", "808",           "Basse",           "Piano / clavier", "Guitare", "Cuivres / vents",
-    "Cordes",         "Nappe",         "Lead / synthé",  "Pluck / cloche",  "Voix lead", "Backs / adlibs", "FX", "Autre"};
-constexpr std::array<std::string_view, 8> kGroupLabels{"1", "2", "3", "4", "5", "6", "7", "8"};
-constexpr std::array<std::string_view, 3> kStemModeLabels{"Off", "Auto", "Manuel"};
 constexpr std::array<std::string_view, 8> kDeltaLabels{"Off", "Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
@@ -53,11 +40,6 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::OutputGain,        "output_gain",   "Output Gain",          "Out",    "dB",   ParamKind::Continuous, -24.0,  24.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::Monitor,           "monitor",       "Monitor",              "Mon",    "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kMonitorLabels, 15.0,   0},
     {ParamId::RefCapture,        "ref_capture",   "Listen Reference",     "Ref",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
-    // Instances liées (link/LinkBus.h) : un master et des stems d'un même groupe.
-    {ParamId::LinkRole,          "link_role",     "Link Role",            "Role",   "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kLinkRoleLabels, 0.0,   0},
-    // Auto : OMNIS écoute la piste (et lit son nom) pour reconnaître l'élément.
-    {ParamId::LinkStemKind,      "link_stem",     "Stem Element",         "Elem",   "",     ParamKind::Choice,     0.0,    21.0,  0.0,   21,   kStemKindLabels, 0.0,   0},
-    {ParamId::LinkGroup,         "link_group",    "Link Group",           "Group",  "",     ParamKind::Choice,     1.0,    8.0,   1.0,   7,    kGroupLabels,   0.0,    0},
     // Rack : ordre des modules (réglé par l'interface, pas d'automation).
     {ParamId::ChainOrder,        "chain_order",   "Chain Order",          "Order",  "",     ParamKind::Choice,     0.0,    5039.0, 0.0,  5039, {},             0.0,    0, ParamScale::Linear, true, false},
     // Outils d'écoute : jamais gardés (un export oublié en Match serait faux).
@@ -232,15 +214,6 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {static_cast<ParamId>(813), "img_width_high", "Width High",          "WHigh",  "%",    ParamKind::Continuous, 0.0,    200.0, 100.0, 0,    {},             0.0,    0},
     {ParamId::ImgOn,             "img_on",        "Imager Module",        "ImgOn",  "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
-    // Stem (stems/StemChain.h) : Off par défaut, la personne choisit.
-    {ParamId::StemMode,          "stem_mode",     "Stem Mode",            "SMode",  "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kStemModeLabels, 0.0,   0},
-    {ParamId::StemHpf,           "stem_hpf",      "Stem Low Cut",         "SHpf",   "Hz",   ParamKind::Continuous, 10.0,   500.0, 20.0,  0,    {},             0.0,    0, kLog},
-    {ParamId::StemComp,          "stem_comp",     "Stem Compression",     "SComp",  "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             0.0,    0},
-    {ParamId::StemSat,           "stem_sat",      "Stem Saturation",      "SSat",   "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             0.0,    0},
-    {ParamId::StemClean,         "stem_clean",    "Stem Dynamic EQ",      "SClean", "%",    ParamKind::Continuous, 0.0,    100.0, 0.0,   0,    {},             0.0,    0},
-    {ParamId::StemWidth,         "stem_width",    "Stem Width",           "SWidth", "%",    ParamKind::Continuous, 0.0,    150.0, 100.0, 0,    {},             0.0,    0},
-    {ParamId::StemTrim,          "stem_trim",     "Stem Trim",            "STrim",  "dB",   ParamKind::Continuous, -24.0,  12.0,  0.0,   0,    {},             0.0,    1},
-
     {ParamId::MeterMomentary,    "meter_m",       "Momentary Loudness",   "M",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterShortTerm,    "meter_s",       "Short-Term Loudness",  "S",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
     {ParamId::MeterIntegrated,   "meter_i",       "Integrated Loudness",  "I",      "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
@@ -249,9 +222,6 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::MeterLoudnessRange,"meter_lra",     "Loudness Range",       "LRA",    "LU",   ParamKind::Meter,      0.0,    40.0,  0.0,   0,    {},             0.0,    1},
     {ParamId::MeterRefSeconds,   "meter_ref_s",   "Reference Listened",   "RefS",   "s",    ParamKind::Meter,      0.0,    600.0, 0.0,   0,    {},             0.0,    0},
     {ParamId::MeterRefLufs,      "meter_ref_lufs","Reference Loudness",   "RefI",   "LUFS", ParamKind::Meter,      -80.0,  10.0,  -80.0, 0,    {},             0.0,    1},
-    {ParamId::MeterLinkStems,    "meter_stems",   "Linked Stems",         "Stems",  "",     ParamKind::Meter,      0.0,    32.0,  0.0,   0,    {},             0.0,    0},
-    {ParamId::MeterStemElement,  "meter_element", "Identified Element",   "Heard",  "",     ParamKind::Meter,      0.0,    21.0,  0.0,   21,   kElementMeterLabels, 0.0, 0},
-    {ParamId::MeterProposals,    "meter_proposals","Mix Proposals",       "Props",  "",     ParamKind::Meter,      0.0,    32.0,  0.0,   0,    {},             0.0,    0},
 }};
 // clang-format on
 static_assert(kParameters.size() == kParameterCount, "kParameterCount doit suivre la table");

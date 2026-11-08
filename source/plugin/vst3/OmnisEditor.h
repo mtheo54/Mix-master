@@ -10,12 +10,10 @@
 //   │ rack : 7 modules au format 500 (gros bouton,   │ mesures  │
 //   │        voyant, état ; glisser pour réordonner) │ (verdict │
 //   │ tiroir : TOUS les réglages du module choisi    │ en mots) │
-//   │          | écran du module (courbe, GR…)       │ instances│
-//   │ écrans : analyseur de sortie | goniomètre      │  liées   │
+//   │          | écran du module (courbe, GR…)       │ écoute,  │
+//   │ écrans : analyseur de sortie | goniomètre      │ export   │
 //   └───────────────────────────────────────────────┴──────────┘
 //
-//  En rôle Stem, le tiroir montre la chaîne de la piste ; en Master, le chef
-//  d'orchestre a sa page (propositions, Oui / Non, retouches en place).
 //  Les commandes écrivent les paramètres par le contrôleur (beginEdit /
 //  performEdit / endEdit : automation et annulation de l'hôte). Une minuterie
 //  (30 Hz) relit le flux du processeur (UiFeed) et redessine ce qui a changé.
@@ -75,7 +73,7 @@ public:
     void buildInto(VSTGUI::CViewContainer* root);
     /// Un pas de minuterie : relire le flux, redessiner ce qui a changé.
     void tick();
-    /// Page du tiroir : 0 … 6 les modules, 7 la piste (Stem), 8 le chef d'orchestre.
+    /// Page du tiroir : 0 … 6 les modules, kDiagPage le diagnostic du mix.
     void selectPage(int page);
     /// Analyse les échantillons arrivés (spectre, goniomètre) : pour l'outil.
     void pumpFeed();
@@ -86,7 +84,7 @@ public:
     /// Match EQ : vue 0 (la courbe) ou 1 (EQ dynamique, bande `band` au tiroir).
     void showMatchView(int view, int band);
 
-    enum Page : int { kStemPage = 7, kConductorPage = 8, kDiagPage = 9 };
+    enum Page : int { kDiagPage = 9 }; // 7 et 8 : anciennes pages du mixage, retirées
 
 private:
     OmnisController* omnis() const;
@@ -96,7 +94,6 @@ private:
     void setNorm(std::uint32_t id, double value);
     gui::Model model(std::uint32_t id) const;
     [[nodiscard]] std::string valueText(std::uint32_t id) const;
-    [[nodiscard]] int role() const;
 
     void buildRibbons(VSTGUI::CViewContainer* root);
     void buildRack(VSTGUI::CViewContainer* root);
@@ -141,7 +138,7 @@ private:
     std::vector<gui::Live*> live_;
     std::vector<std::function<void()>> syncs_; ///< menus relus à chaque minuterie
     std::vector<std::unique_ptr<VSTGUI::IControlListener>> listeners_;
-    int lastOrder_ = -1, lastRole_ = -1;
+    int lastOrder_ = -1;
     int tutorialStep_ = -1;
     VSTGUI::CView* tutorial_ = nullptr;
     friend class TutorialOverlay;
@@ -161,7 +158,6 @@ private:
     gui::Screen* scope_ = nullptr;
     gui::Screen* meter_ = nullptr;
     gui::Screen* readouts_ = nullptr;
-    gui::Screen* stemBanner_ = nullptr;
     gui::Screen* cardScreen_ = nullptr; ///< page Match EQ : la référence visée
     gui::HwButton* matchButton_ = nullptr;
     VSTGUI::CTextEdit* askField_ = nullptr;
@@ -181,7 +177,7 @@ private:
     VSTGUI::CViewContainer* matchDynamic_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 4> dynBandViews_{};
     bool dynMouse(const VSTGUI::CPoint& p, int phase, bool fine, const VSTGUI::CRect& r);
-    int proposalIndex_ = 0, ticks_ = 0;
+    int ticks_ = 0;
     std::string answer_;
     struct Card;
     std::shared_ptr<Card> card_; ///< la référence choisie, relue quand elle change

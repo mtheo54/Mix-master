@@ -169,31 +169,6 @@ Il s'ajoute au noyau du Match EQ : aucune latence en plus. C'est un réglage à 
 Match Amount ne dose pas. Attention : un tilt positif baisse aussi le sub (−1.5 dB à 57 Hz pour
 +3 dB).
 
-### Instances liées : un master et des stems ([détails](docs/ARCHITECTURE.md#11-instances-liées))
-
-Dans FL Studio :
-1. Mettre OMNIS sur chaque piste du Mixer qui porte un élément : 808, kick, drums, mélodie, voix.
-   Régler **Link Role = Stem**, **Stem Type** selon la piste et **Link Group = 1**.
-2. Mettre OMNIS sur le master : **Link Role = Master**, même groupe.
-3. Le master affiche **Linked Stems**, le nombre de pistes reliées. Pendant la lecture, il écoute
-   chacune (signature : balance, sub, dynamique).
-
-Comment ça marche :
-- **Un stem n'ajoute aucune latence** : rien à phase linéaire sur chaque piste. Il laisse passer
-  le son, au gain que le master lui donne.
-- **Il envoie ce qui part vers le mix** (audio + position dans le projet) dans une mémoire
-  partagée nommée. Ça fonctionne aussi quand l'hôte isole chaque plug-in dans son propre
-  processus.
-- **Le son du mix passe toujours par la console de l'hôte.** Le master s'en sert pour décider ; il
-  ne le ressort pas, sinon il serait compté deux fois.
-- **Les groupes 1 à 8** séparent deux projets ouverts en même temps.
-
-Changer de rôle change la latence : le plug-in demande à l'hôte de le réactiver.
-
-Aujourd'hui, le master **voit et écoute** ses stems, et un stem **applique le gain** que le master
-lui ordonne. La partie qui décide (équilibre 808 / kick / voix, EQ et dynamique par piste) est
-l'étape suivante. Elle se calibrera sur de vrais stems.
-
 ### Comprendre la demande, références, apprentissage ([détails](docs/APPRENTISSAGE.md))
 
 - **Fautes comprises** (clé phonétique + Damerau-Levenshtein) : « propr », « crispi »,
@@ -248,7 +223,7 @@ affiche déjà en temps réel. La sonie intégrée repart de zéro à chaque lan
 2. Copier le dossier `OMNIS.vst3` dans `C:\Program Files\Common Files\VST3\`.
 3. FL Studio : *Options → Manage plugins → Find installed plugins*. Si le plug-in ne se charge
    pas : installer *Microsoft Visual C++ Redistributable 2015–2022 (x64)*.
-4. Master : *Rôle* Master. Pistes : *Rôle* Stem, même *Groupe*, *Mode* Auto.
+4. Mettre OMNIS en dernier sur le master, lancer la lecture, cliquer AUTO sur le refrain.
 
 **Sans la CI** (les minutes GitHub Actions du mois épuisées : l'exécution échoue en 2 s sans
 journal), on construit OMNIS soi-même, gratuitement :
@@ -291,10 +266,9 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
   changer l'ordre.
 - **Tiroir** : TOUS les réglages du module ouvert et son écran (nœuds du Match EQ et
   séparations du multibande à glisser, courbes, réductions).
-- **Colonne Master** : entrée / sortie, bargraphe, mesures avec leur verdict en mots, rôle,
-  groupe, stems liés, pages Chef d'orchestre et Piste (stem : élément reconnu, et dans un bus
-  de drums chaque élément nommé avec ce qui en est fait).
-- **Guide** à la première ouverture (14 étapes), relancé par « ? » ou « tuto ». Mode d'emploi complet : [docs/MODE_D_EMPLOI.md](docs/MODE_D_EMPLOI.md) (anglais : [docs/USER_MANUAL.md](docs/USER_MANUAL.md)).
+- **Colonne Master** : entrée / sortie, bargraphe, mesures avec leur verdict en mots, écoute
+  simulée, diagnostic du mix et vérification de l'export.
+- **Guide** à la première ouverture (12 étapes), relancé par « ? » ou « tuto ». Mode d'emploi complet : [docs/MODE_D_EMPLOI.md](docs/MODE_D_EMPLOI.md) (anglais : [docs/USER_MANUAL.md](docs/USER_MANUAL.md)).
 
 ## Compilation
 
@@ -361,9 +335,8 @@ third_party/  dr_libs (décodeurs MP3 / FLAC, domaine public)
   analysis/   pondération K, sonie BS.1770-4, true peak, stéréo, statistiques, signature spectrale
   params/     table unique des paramètres (DSP, VST3, outils, IA)
   engine/     Engine + interface Stage (chaîne, PDC, bypass, monitoring, mesures)
-  link/       instances liées : mémoire partagée nommée, master et stems d'un groupe
   plugin/vst3 processeur, contrôleur, état, factory
-tools/        testgen, analyze, render, compare, tune, match, ask, refdb, learn (+ WAV I/O, signaux, rapport)
+tools/        testgen, analyze, render, auto, compare, tune, match, ask, refdb, learn (+ WAV I/O, signaux, rapport)
 tests/        tests unitaires sans dépendance
 docs/         ARCHITECTURE.md, PROTOCOLE_DE_TEST.md, CALIBRATION_MODULE2/3/4.md, APPRENTISSAGE.md
 ```

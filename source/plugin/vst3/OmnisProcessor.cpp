@@ -37,15 +37,10 @@ using params::ParamKind;
 
 namespace {
 
-constexpr std::array<ParamId, 11> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
-                                            ParamId::MeterIntegrated, ParamId::MeterTruePeak,
-                                            ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
-                                            ParamId::MeterRefSeconds, ParamId::MeterRefLufs,
-                                            ParamId::MeterLinkStems, ParamId::MeterStemElement,
-                                            ParamId::MeterProposals};
-
-/// Gain qu'un master peut donner à un stem : borné, quoi qu'il écrive.
-constexpr double kMinStemGainDb = -24.0, kMaxStemGainDb = 12.0;
+constexpr std::array<ParamId, 8> kMeterIds{ParamId::MeterMomentary, ParamId::MeterShortTerm,
+                                           ParamId::MeterIntegrated, ParamId::MeterTruePeak,
+                                           ParamId::MeterCorrelation, ParamId::MeterLoudnessRange,
+                                           ParamId::MeterRefSeconds, ParamId::MeterRefLufs};
 
 
 std::string nowLabel() {
@@ -130,11 +125,10 @@ void OmnisProcessor::publishFeed() noexcept {
     }
     inPeak_ = {};
     outPeak_ = {};
-    const bool stem = role() == params::LinkRole::Stem;
-    m.limiterGrDb = limiter_ && !stem ? static_cast<float>(limiter_->gainReductionDb()) : 0.0f;
-    m.clipperGrDb = clipper_ && !stem ? static_cast<float>(clipper_->reductionDb()) : 0.0f;
-    for (int b = 0; b < 4; ++b) m.multibandGrDb[b] = multiband_ && !stem ? static_cast<float>(multiband_->gainReductionDb(b)) : 0.0f;
-    for (int b = 0; b < params::kDynBands; ++b) m.dynamicGainDb[b] = matchEq_ && !stem ? static_cast<float>(matchEq_->dynamicGainDb(b)) : 0.0f;
+    m.limiterGrDb = limiter_ ? static_cast<float>(limiter_->gainReductionDb()) : 0.0f;
+    m.clipperGrDb = clipper_ ? static_cast<float>(clipper_->reductionDb()) : 0.0f;
+    for (int b = 0; b < 4; ++b) m.multibandGrDb[b] = multiband_ ? static_cast<float>(multiband_->gainReductionDb(b)) : 0.0f;
+    for (int b = 0; b < params::kDynBands; ++b) m.dynamicGainDb[b] = matchEq_ ? static_cast<float>(matchEq_->dynamicGainDb(b)) : 0.0f;
     m.gainMatchDb = static_cast<float>(engine_.gainMatchDb());
     m.latencyMs = static_cast<float>(1000.0 * getLatencySamples() / std::max(1.0, sampleRate_));
     m.samplePeakMaxDb = static_cast<float>(engine_.meters().samplePeakDb);
@@ -203,14 +197,12 @@ tresult PLUGIN_API OmnisProcessor::initialize(FUnknown* context) {
     // Sidechain : la référence que la personne joue dans son projet.
     addAudioInput(STR16("Reference"), SpeakerArr::kStereo, BusTypes::kAux, 0);
     addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
-    for (auto& buffer : stemBuffer_) buffer.assign(static_cast<std::size_t>(stems::StemChain::kChunk), 0.0);
     return kResultOk;
 }
 
 tresult PLUGIN_API OmnisProcessor::terminate() {
     GateHold hold(*this);
     active_.store(false);
-    link_.stop();
     feed_->prod.release();
     capture_.release();
     return AudioEffect::terminate();
@@ -296,22 +288,10 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         capture_.prepare(sampleRate_);
         const int index = params::parameterIndex(ParamId::RefCapture);
         capture_.setCapturing(index >= 0 && normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed) >= 0.5);
-        // Le rôle est pris ici : il fixe la latence annoncée à l'hôte.
-        activeRole_.store(static_cast<int>(plainOf(ParamId::LinkRole)));
-        stemGain_.prepare(sampleRate_, 30.0);
-        stemGain_.snapTo(1.0);
-        stemChain_.prepare(sampleRate_);
-        if (role() != params::LinkRole::Stem) feed_->prod.prepare(sampleRate_);
-        else feed_->prod.release();
-        if (role() != params::LinkRole::Alone)
-            link_.start(static_cast<link::Role>(role()), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
-                        static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
-        else
-            link_.stop();
+        feed_->prod.prepare(sampleRate_);
         active_.store(true);
     } else {
         active_.store(false);
-        link_.stop();
         capture_.release();
         feed_->prod.release();
     }
@@ -320,27 +300,6 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
 
 tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
     const std::string_view id = message && message->getMessageID() ? std::string_view(message->getMessageID()) : std::string_view{};
-    if (id == kProposalsRequest) {
-        // Thread de l'interface : on répond tout de suite.
-        std::string text;
-        for (const auto& p : link_.proposals())
-            text += "P\t" + std::to_string(p.proposal.key) + "\t" + p.proposal.text + "\n";
-        for (const auto& a : link_.applied()) {
-            char values[64];
-            std::snprintf(values, sizeof values, "%d\t%.0f\t%.1f", static_cast<int>(a.correction.type), static_cast<double>(a.correction.hz),
-                          static_cast<double>(a.correction.gainDb));
-            text += "A\t" + std::to_string(a.key) + "\t" + a.targetName + "\t" + values + "\n";
-        }
-        // Stem en bus de drums : ce qu'OMNIS y a reconnu et ce qu'il en fait.
-        if (role() == params::LinkRole::Stem && link_.identifiedElement() == link::StemKind::DrumLoop)
-            for (const auto& line : stems::describeDrumBus(link_.drumContent())) text += "D\t" + line + "\n";
-        if (IPtr<IMessage> reply = owned(allocateMessage())) {
-            reply->setMessageID(kProposalsMessage);
-            reply->getAttributes()->setBinary(kProposalsAttribute, text.data(), static_cast<uint32>(text.size()));
-            sendMessage(reply);
-        }
-        return kResultOk;
-    }
     if (id == kFeedRequest) {
         if (IPtr<IMessage> reply = owned(allocateMessage())) {
             reply->setMessageID(kFeedMessage);
@@ -349,50 +308,10 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
         }
         return kResultOk;
     }
-    if (id == kRoleMessage) {
-        int64 r = 0;
-        if (message->getAttributes() && message->getAttributes()->getInt(kRoleAttribute, r) == kResultTrue && r >= 0 && r <= 2)
-            switchRole(static_cast<int>(r));
-        return kResultOk;
-    }
-    if (id == kAnswerMessage) {
-        int64 key = 0, answer = -1;
-        if (message->getAttributes() && message->getAttributes()->getInt(kAnswerKeyAttribute, key) == kResultTrue &&
-            message->getAttributes()->getInt(kAnswerAttribute, answer) == kResultTrue && answer >= 0 && answer <= 2)
-            link_.answer(static_cast<std::uint32_t>(key), static_cast<link::LinkClient::Answer>(answer));
-        return kResultOk;
-    }
-    if (id == kTrackNameMessage) {
-        const void* data = nullptr;
-        uint32 size = 0;
-        if (message->getAttributes() && message->getAttributes()->getBinary(kTrackNameAttribute, data, size) == kResultTrue && data)
-            link_.setTrackName(std::string(static_cast<const char*>(data), size));
-        return kResultOk;
-    }
     return AudioEffect::notify(message);
 }
 
-void OmnisProcessor::switchRole(int newRole) {
-    if (newRole == activeRole_.load() || !active_.load()) return; // inactif : setActive le prendra
-    // Le thread audio sort de process() (au plus un bloc), puis on redémarre le lien ici.
-    GateHold hold(*this);
-    if (!active_.load()) return;
-    if (newRole == static_cast<int>(params::LinkRole::Alone))
-        link_.stop();
-    else
-        link_.start(static_cast<link::Role>(newRole), static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))),
-                    static_cast<int>(plainOf(ParamId::LinkGroup)), sampleRate_);
-    stemGain_.snapTo(1.0);
-    stemChain_.reset();
-    if (newRole == static_cast<int>(params::LinkRole::Stem)) feed_->prod.release();
-    else feed_->prod.prepare(sampleRate_);
-    activeRole_.store(newRole);
-}
-
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
-    // Un stem ne retarde pas sa piste : l'hôte peut le demander avant
-    // l'activation, on lit donc le réglage plutôt que le rôle actif.
-    if (static_cast<params::LinkRole>(static_cast<int>(plainOf(ParamId::LinkRole))) == params::LinkRole::Stem) return 0;
     return static_cast<uint32>(engine_.latencySamples());
 }
 
@@ -414,8 +333,6 @@ void OmnisProcessor::applyParameter(ParamID id, ParamValue normalized, bool imme
         normalized_[static_cast<std::size_t>(index)].store(normalized, std::memory_order_relaxed);
     const double plain = params::toPlain(*spec, normalized);
     if (spec->id == ParamId::RefCapture) capture_.setCapturing(plain >= 0.5);
-    if (spec->id == ParamId::LinkStemKind) link_.setKind(static_cast<link::StemKind>(static_cast<int>(plain)));
-    if (spec->id == ParamId::LinkGroup) link_.setGroup(static_cast<int>(plain));
     if (immediate)
         engine_.setParameterImmediate(spec->id, plain);
     else
@@ -433,8 +350,6 @@ void OmnisProcessor::applyPendingState() {
     }
     // Réglages hors moteur (simples écritures atomiques).
     capture_.setCapturing(plainOf(ParamId::RefCapture) >= 0.5);
-    link_.setKind(static_cast<link::StemKind>(static_cast<int>(plainOf(ParamId::LinkStemKind))));
-    link_.setGroup(static_cast<int>(plainOf(ParamId::LinkGroup)));
 }
 
 void OmnisProcessor::collectParameterEvents(IParameterChanges* changes, int32 numSamples) {
@@ -518,9 +433,6 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
         if (!spec) continue;
         double plain = kMeterIds[i] == ParamId::MeterRefSeconds ? capture_.referenceSeconds()
                        : kMeterIds[i] == ParamId::MeterRefLufs  ? capture_.referenceLufs()
-                       : kMeterIds[i] == ParamId::MeterLinkStems ? static_cast<double>(link_.linkedStems())
-                       : kMeterIds[i] == ParamId::MeterStemElement ? static_cast<double>(static_cast<int>(link_.identifiedElement()))
-                       : kMeterIds[i] == ParamId::MeterProposals ? static_cast<double>(link_.pendingProposals())
                                                                 : meterPlainValue(kMeterIds[i], readout);
         if (!std::isfinite(plain)) plain = spec->minValue; // -inf LUFS -> bas d'échelle
         const double normalized = params::toNormalized(*spec, plain);
@@ -532,61 +444,6 @@ void OmnisProcessor::publishMeters(IParameterChanges* outputChanges, int32 numSa
             lastMeterValues_[i] = normalized;
         }
     }
-}
-
-template <typename Sample>
-void OmnisProcessor::processStem(Sample** inputs, Sample** outputs, int32 numSamples, const ProcessContext* context) {
-    // Automation : appliquée en début de bloc (rien à lisser ici à l'échantillon près).
-    for (int i = 0; i < numEvents_; ++i)
-        applyParameter(events_[static_cast<std::size_t>(i)].id, events_[static_cast<std::size_t>(i)].normalized, false);
-    numEvents_ = 0;
-
-    const bool playing = context && (context->state & ProcessContext::kPlaying) != 0;
-    const std::int64_t position = playing ? static_cast<std::int64_t>(context->projectTimeSamples) : link::kNoPosition;
-    // La reconnaissance écoute le son sec (l'hôte peut traiter en place : avant tout).
-    if (playing) link_.pushListening(inputs[0], inputs[1], numSamples);
-
-    // La chaîne de l'élément : réglée par ce que l'écoute a reconnu et mesuré.
-    const bool bypass = plainOf(ParamId::Bypass) >= 0.5;
-    const auto& heard = link_.rtListening();
-    const auto mode = bypass ? stems::StemMode::Off : static_cast<stems::StemMode>(static_cast<int>(plainOf(ParamId::StemMode)));
-    const stems::StemMacros macros{plainOf(ParamId::StemHpf),          plainOf(ParamId::StemComp) * 0.01,
-                                   plainOf(ParamId::StemSat) * 0.01,   plainOf(ParamId::StemClean) * 0.01,
-                                   plainOf(ParamId::StemWidth) * 0.01, plainOf(ParamId::StemTrim)};
-    stems::StemSettings settings = stems::settingsFor(mode, heard.element, heard.character, heard.secondsHeard, macros, &heard.drums);
-
-    link::LinkClient::RtAccess access(link_);
-    link::Endpoint* endpoint = access.endpoint();
-    const link::StemOrders orders = endpoint ? endpoint->readOrders() : link::StemOrders{};
-    double gainDb = std::clamp(static_cast<double>(orders.gainDb), kMinStemGainDb, kMaxStemGainDb);
-    if (!std::isfinite(gainDb) || bypass) gainDb = 0.0;
-    // Retouches acceptées sur le master : appliquées aussi en mode Off (pas en bypass).
-    if (!bypass && stems::anyCorrection(orders.corrections)) {
-        settings.corrections = orders.corrections;
-        settings.active = true;
-    }
-    stemChain_.setSettings(settings);
-    stemGain_.setTarget(std::pow(10.0, gainDb / 20.0));
-    double* l = stemBuffer_[0].data();
-    double* r = stemBuffer_[1].data();
-    const int32 chunk = static_cast<int32>(stemBuffer_[0].size());
-    for (int32 start = 0; start < numSamples; start += chunk) {
-        const int32 n = std::min(chunk, numSamples - start);
-        for (int32 i = 0; i < n; ++i) {
-            l[i] = static_cast<double>(inputs[0][start + i]);
-            r[i] = static_cast<double>(inputs[1][start + i]);
-        }
-        stemChain_.process(l, r, n);
-        for (int32 i = 0; i < n; ++i) {
-            const double g = stemGain_.next();
-            outputs[0][start + i] = static_cast<Sample>(g * l[i]);
-            outputs[1][start + i] = static_cast<Sample>(g * r[i]);
-        }
-    }
-    // Ce qui part vers le mix, et donc ce que le master doit entendre.
-    if (endpoint) endpoint->writeAudio(outputs[0], outputs[1], numSamples, position, playing);
-    // Les mesures de l'interface portent sur la sortie de la piste.
-    engine_.meterOnly(outputs, numSamples);
 }
 
 tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
@@ -653,18 +510,6 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
 
     if (is64) feedBlock(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, true);
     else feedBlock(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, true);
-    if (role() == params::LinkRole::Stem) {
-        if (data.symbolicSampleSize == kSample64)
-            processStem(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, data.processContext);
-        else
-            processStem(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, data.processContext);
-        if (is64) feedBlock(data.inputs[0].channelBuffers64, data.outputs[0].channelBuffers64, data.numSamples, false);
-        else feedBlock(data.inputs[0].channelBuffers32, data.outputs[0].channelBuffers32, data.numSamples, false);
-        data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
-        publishMeters(data.outputParameterChanges, data.numSamples);
-        return kResultOk;
-    }
-
     // La prod entendue (barre IA, AUTO) : l'entrée, avant tout traitement, pendant la lecture.
     if (data.processContext && (data.processContext->state & ProcessContext::kPlaying) != 0) {
         if (is64) feed_->prod.push(data.inputs[0].channelBuffers64[0], data.inputs[0].channelBuffers64[1], data.numSamples);

@@ -44,9 +44,7 @@ enum class ParamId : std::uint32_t {
     OutputGain = 2,
     Monitor = 3,
     RefCapture = 4, ///< écoute de la référence jouée sur l'entrée auxiliaire
-    LinkRole = 5,     ///< Seul / Stem (piste, sans latence) / Master (bus master)
-    LinkStemKind = 6, ///< élément de la piste d'un stem (Auto : reconnu à l'écoute et au nom)
-    LinkGroup = 7,    ///< 1 … 8 : deux projets ouverts ne se mélangent pas
+    // 5 – 7 : réservés (instances liées des premières versions), jamais réutilisés.
     ChainOrder = 8,   ///< ordre des 7 modules du rack (rang d'une permutation, voir chainOrder())
     GainMatch = 9,    ///< écoute au même volume que l'entrée (jamais gardé dans la session)
     DeltaListen = 10, ///< écouter seulement ce qu'un module change (jamais gardé)
@@ -131,14 +129,7 @@ enum class ParamId : std::uint32_t {
     ImgWidthFirst = 810, ///< … 813
     ImgOn = 899,
 
-    // --- Stem (900–999) : la chaîne d'une piste en rôle Stem -------------------
-    StemMode = 900,  ///< Off / Auto / Manuel
-    StemHpf = 901,   ///< manuel : passe-haut (10 Hz = éteint)
-    StemComp = 902,  ///< manuel : compression, 0 … 100 %
-    StemSat = 903,   ///< manuel : saturation (courbe de l'Inflator), 0 … 100 %
-    StemClean = 904, ///< manuel : EQ dynamique, 0 … 100 %
-    StemWidth = 905, ///< manuel : largeur au-dessus du grave, 0 … 150 %
-    StemTrim = 906,  ///< gain d'entrée (Auto et Manuel)
+    // 900 – 999 : réservés (chaîne des pistes Stem des premières versions), jamais réutilisés.
 
     // --- Mesures (lecture seule) ---------------------------------------------
     MeterMomentary = 1000,
@@ -149,9 +140,7 @@ enum class ParamId : std::uint32_t {
     MeterLoudnessRange = 1005,
     MeterRefSeconds = 1006, ///< secondes de référence écoutées (non silencieuses)
     MeterRefLufs = 1007,    ///< sonie intégrée de la référence écoutée
-    MeterLinkStems = 1008,  ///< master : stems vivants dans son groupe
-    MeterStemElement = 1009, ///< stem : élément reconnu (écoute + nom de la piste)
-    MeterProposals = 1010,   ///< master : propositions du chef d'orchestre en attente
+    // 1008 – 1010 : réservés (mesures des instances liées), jamais réutilisés.
 };
 
 enum class ParamKind : std::uint8_t {
@@ -201,9 +190,6 @@ enum class MonitorMode : int { Stereo = 0, Mid = 1, Side = 2 };
 /// Pente du Mono Maker.
 enum class MonoSlope : int { LR4 = 0, LR8 = 1 };
 
-/// Rôle d'une instance liée (même ordre que link::Role).
-enum class LinkRole : int { Alone = 0, Stem = 1, Master = 2 };
-
 /// Phase du Sub Control : FIR à phase linéaire (défaut) ou IIR « analogique ».
 enum class PhaseMode : int { Linear = 0, Analog = 1 };
 
@@ -228,7 +214,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 170;
+inline constexpr std::size_t kParameterCount = 157;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

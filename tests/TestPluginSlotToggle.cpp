@@ -3,15 +3,14 @@
 //  tests/TestPluginSlotToggle.cpp — Le bouton rond d'un slot du mixer de FL
 //  Studio : l'hôte désactive / réactive l'instance pendant que son thread
 //  audio continue d'appeler process(). Rien ne doit planter, ni sortir autre
-//  chose que du son fini, quel que soit le rôle (Seul, Master, Stem), même avec
-//  un changement de rôle et un nouveau setupProcessing au milieu.
+//  chose que du son fini, même avec deux instances en même temps, des messages
+//  de l'interface et un nouveau setupProcessing au milieu.
 //  (À passer aussi sous ASan / TSan : -DOMNIS_SANITIZE=address|thread.)
 // =============================================================================
 #include "TestFramework.h"
 
 #include "TestSignals.h"
 
-#include "link/LinkBus.h"
 #include "params/Parameters.h"
 #include "plugin/vst3/OmnisIds.h"
 #include "plugin/vst3/OmnisProcessor.h"
@@ -38,15 +37,6 @@ using namespace Steinberg::Vst;
 using params::ParamId;
 
 namespace {
-
-void useLinkNamespace(const char* name) {
-#ifdef _WIN32
-    _putenv_s("OMNIS_LINK_NAMESPACE", name);
-#else
-    setenv("OMNIS_LINK_NAMESPACE", name, 1);
-#endif
-    for (int g = 1; g <= link::kGroups; ++g) link::SharedRegion::unlink(link::regionName(g));
-}
 
 IPtr<vst3::OmnisProcessor> makeProcessor(const std::map<ParamId, double>& plain) {
     IPtr<vst3::OmnisProcessor> p = owned(new vst3::OmnisProcessor());
@@ -127,15 +117,15 @@ struct AudioThread {
     }
 };
 
-void sendRole(vst3::OmnisProcessor& p, int role) {
+/// L'interface demande son flux (thread de l'interface, pendant l'audio).
+void sendFeedRequest(vst3::OmnisProcessor& p) {
     IPtr<HostMessage> m = owned(new HostMessage());
-    m->setMessageID(vst3::kRoleMessage);
-    m->getAttributes()->setInt(vst3::kRoleAttribute, role);
+    m->setMessageID(vst3::kFeedRequest);
     p.notify(m);
 }
 
 /// Les clics de la personne sur le slot (et ce que FL fait autour).
-void hammer(vst3::OmnisProcessor& p, AudioThread& audio, int toggles, unsigned seed, bool switchRoles) {
+void hammer(vst3::OmnisProcessor& p, AudioThread& audio, int toggles, unsigned seed, bool reprepare) {
     std::mt19937 rng(seed);
     for (int t = 0; t < toggles; ++t) {
         p.setProcessing(false);
@@ -148,7 +138,7 @@ void hammer(vst3::OmnisProcessor& p, AudioThread& audio, int toggles, unsigned s
         }
         p.setActive(true);
         p.setProcessing(true);
-        if (switchRoles && t % 4 == 0) sendRole(p, static_cast<int>(rng() % 3));
+        if (reprepare && t % 4 == 0) sendFeedRequest(p);
         const long before = audio.blocks.load();
         // Laisser passer au moins un bloc entre deux clics.
         for (int i = 0; i < 200 && audio.blocks.load() == before; ++i) std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -158,7 +148,6 @@ void hammer(vst3::OmnisProcessor& p, AudioThread& audio, int toggles, unsigned s
 } // namespace
 
 OMNIS_TEST("slot FL: activer / désactiver pendant process() (Seul) ne plante pas") {
-    useLinkNamespace("omnistestslot1");
     auto p = makeProcessor({});
     {
         AudioThread audio(*p);
@@ -171,36 +160,33 @@ OMNIS_TEST("slot FL: activer / désactiver pendant process() (Seul) ne plante pa
     p->terminate();
 }
 
-OMNIS_TEST("slot FL: activer / désactiver un master et un stem liés pendant process() ne plante pas") {
-    useLinkNamespace("omnistestslot2");
-    auto master = makeProcessor({{ParamId::LinkRole, 2.0}, {ParamId::LinkGroup, 3.0}});
-    auto stem = makeProcessor({{ParamId::LinkRole, 1.0}, {ParamId::LinkGroup, 3.0}});
+OMNIS_TEST("slot FL: deux instances activées / désactivées en même temps pendant process() ne plantent pas") {
+    auto first = makeProcessor({});
+    auto second = makeProcessor({{ParamId::LowLatency, 1.0}});
     {
-        AudioThread masterAudio(*master), stemAudio(*stem);
-        std::thread clicksOnStem([&] { hammer(*stem, stemAudio, 60, 2, false); });
-        hammer(*master, masterAudio, 60, 3, false);
-        clicksOnStem.join();
-        OMNIS_CHECK(masterAudio.nonFinite.load() == 0);
-        OMNIS_CHECK(stemAudio.nonFinite.load() == 0);
+        AudioThread firstAudio(*first), secondAudio(*second);
+        std::thread clicksOnSecond([&] { hammer(*second, secondAudio, 60, 2, false); });
+        hammer(*first, firstAudio, 60, 3, false);
+        clicksOnSecond.join();
+        OMNIS_CHECK(firstAudio.nonFinite.load() == 0);
+        OMNIS_CHECK(secondAudio.nonFinite.load() == 0);
     }
-    for (auto* p : {master.get(), stem.get()}) {
+    for (auto* p : {first.get(), second.get()}) {
         p->setProcessing(false);
         p->setActive(false);
         p->terminate();
     }
 }
 
-OMNIS_TEST("slot FL: clics sur le slot mêlés à des changements de rôle en route ne plantent pas") {
-    useLinkNamespace("omnistestslot3");
-    auto p = makeProcessor({{ParamId::LinkGroup, 4.0}});
+OMNIS_TEST("slot FL: clics sur le slot mêlés à des messages de l'interface en route ne plantent pas") {
+    auto p = makeProcessor({});
     {
         AudioThread audio(*p);
-        // Les messages de rôle arrivent du thread de l'interface pendant que l'hôte clique.
+        // Les messages de l'interface arrivent de son thread pendant que l'hôte clique.
         std::atomic<bool> stop{false};
         std::thread ui([&] {
-            int r = 0;
             while (!stop.load()) {
-                sendRole(*p, (r++) % 3);
+                sendFeedRequest(*p);
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
             }
         });

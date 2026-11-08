@@ -1,6 +1,6 @@
 # OMNIS — guide pour l'agent (Claude Code)
 
-Plug-in VST3 de mixage / mastering (C++20, VSTGUI) d'**Abrasion Labs**, vendu ~150 €. Le
+Plug-in VST3 de mastering pour beatmakers (C++20, VSTGUI) d'**Abrasion Labs**, vendu ~150 €. Le
 propriétaire est français, travaille sous **FL Studio** : répondre en français, commentaires et
 textes d'interface en français.
 
@@ -66,7 +66,8 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
 - `source/params/` : tous les paramètres (`Parameters.cpp`, ids stables).
 - `source/plugin/vst3/` : processeur, contrôleur (`ask()` : barre IA, `/fbi` mode promo,
   « remets tout à zéro »), éditeur VSTGUI (`OmnisEditor.cpp`).
-- `source/link/`, `source/stems/` : instances liées (Master / Stem, chef d'orchestre).
+- **Mastering seulement** (09/11) : le mixage (instances liées, stems, chef d'orchestre) est retiré ;
+  plan de la refonte : `docs/REFONTE.md`. `omnis_auto` rejoue l'AUTO du plug-in sur un fichier.
 - `tools/` : outils en ligne de commande ; `tests/` : un fichier par domaine.
 
 ## Docs utiles

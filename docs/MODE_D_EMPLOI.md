@@ -13,7 +13,7 @@ règle sa chaîne de 7 modules et amène le volume là où tu le veux. Tout rest
 1. [En 2 minutes](#1-en-2-minutes)
 2. [Installation](#2-installation)
 3. [Premier lancement](#3-premier-lancement)
-4. [Trois façons de l'utiliser](#4-trois-façons-de-lutiliser)
+4. [Où le mettre](#4-où-le-mettre)
 5. [La console](#5-la-console)
 6. [AUTO](#6-auto)
 7. [La barre IA](#7-la-barre-ia)
@@ -23,7 +23,7 @@ règle sa chaîne de 7 modules et amène le volume là où tu le veux. Tout rest
 11. [Les mesures](#11-les-mesures)
 12. [La latence](#12-la-latence)
 13. [Avant d'exporter](#13-avant-dexporter)
-14. [Stems et chef d'orchestre](#14-stems-et-chef-dorchestre)
+14. [Et les pistes ?](#14-et-les-pistes-)
 15. [Diagnostic du mix](#15-diagnostic-du-mix)
 16. [Recettes](#16-recettes)
 17. [Questions fréquentes](#17-questions-fréquentes)
@@ -64,7 +64,7 @@ références, tes réglages appris). Voir [§ 18](#18-tes-données) pour le supp
 
 ## 3. Premier lancement
 
-- **Le guide** s'ouvre tout seul la première fois : 14 étapes, environ 2 minutes. **SUIVANT**
+- **Le guide** s'ouvre tout seul la première fois : 12 étapes, environ 2 minutes. **SUIVANT**
   pour avancer, **PASSER** pour le fermer. Le bouton **?** en haut le rouvre, tout comme les mots
   **« tuto »** ou **« aide »** dans la barre IA. Après une mise à jour, seules les étapes nouvelles
   te sont montrées.
@@ -73,18 +73,11 @@ références, tes réglages appris). Voir [§ 18](#18-tes-données) pour le supp
 
 ---
 
-## 4. Trois façons de l'utiliser
+## 4. Où le mettre
 
-Le menu **RÔLE** (colonne de droite) choisit comment l'instance travaille.
-
-| Rôle | Où | Ce qu'il fait |
-|---|---|---|
-| **Seul** (défaut) | sur le master | masterise la prod entière ; rien d'autre à faire |
-| **Stem** | sur une piste (808, drums, voix…) | traite la piste selon ce qu'elle joue, **sans aucune latence** |
-| **Master** | sur le master | masterise **et** écoute les Stems de son groupe, puis propose des retouches |
-
-Le **groupe** (GR, 1 à 8) sépare deux projets ouverts en même temps : un Master n'entend que les
-Stems de son groupe. Voir [§ 14](#14-stems-et-chef-dorchestre).
+OMNIS est un plug-in de **mastering** : il travaille sur la prod entière. Mets-le **en dernier sur
+le master**, après tes autres effets. Laisse un peu de marge au master de FL (crêtes vers −6 dBFS,
+sans limiteur ni clipper avant OMNIS) : il a besoin de cette place pour bien travailler.
 
 ---
 
@@ -99,8 +92,8 @@ Stems de son groupe. Voir [§ 14](#14-stems-et-chef-dorchestre).
 ├──────────────────────────────────────────────────────────────┤ PLR, LRA…    │
 │ RACK : Sub · Match EQ · Inflator · Imager · Multiband ·       │              │
 │        Clipper · Limiter                                      │ ÉCOUTE       │
-├──────────────────────────────────────────────────────────────┤ RÔLE · GR    │
-│ TIROIR : réglages du module ouvert  │  son écran              │ CHEF · STEM  │
+├──────────────────────────────────────────────────────────────┤ DIAGNOSTIC   │
+│ TIROIR : réglages du module ouvert  │  son écran              │ EXPORT       │
 ├──────────────────────────────────────────────────────────────┤ DIAGNOSTIC   │
 │ ANALYSEUR (spectre de sortie, voyant d'export) · GONIOMÈTRE   │              │
 └──────────────────────────────────────────────────────────────┴──────────────┘
@@ -168,7 +161,7 @@ nuances comptent : « un poil plus fort », « beaucoup plus large ».
 | Tu écris | Effet |
 |---|---|
 | **annule** | défait la dernière action d'OMNIS (20 pas) |
-| **remets tout à zéro** | tous les réglages reviennent au départ (le rôle reste) |
+| **remets tout à zéro** | tous les réglages reviennent au départ |
 | **export** | dit si l'export est prêt, sinon ce qu'il faut changer |
 | **diagnostic**, « qu'est-ce qui va pas » | le diagnostic du mix ([§ 15](#15-diagnostic-du-mix)) |
 | **tuto**, **aide** | rouvre le guide |
@@ -289,7 +282,7 @@ reste du mix sont réglés séparément.
 ### 4. Imager — largeur stéréo par bande
 
 Largeur du Side dans 4 bandes (séparations 250 Hz, 2 kHz et 8 kHz par défaut). **0 % = mono,
-100 % = inchangé, 200 % = très large.** Le centre (voix, 808) n'est jamais touché.
+100 % = inchangé, 200 % = très large.** Le centre (808, kick, lead) n'est jamais touché.
 
 ### 5. Multiband — tenir la 808 dans le temps
 
@@ -307,7 +300,7 @@ rack (**GLUE**) règle les quatre bandes ensemble.
 | Ceiling | −12–0 dBFS | 0 dBFS | niveau d'écrêtage |
 | Knee | 0–100 % | 50 % | douceur du coude |
 | Oversampling | 1x–16x | 8x | qualité contre le repliement |
-| Split | 60–300 Hz | 120 Hz | la 808 s'écrête à part, sans salir la voix |
+| Split | 60–300 Hz | 120 Hz | la 808 s'écrête à part, sans salir les mélodies |
 | Sub Drive | ±12 dB | 0 dB | plus (ou moins) d'écrêtage sur la 808 seule |
 | Sub Make-Room | 0–100 % | 0 % | la 808 cède un peu de place quand tout tape ensemble |
 
@@ -400,24 +393,11 @@ l'analyseur. OMNIS vérifie :
 
 ---
 
-## 14. Stems et chef d'orchestre
+## 14. Et les pistes ?
 
-1. Sur chaque piste importante (808, drums, voix…), mets OMNIS en **RÔLE Stem**, même groupe
-   **GR**.
-2. Sur le master, OMNIS en **RÔLE Master**, même groupe.
-
-**Côté Stem** (page **STEM**) :
-- l'élément est reconnu à l'écoute et au nom de la piste (21 éléments : kick, snare, 808, voix
-  lead, nappe…). Tu peux le forcer dans le menu **ÉLÉMENT** ;
-- **MODE** : **Off** (rien), **Auto** (la chaîne de l'élément) ou **Manuel** (tu doses passe-haut,
-  compression, saturation, EQ dynamique, largeur) ;
-- **aucune latence** : tu peux jouer et enregistrer avec ;
-- dans un bus de drums, OMNIS reconnaît le kick, la snare / clap, les hats et les traite chacun.
-
-**Côté Master** (page **CHEF**) : le master écoute les stems de son groupe et repère quand un son
-en gêne un autre (808 contre kick ou basse dans le grave, instrument contre la voix dans sa
-présence). Il **propose** une retouche (OUI / NON). Rien n'est appliqué sans ton accord, et une
-proposition refusée n'est plus reproposée.
+OMNIS ne se met que sur le master : il ne traite pas les pistes une par une. Ce qui se corrige
+mieux piste par piste (une 808 trop forte, un bas-médium qui s'accumule), le **diagnostic du mix**
+te le dit, pour que tu le règles dans ton projet.
 
 ---
 
@@ -440,7 +420,7 @@ Il ne corrige rien de lui-même : certains « défauts » sont voulus, c'est toi
 **Premier master rapide.** RÉF › ton style. Lecture, AUTO sur le refrain. Puis « un peu moins
 fort » ou « plus fort » selon le goût. « export » avant de rendre.
 
-**Les sifflantes de la voix.** « ça siffle » dans la barre IA. Si ce n'est pas assez, redis-le :
+**Un hi-hat ou un lead qui siffle.** « ça siffle » dans la barre IA. Si ce n'est pas assez, redis-le :
 la bande se creuse de 2 dB à chaque fois (jusqu'à −12 dB). À la main : Match EQ › DYN, bande 4,
 canal Mid, 6–8 kHz, Range −6 dB.
 
@@ -480,7 +460,7 @@ quel.
 **J'ai tout cassé.** « annule » (pas à pas), ou « remets tout à zéro ».
 
 **Combien de processeur ?** Sur un cœur à 48 kHz : environ 13 % au repos, 16 % tous modules
-actifs ; une instance Stem, moins de 1 %.
+actifs.
 
 ---
 
@@ -504,7 +484,7 @@ actifs ; une instance Stem, moins de 1 %.
 |---|---|
 | Format | VST3, Windows 64 bits et macOS 10.15+ (Intel, Apple Silicon) |
 | Audio | stéréo, 32 et 64 bits, toutes les fréquences courantes (testé de 22,05 à 384 kHz) |
-| Latence | Qualité max ≈ 710 ms · Travail ≈ 90 ms (Stem : 0) |
+| Latence | Qualité max ≈ 710 ms · Travail ≈ 90 ms |
 | Chaîne | 7 modules réordonnables, EQ dynamique à 4 bandes intégré au Match EQ |
 | Mesures | sonie BS.1770 (LUFS M / S / I), LRA, true peak, PLR, corrélation |
 | Écoutes simulées | 18, plus Off |

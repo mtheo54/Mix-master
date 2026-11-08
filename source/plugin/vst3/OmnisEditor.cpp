@@ -274,13 +274,10 @@ struct TutorialStep {
 /// à la personne qui avait déjà vu le guide.
 constexpr int kTutorialVersion = 2;
 
-const std::array<TutorialStep, 14> kTutorial{{
+const std::array<TutorialStep, 12> kTutorial{{
     {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
-     {"OMNIS mixe et masterise ta prod. Deux façons de l'utiliser :", "1. seul sur le master : il masterise la prod entière ;",
-      "2. sur tes pistes (Stem) + un Master : chaque piste est travaillée,", "   et le master écoute tout le monde. Suis le guide (2 minutes)."}},
-    {CRect(942, 600, 1190, 664), "RÔLE ET GROUPE",
-     {"Seul : OMNIS sur le master, rien d'autre à faire.", "Stem : sur une piste (808, drums, voix…), sans aucune latence.",
-      "Master : sur le bus master ; il entend les stems du même groupe.", "Un groupe par projet ouvert (1 à 8)."}},
+     {"OMNIS masterise ta prod : mets-le en dernier sur le master.", "Lance la lecture, clique AUTO sur le refrain, puis ajuste",
+      "avec les boutons ou en mots dans la barre IA.", "Suis le guide (2 minutes)."}},
     {CRect(10, 106, 932, 306), "LE RACK : 7 MODULES",
      {"Chaque module a un gros bouton (le réglage principal) et un voyant ON.", "Clique un module pour ouvrir TOUS ses réglages en dessous.",
       "Glisse un module par son nom pour changer l'ordre de la chaîne.", "La barre d'état montre ce qu'il fait en ce moment."}},
@@ -308,12 +305,9 @@ const std::array<TutorialStep, 14> kTutorial{{
     {CRect(942, 10, 1190, 552), "LES MESURES",
      {"Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.", "Chaque mesure a son verdict en mots : BON, FORT, DENSE, PUNCHY…",
       "TRUE PEAK doit rester OK (sous -1 dBTP) pour le streaming.", "PLR = écart crête / sonie : plus il est grand, plus ça respire."}},
-    {CRect(942, 556, 1190, 596), "ÉCOUTES ET EXPORT",
+    {CRect(942, 556, 1190, 696), "ÉCOUTES ET EXPORT",
      {"ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…", "Elle reste en rouge et ne part jamais dans l'export : remets-la sur Off.",
-      "Écris « export » dans la barre IA : OMNIS dit si tout est prêt.", "DIAGNOSTIC DU MIX (en bas) : ce que le master ne rattrape pas."}, 2},
-    {CRect(942, 654, 1190, 728), "CHEF D'ORCHESTRE ET PISTE",
-     {"Sur le Master : les propositions quand un son en gêne un autre", "(OUI / NON, rien n'est appliqué sans ton accord).",
-      "Sur un Stem : la page STEM montre l'élément reconnu et sa chaîne.", "DIAGNOSTIC DU MIX : ce qui se corrige dans ton projet, pas au master."}},
+      "PRÊT À EXPORTER ? (en bas) : OMNIS dit si tout est bon.", "DIAGNOSTIC DU MIX : ce que le master ne rattrape pas, à corriger dans ton projet."}, 2},
     {CRect(796, 10, 830, 50), "C'EST PARTI",
      {"Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
 }};
@@ -515,8 +509,6 @@ void OmnisEditor::setPlain(std::uint32_t pid, double v) {
     if (const auto* spec = params::findParameter(pid)) setNorm(pid, params::toNormalized(*spec, params::clampPlain(*spec, v)));
 }
 
-int OmnisEditor::role() const { return static_cast<int>(std::lround(plain(id(ParamId::LinkRole)))); }
-
 std::string OmnisEditor::valueText(std::uint32_t pid) const {
     const auto* spec = params::findParameter(pid);
     if (!spec) return {};
@@ -571,7 +563,7 @@ void PLUGIN_API OmnisEditor::close() {
     slots_ = {};
     pages_ = {};
     pageScreens_ = {};
-    spectrum_ = scope_ = meter_ = readouts_ = stemBanner_ = cardScreen_ = nullptr;
+    spectrum_ = scope_ = meter_ = readouts_ = cardScreen_ = nullptr;
     matchButton_ = nullptr;
     askField_ = nullptr;
     askAnswer_ = nullptr;
@@ -600,8 +592,7 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     buildScreens(face);
     buildMaster(face);
     omnis()->requestFeed();
-    omnis()->requestProposals();
-    selectPage(role() == static_cast<int>(params::LinkRole::Stem) ? kStemPage : page_);
+    selectPage(page_);
     // Le guide, par-dessus tout ; montré tout seul à la toute première ouverture.
     tutorial_ = new TutorialOverlay(CRect(0, 0, kWidth, kHeight), *this);
     root->addView(tutorial_);
@@ -1338,12 +1329,6 @@ void OmnisEditor::buildRack(CViewContainer* root) {
         live_.push_back(slot);
         slots_[static_cast<std::size_t>(m)] = slot;
     }
-    stemBanner_ = new Screen(CRect(80, 82, rack_->getViewSize().getWidth() - 80, 116), [this](CDrawContext* dc, const CRect& r) {
-        text(dc, "Instance en rôle STEM : la chaîne de la piste agit (page PISTE). Le rack sert au master.", CRect(r.left + 10, r.top, r.right - 10, r.bottom),
-             color::kAccent, mono(10.5), kCenterText);
-    });
-    stemBanner_->setMouseEnabled(false);
-    rack_->addView(stemBanner_);
     layoutRack();
 }
 
@@ -1351,7 +1336,6 @@ void OmnisEditor::layoutRack() {
     if (!rack_) return;
     const auto o = order();
     const double slotW = (rack_->getViewSize().getWidth() - 16.0 - 6.0 * 6.0) / 7.0, slotH = rack_->getViewSize().getHeight() - 16.0;
-    const bool stem = role() == static_cast<int>(params::LinkRole::Stem);
     for (int pos = 0; pos < 7; ++pos) {
         RackSlot* s = slots_[static_cast<std::size_t>(o[static_cast<std::size_t>(pos)])];
         if (!s) continue;
@@ -1362,11 +1346,8 @@ void OmnisEditor::layoutRack() {
             s->setMouseableArea(r);
         }
         s->setNumber(std::to_string(pos + 1));
-        s->setDimmed(stem);
-        s->setAlphaValue(stem ? 0.35f : 1.0f);
         s->setDropMark(0);
     }
-    if (stemBanner_) stemBanner_->setVisible(stem);
     rack_->invalid();
 }
 
@@ -1617,34 +1598,6 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         knobs(p, CRect(12, row2, W - 14, row2 + 104), "RELIEF · STÉRÉO", {id(P::LimPunch), id(P::LimUpward), id(P::LimUnlinkTransient), id(P::LimUnlinkSustain)});
     }
     {
-        auto* p = page(drawer, kStemPage, "S", "PISTE", "Instance en rôle Stem : la chaîne de l'élément, sans latence.");
-        seg(p, CRect(12, row1 + 16, 220, row1 + 40), "MODE", P::StemMode);
-        p->addView(new Caption(CRect(232, row1 + 2, 400, row1 + 14), "ÉLÉMENT", color::kText3, mono(9)));
-        auto* el = new COptionMenu(CRect(232, row1 + 16, W - 14, row1 + 40), listen([this](CControl* ctl) {
-            setPlain(id(ParamId::LinkStemKind), std::lround(ctl->getValue()));
-        }), 2);
-        el->setFont(mono(10.5));
-        el->setFontColor(color::kText);
-        el->setBackColor(color::kScreen);
-        el->setFrameColor(CColor(60, 62, 66));
-        for (const auto& l : params::findParameter(ParamId::LinkStemKind)->choices) el->addEntry(UTF8String(i18n::tr(l)));
-        el->setCurrent(static_cast<int32_t>(std::lround(plain(id(ParamId::LinkStemKind)))));
-        p->addView(el);
-        syncs_.push_back([this, el] {
-            const auto v = static_cast<int32_t>(std::lround(plain(id(ParamId::LinkStemKind))));
-            if (el->getCurrentIndex() != v) el->setCurrent(v);
-        });
-        auto* heard = new Screen(CRect(12, row1 + 50, W - 14, row1 + 74), [this](CDrawContext* dc, const CRect& r) {
-            engraved(dc, "RECONNU À L'ÉCOUTE", CRect(r.left + 8, r.top, r.left + 160, r.bottom));
-            text(dc, valueText(id(ParamId::MeterStemElement)), CRect(r.left + 160, r.top, r.right - 8, r.bottom), color::kGood, mono(11, true));
-        }, true);
-        heard->setMouseEnabled(false);
-        p->addView(heard);
-        live_.push_back(heard);
-        knobs(p, CRect(12, row2 - 18, W - 14, row2 + 86), "DOSES DU MODE MANUEL (TRIM : LES DEUX)",
-              {id(P::StemHpf), id(P::StemComp), id(P::StemSat), id(P::StemClean), id(P::StemWidth), id(P::StemTrim)});
-    }
-    {
         // Diagnostic du mix : ce qu'OMNIS entend dans la prod, à corriger dans le projet.
         auto* p = page(drawer, kDiagPage, "D", "DIAGNOSTIC DU MIX", "Ce que le master ne rattrape pas : à corriger dans ton projet FL.");
         auto* list = new Screen(CRect(12, row1, W - 14, row1 + 214), [this](CDrawContext* dc, const CRect& r) {
@@ -1687,73 +1640,6 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         again->setAccentText(true);
         p->addView(again);
         live_.push_back(again);
-    }
-    {
-        auto* p = page(drawer, kConductorPage, "M", "CHEF D'ORCHESTRE", "Le master écoute les stems de son groupe et propose.");
-        auto* text1 = new Screen(CRect(12, row1, W - 14, row1 + 110), [this](CDrawContext* dc, const CRect& r) {
-            const auto& pending = omnis()->pendingProposals();
-            std::string s;
-            if (role() != static_cast<int>(params::LinkRole::Master)) s = "Règle cette instance en Master (même groupe que les stems) pour recevoir les propositions.";
-            else if (pending.empty()) s = "Aucune proposition : aucun stem n'en gêne un autre pour l'instant. Lance la lecture, OMNIS écoute.";
-            else {
-                proposalIndex_ = std::clamp(proposalIndex_, 0, static_cast<int>(pending.size()) - 1);
-                s = pending[static_cast<std::size_t>(proposalIndex_)].text;
-                engraved(dc, "PROPOSITION " + std::to_string(proposalIndex_ + 1) + " / " + std::to_string(pending.size()),
-                         CRect(r.left + 10, r.top + 6, r.right - 10, r.top + 18));
-            }
-            // Retour à la ligne à la main (le texte tient en quelques lignes), après traduction.
-            s = i18n::tr(s);
-            std::vector<std::string> lines;
-            std::string line;
-            for (std::size_t i = 0; i < s.size();) {
-                const std::size_t sp = s.find(' ', i);
-                const std::string word = s.substr(i, sp == std::string::npos ? std::string::npos : sp - i);
-                if (line.size() + word.size() > 70 && !line.empty()) {
-                    lines.push_back(line);
-                    line.clear();
-                }
-                line += (line.empty() ? "" : " ") + word;
-                if (sp == std::string::npos) break;
-                i = sp + 1;
-            }
-            if (!line.empty()) lines.push_back(line);
-            for (std::size_t i = 0; i < lines.size() && i < 5; ++i)
-                text(dc, lines[i], CRect(r.left + 10, r.top + 24 + 16 * i, r.right - 10, r.top + 40 + 16 * i), color::kText, mono(10.5));
-        }, true);
-        text1->setMouseEnabled(false);
-        p->addView(text1);
-        live_.push_back(text1);
-        const auto act = [this](int answer) {
-            const auto& pending = omnis()->pendingProposals();
-            if (pending.empty()) return;
-            const auto& pr = pending[static_cast<std::size_t>(std::clamp(proposalIndex_, 0, static_cast<int>(pending.size()) - 1))];
-            omnis()->answerProposal(pr.key, answer);
-            omnis()->requestProposals();
-        };
-        const auto btn = [&](const CRect& r, const char* label, std::function<void()> f) {
-            auto* b = new HwButton(r, label, [] { return false; }, std::move(f), false);
-            b->setAccentText(true);
-            p->addView(b);
-            live_.push_back(b);
-        };
-        btn(CRect(12, row1 + 118, 100, row1 + 144), "OUI", [act] { act(0); });
-        btn(CRect(106, row1 + 118, 194, row1 + 144), "NON", [act] { act(1); });
-        btn(CRect(W - 112, row1 + 118, W - 66, row1 + 144), "<", [this] { --proposalIndex_; });
-        btn(CRect(W - 60, row1 + 118, W - 14, row1 + 144), ">", [this] { ++proposalIndex_; });
-        auto* applied = new Screen(CRect(12, row1 + 152, W - 130, row1 + 236), [this](CDrawContext* dc, const CRect& r) {
-            engraved(dc, "RETOUCHES EN PLACE", CRect(r.left + 10, r.top + 6, r.right - 10, r.top + 18));
-            const auto& a = omnis()->appliedCorrections();
-            if (a.empty()) text(dc, "Aucune.", CRect(r.left + 10, r.top + 22, r.right - 10, r.top + 38), color::kText3, mono(10));
-            for (std::size_t i = 0; i < a.size() && i < 3; ++i)
-                text(dc, "• " + a[i].description, CRect(r.left + 10, r.top + 22 + 16 * i, r.right - 10, r.top + 38 + 16 * i), color::kText2, mono(10));
-        }, true);
-        applied->setMouseEnabled(false);
-        p->addView(applied);
-        live_.push_back(applied);
-        btn(CRect(W - 122, row1 + 182, W - 14, row1 + 208), "ANNULER", [this] {
-            if (!omnis()->appliedCorrections().empty()) omnis()->answerProposal(omnis()->appliedCorrections().back().key, 2);
-            omnis()->requestProposals();
-        });
     }
     // Mesures de l'écran du Match EQ : glisser les nœuds.
     if (pageScreens_[1])
@@ -2170,31 +2056,6 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             hint("PUNCH " + valueText(id(ParamId::LimPunch)) + " · UPWARD " + valueText(id(ParamId::LimUpward)));
             break;
         }
-        case kStemPage: {
-            caption("CHAÎNE DE LA PISTE");
-            const std::array<const char*, 6> stages{"TRIM", "PASSE-HAUT", "EQ DYN", "COMP", "SAT", "M/S"};
-            const double w = (plot.getWidth() - 5 * 8) / 6.0;
-            for (int i = 0; i < 6; ++i) {
-                const CRect b(plot.left + i * (w + 8), plot.top + 30, plot.left + i * (w + 8) + w, plot.top + 70);
-                inset(c, b, CColor(16, 17, 19));
-                text(c, stages[static_cast<std::size_t>(i)], b, color::kText2, mono(9), kCenterText);
-                if (i < 5) {
-                    c->setFrameColor(color::kAccent35);
-                    c->drawLine(CPoint(b.right + 1, b.top + 20), CPoint(b.right + 7, b.top + 20));
-                }
-            }
-            text(c, "Élément reconnu : " + valueText(id(ParamId::MeterStemElement)), CRect(plot.left, plot.top + 86, plot.right, plot.top + 102), color::kGood, mono(10));
-            text(c, "Mode : " + valueText(id(ParamId::StemMode)) + " · aucune latence ajoutée", CRect(plot.left, plot.top + 104, plot.right, plot.top + 120), color::kText2, mono(10));
-            // Bus de drums : chaque élément nommé, avec ce qu'OMNIS en fait.
-            const auto& drums = omnis()->drumElements();
-            if (!drums.empty()) {
-                engraved(c, "DANS LE BUS", CRect(plot.left, plot.top + 128, plot.right, plot.top + 140));
-                for (std::size_t i = 0; i < drums.size() && i < 4; ++i)
-                    text(c, "• " + drums[i], CRect(plot.left, plot.top + 142 + 16 * i, plot.right, plot.top + 158 + 16 * i), color::kText, mono(9.5));
-            }
-            hint("LE MASTER DU MÊME GROUPE ENTEND CETTE PISTE");
-            break;
-        }
         case kDiagPage: {
             caption("CE QU'OMNIS ENTEND DANS TA PROD (AVANT SES MODULES)");
             text(c, "Comparé à ta référence choisie, sinon", CRect(plot.left, plot.top + 10, plot.right, plot.top + 26), color::kText2, mono(10));
@@ -2203,14 +2064,6 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             text(c, "ORANGE : conseil de mix.", CRect(plot.left, plot.top + 80, plot.right, plot.top + 96), color::kAccent, mono(10));
             text(c, "GRIS : remarque (parfois voulu).", CRect(plot.left, plot.top + 98, plot.right, plot.top + 114), color::kText2, mono(10));
             text(c, "Écris aussi « diagnostic » dans la barre IA.", CRect(plot.left, plot.top + 132, plot.right, plot.top + 148), color::kText3, mono(10));
-            break;
-        }
-        case kConductorPage: {
-            caption("STEMS LIÉS : " + valueText(id(ParamId::MeterLinkStems)) + " · PROPOSITIONS : " + valueText(id(ParamId::MeterProposals)));
-            text(c, "Chaque proposition attend ton accord :", CRect(plot.left, plot.top + 10, plot.right, plot.top + 26), color::kText2, mono(10));
-            text(c, "rien n'est appliqué sans un OUI.", CRect(plot.left, plot.top + 28, plot.right, plot.top + 44), color::kText2, mono(10));
-            text(c, "Refusée, elle n'est plus reproposée ;", CRect(plot.left, plot.top + 56, plot.right, plot.top + 72), color::kText3, mono(10));
-            text(c, "acceptée, ANNULER la retire.", CRect(plot.left, plot.top + 74, plot.right, plot.top + 90), color::kText3, mono(10));
             break;
         }
         default: break;
@@ -2332,7 +2185,7 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
     live_.push_back(readouts_);
 
     // Instances liées.
-    col->addView(new Caption(CRect(12, 579, W - 12, 591), "INSTANCES LIÉES", color::kText3, mono(9)));
+    col->addView(new Caption(CRect(12, 584, W - 12, 596), "PROD ET EXPORT", color::kText3, mono(9)));
     const auto menu = [&](const CRect& r, ParamId pid, const char* name, int labelW = 60) {
         col->addView(new Caption(CRect(r.left, r.top + 4, r.left + labelW, r.bottom), name, color::kText3, mono(9)));
         auto* m = new COptionMenu(CRect(r.left + labelW + 2, r.top, r.right, r.bottom), listen([this, pid](CControl* ctl) {
@@ -2347,7 +2200,6 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
                 return;
             }
             layoutRack();
-            if (pid == ParamId::LinkRole) selectPage(role() == static_cast<int>(params::LinkRole::Stem) ? kStemPage : (role() == static_cast<int>(params::LinkRole::Master) ? kConductorPage : 6));
         }), static_cast<int32_t>(pid));
         m->setFont(mono(10.5));
         m->setFontColor(color::kText);
@@ -2372,28 +2224,14 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
         });
     };
     menu(CRect(12, 550, W - 12, 572), ParamId::ListenSim, "ÉCOUTE");
-    menu(CRect(12, 596, W * 64 / 100, 618), ParamId::LinkRole, "RÔLE");
-    menu(CRect(W * 64 / 100 + 6, 596, W - 12, 618), ParamId::LinkGroup, "GR", 18);
-    auto* links = new Screen(CRect(12, 626, W - 12, 650), [this](CDrawContext* c, const CRect& r) {
-        const int rl = role();
-        const std::string s = rl == static_cast<int>(params::LinkRole::Master) ? "Stems liés : " + valueText(id(ParamId::MeterLinkStems))
-                              : rl == static_cast<int>(params::LinkRole::Stem) ? "Entendu : " + valueText(id(ParamId::MeterStemElement))
-                                                                                 : "Seul : la chaîne du master";
-        text(c, s, CRect(r.left + 8, r.top, r.right - 8, r.bottom), color::kText2, mono(10));
-    }, true);
-    links->setMouseEnabled(false);
-    col->addView(links);
-    live_.push_back(links);
-    auto* chef = new HwButton(CRect(12, 656, W / 2 - 3, 682), "CHEF", [this] { return page_ == kConductorPage; }, [this] { selectPage(kConductorPage); });
-    auto* piste = new HwButton(CRect(W / 2 + 3, 656, W - 12, 682), "STEM", [this] { return page_ == kStemPage; }, [this] { selectPage(kStemPage); });
-    auto* diag = new HwButton(CRect(12, 690, W - 12, 716), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); });
+    auto* diag = new HwButton(CRect(12, 600, W - 12, 626), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); });
     diag->setAccentText(true);
-    col->addView(chef);
-    col->addView(piste);
     col->addView(diag);
-    live_.push_back(chef);
-    live_.push_back(piste);
     live_.push_back(diag);
+    // Prêt à exporter ? La réponse complète dans la ligne de réponse de la barre IA.
+    auto* exportCheck = new HwButton(CRect(12, 634, W - 12, 660), "VÉRIFIER L'EXPORT", [] { return false; }, [this] { answer_ = omnis()->ask("export"); }, false);
+    col->addView(exportCheck);
+    live_.push_back(exportCheck);
 }
 
 void OmnisEditor::paintMeter(CDrawContext* c, const CRect& r) {
@@ -2529,11 +2367,10 @@ void OmnisEditor::tick() {
     if (omnis()->takeTutorialRequest()) startTutorial(0);      // « tuto » écrit dans la barre IA
     if (const double pr = omnis()->autoProgress(); pr >= 0.0)
         answer_ = pr <= 0.0 ? std::string("AUTO : joue le passage le plus fort (refrain, drop)…") : "AUTO : écoute " + fmt("%.0f %%", 100.0 * pr) + "…";
-    if (++ticks_ % 15 == 0 && (role() != static_cast<int>(params::LinkRole::Alone) || page_ == kConductorPage)) omnis()->requestProposals();
-    const int o = static_cast<int>(std::lround(plain(id(ParamId::ChainOrder)))), rl = role();
-    if ((o != lastOrder_ || rl != lastRole_) && dragFrom_ < 0) {
+    ++ticks_;
+    const int o = static_cast<int>(std::lround(plain(id(ParamId::ChainOrder))));
+    if (o != lastOrder_ && dragFrom_ < 0) {
         lastOrder_ = o;
-        lastRole_ = rl;
         layoutRack();
     }
     for (auto& sync : syncs_) sync();

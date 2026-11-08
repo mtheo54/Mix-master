@@ -44,6 +44,9 @@
 - Pas de mode figé Club / Safe : l'intensité vient de la demande.
 - Ressembler à la référence sans copier ni détruire la prod. Le sub et la 808 font partie de
   l'identité des prods de l'utilisateur.
+- (09/11) **Mastering seulement**, pour les beatmakers (pas de voix, pas de mixage piste par piste).
+  Un système d'apprentissage (« neuronal ») : base locale propre, petit réseau local, puis mise en
+  commun anonyme via le serveur d'un ami (accès SSH géré par l'utilisateur, jamais dans le chat).
 - Genres : sa propre classification (8 familles de playlists, `data/genres_classement.txt`) ;
   2hollis et SLAYR : rage, hyperpop.
 - (05/11) Licence et signature Mac : gérées par ONIRIQUE. Windows : pas de certificat (SmartScreen
@@ -53,6 +56,10 @@
 
 ## Fait récemment
 
+- **09/11 — OMNIS devient un plug-in de mastering seul** (décision de l'utilisateur, beatmaker) :
+  instances liées, stems, chef d'orchestre, bus de drums, pages STEM / CHEF, menus RÔLE / GR,
+  13 paramètres (ids 5–7, 900–906, 1008–1010 réservés, jamais réutilisés) et `data/elements.txt`
+  retirés. Plan : `docs/REFONTE.md`. Étape 0 (causes mesurées avec `omnis_auto`) faite.
 - **05/11 — EQ dynamique** dans le Match EQ (vue DYN, `dsp/DynamicEq`) : 4 bandes Mid / Side après
   la courbe à phase linéaire, sans latence, qui n'agissent que quand la bande sort de son
   équilibre habituel dans le mix (seuil en dB au-dessus de l'habitude, indépendant du volume).

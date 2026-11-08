@@ -55,7 +55,6 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     slang=${CMAKE_SOURCE_DIR}/data/argot.txt
     references=${CMAKE_SOURCE_DIR}/data/profils_genres.txt
     catalogue=${CMAKE_SOURCE_DIR}/data/catalogue.txt
-    elements=${CMAKE_SOURCE_DIR}/data/elements.txt
     i18n=${CMAKE_SOURCE_DIR}/data/i18n_en.txt
     classement=${CMAKE_SOURCE_DIR}/data/genres_classement.txt
     styles=${CMAKE_SOURCE_DIR}/data/styles_artistes.txt
@@ -129,26 +128,6 @@ add_library(omnis_core STATIC
     source/engine/ProdListener.cpp
     source/engine/ReferenceCapture.h
     source/engine/Stage.h
-    source/link/LinkBus.cpp
-    source/link/LinkBus.h
-    source/link/LinkClient.cpp
-    source/link/LinkClient.h
-    source/link/SharedRegion.cpp
-    source/link/SharedRegion.h
-    source/stems/Element.cpp
-    source/stems/Element.h
-    source/stems/ElementClassifier.cpp
-    source/stems/ElementClassifier.h
-    source/stems/Conductor.cpp
-    source/stems/Conductor.h
-    source/stems/Correction.h
-    source/stems/StemChain.cpp
-    source/stems/DrumBus.cpp
-    source/stems/StemChain.h
-    source/stems/StemSettings.cpp
-    source/stems/StemSettings.h
-    source/stems/StemTimeline.cpp
-    source/stems/StemTimeline.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
     source/stages/ImagerStage.cpp
@@ -307,7 +286,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
-    foreach(tool testgen analyze render compare tune match refdb ask learn stems auto)
+    foreach(tool testgen analyze render compare tune match refdb ask learn auto)
         add_executable(omnis_${tool} tools/${tool}/main.cpp)
         target_link_libraries(omnis_${tool} PRIVATE omnis_tools_common omnis_compile_options)
     endforeach()
@@ -335,14 +314,9 @@ if(OMNIS_BUILD_TESTS)
         tests/TestLanguage.cpp
         tests/TestLearning.cpp
         tests/TestReferenceCapture.cpp
-        tests/TestLink.cpp
-        tests/TestStems.cpp
-        tests/TestStemChain.cpp
         tests/TestRack.cpp
-        tests/TestDrumBus.cpp
         tests/TestMusic.cpp
         tests/TestAvatarStylizer.cpp
-        tests/TestConductor.cpp
         tests/TestLoudness.cpp
         tests/TestTruePeak.cpp
         tests/TestParameters.cpp
@@ -368,7 +342,6 @@ if(OMNIS_BUILD_TESTS)
             tests/TestFramework.h
             tests/TestMain.cpp
             tests/TestPluginState.cpp
-            tests/TestPluginLink.cpp
             tests/TestPluginSlotToggle.cpp
             tests/TestPluginAi.cpp
             tests/TestPluginRealtime.cpp

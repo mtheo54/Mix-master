@@ -758,6 +758,10 @@ Limites : MusicBrainz ne connaît pas GRY, Omyll ni euhZ (petits artistes), et r
 « serveur occupé » ; la requête passe par le `curl` du système (Windows 10 1803 et plus,
 macOS).
 
+> **09/11 : le mixage est retiré** (instances liées, stems, chef d'orchestre). OMNIS est un
+> plug-in de mastering seul ; la section 9 décrit l'ancien code (historique git) et la refonte est
+> suivie dans `docs/REFONTE.md`.
+
 ## 9. Instances liées, stems, chef d'orchestre
 
 - **Rôles** : Seul / Stem / Master, en groupes 1–8.

@@ -15,7 +15,7 @@ Type **/en** in the AI bar to switch the interface to English (**/fr** for Frenc
 1. [In 2 minutes](#1-in-2-minutes)
 2. [Installation](#2-installation)
 3. [First launch](#3-first-launch)
-4. [Three ways to use it](#4-three-ways-to-use-it)
+4. [Where to put it](#4-where-to-put-it)
 5. [The console](#5-the-console)
 6. [AUTO](#6-auto)
 7. [The AI bar](#7-the-ai-bar)
@@ -25,7 +25,7 @@ Type **/en** in the AI bar to switch the interface to English (**/fr** for Frenc
 11. [Meters](#11-meters)
 12. [Latency](#12-latency)
 13. [Before you export](#13-before-you-export)
-14. [Stems and the conductor](#14-stems-and-the-conductor)
+14. [What about tracks?](#14-what-about-tracks)
 15. [Mix diagnosis](#15-mix-diagnosis)
 16. [Recipes](#16-recipes)
 17. [FAQ](#17-faq)
@@ -66,25 +66,18 @@ learned). See [§ 18](#18-your-data) to delete it too.
 
 ## 3. First launch
 
-- **The guide** opens by itself the first time: 14 steps, about 2 minutes. **NEXT** to go on,
+- **The guide** opens by itself the first time: 12 steps, about 2 minutes. **NEXT** to go on,
   **SKIP** to close it. The **?** button at the top opens it again, and so do the words **"tuto"**
   or **"help"** in the AI bar. After an update, you are only shown the new steps.
 - **Language**: **/en** or **/fr** in the AI bar. Your choice is kept.
 
 ---
 
-## 4. Three ways to use it
+## 4. Where to put it
 
-The **ROLE** menu (right column) chooses how the instance works.
-
-| Role | Where | What it does |
-|---|---|---|
-| **Alone** (default) | on the master | masters the whole track; nothing else to do |
-| **Stem** | on a track (808, drums, vocals…) | processes the track according to what it plays, **with zero latency** |
-| **Master** | on the master | masters **and** listens to the Stems of its group, then suggests fixes |
-
-The **group** (GR, 1 to 8) keeps two open projects apart: a Master only hears the Stems of its
-own group. See [§ 14](#14-stems-and-the-conductor).
+OMNIS is a **mastering** plug-in: it works on the whole track. Put it **last on the master**,
+after your other effects. Leave some headroom on FL's master (peaks around −6 dBFS, no limiter or
+clipper before OMNIS): it needs that room to work well.
 
 ---
 
@@ -99,8 +92,8 @@ own group. See [§ 14](#14-stems-and-the-conductor).
 ├──────────────────────────────────────────────────────────────┤ PLR, LRA…    │
 │ RACK: Sub · Match EQ · Inflator · Imager · Multiband ·        │              │
 │       Clipper · Limiter                                       │ LISTEN       │
-├──────────────────────────────────────────────────────────────┤ ROLE · GR    │
-│ DRAWER: settings of the open module  │  its screen            │ CONDUCTOR    │
+├──────────────────────────────────────────────────────────────┤ DIAGNOSIS    │
+│ DRAWER: settings of the open module  │  its screen            │ EXPORT       │
 ├──────────────────────────────────────────────────────────────┤ MIX DIAGNOSIS│
 │ ANALYSER (output spectrum, export banner) · GONIOMETER        │              │
 └──────────────────────────────────────────────────────────────┴──────────────┘
@@ -168,7 +161,7 @@ Two requests add up: "more punch" twice gives even more punch. Nuances count: "a
 | You type | Effect |
 |---|---|
 | **undo** | undoes OMNIS's last action (20 steps) |
-| **reset** | every setting goes back to default (the role is kept) |
+| **reset** | every setting goes back to default |
 | **export** | says whether the export is ready, or what to change |
 | **diagnosis**, "what's wrong" | the mix diagnosis ([§ 15](#15-mix-diagnosis)) |
 | **tuto**, **help** | opens the guide again |
@@ -286,7 +279,7 @@ rest of the mix are set separately.
 ### 4. Imager — stereo width per band
 
 Side width in 4 bands (splits at 250 Hz, 2 kHz and 8 kHz by default). **0 % = mono,
-100 % = unchanged, 200 % = very wide.** The centre (vocals, 808) is never touched.
+100 % = unchanged, 200 % = very wide.** The centre (808, kick, lead) is never touched.
 
 ### 5. Multiband — holding the 808 over time
 
@@ -304,7 +297,7 @@ the rack (**GLUE**) sets all four bands together.
 | Ceiling | −12–0 dBFS | 0 dBFS | clipping level |
 | Knee | 0–100 % | 50 % | softness of the knee |
 | Oversampling | 1x–16x | 8x | quality against aliasing |
-| Split | 60–300 Hz | 120 Hz | the 808 is clipped on its own, without dirtying the vocals |
+| Split | 60–300 Hz | 120 Hz | the 808 is clipped on its own, without dirtying the melodies |
 | Sub Drive | ±12 dB | 0 dB | more (or less) clipping on the 808 only |
 | Sub Make-Room | 0–100 % | 0 % | the 808 gives way a little when everything hits together |
 
@@ -397,23 +390,11 @@ OMNIS checks:
 
 ---
 
-## 14. Stems and the conductor
+## 14. What about tracks?
 
-1. On each important track (808, drums, vocals…), set OMNIS to **ROLE Stem**, same **GR** group.
-2. On the master, OMNIS in **ROLE Master**, same group.
-
-**On a Stem** (**STEM** page):
-- the element is recognised by listening and from the track name (21 elements: kick, snare, 808,
-  lead vocal, pad…). You can force it in the **ELEMENT** menu;
-- **MODE**: **Off** (nothing), **Auto** (the element's chain) or **Manual** (you set low cut,
-  compression, saturation, dynamic EQ, width);
-- **zero latency**: you can play and record through it;
-- on a drum bus, OMNIS recognises the kick, snare / clap and hats and processes each one.
-
-**On the Master** (**CONDUCTOR** page): the master listens to the stems of its group and spots
-when one sound masks another (808 against kick or bass in the low end, an instrument against the
-vocal in its presence range). It **suggests** a fix (YES / NO). Nothing is applied without your
-consent, and a refused suggestion is not offered again.
+OMNIS only goes on the master: it does not process tracks one by one. What is better fixed track
+by track (an 808 that is too loud, low-mid build-up), the **mix diagnosis** tells you, so you can
+fix it in your project.
 
 ---
 
@@ -436,7 +417,7 @@ It never fixes anything on its own: some "flaws" are intentional, and you decide
 **A quick first master.** REF › your style. Play, AUTO on the chorus. Then "a bit quieter" or
 "louder" to taste. "export" before rendering.
 
-**Vocal sibilance.** "it's sibilant" in the AI bar. Not enough? Say it again: the band digs 2 dB
+**A hi-hat or lead that hisses.** "it's sibilant" in the AI bar. Not enough? Say it again: the band digs 2 dB
 deeper each time (down to −12 dB). By hand: Match EQ › DYN, band 4, Mid channel, 6–8 kHz,
 Range −6 dB.
 
@@ -474,8 +455,7 @@ listening is **Off**. A neutral module (default settings) lets the sound through
 
 **I broke everything.** "undo" (step by step), or "reset".
 
-**How much CPU?** On one core at 48 kHz: about 13 % at rest, 16 % with every module active;
-a Stem instance, under 1 %.
+**How much CPU?** On one core at 48 kHz: about 13 % at rest, 16 % with every module active.
 
 ---
 
@@ -498,7 +478,7 @@ a Stem instance, under 1 %.
 |---|---|
 | Format | VST3, Windows 64-bit and macOS 10.15+ (Intel, Apple Silicon) |
 | Audio | stereo, 32- and 64-bit, all common sample rates (tested from 22.05 to 384 kHz) |
-| Latency | Max quality ≈ 710 ms · Work ≈ 90 ms (Stem: 0) |
+| Latency | Max quality ≈ 710 ms · Work ≈ 90 ms |
 | Chain | 7 reorderable modules, 4-band dynamic EQ built into the Match EQ |
 | Meters | BS.1770 loudness (LUFS M / S / I), LRA, true peak, PLR, correlation |
 | Simulated listening | 18, plus Off |

@@ -5,7 +5,7 @@
 //  vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
 //  par page (outil de développement, Linux).
 //
-//    omnis_guishot <dossier> [master|stem]
+//    omnis_guishot <dossier> [master|travail]
 // =============================================================================
 #include "TestSignals.h"
 
@@ -127,11 +127,6 @@ int main(int argc, char** argv) {
         for (int c = 0; c < 2; ++c)
             for (int i = 0; i < rig.signal.numFrames(); ++i)
                 rig.signal.channels[static_cast<std::size_t>(c)][static_cast<std::size_t>(i)] += pink.channels[static_cast<std::size_t>(c)][static_cast<std::size_t>(i)];
-        if (mode == "stem") {
-            rig.set(ParamId::LinkRole, 1.0);
-            rig.set(ParamId::LinkStemKind, 8.0); // Drums (boucle)
-            rig.set(ParamId::StemMode, 1.0);
-        }
         if (mode == "travail") {
             // Mode travail (latence basse) : l'hôte réactive le plug-in après le changement.
             rig.set(ParamId::LowLatency, 1.0);
@@ -153,7 +148,7 @@ int main(int argc, char** argv) {
         rig.set(static_cast<ParamId>(812), 130.0);
         rig.set(omnis::params::mbId(1, omnis::params::MbControl::Threshold), -20.0);
         rig.set(omnis::params::mbId(1, omnis::params::MbControl::Ratio), 3.0);
-        rig.run(mode == "stem" ? 10.0 : 4.0);
+        rig.run(4.0);
 
         auto* editor = new omnis::vst3::OmnisEditor(rig.ctrl);
         auto* frame = new VSTGUI::CFrame(VSTGUI::CRect(0, 0, omnis::vst3::OmnisEditor::kWidth, omnis::vst3::OmnisEditor::kHeight), editor);
@@ -172,7 +167,7 @@ int main(int argc, char** argv) {
             rig.ctrl->chooseReference(omnis::vst3::OmnisController::RefKind::Title,
                                       shotRef ? shotRef : "BloodyWraith Pee - DRILL 229 (feat. Konor Marley & DAÏCO CHUP)");
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
-                                               {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-piste"}, {8, "9-chef"}, {9, "10-diagnostic"}};
+                                               {5, "6-clipper"}, {6, "7-limiter"}, {9, "10-diagnostic"}};
         for (const auto& [page, name] : pages) {
             editor->selectPage(page);
             for (int t = 0; t < 40; ++t) {

@@ -18,21 +18,10 @@
 //     thread d'analyse). À l'arrêt, la référence entre dans la base de la
 //     personne (core/UserDataDir.h) et ses signatures sont gardées dans l'état
 //     de la session. Aucun audio n'est enregistré.
-//   - Instances liées (link/LinkClient.h), réglage « Link Role » :
-//       Seul   : comme avant ;
-//       Master : la chaîne complète, et l'écoute des stems de son groupe ;
-//       Stem   : sur une piste. AUCUNE latence (pas d'étage à phase linéaire
-//                par piste) : le son passe par la chaîne de l'élément
-//                (stems/StemChain.h, « Stem Mode » Off / Auto / Manuel), est
-//                multiplié par le gain que le master lui donne, et part vers le
-//                master avec sa position dans le projet. La reconnaissance
-//                écoute le son sec, avant la chaîne.
-//     Le rôle est pris à l'activation : changer de rôle change la latence,
-//     le contrôleur demande à l'hôte de réactiver l'instance.
 //   - Porte entre les threads (AudioGate) : certains hôtes (FL Studio, bouton
 //     du slot du mixer) activent / désactivent l'instance pendant que leur
 //     thread audio est encore dans process(). Avant de réallouer quoi que ce
-//     soit (setupProcessing, setActive, changement de rôle), on ferme la porte
+//     soit (setupProcessing, setActive), on ferme la porte
 //     et on attend que process() en soit sorti ; porte fermée ou instance
 //     inactive, process() laisse passer le son tel quel sans toucher à rien.
 // =============================================================================
@@ -40,10 +29,7 @@
 
 #include "engine/Engine.h"
 #include "engine/ReferenceCapture.h"
-#include "core/OnePoleSmoother.h"
-#include "link/LinkClient.h"
 #include "params/Parameters.h"
-#include "stems/StemChain.h"
 #include "UiFeed.h"
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
@@ -113,17 +99,10 @@ private:
     void onCaptureFinished(const ReferenceCapture::Result& result); ///< thread d'analyse
 
     [[nodiscard]] double plainOf(params::ParamId id) const noexcept;
-    template <typename Sample>
-    void processStem(Sample** inputs, Sample** outputs, Steinberg::int32 numSamples, const Steinberg::Vst::ProcessContext* context);
 
     Engine engine_;
     ReferenceCapture capture_;
-    link::LinkClient link_;
-    /// Rôle en vigueur : pris à l'activation, ou changé en route (switchRole,
-    /// thread de l'interface, derrière la porte du thread audio).
-    std::atomic<int> activeRole_{static_cast<int>(params::LinkRole::Alone)};
     std::atomic<bool> active_{false};
-    void switchRole(int role);
 
     /// Porte du thread audio (voir l'en-tête). Ordre séquentiel des deux côtés :
     /// process() annonce son entrée puis lit la porte ; le reste ferme la porte
@@ -143,10 +122,6 @@ private:
     };
     bool prepared_ = false; ///< setupProcessing a eu lieu (allocations faites)
     static void passThrough(Steinberg::Vst::ProcessData& data);
-    [[nodiscard]] params::LinkRole role() const noexcept { return static_cast<params::LinkRole>(activeRole_.load()); }
-    OnePoleSmoother stemGain_;                             ///< gain ordonné par le master
-    stems::StemChain stemChain_;
-    std::array<std::vector<double>, 2> stemBuffer_;        ///< bloc du stem en double
     double sampleRate_ = 48000.0;
     std::mutex captureMutex_;
     std::string capturedText_; ///< signatures de la dernière écoute (état de la session)
