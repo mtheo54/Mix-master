@@ -10,6 +10,9 @@
 | Mixage | **OMNIS mixe tout seul**, la personne ajuste (un curseur par piste, ou en mots) ; « annule » reste possible. |
 | Barre IA | **Gardée, discrète** : tout se fait sans elle. |
 | Tutoriel | Gardé, raccourci ; l'interface doit se comprendre sans lui. |
+| IA | **Refaite** avec un **modèle de langue local, hors ligne** (le lexique reste pour l'instantané et en secours). |
+| Visuels | **Originaux**, dessinés par OMNIS (aucune pochette ni photo de rappeur livrée : droits des labels). |
+| Ordre | **Le son d'abord** (règles, deux plug-ins, rack modulaire, AUTO précis), puis l'IA, puis l'interface finale. |
 
 ## 2. Constat mesuré (« à la millanaise 2 », sans / avec OMNIS, preset rap FR)
 
@@ -79,6 +82,43 @@ mixage « bascule », pas à chaque fois.
   EXPORTER**. Le rack de 7 modules passe dans **AVANCÉ**.
 - La barre IA : une ligne discrète en haut des deux fenêtres.
 
+### Rack modulaire, modules à caractère
+- Les modules se **retirent, s'ajoutent et se déplacent** (glisser-déposer), sur le Master comme
+  sur chaque piste. Une chaîne = une liste ordonnée de modules ; l'état garde la liste.
+- Chaque type de module a plusieurs **caractères**, choisis à la main ou par l'IA :
+  - **Compresseur** : *Opto* (lent, doux, programme), *FET* (rapide, mordant), *VCA bus*
+    (colle, propre), *Vari-mu* (lampes, arrondi) ;
+  - **Saturation multibande** (remplace l'Inflator seul) : *Bande*, *Lampe*, *Transistor*,
+    *Inflate* (l'actuel), par bande avec dosage ;
+  - **EQ** : *Propre* (phase linéaire), *Analogique* (cloches larges, à pentes douces), *Dynamique* ;
+  - **Imager** : *Bandes* (actuel), *Haas / profondeur*, *Mono-maker* ;
+  - **Clipper**, **Limiteur**, **De-esser**, **Transient**, **Sub / 808** : un ou deux caractères.
+- Aucun nom de marque dans l'interface (« Opto », pas « LA-2A ») ; les principes seulement,
+  reformulés (règle du projet).
+- L'IA choisit les modules et leur caractère selon l'élément, le style et ce qu'elle entend, et
+  dit pourquoi (« voix : compresseur Opto, la dynamique est large et le style est doux »).
+
+### AUTO précis
+- **Tout le morceau** est écouté (ou le **fichier glissé** : analyse complète sans le rejouer),
+  découpé en **parties** (intro, couplets, refrains, passages à part) ; aucune partie n'est oubliée.
+- **Plusieurs essais** : des chaînes candidates sont rendues hors ligne sur l'audio entendu
+  (gardé en mémoire le temps du calcul, jamais écrit), notées sur les critères du §6 et sur l'écart
+  au style, et la meilleure est gardée. La personne voit le résultat et pourquoi.
+
+### IA (après le son)
+- **Modèle de langue local** (1,5 à 3 Go, licence commerciale vérifiée, CPU, thread à part,
+  sortie en JSON contraint vers les réglages) : comprend toutes les façons de parler, l'argot, les
+  fautes, les phrases longues ; explique ce qu'il fait ; ne fait jamais l'inverse (test : chaque
+  demande d'une banque de phrases réelles, avec le sens attendu).
+- Le lexique actuel répond tout de suite et sert de secours si le modèle n'est pas là.
+- **Glisser un fichier audio sur la barre IA** : reconnaissance (étiquettes, nom, MusicBrainz si
+  activé), mesure, et le style de la prod visé.
+
+### Interface et visuels (en dernier)
+- Fenêtres propres et lisibles ; **presets par style** (avec emblème), aperçu avant / après.
+- **Visuels originaux** dessinés par le code, dans l'esprit rap FR (emblèmes de styles,
+  textures, petites illustrations). Aucune image livrée sous droits de tiers.
+
 ## 5. Étapes
 
 | # | Étape | Fin quand |
@@ -86,10 +126,13 @@ mixage « bascule », pas à chaque fois.
 | 0 | **Reproduire** : rendu hors ligne des stems de l'utilisateur (DRUMS, 808, MELO du 24/10) et de « à la millanaise 2 » avec le code actuel ; confirmer les causes du §2. Les sons restent hors dépôt. | causes chiffrées |
 | 1 | **Règles du §3 dans le moteur actuel** : plus de compensation continue, upward éteint par défaut, bas-médium et largeur bornés, filtre DC. | critères §6 tenus sur les fichiers |
 | 2 | **Deux plug-ins** : fabrique, UID, processeur / contrôleur par variante, état, validateur pour les deux. | validateur 2 × vert, sessions anciennes relues |
-| 3 | **Chaîne OMNIS Mix** refaite par élément + équilibre entre pistes + 808 / kick. | critères §6 sur les stems |
-| 4 | **Interfaces** : fenêtre Mix ; Master MIX / MASTER / AVANCÉ ; barre IA discrète. | rendus `guishot` relus |
-| 5 | **Guide et mode d'emploi** raccourcis. | |
-| 6 | **Vérification** : tests, ASan / TSan, validateur, CI Windows / macOS, critères mesurés. | tout vert |
+| 3 | **Rack modulaire** : chaîne = liste de modules ; modules à caractère (compresseurs Opto / FET / VCA / Vari-mu, saturation multibande, EQ, imagers…). | chaque caractère testé (réponse, distorsion, null-test neutre) |
+| 4 | **Chaîne OMNIS Mix** refaite par élément + équilibre entre pistes + 808 / kick ; l'IA choisit les modules. | critères §6 sur les stems |
+| 5 | **AUTO précis** : morceau entier ou fichier glissé, parties, essais multiples notés. | critères §6 sur « à la millanaise 2 » |
+| 6 | **IA locale** : modèle de langue, banque de phrases réelles, glisser-déposer de fichiers. | 0 contresens sur la banque |
+| 7 | **Interfaces** : fenêtre Mix ; Master MIX / MASTER / AVANCÉ ; presets ; visuels originaux. | rendus `guishot` relus |
+| 8 | **Guide et mode d'emploi** raccourcis. | |
+| 9 | **Vérification** : tests, ASan / TSan, validateur, CI Windows / macOS, critères mesurés. | tout vert |
 
 ## 6. Critères d'acceptation (mesurés sur les fichiers de l'utilisateur)
 
@@ -104,4 +147,12 @@ mixage « bascule », pas à chaque fois.
 
 - **Des stems complets d'un morceau avec la voix** (voix lead, backs, 808, drums, mélo) : sans voix,
   l'équilibre « voix devant » ne peut pas être réglé ni vérifié.
-- Un essai dans FL Studio à la fin des étapes 1, 3 et 4.
+- Un essai dans FL Studio à la fin des étapes 1, 4, 5 et 7.
+- Une **banque de phrases** : comment toi et ton testeur parlez à OMNIS (copier-coller de vraies
+  demandes, avec ce que vous attendiez) ; c'est le test de l'IA.
+
+## 8. À part : le carnet des genres (pour l'utilisateur seulement)
+
+Une page privée : chaque genre et sous-genre, ses rappeurs, leurs albums et titres marquants, les
+pochettes affichées par lien (Cover Art Archive, sans copie). Pour se repérer ; jamais livrée dans
+le plug-in.
