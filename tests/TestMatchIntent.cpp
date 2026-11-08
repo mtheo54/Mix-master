@@ -211,8 +211,10 @@ OMNIS_TEST("signature: aigu coupé par un encodeur -> nœud ignoré (profil, int
     const auto fromCut = ai::planMatch(prod, cut, req);
     OMNIS_CHECK_NEAR(fromCut.midDb[top], 0.0, 1e-9);
     OMNIS_CHECK(contains(fromCut.protectedTraits, "coupée"));
-    // … alors qu'une vraie référence sombre l'est (à 50 %, bornée).
-    OMNIS_CHECK(ai::planMatch(prod, dark, req).midDb[top] < -3.0);
+    // … alors qu'une vraie référence sombre l'est, à 50 %, bornée à -3 dB dans
+    // l'aigu (une référence seule n'assombrit jamais plus : docs/REFONTE.md §3).
+    const double darkTop = ai::planMatch(prod, dark, req).midDb[top];
+    OMNIS_CHECK(darkTop < -2.0 && darkTop >= -3.0 - 1e-9);
     // La distance tonale ignore le nœud coupé.
     auto same = cut;
     same.midDb[top] = -20.0;
@@ -236,4 +238,30 @@ OMNIS_TEST("signature: aigu coupé par un encodeur -> nœud ignoré (profil, int
     ai::ReferenceLibrary again;
     OMNIS_CHECK(again.parse(lib.serialize()));
     OMNIS_CHECK(again.entries().front().signature.trustedBands == top);
+}
+
+OMNIS_TEST("intention: une référence seule ne gonfle pas le bas-médium (+1 dB au plus), n'élargit pas sous 320 Hz, n'assombrit pas de plus de 3 dB") {
+    const auto prod = flatSignature();
+    auto ref = flatSignature();
+    for (int k = 0; k < params::kMatchBands; ++k) {
+        const double f = params::matchBandHz(k);
+        const auto i = static_cast<std::size_t>(k);
+        if (f >= 200.0 && f <= 600.0) ref.midDb[i] += 8.0;           // bas-médium bien plus chargé
+        if (f >= 120.0 && f < 600.0) ref.sideDb[i] = ref.midDb[i] - 2.0; // et très large
+        if (f >= 5000.0) ref.midDb[i] -= 12.0, ref.sideDb[i] -= 12.0;    // aigu très sombre
+    }
+    ai::MatchRequest req;
+    req.resemblance = 0.8;
+    const auto intent = ai::planMatch(prod, ref, req);
+    for (int k = 0; k < params::kMatchBands; ++k) {
+        const double f = params::matchBandHz(k);
+        const auto i = static_cast<std::size_t>(k);
+        if (f >= 200.0 && f <= 600.0) OMNIS_CHECK(intent.midDb[i] <= 1.0 + 1e-9);
+        if (f < 320.0) OMNIS_CHECK(intent.sideDb[i] - intent.midDb[i] <= 1e-9);
+        else if (f <= 600.0) OMNIS_CHECK(intent.sideDb[i] - intent.midDb[i] <= 1.0 + 1e-9);
+        if (f >= 2500.0) OMNIS_CHECK(intent.midDb[i] >= -3.0 - 1e-9);
+    }
+    // Les mots de la personne passent au-delà (« plus de corps », ici +3 dB demandés).
+    req.midBiasDb[static_cast<std::size_t>(8)] = 3.0; // 320 Hz
+    OMNIS_CHECK(ai::planMatch(prod, ref, req).midDb[8] > 1.5);
 }

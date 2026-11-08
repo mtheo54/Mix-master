@@ -122,9 +122,9 @@ void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const ana
         put(p, ParamId::LimPunch, v);
         p.said.push_back(format("la réf attaque plus (+%.1f dB) : Punch ", gap) + format("%.0f %%", v));
     } else if (gap < -1.5 && !punchAsked) {
-        const double up = std::clamp(cur(ParamId::LimUpward) + std::min(4.0, -gap), 0.0, 9.0);
-        put(p, ParamId::LimUpward, up);
-        p.said.push_back(format("la réf est plus dense (%.1f dB d'attaque en moins) : upward ", -gap) + format("%.1f dB", up));
+        // Jamais de compression vers le haut sans demande (docs/REFONTE.md §3) :
+        // elle remonte tout ce qui est calme et se bat contre les fondus.
+        p.said.push_back(format("la réf est plus dense (%.1f dB d'attaque en moins) : dis « plus dense » pour la suivre", -gap));
     }
     // Grave : mono dans la réf, pas dans la prod.
     if (ref.lowCorrelation >= 0.97 && prod.lowCorrelation < 0.92) {
@@ -135,10 +135,9 @@ void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const ana
     // Couplet / refrain : un écart bien plus grand que la réf -> on remonte le calme.
     const double refSpread = ref.shortTermLufs[2] - ref.shortTermLufs[0], prodSpread = prod.shortTermLufs[2] - prod.shortTermLufs[0];
     if (prodSpread > refSpread + 4.0) {
-        const double up = std::clamp(cur(ParamId::LimUpward) + std::min(6.0, 0.5 * (prodSpread - refSpread)), 0.0, 9.0);
-        put(p, ParamId::LimUpward, up);
-        p.said.push_back(format("ton calme est %.0f dB sous ton refrain, ", prodSpread) + format("la réf %.0f : upward ", refSpread) +
-                         format("%.1f dB", up));
+        // Le contraste couplet / refrain est un choix de la prod : on le garde.
+        p.said.push_back(format("ton calme est %.0f dB sous ton refrain, ", prodSpread) +
+                         format("la réf %.0f : contraste gardé (dis « plus dense » pour le réduire)", refSpread));
     }
     // Une réf écrêtée exprès (rage) : du clip assumé.
     if (ref.clipPercent > 0.5 && prod.clipPercent < 0.1) {

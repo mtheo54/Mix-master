@@ -24,6 +24,12 @@ constexpr double kMonoBelowHz = 120.0;
 constexpr double kMaxCutDb = 6.0;
 constexpr double kMaxBoostDb = 4.0;
 constexpr double kSideLimitDb = 4.0;
+// Bornes de ce qu'une référence décide seule (docs/REFONTE.md §3) ; les mots de
+// la personne (midBiasDb, sideBiasDb) passent au-delà.
+constexpr double kAutoLowMidBoostDb = 1.0; ///< 200 – 600 Hz : le bas-médium se nettoie, il ne se gonfle pas
+constexpr double kAutoTopCutDb = 3.0;      ///< à partir de 2,5 kHz : jamais assombrir de plus de 3 dB
+constexpr double kNoWidenBelowHz = 320.0;  ///< les graves et le bas-médium ne s'élargissent jamais
+constexpr double kLowMidWidenDb = 1.0;     ///< 320 – 600 Hz : au plus +1 dB de côtés
 constexpr double kEmptyBandDb = -40.0;
 constexpr double kMaxWordDb = 4.0;
 
@@ -415,11 +421,13 @@ MatchIntent planMatch(const SpectralSignature& prod, const SpectralSignature& re
             hi = std::min(hi, 1.0);
         }
         if (prod.relativeMidDb(k) < kEmptyBandDb) hi = 0.0; // rien à faire ressortir
+        if (hz(k) >= 200.0 && hz(k) <= 600.0) hi = std::min(hi, kAutoLowMidBoostDb);
+        if (hz(k) >= 2500.0) lo = std::max(lo, -kAutoTopCutDb);
         const double mid = std::clamp(r * intent.gapDb[i], lo, hi);
 
         double width = 0.0;
         if (hz(k) >= kMonoBelowHz) {
-            double wHi = kSideLimitDb;
+            double wHi = hz(k) < kNoWidenBelowHz ? 0.0 : (hz(k) <= 600.0 ? kLowMidWidenDb : kSideLimitDb);
             if (prod.widthDb(k) < kEmptyBandDb + 5.0) wHi = 0.0; // bande quasi mono
             const double wLimit = request.widthProtected ? 1.0 : kSideLimitDb;
             width = std::clamp(r * intent.widthGapDb[i], -wLimit, std::min(wHi, wLimit));

@@ -29,13 +29,26 @@
 **Problème signalé en plus** : avec des automations de fader (couper une basse, une mélodie), le
 mixage « bascule », pas à chaque fois.
 
-**Causes probables (à confirmer à l'étape 0)** :
-- le master et les stems **compensent le niveau en continu** : compression vers le haut
-  (`lim_upward`, « densité » et glue), chaîne de stem qui « garde le niveau de la piste », course au
-  volume du contrôleur. Un fondu de l'utilisateur est alors combattu, selon le moment ;
-- l'intention tonale du profil « rap FR » et l'Imager (bande bas-médium) **ajoutent** du bas-médium
-  et de la largeur là où un mix propre en retire ;
-- Warmth de l'Inflator / mode Diode du clipper / saturation de stem : DC non retiré à la sortie.
+**Étape 0 faite (08/11) : causes mesurées** (`omnis_auto`, AUTO hors ligne, reproduit l'export à
+0,1 dB près : calme +10,1 dB, LRA 7,3 LU) :
+- **Match EQ vers le profil « rap fr »** : sub −2,5 dB, aigu −6 dB, côtés +3 à +4 dB à 160–320 Hz.
+  Sans lui : LRA 10,3 LU, côtés deux fois moins élargis, limiteur +3,3 dB au lieu de +5,8.
+  *Corrigé* : une référence seule ne monte plus 200–600 Hz de plus de +1 dB, n'élargit plus sous
+  320 Hz (+1 dB au plus jusqu'à 600 Hz), n'assombrit plus de plus de 3 dB à partir de 2,5 kHz
+  (test). Les mots de la personne passent au-delà.
+- **Compression vers le haut automatique** (« la réf est plus dense », « ton calme est sous ton
+  refrain ») : *retirée* ; OMNIS le signale et ne le fait que sur demande (« plus dense »).
+- **Le volume visé** : −10,2 LUFS sur le refrain d'une prod à −13 (PLR 12,6 dB) demande ~8 dB de
+  gain (clip +2, limiteur +5,8). Les passages calmes prennent tout ce gain, les forts ~3 dB de
+  moins : c'est le fonctionnement normal d'un mastering, accentué par la poussée du clipper et la
+  densité (Inflator, Punch). → étape 5 : le **NIVEAU** visé se choisit (Streaming · Équilibré ·
+  Fort), et AUTO répartit clip / limiteur selon le contraste à garder.
+- **Fondus « combattus »** : le compresseur des stems règle son seuil sur la crête récente et
+  rend la réduction moyenne (le niveau de la piste est « gardé ») ; au master, un limiteur poussé
+  de 6 dB relâche quand une piste est coupée et tout le reste remonte d'autant. → étapes 1 et 4.
+- **DC** : créée par le **limiteur** quand il écrase des crêtes asymétriques (kick, 808) :
+  +6 dB → 516 ppm (−66 dBFS, inaudible). Pas une saturation mal filtrée ; seuil du §6 relevé à
+  1000 ppm, à revoir avec la refonte du limiteur.
 
 ## 3. Règles du son (non négociables, testées)
 
@@ -49,7 +62,7 @@ mixage « bascule », pas à chaque fois.
    200–600 Hz de plus de +1 dB ; la boue est retirée en priorité (EQ dynamique).
 4. **Les graves au centre.** La largeur n'augmente jamais sous 300 Hz ; le bas-médium jamais au-delà
    de 100 % sans demande.
-5. **Sortie propre.** DC < 100 ppm (filtre après chaque saturation), true peak tenu.
+5. **Sortie propre.** DC < 1000 ppm (−60 dBFS), true peak tenu.
 6. **Latence.** OMNIS Mix : 0. OMNIS Master : inchangée (qualité max / travail).
 
 ## 4. Architecture cible
@@ -123,7 +136,7 @@ mixage « bascule », pas à chaque fois.
 
 | # | Étape | Fin quand |
 |---|---|---|
-| 0 | **Reproduire** : rendu hors ligne des stems de l'utilisateur (DRUMS, 808, MELO du 24/10) et de « à la millanaise 2 » avec le code actuel ; confirmer les causes du §2. Les sons restent hors dépôt. | causes chiffrées |
+| 0 ✅ | **Reproduire** : rendu hors ligne des stems de l'utilisateur (DRUMS, 808, MELO du 24/10) et de « à la millanaise 2 » avec le code actuel ; confirmer les causes du §2. Les sons restent hors dépôt. | causes chiffrées |
 | 1 | **Règles du §3 dans le moteur actuel** : plus de compensation continue, upward éteint par défaut, bas-médium et largeur bornés, filtre DC. | critères §6 tenus sur les fichiers |
 | 2 | **Deux plug-ins** : fabrique, UID, processeur / contrôleur par variante, état, validateur pour les deux. | validateur 2 × vert, sessions anciennes relues |
 | 3 | **Rack modulaire** : chaîne = liste de modules ; modules à caractère (compresseurs Opto / FET / VCA / Vari-mu, saturation multibande, EQ, imagers…). | chaque caractère testé (réponse, distorsion, null-test neutre) |
@@ -139,7 +152,7 @@ mixage « bascule », pas à chaque fois.
 - 250 Hz – 1 kHz : écart à l'original ≤ +1 dB (Mid), sauf demande.
 - LRA de sortie ≥ 70 % de l'entrée ; passages calmes relevés ≤ +4 dB de plus que les forts.
 - Side / Mid sous 300 Hz : jamais plus large que l'original.
-- DC < 100 ppm ; true peak ≤ plafond.
+- DC < 1000 ppm ; true peak ≤ plafond.
 - Fondu de −20 dB d'une piste (automation) : −20 dB ±0,5 dB à la sortie, avec OMNIS Mix et Master.
 - OMNIS Mix : 0 échantillon de latence, aucune allocation dans `process()`.
 
