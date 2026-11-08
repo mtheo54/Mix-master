@@ -304,7 +304,7 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<
     ConsolePlan p;
     if (refs.empty()) {
         p.said.push_back("aucune référence mesurée : AUTO règle seulement le volume");
-        p.targetLufs = -9.0;
+        applyLevel(p, cur, -11.0);
         return p;
     }
     MatchRequest request;
@@ -316,7 +316,11 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<
     const auto refSignature = aggregateSignature(refs);
     const MatchIntent intent = planMatch(loud, refSignature, request);
     writeCurve(p, intent);
-    p.said.insert(p.said.begin(), "AUTO vers " + from + format(" (%.0f titres)", static_cast<double>(refs.size())));
+    // Un profil de genre résume des dizaines de titres : on le dit, plutôt que « 1 titres ».
+    const bool profile = refs.size() == 1 && refs.front()->isProfile();
+    p.said.insert(p.said.begin(), "AUTO vers " + from +
+                                      (profile ? std::string(" (profil de genre)")
+                                               : refs.size() == 1 ? std::string(" (1 titre)") : format(" (%.0f titres)", static_cast<double>(refs.size()))));
     // Une base de mastering rap / trap : du relief, et la densité du niveau choisi.
     if (cur(ParamId::LimPunch) < 15.0) put(p, ParamId::LimPunch, 15.0);
     put(p, ParamId::LimCeiling, -1.0);

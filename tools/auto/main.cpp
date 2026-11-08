@@ -11,6 +11,7 @@
 //      omnis_auto prod.wav sortie.wav [--style "rap fr"] [--entier] [--set cle=valeur ...]
 // =============================================================================
 #include "AudioRead.h"
+#include "LoudnessTuner.h"
 #include "WavFile.h"
 
 #include "ai/ConsoleActions.h"
@@ -37,7 +38,7 @@ namespace {
 
 void usage() {
     std::puts("Abrasion Labs // OMNIS — AUTO hors ligne\n"
-              "  omnis_auto prod.wav sortie.wav [--style \"rap fr\"] [--entier] [--set cle=valeur ...]\n"
+              "  omnis_auto prod.wav sortie.wav [--style \"rap fr\"] [--entier] [--essais] [--set cle=valeur ...]\n"
               "  Les 10 s les plus fortes (ou tout le morceau avec --entier) -> réglages d'AUTO -> volume mené à la cible -> rendu.");
 }
 
@@ -81,12 +82,13 @@ int main(int argc, char** argv) {
     }
     const std::string inPath = argv[1], outPath = argv[2];
     std::string style;
-    bool whole = false;
+    bool whole = false, trials = false;
     std::map<ParamId, double> forced;
     for (int i = 3; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--style" && i + 1 < argc) style = argv[++i];
         else if (a == "--entier") whole = true;
+        else if (a == "--essais") trials = true;
         else if (a == "--set" && i + 1 < argc) {
             const std::string kv = argv[++i];
             const auto eq = kv.find('=');
@@ -146,6 +148,30 @@ int main(int argc, char** argv) {
     }
     for (const auto& [id, v] : forced) settings[id] = v;
 
+    // AUTO précis : plusieurs répartitions clip / limiteur essayées sur le passage le plus fort.
+    if (trials && plan.targetLufs && !forced.count(ParamId::LimGain)) {
+        const auto level = static_cast<params::LoudnessLevel>(std::clamp(static_cast<int>(std::lround(settings[ParamId::LoudnessLevel])), 0, 4));
+        const double headroom = std::max(0.0, settings[ParamId::LimCeiling] - signature.truePeakDb);
+        SearchOptions opt;
+        opt.targetLufs = *plan.targetLufs;
+        opt.maxGainDb = headroom + params::masteringGainCapDb(level);
+        std::vector<std::pair<std::string, double>> base;
+        for (const auto& [id, v] : settings)
+            if (const auto* spec = params::findParameter(id)) base.emplace_back(std::string(spec->key), v);
+        const AudioFile excerpt = loudestExcerpt(input, 15.0);
+        const auto found = searchMaster(excerpt, base, opt);
+        for (const auto& r : found.tried)
+            std::printf("  essai %-14s gain %5.1f dB  %6.1f LUFS  distorsion %6.1f dB  tonal %.1f dB%s\n", r.strategy.name.c_str(), r.totalGainDb,
+                        r.integratedLufs, r.distortion.weightedDb, r.tonal.maxDeviationDb, r.reached ? "" : "  (cible non atteinte)");
+        if (found.best >= 0) {
+            const auto& best = found.tried[static_cast<std::size_t>(found.best)];
+            std::printf("retenu : %s\n", best.strategy.name.c_str());
+            for (const auto& [key, v] : settingsOf(best))
+                if (key == "clip_drive" || key == "lim_gain") settings[params::findParameterByKey(key)->id] = v;
+            if (!best.strategy.gainShares.empty() && best.strategy.gainShares.front().first != "clip_drive") settings[ParamId::ClipDrive] = 0.0;
+            forced[ParamId::LimGain] = settings[ParamId::LimGain]; // la recherche a fixé le volume
+        }
+    }
     // Le volume mené à la cible sur le passage écouté (comme le contrôleur, ±0,4 LU).
     AudioFile out = render(input, settings);
     if (plan.targetLufs && !forced.count(ParamId::LimGain)) {

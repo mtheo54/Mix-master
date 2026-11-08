@@ -193,6 +193,15 @@ add_library(omnis_import STATIC
     tools/common/AudioRead.h
     tools/common/WavFile.cpp
     tools/common/WavFile.h
+    # AUTO précis (essais notés) : aussi dans le plug-in.
+    tools/common/AnalysisReport.cpp
+    tools/common/AnalysisReport.h
+    tools/common/DistortionAnalysis.cpp
+    tools/common/DistortionAnalysis.h
+    tools/common/LoudnessTuner.cpp
+    tools/common/LoudnessTuner.h
+    tools/common/TonalBalance.cpp
+    tools/common/TonalBalance.h
 )
 target_include_directories(omnis_import PUBLIC source tools/common)
 target_link_libraries(omnis_import PUBLIC omnis_core omnis_gfx PRIVATE omnis_dr_libs omnis_stb omnis_compile_options)
@@ -270,14 +279,6 @@ endif()
 if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
     add_library(omnis_tools_common STATIC
         tools/common/AiFiles.h
-        tools/common/AnalysisReport.cpp
-        tools/common/AnalysisReport.h
-        tools/common/DistortionAnalysis.cpp
-        tools/common/DistortionAnalysis.h
-        tools/common/LoudnessTuner.cpp
-        tools/common/LoudnessTuner.h
-        tools/common/TonalBalance.cpp
-        tools/common/TonalBalance.h
         tools/common/TestSignals.cpp
         tools/common/TestSignals.h
     )
@@ -308,6 +309,8 @@ if(OMNIS_BUILD_TESTS)
         tests/TestSubControl.cpp
         tests/TestMatchEq.cpp
         tests/TestDynamicEq.cpp
+        tests/TestProdListener.cpp
+        tests/TestSearchMaster.cpp
         tests/TestMultiband.cpp
         tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp

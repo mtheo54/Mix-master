@@ -26,6 +26,8 @@
 #include "TonalBalance.h"
 #include "WavFile.h"
 
+#include <atomic>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -68,8 +70,9 @@ struct TuningOptions {
 /// Passage le plus fort (fenêtre glissante de `seconds` sur la sonie short-term).
 AudioFile loudestExcerpt(const AudioFile& input, double seconds);
 
-/// Rend `input` à travers la chaîne complète avec des réglages donnés.
-AudioFile renderWithSettings(const AudioFile& input, const std::vector<std::pair<std::string, double>>& settings);
+/// Rend `input` à travers la chaîne complète avec des réglages donnés. `lowLatency` :
+/// noyaux FIR courts (mode travail) — 5 à 10 fois plus rapide, pour comparer des essais.
+AudioFile renderWithSettings(const AudioFile& input, const std::vector<std::pair<std::string, double>>& settings, bool lowLatency = false);
 
 TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strategy, const TuningOptions& options);
 
@@ -77,6 +80,31 @@ TuningResult tuneStrategy(const AudioFile& excerpt, const TuningStrategy& strate
 /// `maxTonalDeviationDb` : « le plus fort possible sans détruire la prod ».
 /// `reached` indique si cette sonie atteint `targetLufs`.
 TuningResult loudestClean(const AudioFile& excerpt, const TuningStrategy& strategy, const TuningOptions& options);
+
+// -----------------------------------------------------------------------------
+//  AUTO précis (plug-in et omnis_auto) : plusieurs répartitions clip / limiteur
+//  essayées sur le passage le plus fort, chacune menée à la sonie visée (sans
+//  dépasser le garde-fou), notées : distorsion pondérée, balance tonale tenue,
+//  sonie atteinte. La moins abîmante gagne.
+// -----------------------------------------------------------------------------
+struct SearchOptions {
+    double targetLufs = -11.0;
+    double maxGainDb = 6.0;              ///< gain total permis (clip + limiteur) : marge de crête + garde-fou
+    double maxTonalDeviationDb = 1.5;
+    bool lowLatency = true;              ///< essais rapides (noyaux courts)
+    const std::atomic<bool>* cancel = nullptr;
+    std::function<void(int done, int total)> progress;
+};
+
+struct SearchResult {
+    std::vector<TuningResult> tried;
+    int best = -1;                       ///< index dans `tried` ; -1 : annulé ou rien d'essayé
+    bool cancelled = false;
+};
+
+/// `base` : tous les réglages de départ (clé -> plain) ; clip_drive et lim_gain y sont remplacés
+/// par la part de chaque stratégie.
+SearchResult searchMaster(const AudioFile& excerpt, const std::vector<std::pair<std::string, double>>& base, const SearchOptions& options);
 
 /// Paramètres finaux (fixes + parts de gain) d'un résultat.
 std::vector<std::pair<std::string, double>> settingsOf(const TuningResult& result);

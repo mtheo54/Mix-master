@@ -56,6 +56,12 @@
 
 ## Fait récemment
 
+- **09/11 — AUTO précis** (refonte, étape 3) : AUTO écoute le **morceau entier** (fin : arrêt de la
+  lecture, second clic, 6 s de silence ou 8 min), ou un **son glissé** sur la barre IA (Maj : il
+  rejoint les références). Puis 3 essais de répartition clip / limiteur sur les 15 s les plus
+  fortes (en arrière-plan, `tools/common/LoudnessTuner` `searchMaster`, aussi dans le plug-in), le
+  plus propre gardé, volume ajusté ensuite à la mesure. Corrigé au passage : la poursuite du volume
+  attend 4 s que le compteur suive un nouveau réglage (dépassait de 2,4 dB), « 1 titres ».
 - **09/11 — OMNIS devient un plug-in de mastering seul** (décision de l'utilisateur, beatmaker) :
   instances liées, stems, chef d'orchestre, bus de drums, pages STEM / CHEF, menus RÔLE / GR,
   13 paramètres (ids 5–7, 900–906, 1008–1010 réservés, jamais réutilisés) et `data/elements.txt`

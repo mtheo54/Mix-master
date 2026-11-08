@@ -15,6 +15,8 @@
 #include "ai/MixDiagnosis.h"
 #include "ai/TextMatch.h"
 #include "import/ReferenceImport.h"
+#include "AudioRead.h"
+#include "LoudnessTuner.h"
 #include "core/UserDataDir.h"
 #include "gfx/AvatarCache.h"
 
@@ -34,6 +36,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -232,6 +235,9 @@ OmnisController::~OmnisController() {
     // doit pas disparaître sous lui).
     if (import_) import_->cancel = true;
     if (importThread_.joinable()) importThread_.join();
+    if (autoJob_) autoJob_->cancel = true; // AUTO précis : au plus un rendu à finir
+    if (autoThread_.joinable()) autoThread_.join();
+    if (fileThread_.joinable()) fileThread_.join(); // un fichier en lecture : quelques secondes
 }
 
 bool OmnisController::onlineRecognition() const {
@@ -653,16 +659,212 @@ std::string OmnisController::runReference() {
     return "Fait : " + joined(plan.said, " · ") + ".";
 }
 
-void OmnisController::startAuto() {
+std::string OmnisController::startAuto() {
     if (!feed_) requestFeed();
-    if (!feed_) return;
+    if (!feed_) return "AUTO : le son n'arrive pas encore au plug-in ; relance la lecture.";
+    if ((autoJob_ && !autoJob_->done.load()) || fileJob_) return autoStatus(); // fichier ou essais en cours : ils finissent
+    if (autoRunning_) {
+        // Second clic : pendant l'écoute, elle finit maintenant ; avant le son, AUTO s'annule.
+        if (feed_->prod.autoState() == ProdListener::AutoState::Listening) {
+            feed_->prod.finishAuto();
+            return "AUTO : fin de l'écoute, réglage de la chaîne…";
+        }
+        feed_->prod.cancelAuto();
+        autoRunning_ = false;
+        return "AUTO annulé.";
+    }
+    pursuing_ = false;
     feed_->prod.startAuto();
     autoRunning_ = true;
+    return autoStatus();
 }
 
 double OmnisController::autoProgress() const {
+    if (autoJob_ || fileJob_) return 1.0; // fichier lu, essais en cours, ou finis et pas encore appliqués
     if (!feed_ || !autoRunning_) return -1.0;
     return feed_->prod.autoState() == ProdListener::AutoState::Waiting ? 0.0 : feed_->prod.autoProgress();
+}
+
+std::string OmnisController::autoStatus() const {
+    char b[256];
+    if (fileJob_) return i18n::tr("AUTO : j'analyse « ") + fileJob_->name + i18n::tr(" » en entier…");
+    if (autoJob_ && !autoJob_->done.load()) {
+        const int total = std::max(1, autoJob_->total.load());
+        std::snprintf(b, sizeof b, i18n::tr("AUTO affine : essai %d/%d sur le passage le plus fort…").c_str(),
+                      std::min(total, autoJob_->step.load() + 1), total);
+        return b;
+    }
+    if (!feed_ || !autoRunning_) return {};
+    if (feed_->prod.autoState() != ProdListener::AutoState::Listening)
+        return "AUTO : lance la lecture du morceau, du début à la fin ; OMNIS l'écoute en entier.";
+    const int s = static_cast<int>(feed_->prod.autoSeconds());
+    std::snprintf(b, sizeof b,
+                  i18n::tr(s < static_cast<int>(ProdListener::kAutoMinSeconds)
+                               ? "AUTO : écoute %d:%02d…"
+                               : "AUTO : écoute %d:%02d — arrête la lecture (ou reclique AUTO) à la fin du morceau.")
+                      .c_str(),
+                  s / 60, s % 60);
+    return b;
+}
+
+void OmnisController::startAutoSearch(std::vector<float> excerpt, double sampleRate, double targetLufs) {
+    if (autoThread_.joinable()) autoThread_.join();
+    // Le départ des essais : la console telle qu'AUTO vient de la régler (clé -> valeur).
+    std::vector<std::pair<std::string, double>> base;
+    // Les outils d'écoute (bypass, Mid / Side seul) ne changent pas le master exporté : les
+    // essais se font sur le son réel.
+    for (const auto& spec : params::allParameters())
+        if (params::isPersistent(spec) && spec.id != params::ParamId::Bypass && spec.id != params::ParamId::Monitor)
+            base.emplace_back(std::string(spec.key), plainOf(static_cast<std::uint32_t>(spec.id)));
+    // Garde-fou : la marge de crête de la prod (gain qui ne compresse rien) + le plafond du NIVEAU.
+    const auto level = static_cast<params::LoudnessLevel>(
+        std::clamp(static_cast<int>(std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LoudnessLevel)))), 0, 4));
+    const double ceiling = plainOf(static_cast<std::uint32_t>(params::ParamId::LimCeiling));
+    const double headroom = heardPeakDb_ > -100.0 ? std::max(0.0, ceiling - heardPeakDb_) : 0.0;
+    const double maxGain = headroom + params::masteringGainCapDb(level);
+    auto job = std::make_shared<AutoJob>();
+    job->targetLufs = targetLufs;
+    autoJob_ = job;
+    autoThread_ = std::thread([job, excerpt = std::move(excerpt), sampleRate, base = std::move(base), targetLufs, maxGain] {
+        // Rien ne doit sortir de ce thread : une exception non rattrapée arrêterait le DAW.
+        try {
+            tools::AudioFile file;
+            file.sampleRate = sampleRate;
+            const std::size_t frames = excerpt.size() / 2;
+            file.resize(2, static_cast<int>(frames));
+            for (std::size_t i = 0; i < frames; ++i) {
+                file.channels[0][i] = excerpt[2 * i];
+                file.channels[1][i] = excerpt[2 * i + 1];
+            }
+            tools::SearchOptions opt;
+            opt.targetLufs = targetLufs;
+            opt.maxGainDb = maxGain;
+            opt.cancel = &job->cancel;
+            opt.progress = [&job](int done, int total) {
+                job->total.store(total);
+                job->step.store(done);
+            };
+            const auto found = tools::searchMaster(file, base, opt);
+            if (!found.cancelled && found.best >= 0) {
+                const auto& best = found.tried[static_cast<std::size_t>(found.best)];
+                for (const auto& [key, v] : tools::settingsOf(best)) {
+                    if (key == "clip_drive") job->clipDrive = v;
+                    if (key == "lim_gain") job->limGain = v;
+                }
+                job->trials = static_cast<int>(found.tried.size());
+                job->name = best.strategy.name;
+                job->distortionDb = best.distortion.weightedDb;
+                job->reachedLufs = best.integratedLufs;
+                job->ok = true;
+            }
+        } catch (...) {
+            job->ok = false;
+        }
+        job->done.store(true);
+    });
+}
+
+std::string OmnisController::finishAutoSearch() {
+    const auto job = std::move(autoJob_);
+    autoJob_.reset();
+    if (autoThread_.joinable()) autoThread_.join();
+    if (!job || job->cancel.load()) return {};
+    // Le volume est ensuite tenu à l'écoute (sortie mesurée), dans le même garde-fou. La sonie
+    // court terme (3 s) et la latence de la chaîne : le compteur ne montre le nouveau réglage
+    // qu'après ~4 s, la poursuite attend jusque-là (sinon elle pousse sur une mesure périmée).
+    pursuing_ = true;
+    pursuitStable_ = pursuitSteps_ = 0;
+    pursuitTicks_ = -kPursuitSettleTicks;
+    if (!job->ok) return "AUTO : les essais n'ont pas abouti ; le volume est mené à l'écoute.";
+    if (job->trials == 1 && job->limGain <= 1e-9 && job->clipDrive <= 1e-9 && job->reachedLufs > job->targetLufs + 0.5) {
+        // Déjà plus forte que le NIVEAU : OMNIS ne baisse jamais le volume d'une prod.
+        pursuing_ = false;
+        for (const auto pid : {params::ParamId::ClipDrive, params::ParamId::LimGain})
+            if (const auto* spec = params::findParameter(pid)) editParameter(static_cast<std::uint32_t>(pid), params::toNormalized(*spec, 0.0));
+        char b[320];
+        std::snprintf(b, sizeof b,
+                      i18n::tr("AUTO : ta prod est déjà à %.1f LUFS, plus fort que le NIVEAU (%.1f) : rien n'est poussé. "
+                               "Pour la baisser, descends son volume avant OMNIS ; pour garder ce volume, choisis un NIVEAU plus fort.")
+                          .c_str(),
+                      job->reachedLufs, job->targetLufs);
+        return b;
+    }
+    for (const auto& [pid, v] : {std::pair{params::ParamId::ClipDrive, job->clipDrive}, std::pair{params::ParamId::LimGain, job->limGain}})
+        if (const auto* spec = params::findParameter(pid))
+            editParameter(static_cast<std::uint32_t>(pid), params::toNormalized(*spec, params::clampPlain(*spec, v)));
+    char b[320];
+    std::snprintf(b, sizeof b,
+                  i18n::tr("AUTO affiné : %d essais sur le passage le plus fort, retenu « %s » (clip +%.1f dB, limiteur +%.1f dB, "
+                           "distorsion %.1f dB). Tout reste réglable à la main.")
+                      .c_str(),
+                  job->trials, i18n::tr(job->name).c_str(), job->clipDrive, job->limGain, job->distortionDb);
+    return b;
+}
+
+std::string OmnisController::applyAuto(const analysis::SpectralSignature& loud, std::vector<float> excerpt, double sr) {
+    heardPeakDb_ = std::max(loud.truePeakDb, loud.music.valid ? loud.music.samplePeakDb : -200.0); // crête du morceau écouté
+    const auto lib = libraryWithUser();
+    const auto current = [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); };
+    // La référence choisie au menu passe avant le style deviné des mots.
+    const auto chosen = referenceEntries(lib, refKind_, refName_);
+    const auto plan = chosen.empty() ? ai::planAuto(loud, lib, autoStyle_, current) : ai::planAuto(loud, chosen, refName_, current);
+    std::vector<std::pair<std::uint32_t, double>> settings;
+    for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+    rememberForUndo("AUTO");
+    applyPlan(settings);
+    // AUTO précis : assez de son gardé (4 s au moins) -> essais clip / limiteur ; sinon le
+    // volume est mené à l'écoute.
+    const bool search = plan.targetLufs && sr > 0.0 && static_cast<double>(excerpt.size()) >= 2.0 * 4.0 * sr;
+    if (plan.targetLufs) {
+        loudTarget_ = *plan.targetLufs;
+        pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
+        pursuing_ = !search;
+        if (search) startAutoSearch(std::move(excerpt), sr, *plan.targetLufs);
+    }
+    return joined(plan.said, " · ") + (search ? ". Essais clip / limiteur en cours…" : ". Tout reste réglable à la main. (« annule » pour revenir en arrière)");
+}
+
+std::string OmnisController::autoFromFile(const std::string& utf8Path) {
+    if ((autoJob_ && !autoJob_->done.load()) || fileJob_) return autoStatus();
+    if (autoRunning_ && feed_) feed_->prod.cancelAuto(); // le fichier remplace l'écoute en cours
+    autoRunning_ = false;
+    pursuing_ = false;
+    if (fileThread_.joinable()) fileThread_.join();
+    const std::filesystem::path path(std::u8string(utf8Path.begin(), utf8Path.end()));
+    auto job = std::make_shared<FileJob>();
+    {
+        const auto name = path.filename().u8string();
+        job->name = std::string(name.begin(), name.end());
+    }
+    fileJob_ = job;
+    fileThread_ = std::thread([job, path] {
+        // Rien ne doit sortir de ce thread : une exception non rattrapée arrêterait le DAW.
+        try {
+            tools::AudioFile audio;
+            if (!tools::readAudioFile(path, audio, job->error) || audio.numFrames() <= 0 || audio.numChannels() <= 0) {
+                job->ok = false;
+            } else {
+                if (audio.numChannels() == 1) audio.channels.push_back(audio.channels[0]); // mono : les deux côtés
+                audio.channels.resize(2);
+                const int n = audio.numFrames();
+                job->signature = analysis::analyzeSignature(audio.channels[0].data(), audio.channels[1].data(), n, audio.sampleRate);
+                job->signature.music = analysis::analyzeMusic(audio.channels[0].data(), audio.channels[1].data(), n, audio.sampleRate);
+                const auto loudest = tools::loudestExcerpt(audio, ProdListener::kExcerptSeconds);
+                const std::size_t frames = static_cast<std::size_t>(loudest.numFrames());
+                job->excerpt.resize(2 * frames);
+                for (std::size_t i = 0; i < frames; ++i) {
+                    job->excerpt[2 * i] = static_cast<float>(loudest.channels[0][i]);
+                    job->excerpt[2 * i + 1] = static_cast<float>(loudest.channels[1][i]);
+                }
+                job->sampleRate = audio.sampleRate;
+                job->ok = true;
+            }
+        } catch (...) {
+            job->ok = false;
+        }
+        job->done.store(true);
+    });
+    return i18n::tr("AUTO : j'analyse « ") + job->name + i18n::tr(" » en entier…");
 }
 
 std::string OmnisController::pollAutomation() {
@@ -678,25 +880,24 @@ std::string OmnisController::pollAutomation() {
     std::string message;
     // AUTO terminé : la chaîne vers le style.
     analysis::SpectralSignature loud;
-    if (autoRunning_ && feed_->prod.takeAutoResult(loud)) {
+    std::vector<float> excerpt;
+    if (autoRunning_ && feed_->prod.takeAutoResult(loud, &excerpt)) {
         autoRunning_ = false;
-        heardPeakDb_ = std::max(loud.truePeakDb, loud.music.valid ? loud.music.samplePeakDb : -200.0); // crête du passage écouté
-        const auto lib = libraryWithUser();
-        const auto current = [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); };
-        // La référence choisie au menu passe avant le style deviné des mots.
-        const auto chosen = referenceEntries(lib, refKind_, refName_);
-        const auto plan = chosen.empty() ? ai::planAuto(loud, lib, autoStyle_, current) : ai::planAuto(loud, chosen, refName_, current);
-        std::vector<std::pair<std::uint32_t, double>> settings;
-        for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
-        rememberForUndo("AUTO");
-        applyPlan(settings);
-        if (plan.targetLufs) {
-            loudTarget_ = *plan.targetLufs;
-            pursuing_ = true;
-            pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
-        }
-        message = joined(plan.said, " · ") + ". Tout reste réglable à la main. (« annule » pour revenir en arrière)";
+        message = applyAuto(loud, std::move(excerpt), feed_->prod.sampleRate());
     }
+    // Un fichier glissé, analysé : le même AUTO.
+    if (fileJob_ && fileJob_->done.load()) {
+        const auto job = std::move(fileJob_);
+        fileJob_.reset();
+        if (fileThread_.joinable()) fileThread_.join();
+        if (job->ok) {
+            message = applyAuto(job->signature, std::move(job->excerpt), job->sampleRate);
+        } else {
+            message = job->name + " : " + i18n::tr("fichier illisible") + (job->error.empty() ? "" : " (" + job->error + ")") + ".";
+        }
+    }
+    // Essais d'AUTO précis terminés : le meilleur appliqué.
+    if (autoJob_ && autoJob_->done.load()) message = finishAutoSearch();
     // Demande en attente : appliquée dès qu'OMNIS a assez écouté.
     if (!pendingAsk_.empty() && feed_->prod.snapshot().seconds >= 8.0) {
         message = runRequest(pendingAsk_);
@@ -710,6 +911,7 @@ std::string OmnisController::pollAutomation() {
     // NIVEAU choisi : une fois la prod entendue, le volume y est mené (« Style » : rien).
     if (levelChanged_ && feed_->prod.snapshot().seconds >= 8.0) {
         levelChanged_ = false;
+        if (autoJob_) autoJob_->cancel = true; // essais faits pour l'ancien NIVEAU : abandonnés
         const auto level = static_cast<params::LoudnessLevel>(std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LoudnessLevel))));
         if (level != params::LoudnessLevel::Style) {
             loudTarget_ = params::loudnessLevelLufs(level);
@@ -718,7 +920,7 @@ std::string OmnisController::pollAutomation() {
         }
     }
     // Le volume mené vers la cible par la mesure (sonie court terme de la sortie).
-    if (pursuing_ && ++pursuitTicks_ % 18 == 0) {
+    if (pursuing_ && !autoJob_ && ++pursuitTicks_ > 0 && pursuitTicks_ % 18 == 0) {
         const auto lim = static_cast<std::uint32_t>(params::ParamId::LimGain);
         const double st = plainOf(static_cast<std::uint32_t>(params::ParamId::MeterShortTerm));
         if (st > -60.0) {
@@ -745,7 +947,17 @@ std::string OmnisController::pollAutomation() {
                 const double wanted = std::clamp(plainOf(lim) + std::clamp(0.6 * err, -1.5, 1.5), 0.0, 24.0);
                 const double gain = std::min(wanted, std::max(allowed, std::min(plainOf(lim), wanted)));
                 if (const auto* spec = params::findParameter(lim)) editParameter(lim, params::toNormalized(*spec, gain));
-                if (err > 0.0 && gain >= allowed - 1e-6 && wanted > gain + 1e-6) {
+                if (err < 0.0 && gain <= 1e-6 && clip <= 1e-6) {
+                    // Plus forte que la cible sans rien pousser : OMNIS ne baisse pas une prod.
+                    pursuing_ = false;
+                    char b[320];
+                    std::snprintf(b, sizeof b,
+                                  i18n::tr("AUTO : ta prod est déjà à %.1f LUFS, plus fort que le NIVEAU (%.1f) : rien n'est poussé. "
+                                           "Pour la baisser, descends son volume avant OMNIS ; pour garder ce volume, choisis un NIVEAU plus fort.")
+                                      .c_str(),
+                                  st, loudTarget_);
+                    message = b;
+                } else if (err > 0.0 && gain >= allowed - 1e-6 && wanted > gain + 1e-6) {
                     pursuing_ = false;
                     char b[320];
                     std::snprintf(b, sizeof b,

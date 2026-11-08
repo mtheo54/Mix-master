@@ -47,6 +47,7 @@ struct Host {
     tools::AudioFile signal;
     int pos = 0;
     std::map<ParamID, ParamValue> sent;
+    std::vector<std::string> said; ///< messages de pollAutomation
 
     Host() {
         proc->initialize(&app);
@@ -117,7 +118,10 @@ struct Host {
             // L'interface tourne à ~30 Hz : un appel tous les trois blocs.
             if (poll && b % 3 == 0) {
                 const std::string m = ctrl->pollAutomation();
-                if (!m.empty()) std::printf("      [OMNIS] %s\n", m.c_str());
+                if (!m.empty()) {
+                    std::printf("      [OMNIS] %s\n", m.c_str());
+                    said.push_back(m);
+                }
             }
             // Laisser le thread d'écoute suivre (~4x le temps réel).
             if (b % 8 == 0) std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -160,17 +164,110 @@ OMNIS_TEST("plug-in barre IA: « plus de punch, plus fort, garde ma 808 » règl
     OMNIS_CHECK(h.plain(ParamId::InflHighEffect) > 0.0);
 }
 
-OMNIS_TEST("plug-in AUTO: écoute 10 s du passage joué, règle la chaîne vers le style et atteint son volume") {
+OMNIS_TEST("plug-in AUTO: écoute le morceau entier jusqu'à l'arrêt, règle la chaîne, essaie clip / limiteur et atteint le volume") {
     Host h;
     h.run(1.0, false);
-    h.ctrl->startAuto();
-    h.run(30.0, true);
-    const double st = h.plain(ParamId::MeterShortTerm);
-    std::printf("      limiteur %.1f dB, punch %.0f %%, sortie %.1f LUFS\n", h.plain(ParamId::LimGain), h.plain(ParamId::LimPunch), st);
+    std::printf("      %s\n", h.ctrl->startAuto().c_str());
+    // Le « morceau » : 30 s jouées (un peu plus vite que le temps réel).
+    for (int i = 0; i < 30; ++i) {
+        h.run(1.0, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    }
+    std::printf("      %s\n", h.ctrl->autoStatus().c_str());
+    OMNIS_CHECK(h.ctrl->autoProgress() >= 0.0); // la lecture tourne : AUTO écoute encore
+    // Lecture arrêtée : l'écoute se termine, puis les essais (en arrière-plan).
+    h.context.state = 0;
+    const auto t0 = std::chrono::steady_clock::now();
+    while (h.ctrl->autoProgress() >= 0.0 && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(240)) {
+        h.run(0.1, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
     OMNIS_CHECK(h.ctrl->autoProgress() < 0.0); // terminé
+    bool refined = false;
+    for (const auto& m : h.said) refined = refined || m.find("AUTO affiné") != std::string::npos;
+    OMNIS_CHECK(refined);
+    // Relancée : le volume est tenu à l'écoute.
+    h.context.state = ProcessContext::kPlaying;
+    for (int i = 0; i < 40; ++i) {
+        h.run(0.5, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
+    const double st = h.plain(ParamId::MeterShortTerm);
+    std::printf("      clip %.1f dB, limiteur %.1f dB, punch %.0f %%, sortie %.1f LUFS\n", h.plain(ParamId::ClipDrive), h.plain(ParamId::LimGain),
+                h.plain(ParamId::LimPunch), st);
     OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
-    OMNIS_CHECK(h.plain(ParamId::LimGain) > 3.0);
+    OMNIS_CHECK(h.plain(ParamId::LimGain) + h.plain(ParamId::ClipDrive) > 3.0);
     OMNIS_CHECK(st > -14.5 && st < -4.5);
+}
+
+OMNIS_TEST("plug-in AUTO: un second clic pendant l'écoute la termine ; avant le son, il annule") {
+    Host h;
+    h.run(1.0, false);
+    h.context.state = 0; // pas de lecture
+    std::this_thread::sleep_for(std::chrono::milliseconds(300)); // l'écoute a vidé sa file
+    h.ctrl->startAuto();
+    h.run(0.5, true);
+    OMNIS_CHECK(h.ctrl->autoStatus().find("lance la lecture") != std::string::npos);
+    OMNIS_CHECK(h.ctrl->startAuto() == "AUTO annulé.");
+    OMNIS_CHECK(h.ctrl->autoProgress() < 0.0);
+    // Écoute lancée, puis second clic après 14 s : fin sans attendre l'arrêt.
+    h.context.state = ProcessContext::kPlaying;
+    h.ctrl->startAuto();
+    for (int i = 0; i < 14; ++i) {
+        h.run(1.0, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    std::printf("      %s\n", h.ctrl->startAuto().c_str());
+    const auto t0 = std::chrono::steady_clock::now();
+    while (h.ctrl->autoProgress() >= 0.0 && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(240)) {
+        h.run(0.1, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    OMNIS_CHECK(h.ctrl->autoProgress() < 0.0);
+    OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
+}
+
+OMNIS_TEST("plug-in AUTO: un son glissé est analysé en entier (calme puis fort), réglé et essayé sans lecture ; un fichier illisible le dit") {
+    Host h;
+    h.run(0.5, false);
+    // Le « morceau » : 10 s calmes (-14 dB) puis 20 s de la boucle, au niveau.
+    tools::AudioFile song;
+    song.sampleRate = 48000.0;
+    const int n = 30 * 48000;
+    song.resize(2, n);
+    for (int c = 0; c < 2; ++c)
+        for (int i = 0; i < n; ++i)
+            song.channels[static_cast<std::size_t>(c)][static_cast<std::size_t>(i)] =
+                (i < 10 * 48000 ? 0.2 : 1.0) * h.signal.channels[static_cast<std::size_t>(c)][static_cast<std::size_t>(i % h.signal.numFrames())];
+    const auto path = std::filesystem::temp_directory_path() / "omnis_test_auto_prod.wav";
+    std::string error;
+    OMNIS_CHECK(tools::writeWav(path.string(), song, tools::SampleFormat::Float32, error));
+    const auto u8 = path.u8string();
+    const std::string said = h.ctrl->autoFromFile(std::string(u8.begin(), u8.end()));
+    std::printf("      %s\n", said.c_str());
+    OMNIS_CHECK(said.find("omnis_test_auto_prod.wav") != std::string::npos);
+    // Pas de lecture : tout se fait sur le fichier.
+    h.context.state = 0;
+    const auto t0 = std::chrono::steady_clock::now();
+    while (h.ctrl->autoProgress() >= 0.0 && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(240)) {
+        h.run(0.1, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    bool refined = false;
+    for (const auto& m : h.said) refined = refined || m.find("AUTO affiné") != std::string::npos;
+    OMNIS_CHECK(refined);
+    OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
+    OMNIS_CHECK(h.plain(ParamId::LimGain) + h.plain(ParamId::ClipDrive) > 3.0);
+    std::filesystem::remove(path);
+    // Un fichier qui n'existe pas : dit, rien de changé.
+    const double lim = h.plain(ParamId::LimGain);
+    h.ctrl->autoFromFile((std::filesystem::temp_directory_path() / "omnis_absent.wav").string());
+    for (int i = 0; i < 100 && h.ctrl->autoProgress() >= 0.0; ++i) {
+        h.run(0.1, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    OMNIS_CHECK(!h.said.empty() && h.said.back().find("illisible") != std::string::npos);
+    OMNIS_CHECK(h.plain(ParamId::LimGain) == lim);
 }
 
 OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un titre choisi règle la chaîne et reste avec la session") {

@@ -37,8 +37,8 @@ Type **/en** in the AI bar to switch the interface to English (**/fr** for Frenc
 ## 1. In 2 minutes
 
 1. Put **OMNIS on the master** (last master slot in FL Studio).
-2. Start playback and click **AUTO** during the loudest part (chorus, drop). OMNIS listens for
-   10 seconds, sets the chain and raises the level.
+2. Click **AUTO** and play **the whole track**. At the end, stop playback: OMNIS sets the chain,
+   tries several loudness settings and keeps the cleanest.
 3. Fine-tune with words in the **AI bar**: "more punch", "keep my 808", "a bit quieter",
    "like new wave".
 4. Before exporting, type **"export"** in the AI bar: OMNIS tells you if everything is ready.
@@ -113,14 +113,20 @@ clipper before OMNIS): it needs that room to work well.
 
 ## 6. AUTO
 
-1. Start playback.
-2. Click **AUTO** and play **the loudest part** (chorus, drop).
-3. OMNIS listens for 10 seconds, then sets the whole chain:
+1. Click **AUTO**, then start playback **from the beginning of the track**.
+2. OMNIS listens to **the whole track** (the AI bar shows the time heard). At the end, **stop
+   playback**: listening ends. You can also click AUTO again to finish early (at least 4 seconds
+   heard). Clicking AUTO before any sound arrives cancels it.
+3. It sets the whole chain from the full track:
    - towards the **reference** chosen in the REF menu;
    - otherwise towards the **style** you typed ("like rage");
    - otherwise towards the average of all references.
-4. It then brings the level to the chosen **LEVEL** (right column) **by measuring**: it pushes the
-   limiter step by step while listening to the output.
+4. **The trials**: on the loudest part it heard (15 seconds, kept in memory during the trials and
+   then forgotten), it tries three loudness splits — all limiter, clip 40 / limiter 60,
+   clip 70 / limiter 30 —, drives each to the chosen **LEVEL** (right column), measures distortion
+   and tonal balance, and keeps **the cleanest** ("AUTO refined: … kept "clip 70 / 30""). A few
+   seconds, in the background: the sound keeps playing normally.
+5. Finally it fine-tunes the level **by measuring** the output.
 
 | LEVEL | Target (loud part) | For |
 |---|---|---|
@@ -427,7 +433,7 @@ It never fixes anything on its own: some "flaws" are intentional, and you decide
 
 ## 16. Recipes
 
-**A quick first master.** REF › your style. Play, AUTO on the chorus. Then "a bit quieter" or
+**A quick first master.** REF › your style. AUTO, then play the whole track. Then "a bit quieter" or
 "louder" to taste. "export" before rendering.
 
 **A hi-hat or lead that hisses.** "it's sibilant" in the AI bar. Not enough? Say it again: the band digs 2 dB

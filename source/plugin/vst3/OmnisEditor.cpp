@@ -25,6 +25,8 @@
 #include "vstgui/lib/coffscreencontext.h"
 #include "vstgui/lib/platform/platformfactory.h"
 #include "vstgui/lib/cvstguitimer.h"
+#include "vstgui/lib/dragging.h"
+#include "vstgui/lib/idatapackage.h"
 #include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/lib/controls/ctextedit.h"
 #include "vstgui/lib/controls/ctextlabel.h"
@@ -256,6 +258,41 @@ void gridLines(CDrawContext* c, const CRect& r, double lo, double hi, bool label
     }
 }
 
+
+/// Un fichier audio glissé sur les rubans du haut (AUTO, barre IA) : AUTO dessus ; avec
+/// Maj, il rejoint les références. Seuls les sons connus sont acceptés.
+class AudioFileDrop final : public DropTargetAdapter, public NonAtomicReferenceCounted {
+public:
+    using Callback = std::function<void(const std::string& path, bool shift)>;
+    explicit AudioFileDrop(Callback cb) : cb_(std::move(cb)) {}
+    DragOperation onDragEnter(DragEventData data) override { return firstAudio(data.drag).empty() ? DragOperation::None : DragOperation::Copy; }
+    DragOperation onDragMove(DragEventData data) override { return onDragEnter(data); }
+    bool onDrop(DragEventData data) override {
+        const std::string path = firstAudio(data.drag);
+        if (path.empty() || !cb_) return false;
+        cb_(path, data.modifiers.has(ModifierKey::Shift));
+        return true;
+    }
+
+private:
+    static std::string firstAudio(IDataPackage* drag) {
+        if (!drag) return {};
+        for (uint32_t i = 0; i < drag->getCount(); ++i) {
+            const void* buffer = nullptr;
+            IDataPackage::Type type = IDataPackage::kError;
+            const uint32_t size = drag->getData(i, buffer, type);
+            if (type != IDataPackage::kFilePath || !buffer || size == 0) continue;
+            std::string path(static_cast<const char*>(buffer), size);
+            while (!path.empty() && path.back() == '\0') path.pop_back();
+            std::string ext = path.substr(path.find_last_of('.') == std::string::npos ? path.size() : path.find_last_of('.') + 1);
+            for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            if (ext == "wav" || ext == "mp3" || ext == "flac" || ext == "aif" || ext == "aiff") return path;
+        }
+        return {};
+    }
+    Callback cb_;
+};
+
 } // namespace
 
 // -----------------------------------------------------------------------------
@@ -276,7 +313,7 @@ constexpr int kTutorialVersion = 2;
 
 const std::array<TutorialStep, 12> kTutorial{{
     {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
-     {"OMNIS masterise ta prod : mets-le en dernier sur le master.", "Lance la lecture, clique AUTO sur le refrain, puis ajuste",
+     {"OMNIS masterise ta prod : mets-le en dernier sur le master.", "Clique AUTO, joue le morceau en entier, puis ajuste",
       "avec les boutons ou en mots dans la barre IA.", "Suis le guide (2 minutes)."}},
     {CRect(10, 106, 932, 306), "LE RACK : 7 MODULES",
      {"Chaque module a un gros bouton (le réglage principal) et un voyant ON.", "Clique un module pour ouvrir TOUS ses réglages en dessous.",
@@ -294,8 +331,8 @@ const std::array<TutorialStep, 12> kTutorial{{
      {"L'entonnoir filtre le menu RÉF : une famille, puis un sous-genre.", "RÉF > « Ajouter un fichier de référence… » : nomme-le « Artiste - Titre ».",
       "OMNIS le mesure (le son n'est jamais gardé) et peut le confirmer sur", "MusicBrainz, sa seule connexion (désactivable dans ce menu)."}, 2},
     {CRect(196, 10, 272, 50), "AUTO",
-     {"Clique AUTO, puis joue le passage le plus fort (refrain, drop).", "OMNIS écoute 10 s, règle toute la chaîne vers ton style",
-      "et amène le volume à la bonne sonie. Tout reste réglable après.", "La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »)."}},
+     {"Clique AUTO, puis joue le morceau du début à la fin.", "OMNIS l'écoute en entier, règle la chaîne vers ton style,",
+      "essaie plusieurs réglages de volume et garde le plus propre.", "La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »)."}},
     {CRect(270, 10, 830, 50), "ÉCOUTER HONNÊTEMENT",
      {"A / B : deux réglages complets ; A>B copie l'un dans l'autre.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
       "DELTA : n'entends que ce que le module ouvert change.", "STÉRÉO / MID / SIDE : vérifie le centre et les côtés."}},
@@ -605,6 +642,13 @@ void OmnisEditor::buildInto(CViewContainer* root) {
 void OmnisEditor::buildRibbons(CViewContainer* root) {
     auto* r1 = new Panel(CRect(kWorkL, kRibbon1, kWorkR, kRibbon1 + 40));
     root->addView(r1);
+    // Un son glissé sur AUTO ou sur la barre IA : AUTO l'écoute en entier (Maj : référence).
+    const auto onAudioFile = [this](const std::string& path, bool shift) {
+        if (!omnis()) return;
+        answer_ = shift ? omnis()->importReferenceFile(path) : omnis()->autoFromFile(path);
+        if (frame) frame->invalid();
+    };
+    r1->setDropTarget(makeOwned<AudioFileDrop>(onAudioFile));
     r1->addView(new Caption(CRect(10, 8, 110, 32), "OMNIS", color::kText, sans(18, true)));
     r1->addView(new Caption(CRect(96, 13, 190, 29), "ABRASION LABS", color::kText3, mono(8.5)));
     r1->addView(new LogoSecret(CRect(10, 6, 190, 34), [this] {
@@ -620,8 +664,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
         return b;
     };
     auto* autoButton = add(new HwButton(CRect(196, 7, 262, 33), "AUTO", [] { return false; }, [this] {
-        answer_ = "AUTO : joue le passage le plus fort (refrain, drop) ; OMNIS écoute 10 s puis règle la chaîne.";
-        omnis()->startAuto();
+        answer_ = omnis()->startAuto();
     }));
     autoButton->setAccentText(true);
     add(new HwButton(CRect(270, 7, 300, 33), "A", [c] { return c->abSlot() == 0; }, [c] { c->selectAB(0); }, false));
@@ -681,6 +724,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     // Ruban 2 : la demande à l'IA.
     auto* r2 = new Panel(CRect(kWorkL, kRibbon2, kWorkR, kRibbon2 + 40));
     root->addView(r2);
+    r2->setDropTarget(makeOwned<AudioFileDrop>(onAudioFile));
     r2->addView(new Caption(CRect(10, 8, 34, 32), "IA", color::kAccent, mono(11, true)));
     auto* listener = listen([this](CControl*) { askAi(); });
     askField_ = new CTextEdit(CRect(36, 7, 330, 33), listener, 1, "");
@@ -691,6 +735,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     askField_->setTextInset(CPoint(8, 0));
     askField_->setHoriAlign(kLeftText);
     askField_->setPlaceholderString(i18n::tr("ex. plus de punch, garde ma 808").c_str());
+    askField_->setTooltipText(i18n::tr("Glisse un son ici : AUTO l'écoute en entier (Maj : l'ajouter aux références)").c_str());
     r2->addView(askField_);
     // Filtre par famille (entonnoir) : le menu RÉF ne montre que ce style.
     {
@@ -2371,8 +2416,7 @@ void OmnisEditor::tick() {
     if (!news.empty()) answer_ = news;
     if (omnis()->takeLibraryChanged() && refFill_) refFill_(); // un fichier ajouté : le menu RÉF le montre
     if (omnis()->takeTutorialRequest()) startTutorial(0);      // « tuto » écrit dans la barre IA
-    if (const double pr = omnis()->autoProgress(); pr >= 0.0)
-        answer_ = pr <= 0.0 ? std::string("AUTO : joue le passage le plus fort (refrain, drop)…") : "AUTO : écoute " + fmt("%.0f %%", 100.0 * pr) + "…";
+    if (const auto status = omnis()->autoStatus(); !status.empty()) answer_ = status;
     ++ticks_;
     const int o = static_cast<int>(std::lround(plain(id(ParamId::ChainOrder))));
     if (o != lastOrder_ && dragFrom_ < 0) {

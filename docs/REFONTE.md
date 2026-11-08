@@ -124,9 +124,9 @@ mixage « bascule », pas à chaque fois.
 | # | Étape | Fin quand |
 |---|---|---|
 | 0 ✅ | **Reproduire** et mesurer les causes (`omnis_auto`). | causes chiffrées |
-| 1 | **Mastering seul** : retirer instances liées, stems, chef d'orchestre, pages et réglages du mixage. | tests, validateur, CI verts |
+| 1 ✅ | **Mastering seul** : retirer instances liées, stems, chef d'orchestre, pages et réglages du mixage. | tests, validateur, CI verts |
 | 2 ✅ | **Règles du son** : NIVEAU au choix (Streaming −14 · Équilibré −11 · Fort −9 · Très fort −7 · Style), densité (clip, Inflator) liée au niveau, **garde-fou** (compression permise au-delà de la marge de crête : 4 · 6 · 8 · 10 dB), AUTO à 35 % de l'écart au profil (sub ±1,5 dB). Sur « à la millanaise 2 », Équilibré : LRA 10,6 LU (72 %), limiteur +3,1 dB ; Fort : arrêté à −10,3 LUFS au lieu d'écraser (LRA 3,3 → 7,8). | critères §6 sur les prods de l'utilisateur |
-| 3 | **AUTO précis** : morceau entier ou fichier glissé, parties, essais multiples notés. | critères §6 |
+| 3 ✅ | **AUTO précis** : écoute du **morceau entier** jusqu'à l'arrêt de la lecture (ou second clic, ou 6 s de silence ; 8 min au plus), ou **fichier glissé** sur la barre IA (Maj : référence) ; contraste des parties mesuré sur tout le morceau ; **3 essais** clip / limiteur (limiteur seul, 40/60, 70/30) sur les 15 s les plus fortes, menés au NIVEAU dans le garde-fou, notés (distorsion pondérée, balance tonale, sonie) ; le meilleur appliqué, puis volume ajusté à la mesure (après 4 s, le temps que le compteur suive). Tests : `TestProdListener` (3), plug-in AUTO (3). | critères §6 |
 | 4 | **Rack modulaire** à caractères (compresseurs, saturations, EQ, imagers…). | chaque caractère testé (réponse, distorsion, null-test neutre) |
 | 5 | **Apprentissage** : journal, réseau local, tests ; export anonyme prêt pour le serveur. | tests, base relue à l'identique |
 | 6 | **IA locale** : modèle de langue, banque de phrases réelles, glisser-déposer. | 0 contresens sur la banque |

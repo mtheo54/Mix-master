@@ -62,8 +62,17 @@ public:
     [[nodiscard]] std::vector<std::string> exportProblems();
     /// Diagnostic du mix (ai/MixDiagnosis) sur ce qu'OMNIS a entendu de la prod.
     std::string mixDiagnosis();
-    /// AUTO : écoute du passage le plus fort, puis réglage de la chaîne.
-    void startAuto();
+    /// AUTO : écoute du morceau entier (jusqu'à l'arrêt de la lecture), réglage de la
+    /// chaîne, puis essais de répartition clip / limiteur sur le passage le plus fort
+    /// (en arrière-plan). Pendant l'écoute, un second appel la termine.
+    /// Renvoie ce qu'AUTO fait maintenant (pour la barre IA).
+    std::string startAuto();
+    /// AUTO sur un fichier (glissé sur la barre IA) : tout le morceau analysé, puis le
+    /// même réglage et les mêmes essais qu'à l'écoute. En arrière-plan : la réponse
+    /// arrive par pollAutomation().
+    std::string autoFromFile(const std::string& utf8Path);
+    /// Ce que fait AUTO, pour la barre IA (vide : rien en cours).
+    [[nodiscard]] std::string autoStatus() const;
     /// Tutoriel : relancer (« tuto », « aide » dans la barre IA). L'éditeur le prend
     /// à sa minuterie avec takeTutorialRequest().
     void restartTutorial() { tutorialRequested_ = true; }
@@ -166,6 +175,33 @@ private:
     };
     std::shared_ptr<ImportJob> import_;
     std::thread importThread_;
+    // AUTO précis : les essais sur le passage le plus fort, hors du thread de l'interface.
+    struct AutoJob {
+        std::atomic<bool> done{false};
+        std::atomic<bool> cancel{false};
+        std::atomic<int> step{0}, total{3};
+        bool ok = false;
+        double clipDrive = 0.0, limGain = 0.0, distortionDb = 0.0;
+        double reachedLufs = 0.0, targetLufs = 0.0; ///< sonie du meilleur essai, et la visée
+        int trials = 0;
+        std::string name; ///< la répartition retenue (« clip 70 / 30 »)
+    };
+    std::shared_ptr<AutoJob> autoJob_;
+    std::thread autoThread_;
+    void startAutoSearch(std::vector<float> excerpt, double sampleRate, double targetLufs);
+    /// Le morceau entendu (ou lu) -> la chaîne vers le style, puis les essais.
+    std::string applyAuto(const analysis::SpectralSignature& loud, std::vector<float> excerpt, double sampleRate);
+    struct FileJob {
+        std::atomic<bool> done{false};
+        bool ok = false;
+        std::string name, error;
+        analysis::SpectralSignature signature;
+        std::vector<float> excerpt; ///< passage le plus fort, entrelacé L R
+        double sampleRate = 0.0;
+    };
+    std::shared_ptr<FileJob> fileJob_;
+    std::thread fileThread_;
+    std::string finishAutoSearch();
     bool libraryChanged_ = false;
     bool tutorialRequested_ = false;
     mutable int online_ = -1;
@@ -184,6 +220,7 @@ private:
     bool levelChanged_ = false; ///< NIVEAU changé : le volume y est mené une fois
     double heardPeakDb_ = -200.0; ///< crête de la prod au passage écouté par AUTO (garde-fou du volume)
     int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
+    static constexpr int kPursuitSettleTicks = 130; ///< ~4 s de minuterie (30 Hz) : la mesure suit le réglage
     std::string runRequest(const std::string& text);
     void applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings);
     /// Garde l'état de la console avant une action de l'IA (« annule » y revient).

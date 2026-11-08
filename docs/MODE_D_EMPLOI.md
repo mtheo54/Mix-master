@@ -35,8 +35,8 @@ règle sa chaîne de 7 modules et amène le volume là où tu le veux. Tout rest
 ## 1. En 2 minutes
 
 1. Mets **OMNIS sur le master** (dernier slot du master dans FL Studio).
-2. Lance la lecture et clique **AUTO** pendant le passage le plus fort (refrain, drop). OMNIS
-   écoute 10 secondes, règle la chaîne et monte le volume.
+2. Clique **AUTO** et joue **le morceau en entier**. À la fin, arrête la lecture : OMNIS règle la
+   chaîne, essaie plusieurs réglages de volume et garde le plus propre.
 3. Corrige avec des mots dans la **barre IA** : « plus de punch », « garde ma 808 », « un peu
    moins fort », « comme de la new wave ».
 4. Avant d'exporter, écris **« export »** dans la barre IA : OMNIS dit si tout est prêt.
@@ -114,14 +114,21 @@ sans limiteur ni clipper avant OMNIS) : il a besoin de cette place pour bien tra
 
 ## 6. AUTO
 
-1. Lance la lecture.
-2. Clique **AUTO** et joue **le passage le plus fort** (refrain, drop).
-3. OMNIS écoute 10 secondes, puis règle toute la chaîne :
+1. Clique **AUTO**, puis lance la lecture **du début du morceau**.
+2. OMNIS écoute **tout le morceau** (la barre IA montre le temps écouté). À la fin, **arrête la
+   lecture** : l'écoute se termine. Tu peux aussi recliquer AUTO pour finir plus tôt (au moins
+   4 secondes entendues). Un clic sur AUTO avant que le son arrive annule.
+3. Il règle toute la chaîne d'après le morceau entier :
    - vers la **référence** choisie dans le menu RÉF ;
    - sinon vers le **style** que tu as écrit (« genre rage ») ;
    - sinon vers la moyenne de toutes les références.
-4. Il amène ensuite le volume au **NIVEAU** choisi (colonne de droite), **par la mesure** : il
-   pousse le limiteur pas à pas en écoutant la sortie.
+4. **Les essais** : sur le passage le plus fort qu'il a entendu (15 secondes, gardées en mémoire
+   le temps des essais puis oubliées), il essaie trois répartitions du volume — tout au limiteur,
+   clip 40 / limiteur 60, clip 70 / limiteur 30 —, mène chacune au **NIVEAU** choisi (colonne de
+   droite), mesure la distorsion et l'équilibre tonal, et garde **la plus propre**
+   (« AUTO affiné : … retenu « clip 70 / 30 » »). Quelques secondes, en arrière-plan : le son
+   continue normalement.
+5. Il ajuste enfin le volume **par la mesure** en écoutant la sortie.
 
 | NIVEAU | Sonie visée (passage fort) | Pour |
 |---|---|---|
@@ -430,7 +437,7 @@ Il ne corrige rien de lui-même : certains « défauts » sont voulus, c'est toi
 
 ## 16. Recettes
 
-**Premier master rapide.** RÉF › ton style. Lecture, AUTO sur le refrain. Puis « un peu moins
+**Premier master rapide.** RÉF › ton style. AUTO, puis le morceau en entier. Puis « un peu moins
 fort » ou « plus fort » selon le goût. « export » avant de rendre.
 
 **Un hi-hat ou un lead qui siffle.** « ça siffle » dans la barre IA. Si ce n'est pas assez, redis-le :

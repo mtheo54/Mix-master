@@ -79,9 +79,6 @@ Aucune : choisis un style, un artiste ou un titre dans RÉF.	None: pick a style,
 Aucune proposition : aucun stem n'en gêne un autre pour l'instant. Lance la lecture, OMNIS écoute.	No proposal: no stem is masking another right now. Start playback, OMNIS is listening.
 aucune référence mesurée : AUTO règle seulement le volume	no measured reference: AUTO only sets the level
 Aucune.	None.
-AUTO : joue le passage le plus fort (refrain, drop) ; OMNIS écoute 10 s puis règle la chaîne.	AUTO: play the loudest part (chorus, drop); OMNIS listens for 10 s then sets the chain.
-AUTO : joue le passage le plus fort (refrain, drop)…	AUTO: play the loudest part (chorus, drop)…
-AUTO : écoute 	AUTO: listening 
 AÉRÉ	AIRY
 B copié dans A.	B copied into A.
 Baisse la 808 de quelques dB dans le mixeur : au master, trop de sub mange la sonie de tout le reste.	Lower the 808 a few dB in the mixer: at the master, too much sub eats the loudness of everything else.
@@ -106,7 +103,6 @@ CHEF	CONDUCTOR
 CHEF D'ORCHESTRE	CONDUCTOR
 CHEF D'ORCHESTRE ET PISTE	CONDUCTOR AND TRACK
 Cherche la piste qui pique (lead, sample, voix trop compressée) et baisse-la de 2-3 dB vers 1,5 kHz.	Find the track that stings (lead, sample, over-compressed vocal) and lower it 2-3 dB around 1.5 kHz.
-Clique AUTO, puis joue le passage le plus fort (refrain, drop).	Click AUTO, then play the loudest part (chorus, drop).
 Clique un module pour ouvrir TOUS ses réglages en dessous.	Click a module to open ALL its settings below.
 Comparé à ta référence choisie, sinon	Compared to your chosen reference, otherwise
 compression / saturation de la 808, pas une question d'EQ	808 compression / saturation, not an EQ matter
@@ -135,7 +131,6 @@ DOUX	SOFT
 En mono, le mix perd %.1f dB.	In mono, the mix loses %.1f dB.
 ENTRÉE	INPUT
 Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.	Input / output, left / right peaks, loudness, limiter reduction.
-et amène le volume à la bonne sonie. Tout reste réglable après.	and brings the level to the right loudness. Everything stays adjustable.
 ex. plus de punch, garde ma 808	e.g. more punch, keep my 808
 Extrême aigu (%.0f kHz et plus) : la référence y est coupée (fichier compressé ?), on n'y touche pas	Extreme highs (%.0f kHz and up): the reference is cut there (compressed file?), we leave them alone
 FORT	LOUD
@@ -216,7 +211,6 @@ Normal si c'est voulu (son sombre) ; sinon, un peu d'aigu sur la voix et les hat
 NŒUDS ÉDITÉS	EDITED NODES
 OMNIS mixe et masterise ta prod. Deux façons de l'utiliser :	OMNIS mixes and masters your track. Two ways to use it:
 OMNIS ne trouve pas son moteur : réessaie dans un instant.	OMNIS can't find its engine: try again in a moment.
-OMNIS écoute 10 s, règle toute la chaîne vers ton style	OMNIS listens for 10 s, sets the whole chain toward your style
 OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.	OMNIS listens to your track, understands, sets the modules and tells you what it did.
 Open hat : dureté vers 6,5 kHz calmée	Open hat: harshness around 6.5 kHz tamed
 ORANGE : conseil de mix.	ORANGE: mix advice.
@@ -525,3 +519,25 @@ punch, densité du niveau choisi ; plafond -1 dBTP	punch, density of the chosen 
 la réf est plus dense (%.1f dB d'attaque en moins) : dis « plus dense » pour la suivre	the ref is denser (%.1f dB less attack): say "denser" to follow it
 la réf %.0f : contraste gardé (dis « plus dense » pour le réduire)	the ref %.0f: contrast kept (say "denser" to reduce it)
 Volume arrêté à %.1f LUFS : au-delà, ta prod s'écraserait (passages calmes remontés, bas-médium gonflé). Pour aller plus fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), ou choisis un NIVEAU plus fort.	Level stopped at %.1f LUFS: beyond that, your track would be crushed (quiet parts pushed up, low-mids swollen). To go louder, make it denser in your project (808 and kick compressed or saturated), or pick a louder LEVEL.
+Clique AUTO, joue le morceau en entier, puis ajuste	Click AUTO, play the whole track, then adjust
+Clique AUTO, puis joue le morceau du début à la fin.	Click AUTO, then play the track from start to finish.
+OMNIS l'écoute en entier, règle la chaîne vers ton style,	OMNIS listens to all of it, sets the chain toward your style,
+essaie plusieurs réglages de volume et garde le plus propre.	tries several loudness settings and keeps the cleanest.
+AUTO : le son n'arrive pas encore au plug-in ; relance la lecture.	AUTO: no sound reaches the plug-in yet; start playback again.
+AUTO : fin de l'écoute, réglage de la chaîne…	AUTO: listening finished, setting the chain…
+AUTO annulé.	AUTO cancelled.
+AUTO affine : essai %d/%d sur le passage le plus fort…	AUTO refining: trial %d/%d on the loudest part…
+AUTO : lance la lecture du morceau, du début à la fin ; OMNIS l'écoute en entier.	AUTO: play the track from start to finish; OMNIS listens to all of it.
+AUTO : écoute %d:%02d…	AUTO: listening %d:%02d…
+AUTO : écoute %d:%02d — arrête la lecture (ou reclique AUTO) à la fin du morceau.	AUTO: listening %d:%02d — stop playback (or click AUTO again) when the track ends.
+AUTO : les essais n'ont pas abouti ; le volume est mené à l'écoute.	AUTO: the trials did not succeed; the level is set by listening.
+AUTO affiné : %d essais sur le passage le plus fort, retenu « %s » (clip +%.1f dB, limiteur +%.1f dB, distorsion %.1f dB). Tout reste réglable à la main.	AUTO refined: %d trials on the loudest part, kept “%s” (clip +%.1f dB, limiter +%.1f dB, distortion %.1f dB). Everything stays adjustable by hand.
+. Essais clip / limiteur en cours…	. Clip / limiter trials running…
+limiteur	limiter
+ (profil de genre)	 (genre profile)
+ (1 titre)	 (1 track)
+AUTO : j'analyse « 	AUTO: analysing “
+ » en entier…	” in full…
+fichier illisible	unreadable file
+Glisse un son ici : AUTO l'écoute en entier (Maj : l'ajouter aux références)	Drop a sound here: AUTO listens to all of it (Shift: add it to references)
+AUTO : ta prod est déjà à %.1f LUFS, plus fort que le NIVEAU (%.1f) : rien n'est poussé. Pour la baisser, descends son volume avant OMNIS ; pour garder ce volume, choisis un NIVEAU plus fort.	AUTO: your track is already at %.1f LUFS, louder than the LEVEL (%.1f): nothing is pushed. To lower it, turn it down before OMNIS; to keep this loudness, pick a louder LEVEL.

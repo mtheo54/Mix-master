@@ -66,9 +66,10 @@ AudioFile loudestExcerpt(const AudioFile& input, double seconds) {
     return out;
 }
 
-AudioFile renderWithSettings(const AudioFile& input, const std::vector<std::pair<std::string, double>>& settings) {
+AudioFile renderWithSettings(const AudioFile& input, const std::vector<std::pair<std::string, double>>& settings, bool lowLatency) {
     Engine engine;
     buildMasteringChain(engine);
+    engine.setLowLatency(lowLatency);
     constexpr int kBlock = 512;
     engine.prepare(input.sampleRate, kBlock);
     for (const auto& [key, value] : settings)
@@ -194,6 +195,75 @@ TuningResult loudestClean(const AudioFile& excerpt, const TuningStrategy& strate
     result.tonal = compareTonalBalance(options.tonalReference ? *options.tonalReference : excerpt, out);
     result.tonalOk = true;
     return result;
+}
+
+SearchResult searchMaster(const AudioFile& excerpt, const std::vector<std::pair<std::string, double>>& base, const SearchOptions& options) {
+    SearchResult out;
+    std::vector<std::pair<std::string, double>> fixed;
+    for (const auto& kv : base)
+        if (kv.first != "clip_drive" && kv.first != "lim_gain") fixed.push_back(kv);
+    // Les répartitions essayées : le clip prend les transitoires (kick, 808), le limiteur le reste.
+    const std::vector<std::pair<std::string, double>> splits{{"limiteur", 0.0}, {"clip 40 / 60", 0.4}, {"clip 70 / 30", 0.7}};
+    const auto cancelled = [&] { return options.cancel && options.cancel->load(std::memory_order_relaxed); };
+    const int total = static_cast<int>(splits.size());
+    for (int i = 0; i < total; ++i) {
+        if (cancelled()) {
+            out.cancelled = true;
+            return out;
+        }
+        TuningResult r;
+        r.strategy.name = splits[static_cast<std::size_t>(i)].first;
+        r.strategy.fixed = fixed;
+        const double clipShare = splits[static_cast<std::size_t>(i)].second;
+        if (clipShare > 0.0) r.strategy.gainShares.emplace_back("clip_drive", clipShare);
+        r.strategy.gainShares.emplace_back("lim_gain", 1.0 - clipShare);
+        const auto loudnessAt = [&](double gain, AudioFile* keep) {
+            r.totalGainDb = gain;
+            AudioFile rendered = renderWithSettings(excerpt, settingsOf(r), options.lowLatency);
+            const double lufs = analyze(rendered).integratedLufs;
+            if (keep) *keep = std::move(rendered);
+            return lufs;
+        };
+        // Sécante bornée : 6 rendus au plus. La sonie croît avec le gain. Le rendu sans poussée
+        // (gain 0) sert de référence tonale : seul compte ce que la compression change, pas la
+        // couleur voulue par le Match EQ.
+        AudioFile unpushed;
+        double g0 = 0.0, l0 = loudnessAt(0.0, &unpushed);
+        double g1 = std::clamp(options.targetLufs - l0, 0.0, options.maxGainDb), l1 = g1 > 0.0 ? loudnessAt(g1, nullptr) : l0;
+        for (int step = 0; step < 4 && std::fabs(l1 - options.targetLufs) > 0.3 && !cancelled(); ++step) {
+            if (l1 < options.targetLufs && g1 >= options.maxGainDb - 1e-9) break; // garde-fou atteint
+            const double slope = std::fabs(l1 - l0) > 1e-6 ? (g1 - g0) / (l1 - l0) : 1.0;
+            const double next = std::clamp(g1 + std::clamp(slope, 0.5, 4.0) * (options.targetLufs - l1), 0.0, options.maxGainDb);
+            g0 = g1, l0 = l1;
+            g1 = next;
+            l1 = loudnessAt(g1, nullptr);
+        }
+        AudioFile rendered;
+        r.integratedLufs = loudnessAt(g1, &rendered);
+        r.reached = r.integratedLufs >= options.targetLufs - 0.3;
+        r.distortion = measureDistortion(excerpt, rendered);
+        r.tonal = compareTonalBalance(unpushed, rendered);
+        r.tonalOk = r.tonal.maxDeviationDb <= options.maxTonalDeviationDb;
+        const bool nothingToPush = r.totalGainDb <= 1e-9;
+        out.tried.push_back(std::move(r));
+        if (options.progress) options.progress(i + 1, total);
+        // Déjà à la sonie visée sans poussée : toutes les répartitions donnent le même son.
+        if (nothingToPush) {
+            if (options.progress) options.progress(total, total);
+            break;
+        }
+    }
+    // Note : la distorsion (dB, plus bas = mieux), plus une pénalité si la balance tonale ou la
+    // sonie ne tiennent pas. À sonie égale, la moins abîmante gagne.
+    double bestScore = 1e9;
+    for (std::size_t i = 0; i < out.tried.size(); ++i) {
+        const auto& r = out.tried[i];
+        double score = r.distortion.weightedDb;
+        if (!r.tonalOk) score += 6.0 + 4.0 * (r.tonal.maxDeviationDb - options.maxTonalDeviationDb);
+        if (!r.reached) score += 3.0 * std::max(0.0, options.targetLufs - r.integratedLufs);
+        if (score < bestScore) bestScore = score, out.best = static_cast<int>(i);
+    }
+    return out;
 }
 
 } // namespace omnis::tools
