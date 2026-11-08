@@ -2184,13 +2184,17 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
     col->addView(readouts_);
     live_.push_back(readouts_);
 
-    // Instances liées.
-    col->addView(new Caption(CRect(12, 584, W - 12, 596), "PROD ET EXPORT", color::kText3, mono(9)));
     const auto menu = [&](const CRect& r, ParamId pid, const char* name, int labelW = 60) {
         col->addView(new Caption(CRect(r.left, r.top + 4, r.left + labelW, r.bottom), name, color::kText3, mono(9)));
         auto* m = new COptionMenu(CRect(r.left + labelW + 2, r.top, r.right, r.bottom), listen([this, pid](CControl* ctl) {
             const auto* spec = params::findParameter(pid);
             setPlain(id(pid), spec->minValue + std::lround(ctl->getValue()));
+            if (pid == ParamId::LoudnessLevel) {
+                answer_ = std::lround(ctl->getValue()) == 0 ? "NIVEAU : celui du style ou de la référence choisie."
+                                                            : "NIVEAU : " + i18n::tr(std::string(spec->choices[static_cast<std::size_t>(std::lround(ctl->getValue()))])) +
+                                                                  " LUFS ; le volume y est mené pendant la lecture.";
+                return;
+            }
             if (pid == ParamId::ListenSim) {
                 const int v = static_cast<int>(std::lround(ctl->getValue()));
                 answer_ = v == 0 ? "Écoute normale."
@@ -2224,12 +2228,14 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
         });
     };
     menu(CRect(12, 550, W - 12, 572), ParamId::ListenSim, "ÉCOUTE");
-    auto* diag = new HwButton(CRect(12, 600, W - 12, 626), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); });
+    menu(CRect(12, 580, W - 12, 602), ParamId::LoudnessLevel, "NIVEAU");
+    col->addView(new Caption(CRect(12, 614, W - 12, 626), "PROD ET EXPORT", color::kText3, mono(9)));
+    auto* diag = new HwButton(CRect(12, 630, W - 12, 656), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); });
     diag->setAccentText(true);
     col->addView(diag);
     live_.push_back(diag);
     // Prêt à exporter ? La réponse complète dans la ligne de réponse de la barre IA.
-    auto* exportCheck = new HwButton(CRect(12, 634, W - 12, 660), "VÉRIFIER L'EXPORT", [] { return false; }, [this] { answer_ = omnis()->ask("export"); }, false);
+    auto* exportCheck = new HwButton(CRect(12, 664, W - 12, 690), "VÉRIFIER L'EXPORT", [] { return false; }, [this] { answer_ = omnis()->ask("export"); }, false);
     col->addView(exportCheck);
     live_.push_back(exportCheck);
 }

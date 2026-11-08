@@ -26,6 +26,7 @@ constexpr std::array<std::string_view, 19> kListenLabels{
     "Off", "AirPods (2/3)", "AirPods Pro 2", "AirPods Max", "Beats Studio Pro", "Sony WH-1000XM5", "Galaxy Buds2 Pro",
     "JBL Tune 510BT", "Sennheiser HD 600", "Audio-Technica M50x", "Phone speaker", "TikTok (phone)", "Car", "Club PA",
     "Spatial (binaural)", "Spotify -14 LUFS", "Deezer -15 LUFS", "YouTube -14 LUFS", "Apple Music -16 LUFS"};
+constexpr std::array<std::string_view, 5> kLevelLabels{"Style", "Streaming -14", "Équilibré -11", "Fort -9", "Très fort -7"};
 constexpr std::array<std::string_view, 3> kDynChannelLabels{"Stéréo", "Mid", "Side"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
@@ -49,6 +50,8 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // grave moins précis). Gardé dans la session pour que l'avertissement reste
     // visible ; un rendu hors ligne (export) repasse de lui-même en qualité max.
     // Écoute simulée : outil d'écoute, jamais gardé ni appliqué à l'export.
+    // Niveau visé : Équilibré par défaut (le contraste couplet / refrain reste).
+    {ParamId::LoudnessLevel,     "level",         "Loudness Level",       "Level",  "",     ParamKind::Choice,     0.0,    4.0,   2.0,   4,    kLevelLabels,   0.0,    0},
     {ParamId::ListenSim,         "listen",        "Listen As",            "Listen", "",     ParamKind::Choice,     0.0,    18.0,  0.0,   18,   kListenLabels,  0.0,    0, ParamScale::Linear, false, false},
     {ParamId::LowLatency,        "low_latency",   "Latency Mode",         "Lat",    "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kLatencyLabels, 0.0,    0, ParamScale::Linear, true, false},
 

@@ -119,8 +119,21 @@ clipper before OMNIS): it needs that room to work well.
    - towards the **reference** chosen in the REF menu;
    - otherwise towards the **style** you typed ("like rage");
    - otherwise towards the average of all references.
-4. It then brings the level to the right loudness **by measuring**: it pushes the limiter step
-   by step while listening to the output.
+4. It then brings the level to the chosen **LEVEL** (right column) **by measuring**: it pushes the
+   limiter step by step while listening to the output.
+
+| LEVEL | Target (loud part) | For |
+|---|---|---|
+| Streaming | −14 LUFS | Spotify, YouTube, Deezer: nothing gets turned down by the platform |
+| **Balanced** (default) | −11 LUFS | loud but alive: verse / chorus contrast stays |
+| Loud | −9 LUFS | a dense beat, already compressed in the project |
+| Very loud | −7 LUFS | rage, hard clipping: clipping on purpose |
+| Style | the style's or the chosen reference's | following a reference |
+
+**The safety net**: OMNIS never compresses more than the level allows. If your beat is very
+dynamic, it stops before crushing it and tells you ("Level stopped at …"). To go louder, make it
+denser in your project (808 and kick compressed or saturated), then run AUTO again. Changing the
+LEVEL during playback brings the level there.
 
 Everything can be adjusted afterwards. AUTO is deliberately gentle: it respects a sound that is
 already worked on.

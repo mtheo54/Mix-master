@@ -147,6 +147,39 @@ OMNIS_TEST("fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch,
     OMNIS_CHECK(mono == 100.0);
 }
 
+OMNIS_TEST("niveau: AUTO vise le NIVEAU choisi (Streaming -14, Équilibré -11, Fort -9, Très fort -7), avec la densité qui va avec ; Style garde celui de la réf") {
+    ai::ReferenceLibrary lib;
+    ai::ReferenceEntry ref;
+    ref.artist = "Ref";
+    ref.title = "Fort";
+    ref.genres = {"testgenre"};
+    ref.signature.midDb.fill(60.0);
+    ref.signature.sideDb.fill(48.0);
+    ref.signature.integratedLufs = -6.5;
+    ref.signature.activeFrames = 100;
+    lib.add(ref);
+    const analysis::SpectralSignature prod = ref.signature;
+    struct Case {
+        int level;
+        double lufs, clip, inflate;
+    };
+    for (const Case c : {Case{0, -6.5, 2.0, 15.0}, Case{1, -14.0, 0.0, 0.0}, Case{2, -11.0, 1.0, 10.0}, Case{3, -9.0, 2.0, 15.0}, Case{4, -7.0, 3.0, 20.0}}) {
+        const auto cur = [&](params::ParamId id) { return id == params::ParamId::LoudnessLevel ? static_cast<double>(c.level) : 0.0; };
+        const auto plan = ai::planAuto(prod, lib, "testgenre", cur);
+        double clip = 0.0, inflate = 0.0;
+        for (const auto& [id, v] : plan.settings) {
+            if (id == params::ParamId::ClipDrive) clip = v;
+            if (id == params::ParamId::InflHighEffect) inflate = v;
+        }
+        OMNIS_CHECK(plan.targetLufs.has_value());
+        OMNIS_CHECK_NEAR(*plan.targetLufs, c.lufs, 1e-9);
+        OMNIS_CHECK(clip >= c.clip - 1e-9 && clip <= c.clip + 3.0); // la réf peut demander plus de clip, jamais moins
+        OMNIS_CHECK_NEAR(inflate, c.inflate, 1e-9);
+        // Garde-fou : plus le niveau est fort, plus le gain de mastering permis est grand.
+        if (c.level > 0) OMNIS_CHECK(params::masteringGainCapDb(static_cast<params::LoudnessLevel>(c.level)) >= 4.0 + 2.0 * (c.level - 1) - 1e-9);
+    }
+}
+
 namespace {
 
 /// Une boucle house à 124 BPM : kick sur chaque temps, nappe tenue (accord), hats

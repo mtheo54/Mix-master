@@ -156,6 +156,21 @@ void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const ana
     if (!info.empty()) p.said.push_back(info);
 }
 
+/// Le niveau choisi (NIVEAU) : la sonie visée, et la densité qui va avec. « Style » garde
+/// celle du style ou de la référence, bornée à -14 … -5 LUFS. Plus le niveau est fort, plus
+/// le clip et l'Inflator prennent leur part (le limiteur seul écraserait le contraste).
+double applyLevel(ConsolePlan& p, const CurrentValue& cur, double styleLufs) {
+    const auto level = static_cast<params::LoudnessLevel>(std::clamp(static_cast<int>(std::lround(cur(ParamId::LoudnessLevel))), 0, 4));
+    static constexpr double kClip[] = {2.0, 0.0, 1.0, 2.0, 3.0};
+    static constexpr double kInflate[] = {15.0, 0.0, 10.0, 15.0, 20.0};
+    const auto i = static_cast<std::size_t>(level);
+    if (cur(ParamId::ClipDrive) < kClip[i]) put(p, ParamId::ClipDrive, kClip[i]);
+    if (cur(ParamId::InflHighEffect) < kInflate[i]) put(p, ParamId::InflHighEffect, kInflate[i]);
+    const double target = level == params::LoudnessLevel::Style ? std::clamp(styleLufs, -14.0, -5.0) : params::loudnessLevelLufs(level);
+    p.targetLufs = target;
+    return target;
+}
+
 /// Les plaintes qui reviennent par moments (sifflantes, aigus qui piquent) : une
 /// bande de l'EQ dynamique, qui ne retient que quand le défaut sort du lot. La
 /// correction fixe du Match EQ reste. Une seconde plainte au même endroit creuse
@@ -265,10 +280,10 @@ ConsolePlan planReference(const analysis::SpectralSignature& prod, const std::ve
     const auto refMusic = averageMusic(refs);
     applyMusic(p, refMusic, prod.music, cur, false);
     applyReferenceDynamics(p, prod, refSignature, refMusic, withPlan(p, cur));
-    // Même garde qu'AUTO : au-delà de -5 LUFS, le limiteur seul écraserait la prod.
-    p.targetLufs = std::clamp(intent.targetLufs, -14.0, -5.0);
+    // Le niveau choisi (NIVEAU) ; « Style » : celui de la référence, borné à -14 … -5 LUFS.
+    applyLevel(p, withPlan(p, cur), intent.targetLufs);
     p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs) +
-                     (intent.targetLufs > *p.targetLufs + 0.05 ? format(" (la réf est à %.1f : pousse le clip pour aller plus loin)", intent.targetLufs) : ""));
+                     (intent.targetLufs > *p.targetLufs + 0.5 ? format(" (la réf est à %.1f : choisis un NIVEAU plus fort pour la suivre)", intent.targetLufs) : ""));
     return p;
 }
 
@@ -293,18 +308,20 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<
         return p;
     }
     MatchRequest request;
-    request.resemblance = 0.5; // la moitié de l'écart : la prod garde son caractère
+    // AUTO vise un style (des profils moyens, dont une partie vient de fichiers compressés) :
+    // un tiers de l'écart seulement, et le sub presque tenu. La prod garde son caractère ;
+    // une couleur plus marquée se demande (référence choisie, mots).
+    request.resemblance = 0.35;
+    request.subLimitDb = 1.5;
     const auto refSignature = aggregateSignature(refs);
     const MatchIntent intent = planMatch(loud, refSignature, request);
     writeCurve(p, intent);
     p.said.insert(p.said.begin(), "AUTO vers " + from + format(" (%.0f titres)", static_cast<double>(refs.size())));
-    // Une base de mastering rap / trap : un peu de densité et de relief, rien de forcé.
+    // Une base de mastering rap / trap : du relief, et la densité du niveau choisi.
     if (cur(ParamId::LimPunch) < 15.0) put(p, ParamId::LimPunch, 15.0);
-    if (cur(ParamId::InflHighEffect) < 15.0) put(p, ParamId::InflHighEffect, 15.0);
-    if (cur(ParamId::ClipDrive) < 2.0) put(p, ParamId::ClipDrive, 2.0);
     put(p, ParamId::LimCeiling, -1.0);
-    p.targetLufs = std::clamp(intent.targetLufs, -14.0, -5.0);
-    p.said.push_back("punch, Inflator et clip doux ; plafond -1 dBTP");
+    applyLevel(p, cur, intent.targetLufs);
+    p.said.push_back("punch, densité du niveau choisi ; plafond -1 dBTP");
     // La fiche complète des références (punch, grave mono, sections, écrêtage) passe
     // après la base : elle la précise.
     const auto refMusic = averageMusic(refs);

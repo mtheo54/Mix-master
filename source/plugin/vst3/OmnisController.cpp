@@ -119,6 +119,8 @@ tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue v
     const tresult result = EditController::setParamNormalized(tag, value);
     // Pendant setComponentState (projet rechargé), le processeur a déjà son état :
     // pas de message ni de redémarrage demandé à l'hôte au milieu de son appel.
+    // NIVEAU changé à la main : le volume y sera mené une fois (pollAutomation).
+    if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LoudnessLevel) && before != value) levelChanged_ = true;
     // Mode de latence : la latence annoncée change, l'hôte doit réactiver le plug-in.
     if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LowLatency) && before != value && componentHandler)
         componentHandler->restartComponent(kLatencyChanged);
@@ -678,6 +680,7 @@ std::string OmnisController::pollAutomation() {
     analysis::SpectralSignature loud;
     if (autoRunning_ && feed_->prod.takeAutoResult(loud)) {
         autoRunning_ = false;
+        heardPeakDb_ = std::max(loud.truePeakDb, loud.music.valid ? loud.music.samplePeakDb : -200.0); // crête du passage écouté
         const auto lib = libraryWithUser();
         const auto current = [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); };
         // La référence choisie au menu passe avant le style deviné des mots.
@@ -704,6 +707,16 @@ std::string OmnisController::pollAutomation() {
         pendingRef_ = false;
         message = runReference();
     }
+    // NIVEAU choisi : une fois la prod entendue, le volume y est mené (« Style » : rien).
+    if (levelChanged_ && feed_->prod.snapshot().seconds >= 8.0) {
+        levelChanged_ = false;
+        const auto level = static_cast<params::LoudnessLevel>(std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LoudnessLevel))));
+        if (level != params::LoudnessLevel::Style) {
+            loudTarget_ = params::loudnessLevelLufs(level);
+            pursuing_ = true;
+            pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
+        }
+    }
     // Le volume mené vers la cible par la mesure (sonie court terme de la sortie).
     if (pursuing_ && ++pursuitTicks_ % 18 == 0) {
         const auto lim = static_cast<std::uint32_t>(params::ParamId::LimGain);
@@ -719,9 +732,29 @@ std::string OmnisController::pollAutomation() {
                 }
             } else {
                 pursuitStable_ = 0;
-                const double gain = std::clamp(plainOf(lim) + std::clamp(0.6 * err, -1.5, 1.5), 0.0, 24.0);
+                // Garde-fou : le gain de mastering total (clip + limiteur) du NIVEAU choisi.
+                const auto level = static_cast<params::LoudnessLevel>(
+                    std::clamp(static_cast<int>(std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::LoudnessLevel)))), 0, 4));
+                const double clip = plainOf(static_cast<std::uint32_t>(params::ParamId::ClipDrive));
+                // La marge de crête de la prod entendue : ce gain-là ne compresse rien.
+                const double ceiling = plainOf(static_cast<std::uint32_t>(params::ParamId::LimCeiling));
+                const auto heard = feed_->prod.snapshot().signature;
+                const double peak = std::max({heardPeakDb_, heard.truePeakDb, heard.music.valid ? heard.music.samplePeakDb : -200.0});
+                const double headroom = peak > -100.0 ? std::max(0.0, ceiling - peak) : 0.0;
+                const double allowed = std::max(0.0, headroom + params::masteringGainCapDb(level) - clip);
+                const double wanted = std::clamp(plainOf(lim) + std::clamp(0.6 * err, -1.5, 1.5), 0.0, 24.0);
+                const double gain = std::min(wanted, std::max(allowed, std::min(plainOf(lim), wanted)));
                 if (const auto* spec = params::findParameter(lim)) editParameter(lim, params::toNormalized(*spec, gain));
-                if (++pursuitSteps_ > 40 || (gain >= 24.0 && err > 0.0)) {
+                if (err > 0.0 && gain >= allowed - 1e-6 && wanted > gain + 1e-6) {
+                    pursuing_ = false;
+                    char b[320];
+                    std::snprintf(b, sizeof b,
+                                  i18n::tr("Volume arrêté à %.1f LUFS : au-delà, ta prod s'écraserait (passages calmes remontés, bas-médium gonflé). "
+                                           "Pour aller plus fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), "
+                                           "ou choisis un NIVEAU plus fort.").c_str(),
+                                  st);
+                    message = b;
+                } else if (++pursuitSteps_ > 40) {
                     pursuing_ = false;
                     message = "Volume : le limiteur est au maximum raisonnable ; pousse l'entrée ou le clip si tu veux plus fort.";
                 }

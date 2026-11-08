@@ -120,8 +120,21 @@ sans limiteur ni clipper avant OMNIS) : il a besoin de cette place pour bien tra
    - vers la **référence** choisie dans le menu RÉF ;
    - sinon vers le **style** que tu as écrit (« genre rage ») ;
    - sinon vers la moyenne de toutes les références.
-4. Il amène ensuite le volume à la bonne sonie, **par la mesure** : il pousse le limiteur pas à
-   pas en écoutant la sortie.
+4. Il amène ensuite le volume au **NIVEAU** choisi (colonne de droite), **par la mesure** : il
+   pousse le limiteur pas à pas en écoutant la sortie.
+
+| NIVEAU | Sonie visée (passage fort) | Pour |
+|---|---|---|
+| Streaming | −14 LUFS | Spotify, YouTube, Deezer : rien n'est baissé par la plateforme |
+| **Équilibré** (défaut) | −11 LUFS | fort mais vivant : le contraste couplet / refrain reste |
+| Fort | −9 LUFS | prod dense, déjà compressée dans le projet |
+| Très fort | −7 LUFS | rage, hard clipping : écrêtage assumé |
+| Style | celle du style ou de la référence choisie | suivre une référence |
+
+**Le garde-fou** : OMNIS ne compresse jamais plus que ce que le niveau permet. Si ta prod est très
+dynamique, il s'arrête avant de l'écraser et te le dit (« Volume arrêté à … »). Pour aller plus
+fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), puis relance AUTO.
+Changer le NIVEAU pendant la lecture y ramène le volume.
 
 Tout reste réglable après. AUTO est volontairement discret : il respecte un son déjà travaillé.
 

@@ -509,3 +509,19 @@ Match EQ > DYN : 4 bandes qui n'agissent que quand un son sort du lot	Match EQ >
 Plage < 0 : retient · > 0 : fait ressortir · seuil : dB au-dessus de l'habitude.	Range < 0: holds back · > 0: lifts · threshold: dB above the usual level.
 Écris « ça siffle » dans la barre IA : OMNIS en allume une.	Type "it's sibilant" in the AI bar: OMNIS turns one on.
 Manuel	Manual
+NIVEAU	LEVEL
+Style	Style
+Streaming -14	Streaming -14
+Équilibré -11	Balanced -11
+Fort -9	Loud -9
+Très fort -7	Very loud -7
+NIVEAU : celui du style ou de la référence choisie.	LEVEL: the one of the style or of the chosen reference.
+ LUFS ; le volume y est mené pendant la lecture.	 LUFS; the level is brought there during playback.
+NIVEAU : 	LEVEL: 
+PROD ET EXPORT	TRACK AND EXPORT
+VÉRIFIER L'EXPORT	CHECK EXPORT
+punch, densité du niveau choisi ; plafond -1 dBTP	punch, density of the chosen level; ceiling -1 dBTP
+ (la réf est à %.1f : choisis un NIVEAU plus fort pour la suivre)	 (the ref is at %.1f: pick a louder LEVEL to follow it)
+la réf est plus dense (%.1f dB d'attaque en moins) : dis « plus dense » pour la suivre	the ref is denser (%.1f dB less attack): say "denser" to follow it
+la réf %.0f : contraste gardé (dis « plus dense » pour le réduire)	the ref %.0f: contrast kept (say "denser" to reduce it)
+Volume arrêté à %.1f LUFS : au-delà, ta prod s'écraserait (passages calmes remontés, bas-médium gonflé). Pour aller plus fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), ou choisis un NIVEAU plus fort.	Level stopped at %.1f LUFS: beyond that, your track would be crushed (quiet parts pushed up, low-mids swollen). To go louder, make it denser in your project (808 and kick compressed or saturated), or pick a louder LEVEL.

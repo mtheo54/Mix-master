@@ -134,6 +134,7 @@ int main(int argc, char** argv) {
     std::map<ParamId, double> settings;
     for (const auto& spec : params::allParameters())
         if (params::isPersistent(spec)) settings[spec.id] = spec.defaultValue;
+    for (const auto& [id, v] : forced) settings[id] = v; // l'état de départ (ex. --set level=3)
     const auto current = [&](ParamId id) { const auto it = settings.find(id); return it == settings.end() ? 0.0 : it->second; };
     const auto plan = ai::planAuto(signature, ai::ReferenceLibrary::builtin(), style, current);
     for (const auto& line : plan.said) std::printf("  %s\n", line.c_str());
@@ -151,7 +152,16 @@ int main(int argc, char** argv) {
         for (int step = 0; step < 8; ++step) {
             const double err = *plan.targetLufs - lufs(out, from, count);
             if (std::fabs(err) < 0.4) break;
-            settings[ParamId::LimGain] = std::clamp(settings[ParamId::LimGain] + err, 0.0, 24.0);
+            // Garde-fou du plug-in : gain de mastering total (clip + limiteur) du NIVEAU.
+            const auto level = static_cast<params::LoudnessLevel>(std::clamp(static_cast<int>(std::lround(settings[ParamId::LoudnessLevel])), 0, 4));
+            const double headroom = std::max(0.0, settings[ParamId::LimCeiling] - signature.truePeakDb); // gain qui ne compresse rien
+            const double allowed = std::max(0.0, headroom + params::masteringGainCapDb(level) - settings[ParamId::ClipDrive]);
+            const double next = std::clamp(settings[ParamId::LimGain] + err, 0.0, std::max(allowed, 0.0));
+            if (std::fabs(next - settings[ParamId::LimGain]) < 1e-6) {
+                std::printf("garde-fou : compression plafonnée à %.1f dB au-delà de %.1f dB de marge de crête\n", params::masteringGainCapDb(level), headroom);
+                break;
+            }
+            settings[ParamId::LimGain] = next;
             out = render(input, settings);
         }
         std::printf("volume : cible %.1f LUFS, limiteur +%.1f dB, passage écouté %.1f LUFS\n", *plan.targetLufs, settings[ParamId::LimGain], lufs(out, from, count));

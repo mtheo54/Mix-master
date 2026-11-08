@@ -12,7 +12,7 @@
 
 ## source/ai/
 
-- `ConsoleActions.h/cpp` (382 l.) — Ce que la barre IA et le bouton AUTO font dans la console : une demande comprise (ai::understandRequest) et ce qu'OMNIS a entendu de la prod deviennent des réglages des modules, et une sonie à · types : ConsolePlan · fonctions : planRequest, planAuto, planReference, glueSettings, glueOf
+- `ConsoleActions.h/cpp` (399 l.) — Ce que la barre IA et le bouton AUTO font dans la console : une demande comprise (ai::understandRequest) et ce qu'OMNIS a entendu de la prod deviennent des réglages des modules, et une sonie à · types : ConsolePlan · fonctions : planRequest, planAuto, planReference, glueSettings, glueOf
 - `DynamicsIntent.h/cpp` (176 l.) — Tenir la prod dans le temps comme la référence. · types : BandDynamics, DynamicsIntent · fonctions : planDynamics, dynamicsSettings, mbBandName
 - `EmbeddedData.h` (25 l.) — Données livrées dans le binaire (générées depuis data/). · fonctions : lexicon, slang, references, catalogue, i18n, styles, classement
 - `Feedback.h/cpp` (512 l.) — Apprendre de chaque séance, chez soi puis pour tout le monde. · types : FeedbackRecord, LearningReport, CommunityRules · fonctions : serializeFeedback, parseFeedback, appendFeedback, loadFeedback, correctionFromCurves, parseCorrection, learnFromFeedback, exportAggregate, mergeAggregates
@@ -83,12 +83,12 @@
 
 ## source/params/
 
-- `Parameters.h/cpp` (662 l.) — Table unique des paramètres (DSP, VST3, outils, IA). · types : ParamSpec · enums : ParamId, ParamKind, ParamScale, DynControl, DynChannel, MbControl, MonitorMode, MonoSlope, PhaseMode, Module · fonctions : matchBandHz, matchMidId, matchSideId, dynId, mbId, allParameters, findParameter, findParameterByKey, parameterIndex, toPlain, toNormalized, clampPlain, isPersistent, moduleOnId
+- `Parameters.h/cpp` (681 l.) — Table unique des paramètres (DSP, VST3, outils, IA). · types : ParamSpec · enums : ParamId, ParamKind, ParamScale, DynControl, DynChannel, MbControl, MonitorMode, LoudnessLevel, MonoSlope, PhaseMode, Module · fonctions : matchBandHz, matchMidId, matchSideId, dynId, mbId, loudnessLevelLufs, masteringGainCapDb, allParameters, findParameter, findParameterByKey, parameterIndex, toPlain, toNormalized, clampPlain
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (1061 l.) — Contrôleur d'édition VST3 (thread UI). · types : OmnisController : Steinberg::Vst::EditController, ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, UndoStep · enums : RefKind · fonctions : createInstance, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, restartTutorial, pollAutomation, setPromoMode, importReferenceFile, setOnlineRecognition
-- `OmnisEditor.h/cpp` (2573 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens, buildMaster, page
+- `OmnisController.h/cpp` (1096 l.) — Contrôleur d'édition VST3 (thread UI). · types : OmnisController : Steinberg::Vst::EditController, ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, UndoStep · enums : RefKind · fonctions : createInstance, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, restartTutorial, pollAutomation, setPromoMode, importReferenceFile, setOnlineRecognition
+- `OmnisEditor.h/cpp` (2579 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens, buildMaster, page
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (25 l.) — Identifiants de classes VST3.
 - `OmnisProcessor.h/cpp` (736 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, passThrough, feedBlock, publishFeed
@@ -136,7 +136,7 @@
 - `TestMatchIntent.cpp` (268 l.) — Signature, intention d'adaptation, demande. · 11 tests : signature: bruit rose = balance plate (±0.6 dB de 28 Hz à 14 kHz) ; signature: le Match EQ appliqué se retrouve dans la signature (pente + ; signature: une autre note de 808 (41 vs 49 Hz) ne déclenche pas d'EQ ( ; signature: les silences ne comptent pas (moitié muette = même balance) ; intention: écart partiel, sub protégé (±3 dB), bande vide jamais boost ; intention: jamais de copie (ressemblance bornée à 85 %) ; …
 - `TestMixDiagnosis.cpp` (71 l.) — Le diagnostic du mix voit ce que le master ne rattrape pas, et ne fait de la 808 hors gamme qu'une remarque. · 2 tests : diagnostic: un mix qui écrête déjà, un grave en opposition de phase ; diagnostic: une 808 hors gamme n'est qu'une remarque (parfois voulue)
 - `TestMultiband.cpp` (138 l.) — Dynamique multibande. · 5 tests : multibande: réglages neutres = retard pur (null-test < 1e-12) ; multibande: compensation d'une bande = sa réponse Linkwitz-Riley (±0.0 ; multibande: courbe statique (30 Hz à -10 dBFS RMS, seuil -20, ratio 4  ; multibande: 808 tenue proprement (harmoniques < -50 dB) et voix intact ; multibande: anticipation — un coup de 808 ne dépasse pas sa valeur ten
-- `TestMusic.cpp` (210 l.) — La fiche complète d'un son (analysis/MusicDescriptors) : ce qu'elle mesure, comment elle s'écrit dans la base, ce qu'OMNIS en fait. · 5 tests : fiche: tempo, note de la 808, tonalité et stéréo d'une boucle trap ; fiche: deux canaux sans rapport = corrélation nulle, perte en mono ; u ; fiche: écrite dans la base puis relue à l'identique (et une fiche anci ; fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch, un g ; fiche: pompe calée sur le tempo — une nappe en sidechain se voit, la m
+- `TestMusic.cpp` (243 l.) — La fiche complète d'un son (analysis/MusicDescriptors) : ce qu'elle mesure, comment elle s'écrit dans la base, ce qu'OMNIS en fait. · 6 tests : fiche: tempo, note de la 808, tonalité et stéréo d'une boucle trap ; fiche: deux canaux sans rapport = corrélation nulle, perte en mono ; u ; fiche: écrite dans la base puis relue à l'identique (et une fiche anci ; fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch, un g ; niveau: AUTO vise le NIVEAU choisi (Streaming -14, Équilibré -11, Fort ; fiche: pompe calée sur le tempo — une nappe en sidechain se voit, la m
 - `TestOversampling.cpp` (149 l.) — Demi-bandes HIIR et cascade 2x … 16x. · 6 tests : halfband: 120 dB / tw 0.02 -> 12 coefficients, coefficients dans ]0, 1 ; oversampling: aller-retour plat à ±0.001 dB jusqu'à 20 kHz (2x … 16x) ; oversampling: images rejetées à > 115 dB après la montée 8x ; oversampling: contenu ultrasonore rejeté à > 115 dB à la descente (ant ; oversampling: retard de phase à 1 kHz faible (< 8 échantillons) et 1x  ; halfband: traitement par bloc identique au bit près au traitement écha
 - `TestParameters.cpp` (93 l.) — Table de paramètres. · 6 tests : params: identifiants et clés uniques, défauts dans les bornes ; params: aller-retour normalisé <-> plain ; params: convention VST3 des valeurs discrètes ; params: formatage et saisie texte ; params: indépendant de la locale de l'hôte (virgule décimale) ; params: échelle logarithmique des fréquences
 - `TestPluginAi.cpp` (453 l.) — La barre IA et AUTO dans le plug-in : le vrai processeur écoute la prod, le vrai contrôleur comprend la demande, règle les modules et mène le volume à la cible par la mesure. · 12 tests : plug-in barre IA: « plus de punch, plus fort, garde ma 808 » règle les ; plug-in AUTO: écoute 10 s du passage joué, règle la chaîne vers le sty ; plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un titre ; plug-in mode promo: « /fbi » bascule les monogrammes, gardé dans le do ; plug-in: « remets tout à zéro » ramène chaque réglage à son départ ; plug-in: « tuto », « aide », « comment ça marche » rouvrent le guide ; ; …
@@ -162,7 +162,7 @@
 
 ## tools/auto/
 
-- `main.cpp` (166 l.) — AUTO du plug-in, hors ligne, sur un fichier.
+- `main.cpp` (176 l.) — AUTO du plug-in, hors ligne, sur un fichier.
 
 ## tools/codemap/
 

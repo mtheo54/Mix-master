@@ -181,6 +181,8 @@ private:
     bool autoRunning_ = false;
     double loudTarget_ = 0.0;
     bool pursuing_ = false;
+    bool levelChanged_ = false; ///< NIVEAU changé : le volume y est mené une fois
+    double heardPeakDb_ = -200.0; ///< crête de la prod au passage écouté par AUTO (garde-fou du volume)
     int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
     std::string runRequest(const std::string& text);
     void applyPlan(const std::vector<std::pair<std::uint32_t, double>>& settings);

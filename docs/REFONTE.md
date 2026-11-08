@@ -125,7 +125,7 @@ mixage « bascule », pas à chaque fois.
 |---|---|---|
 | 0 ✅ | **Reproduire** et mesurer les causes (`omnis_auto`). | causes chiffrées |
 | 1 | **Mastering seul** : retirer instances liées, stems, chef d'orchestre, pages et réglages du mixage. | tests, validateur, CI verts |
-| 2 | **Règles du son** dans le moteur actuel : NIVEAU au choix, AUTO qui répartit clip / limiteur selon le contraste à garder. | critères §6 sur les prods de l'utilisateur |
+| 2 ✅ | **Règles du son** : NIVEAU au choix (Streaming −14 · Équilibré −11 · Fort −9 · Très fort −7 · Style), densité (clip, Inflator) liée au niveau, **garde-fou** (compression permise au-delà de la marge de crête : 4 · 6 · 8 · 10 dB), AUTO à 35 % de l'écart au profil (sub ±1,5 dB). Sur « à la millanaise 2 », Équilibré : LRA 10,6 LU (72 %), limiteur +3,1 dB ; Fort : arrêté à −10,3 LUFS au lieu d'écraser (LRA 3,3 → 7,8). | critères §6 sur les prods de l'utilisateur |
 | 3 | **AUTO précis** : morceau entier ou fichier glissé, parties, essais multiples notés. | critères §6 |
 | 4 | **Rack modulaire** à caractères (compresseurs, saturations, EQ, imagers…). | chaque caractère testé (réponse, distorsion, null-test neutre) |
 | 5 | **Apprentissage** : journal, réseau local, tests ; export anonyme prêt pour le serveur. | tests, base relue à l'identique |
