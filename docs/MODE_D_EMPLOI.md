@@ -138,6 +138,13 @@ sans limiteur ni clipper avant OMNIS) : il a besoin de cette place pour bien tra
 | Très fort | −7 LUFS | rage, hard clipping : écrêtage assumé |
 | Style | celle du style ou de la référence choisie | suivre une référence |
 
+**Le style de ta prod.** Si tu n'as nommé aucun style ni choisi de référence, AUTO **reconnaît le
+style à l'écoute** (trap, drill, rage, plugg / new wave, boom bap, mélodique / pop, électro, rock,
+hyperpop, B.O.) et le dit : « J'entends : trap (64 %) », ou, s'il hésite, ses trois candidats. Il
+vise le premier. Écris le bon style (« c'est de la drill ») : **il s'en souvient** et reconnaît
+mieux tes prochaines prods (mémoire sur ton poste, des mesures seulement). Demande « c'est quel
+style ? » à tout moment.
+
 **Le garde-fou** : OMNIS ne compresse jamais plus que ce que le niveau permet. Si ta prod est très
 dynamique, il s'arrête avant de l'écraser et te le dit (« Volume arrêté à … »). Pour aller plus
 fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), puis relance AUTO.

@@ -15,6 +15,8 @@
 #include "WavFile.h"
 
 #include "ai/ConsoleActions.h"
+#include "ai/EmbeddedData.h"
+#include "ai/StyleRecognizer.h"
 #include "ai/ReferenceLibrary.h"
 #include "analysis/LoudnessMeter.h"
 #include "analysis/MusicDescriptors.h"
@@ -138,6 +140,14 @@ int main(int argc, char** argv) {
         if (params::isPersistent(spec)) settings[spec.id] = spec.defaultValue;
     for (const auto& [id, v] : forced) settings[id] = v; // l'état de départ (ex. --set level=3)
     const auto current = [&](ParamId id) { const auto it = settings.find(id); return it == settings.end() ? 0.0 : it->second; };
+    // Le style reconnu à l'écoute (comme le plug-in quand aucun style n'est nommé).
+    {
+        const auto groups = ai::parseStyleStats(std::string(ai::data::groupes()));
+        const bool styleGiven = !style.empty();
+        const auto rec = ai::recognizeGroup(signature, groups);
+        std::printf("reconnaissance : %s\n", ai::describeRecognition(rec).c_str());
+        if (!styleGiven && !rec.empty()) style = ai::styleForGroup(rec.ranked.front().style);
+    }
     const auto plan = ai::planAuto(signature, ai::ReferenceLibrary::builtin(), style, current);
     for (const auto& line : plan.said) std::printf("  %s\n", line.c_str());
     std::puts("réglages :");

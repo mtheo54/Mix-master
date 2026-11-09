@@ -19,6 +19,7 @@ std::string_view references() noexcept;
 std::string_view catalogue() noexcept; ///< artistes et titres connus de nom (data/catalogue.txt)
 std::string_view i18n() noexcept;
 std::string_view styles() noexcept;     ///< sous-genres précis des artistes (data/styles_artistes.txt)
+std::string_view groupes() noexcept;    ///< groupes sonores : moyenne et dispersion (data/groupes_sonores.txt)
 std::string_view classement() noexcept; ///< familles des playlists -> mots de genre (data/genres_classement.txt)      ///< traduction anglaise de l'interface (data/i18n_en.txt)
 
 } // namespace omnis::ai::data

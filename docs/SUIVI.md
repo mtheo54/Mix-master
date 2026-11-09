@@ -56,6 +56,16 @@
 
 ## Fait récemment
 
+- **09/11 — Reconnaissance du style à l'écoute** (`ai/StyleRecognizer`, `data/groupes_sonores.txt`
+  via `omnis_refdb groupes`). 10 groupes sonores (trap, drill, rage, plugg / new wave, boom bap,
+  mélodique / pop, rock, électro, hyperpop, B.O.) ; moyenne et dispersion par groupe (agrégées,
+  aucune fiche de titre). Mesuré honnêtement (`omnis_refdb style-eval --groupes`, validation
+  croisée en 5 plis par artiste) : bon groupe en tête 34 %, dans les 3 premiers 75 % (10 groupes ;
+  le plus gros fait 29 %) ; probabilités calibrées (« 34 % » juste une fois sur trois). Limite : la
+  base = morceaux masterisés avec voix, pas des instrumentales ; sur les prods de l'utilisateur,
+  biais vers « rage ». D'où la **mémoire personnelle** (`styles_appris.txt`) : nommer le style
+  d'une prod l'apprend ; elle pèse jusqu'à 80 %. AUTO reconnaît quand aucun style n'est nommé,
+  « c'est quel style ? » répond. Tests : 4 unitaires, 2 plug-in.
 - **09/11 — Limiteur : « ça compresse trop »** (retour de l'utilisateur). Cause mesurée sur « à la
   millanaise 2 » : AUTO mettait le **Punch** à 32 % (base 15 % + écart d'attaque avec la réf) ; il
   remonte chaque attaque, que le limiteur réécrase. Sans lui, à volume égal (−11 LUFS) :

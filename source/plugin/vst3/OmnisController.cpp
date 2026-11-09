@@ -13,6 +13,7 @@
 #include "ai/GenreProfiles.h"
 #include "ai/EmbeddedData.h"
 #include "ai/MixDiagnosis.h"
+#include "ai/StyleRecognizer.h"
 #include "ai/TextMatch.h"
 #include "import/ReferenceImport.h"
 #include "AudioRead.h"
@@ -45,6 +46,24 @@
 #include <string_view>
 
 namespace omnis::vst3 {
+
+namespace {
+
+// Groupes sonores livrés (moyenne et dispersion par groupe, data/groupes_sonores.txt).
+const ai::StyleStats& soundGroups() {
+    static const ai::StyleStats stats = ai::parseStyleStats(std::string(ai::data::groupes()));
+    return stats;
+}
+std::filesystem::path styleMemoryPath() { return userDataDir() / "styles_appris.txt"; }
+std::vector<ai::StyleExample> loadStyleMemory() {
+    std::ifstream in(styleMemoryPath(), std::ios::binary);
+    if (!in) return {};
+    std::ostringstream text;
+    text << in.rdbuf();
+    return ai::parseStyleExamples(text.str());
+}
+
+} // namespace
 
 namespace {
 /// Format traduit avant d'être rempli (anglais).
@@ -401,14 +420,36 @@ std::string OmnisController::ask(const std::string& request) {
     if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
     // Un style nommé sert aussi à AUTO.
     const auto lib = libraryWithUser();
+    std::string named;
     for (const auto& g : lib.genres())
-        if (ai::namesMatch(request, g) || request.find(g) != std::string::npos) autoStyle_ = g;
+        if (ai::namesMatch(request, g) || request.find(g) != std::string::npos) named = g;
+    if (!named.empty()) {
+        autoStyle_ = named;
+        styleNamed_ = true;
+    }
+    // « c'est quel style ? » : ce qu'OMNIS reconnaît dans la prod entendue.
+    {
+        const std::string plain = ai::normalizeText(request);
+        static constexpr std::string_view kWhich[] = {"quel style", "quel genre", "c est quoi le style", "c est quel style", "reconnais le style",
+                                                      "what style", "which style", "what genre"};
+        for (const auto phrase : kWhich)
+            if (plain.find(phrase) != std::string::npos) {
+                const auto heard = feed_->prod.snapshot();
+                if (heard.seconds < 8.0) return "Lance la lecture : je reconnais le style après quelques secondes d'écoute.";
+                return recognizeHeard(heard.signature, nullptr);
+            }
+    }
     const auto snap = feed_->prod.snapshot();
     if (snap.seconds < 8.0) {
         pendingAsk_ = request;
         return "Lance la lecture : OMNIS écoute ta prod quelques secondes, puis applique ta demande.";
     }
-    return runRequest(request);
+    std::string answer = runRequest(request);
+    // Un style nommé sur une prod entendue : OMNIS s'en souvient pour les prochaines.
+    if (!named.empty()) {
+        if (const std::string note = learnStyle(named); !note.empty()) answer += " " + note;
+    }
+    return answer;
 }
 
 std::vector<std::string> OmnisController::exportProblems() {
@@ -805,8 +846,14 @@ std::string OmnisController::applyAuto(const analysis::SpectralSignature& loud, 
     heardPeakDb_ = std::max(loud.truePeakDb, loud.music.valid ? loud.music.samplePeakDb : -200.0); // crête du morceau écouté
     const auto lib = libraryWithUser();
     const auto current = [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); };
-    // La référence choisie au menu passe avant le style deviné des mots.
+    // La référence choisie au menu passe avant tout ; puis le style nommé ; sinon OMNIS le reconnaît.
     const auto chosen = referenceEntries(lib, refKind_, refName_);
+    std::string recognition;
+    if (chosen.empty() && !styleNamed_) {
+        std::string style;
+        recognition = recognizeHeard(loud, &style);
+        if (!style.empty()) autoStyle_ = style;
+    }
     const auto plan = chosen.empty() ? ai::planAuto(loud, lib, autoStyle_, current) : ai::planAuto(loud, chosen, refName_, current);
     std::vector<std::pair<std::uint32_t, double>> settings;
     for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
@@ -821,7 +868,36 @@ std::string OmnisController::applyAuto(const analysis::SpectralSignature& loud, 
         pursuing_ = !search;
         if (search) startAutoSearch(std::move(excerpt), sr, *plan.targetLufs);
     }
-    return joined(plan.said, " · ") + (search ? ". Essais clip / limiteur en cours…" : ". Tout reste réglable à la main. (« annule » pour revenir en arrière)");
+    return (recognition.empty() ? std::string() : recognition + " ") + joined(plan.said, " · ") +
+           (search ? ". Essais clip / limiteur en cours…" : ". Tout reste réglable à la main. (« annule » pour revenir en arrière)");
+}
+
+std::string OmnisController::recognizeHeard(const analysis::SpectralSignature& heard, std::string* style) {
+    const auto memory = loadStyleMemory();
+    const auto rec = ai::recognizeGroup(heard, soundGroups(), {}, &memory);
+    if (rec.empty()) return {};
+    if (style) *style = ai::styleForGroup(rec.ranked.front().style);
+    std::string text = ai::describeRecognition(rec);
+    if (style && !rec.confident) text += " " + i18n::tr("Je vise le premier ; écris le style si je me trompe, je m'en souviendrai.");
+    return text;
+}
+
+std::string OmnisController::learnStyle(const std::string& genre) {
+    const auto heard = feed_ ? feed_->prod.snapshot() : ProdListener::Snapshot{};
+    if (heard.seconds < 8.0) return {};
+    std::string group = ai::sonicGroup("", genre);
+    if (group.empty()) group = ai::sonicGroup(genre, "");
+    if (group.empty()) group = genre; // un style que seule la personne nomme
+    auto memory = loadStyleMemory();
+    memory.push_back({group, ai::styleFeatures(heard.signature)});
+    if (memory.size() > 400) memory.erase(memory.begin(), memory.begin() + static_cast<std::ptrdiff_t>(memory.size() - 400));
+    std::error_code ec;
+    std::filesystem::create_directories(styleMemoryPath().parent_path(), ec);
+    std::ofstream(styleMemoryPath(), std::ios::binary) << ai::serializeStyleExamples(memory);
+    char b[200];
+    std::snprintf(b, sizeof b, i18n::tr("Noté : cette prod, c'est %s. Je m'en souviendrai pour reconnaître les suivantes (%d exemple(s)).").c_str(),
+                  i18n::tr(group).c_str(), static_cast<int>(memory.size()));
+    return b;
 }
 
 std::string OmnisController::autoFromFile(const std::string& utf8Path) {

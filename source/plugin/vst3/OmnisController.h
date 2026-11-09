@@ -219,6 +219,11 @@ private:
     bool pursuing_ = false;
     bool levelChanged_ = false; ///< NIVEAU changé : le volume y est mené une fois
     double heardPeakDb_ = -200.0; ///< crête de la prod au passage écouté par AUTO (garde-fou du volume)
+    // Reconnaissance du style : AUTO la fait quand aucun style n'est nommé ; un style nommé
+    // apprend la prod entendue (mémoire personnelle, styles_appris.txt sur le poste).
+    bool styleNamed_ = false;
+    std::string recognizeHeard(const analysis::SpectralSignature& heard, std::string* style);
+    std::string learnStyle(const std::string& genre);
     int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
     static constexpr int kPursuitSettleTicks = 130; ///< ~4 s de minuterie (30 Hz) : la mesure suit le réglage
     std::string runRequest(const std::string& text);

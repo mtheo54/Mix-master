@@ -39,6 +39,7 @@
 // =============================================================================
 #include "ai/EmbeddedData.h"
 #include "ai/GenreProfiles.h"
+#include "ai/StyleRecognizer.h"
 #include "import/ReferenceImport.h"
 #include <sstream>
 #include "AudioRead.h"
@@ -290,6 +291,9 @@ int main(int argc, char** argv) {
                   "  omnis_refdb embleme image.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png] | embleme --db base.txt   (illustrations OMNIS)\n"
                   "  (illustrations : --style embleme|hd|peint, embleme par défaut ; --refaire redessine le cache)\n"
                   "  omnis_refdb profils data/references.txt --sortie data/profils_genres.txt [--min 3] [--rapport classement.csv]\n"
+                  "  omnis_refdb groupes data/references.txt --sortie data/groupes_sonores.txt   (groupes sonores livrés)\n"
+                  "  omnis_refdb style-eval data/references.txt [--poids forme,largeur,brillance,coups,micro,temperature] [--grille]\n"
+                  "     (reconnaissance du style : validation croisée en 5 plis par artiste, les profils refaits sans l'artiste testé)\n"
                   "     (profils de genre livrés : moyennes par famille et sous-genre, aucune fiche de titre)\n"
                   "  omnis_refdb list [--db base.txt]\n"
                   "  omnis_refdb find \"requête\" [--db base.txt]");
@@ -312,6 +316,195 @@ int main(int argc, char** argv) {
         } else if (a == "--refaire") gRedo = true;
         else if ((a == "--classes" || a == "--titres" || a == "--artistes" || a == "--sortie" || a == "--forme" || a == "--formes" || a == "--id" || a == "--photo" || a == "--cache" || a == "--proches" || a == "--retirer" || a == "--min" || a == "--rapport") && i + 1 < argc) ++i;
         else if (input.empty()) input = a;
+    }
+
+    if (command == "groupes") {
+        // Les statistiques des groupes sonores livrées (moyenne et dispersion sur tous les titres
+        // de chaque groupe ; aucune fiche de titre) : data/groupes_sonores.txt.
+        std::string out, text;
+        for (int i = 2; i + 1 < argc; ++i)
+            if (std::string(argv[i]) == "--sortie") out = argv[i + 1];
+        if (input.empty() || out.empty() || !readTextFile(input, text)) {
+            std::fputs("groupes : la base des titres (data/references.txt) et --sortie requis\n", stderr);
+            return 1;
+        }
+        ai::ReferenceLibrary raw;
+        raw.parse(text);
+        ai::ReferenceLibrary names;
+        names.parse(ai::data::catalogue());
+        std::vector<const ai::ReferenceEntry*> entries;
+        std::map<std::string, const ai::ReferenceEntry*> byKey;
+        for (const auto& e : raw.entries())
+            if (e.measured && !e.isProfile() && !e.title.empty()) {
+                entries.push_back(&e);
+                byKey[e.artist + "\x1f" + e.title] = &e;
+            }
+        const auto set = ai::buildGenreProfiles(entries, 3, &names);
+        std::vector<std::pair<const ai::ReferenceEntry*, std::string>> grouped;
+        for (const auto& a : set.assignments)
+            if (const auto g = ai::sonicGroup(a.family, a.style); !g.empty()) grouped.push_back({byKey[a.artist + "\x1f" + a.title], g});
+        const auto stats = ai::buildStyleStats(entries, grouped);
+        if (!writeTextFile(out, ai::serializeStyleStats(stats))) return 1;
+        for (const auto& [g, st] : stats) std::printf("  %-22s %3d titres\n", g.c_str(), st.titles);
+        std::printf("%zu groupes sonores -> %s\n", stats.size(), out.c_str());
+        return 0;
+    }
+
+    if (command == "style-eval") {
+        std::string text;
+        if (input.empty() || !readTextFile(input, text)) {
+            std::fputs("style-eval : la base des titres (data/references.txt) requise\n", stderr);
+            return 1;
+        }
+        ai::StyleWeights weights;
+        bool grid = false;
+        for (int i = 2; i < argc; ++i) {
+            const std::string a = argv[i];
+            if (a == "--grille") grid = true;
+            if (a == "--poids" && i + 1 < argc) {
+                double v[7] = {weights.shape, weights.width, weights.brightness, weights.onsets, weights.micro, weights.tempo, weights.temperature};
+                std::sscanf(argv[i + 1], "%lf,%lf,%lf,%lf,%lf,%lf,%lf", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6]);
+                weights = {v[0], v[1], v[2], v[3], v[4], v[5], v[6]};
+            }
+        }
+        ai::ReferenceLibrary raw;
+        raw.parse(text);
+        ai::ReferenceLibrary names;
+        names.parse(ai::data::catalogue());
+        std::vector<const ai::ReferenceEntry*> entries;
+        for (const auto& e : raw.entries())
+            if (e.measured && !e.isProfile() && !e.title.empty()) entries.push_back(&e);
+        // La vérité : le rangement de chaque titre par la base complète.
+        const auto full = ai::buildGenreProfiles(entries, 3, &names);
+        std::map<std::string, std::pair<std::string, std::string>> truth;
+        for (const auto& a : full.assignments) truth[a.artist + "\x1f" + a.title] = {a.family, a.style};
+        // 5 plis par artiste : un artiste n'est jamais à la fois appris et testé.
+        constexpr int kFolds = 5;
+        const auto foldOf = [](const std::string& artist) {
+            std::uint32_t h = 2166136261u;
+            for (unsigned char c : ai::artistKey(artist)) h = (h ^ c) * 16777619u;
+            return static_cast<int>(h % kFolds);
+        };
+        std::vector<ai::GenreProfileSet> sets(kFolds);
+        std::vector<ai::StyleStats> statsOf(kFolds), groupsOf(kFolds);
+        std::map<std::string, const ai::ReferenceEntry*> byKey;
+        for (const auto* e : entries) byKey[e->artist + "\x1f" + e->title] = e;
+        for (int f = 0; f < kFolds; ++f) {
+            std::vector<const ai::ReferenceEntry*> train;
+            for (const auto* e : entries)
+                if (foldOf(e->artist) != f) train.push_back(e);
+            auto& set = sets[static_cast<std::size_t>(f)];
+            set = ai::buildGenreProfiles(train, 3, &names);
+            // Statistiques : chaque titre appris dans son sous-genre ET dans sa famille.
+            std::vector<std::pair<const ai::ReferenceEntry*, std::string>> pairs;
+            for (const auto& a : set.assignments) {
+                const auto* e = byKey[a.artist + "\x1f" + a.title];
+                pairs.push_back({e, a.family});
+                if (!a.style.empty()) pairs.push_back({e, a.family + " › " + a.style});
+            }
+            statsOf[static_cast<std::size_t>(f)] = ai::buildStyleStats(train, pairs);
+            std::vector<std::pair<const ai::ReferenceEntry*, std::string>> grouped;
+            for (const auto& a : set.assignments)
+                if (const auto g = ai::sonicGroup(a.family, a.style); !g.empty()) grouped.push_back({byKey[a.artist + "\x1f" + a.title], g});
+            groupsOf[static_cast<std::size_t>(f)] = ai::buildStyleStats(train, grouped);
+        }
+        const bool useStats = std::find_if(argv + 2, argv + argc, [](const char* a) { return std::string(a) == "--centres"; }) == argv + argc;
+        const bool byGroup = std::find_if(argv + 2, argv + argc, [](const char* a) { return std::string(a) == "--groupes"; }) != argv + argc;
+        struct Score {
+            int n = 0, family = 0, label = 0, label3 = 0, majority = 0, gn = 0, group = 0, group3 = 0, sure = 0, sureOk = 0;
+            double p1 = 0.0;
+            double balanced = 0.0;
+        };
+        const auto evaluate = [&](const ai::StyleWeights& w, bool details) {
+            Score sc;
+            std::map<std::string, std::pair<int, int>> perFamily; // juste, total
+            std::map<std::string, int> familyCount, groupCount, groupOk;
+            for (const auto& [k, v] : truth) ++familyCount[v.first];
+            std::string major;
+            int majorN = 0;
+            for (const auto& [f, n] : familyCount)
+                if (n > majorN) major = f, majorN = n;
+            for (const auto* e : entries) {
+                const auto it = truth.find(e->artist + "\x1f" + e->title);
+                if (it == truth.end()) continue;
+                const auto& set = sets[static_cast<std::size_t>(foldOf(e->artist))];
+                std::vector<const ai::ReferenceEntry*> profiles;
+                for (const auto& p : set.profiles) profiles.push_back(&p);
+                const auto rec = ai::recognizeStyle(e->signature, profiles, w, useStats ? &statsOf[static_cast<std::size_t>(foldOf(e->artist))] : nullptr);
+                if (rec.empty()) continue;
+                ++sc.n;
+                const auto& [family, style] = it->second;
+                const bool famOk = rec.ranked[0].family == family;
+                sc.family += famOk ? 1 : 0;
+                sc.majority += family == major ? 1 : 0;
+                auto& pf = perFamily[family];
+                pf.first += famOk ? 1 : 0;
+                ++pf.second;
+                const auto same = [&](const ai::StyleGuess& g) { return g.family == family && g.style == style; };
+                sc.label += same(rec.ranked[0]) ? 1 : 0;
+                bool in3 = false;
+                for (std::size_t r = 0; r < std::min<std::size_t>(3, rec.ranked.size()); ++r) in3 = in3 || same(rec.ranked[r]);
+                sc.label3 += in3 ? 1 : 0;
+                // Groupe sonore (ce qui compte pour le master), sur les titres au groupe connu.
+                const auto g = ai::sonicGroup(family, style);
+                if (!g.empty()) {
+                    ++sc.gn;
+                    std::vector<std::string> seen;
+                    const auto grec = byGroup ? ai::recognizeGroup(e->signature, groupsOf[static_cast<std::size_t>(foldOf(e->artist))], w) : rec;
+                    for (const auto& r : grec.ranked) {
+                        const auto rg = byGroup ? r.style : ai::sonicGroup(r.family, r.style);
+                        if (rg.empty() || std::find(seen.begin(), seen.end(), rg) != seen.end()) continue;
+                        seen.push_back(rg);
+                        if (seen.size() > 3) break;
+                    }
+                    sc.group += !seen.empty() && seen[0] == g ? 1 : 0;
+                    if (!grec.ranked.empty()) sc.p1 += grec.ranked[0].probability;
+                    if (grec.confident) {
+                        ++sc.sure;
+                        sc.sureOk += !seen.empty() && seen[0] == g ? 1 : 0;
+                    }
+                    sc.group3 += std::find(seen.begin(), seen.end(), g) != seen.end() ? 1 : 0;
+                    ++groupCount[g];
+                    if (!seen.empty() && seen[0] == g) ++groupOk[g];
+                }
+            }
+            if (details) {
+                std::printf("groupe sonore (rappel) :\n");
+                for (const auto& [g, n] : groupCount) std::printf("  %-22s %3d / %3d\n", g.c_str(), groupOk[g], n);
+            }
+            for (const auto& [f, v] : perFamily) sc.balanced += static_cast<double>(v.first) / std::max(1, v.second) / static_cast<double>(perFamily.size());
+            if (details) {
+                std::printf("famille par famille (rappel) :\n");
+                for (const auto& [f, v] : perFamily) std::printf("  %-40s %3d / %3d\n", f.c_str(), v.first, v.second);
+            }
+            return sc;
+        };
+        const auto print = [&](const ai::StyleWeights& w, const Score& sc) {
+            const auto pc = [&](int k) { return 100.0 * k / std::max(1, sc.n); };
+            std::printf("poids %.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f : %d titres · famille %.1f %% (équilibrée %.1f %%, « toujours %s » %.1f %%) · style %.1f %% · style dans les 3 premiers %.1f %% · GROUPE %.1f %% (dans les 3 premiers %.1f %%, sur %d) · proba moyenne du 1er %.0f %% · « sûr » %d fois, juste %d\n",
+                        w.shape, w.width, w.brightness, w.onsets, w.micro, w.tempo, w.temperature, sc.n, pc(sc.family), 100.0 * sc.balanced, "rap fr", pc(sc.majority),
+                        pc(sc.label), pc(sc.label3), 100.0 * sc.group / std::max(1, sc.gn), 100.0 * sc.group3 / std::max(1, sc.gn), sc.gn, 100.0 * sc.p1 / std::max(1, sc.gn), sc.sure, sc.sureOk);
+        };
+        if (grid) {
+            ai::StyleWeights best = weights;
+            double bestScore = -1.0;
+            for (double sh : {0.5, 1.0, 1.5})
+                for (double wi : {0.0, 0.4, 0.8})
+                    for (double br : {0.0, 0.5, 1.0})
+                        for (double on : {0.0, 0.5, 1.0})
+                            for (double mi : {0.0, 0.5, 1.0}) {
+                                const ai::StyleWeights w{sh, wi, br, on, mi, weights.tempo, weights.temperature};
+                                const auto sc = evaluate(w, false);
+                                // Le critère : style dans les 3 premiers et famille équilibrée.
+                                const double score = 100.0 * sc.group / std::max(1, sc.gn) + 50.0 * sc.group3 / std::max(1, sc.gn);
+                                if (score > bestScore) bestScore = score, best = w;
+                            }
+            std::printf("meilleur :\n");
+            weights = best;
+        }
+        const auto sc = evaluate(weights, true);
+        print(weights, sc);
+        return 0;
     }
 
     if (command == "profils") {

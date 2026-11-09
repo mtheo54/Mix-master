@@ -567,3 +567,13 @@ Match EQ Analogique (cloches plus larges, aucun pré-écho sur les attaques)	Mat
 Match EQ Propre (phase linéaire, précis)	Match EQ Clean (linear phase, precise)
 la réf attaque plus (+%.1f dB) : dis « plus de punch » pour la suivre	the reference hits harder (+%.1f dB): say “more punch” to follow it
 densité du niveau choisi ; plafond -1 dBTP	density of the chosen level; ceiling -1 dBTP
+Je n'ai pas encore assez écouté pour reconnaître le style.	I haven't listened enough yet to recognise the style.
+J'entends : %s (%d %%).	I hear: %s (%d %%).
+J'hésite : %s (%d %%), %s (%d %%) ou %s (%d %%). Dis-moi le style si tu le sais.	Not sure: %s (%d %%), %s (%d %%) or %s (%d %%). Tell me the style if you know it.
+J'hésite : %s (%d %%). Dis-moi le style si tu le sais.	Not sure: %s (%d %%). Tell me the style if you know it.
+Je vise le premier ; écris le style si je me trompe, je m'en souviendrai.	I'm aiming at the first; type the style if I'm wrong, I'll remember it.
+Noté : cette prod, c'est %s. Je m'en souviendrai pour reconnaître les suivantes (%d exemple(s)).	Noted: this beat is %s. I'll remember it to recognise the next ones (%d example(s)).
+Lance la lecture : je reconnais le style après quelques secondes d'écoute.	Start playback: I recognise the style after a few seconds of listening.
+plugg / new wave	plugg / new wave
+mélodique / pop	melodic / pop
+b.o. / anime	soundtrack / anime

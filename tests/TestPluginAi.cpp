@@ -253,9 +253,11 @@ OMNIS_TEST("plug-in AUTO: un son glissé est analysé en entier (calme puis fort
         h.run(0.1, true);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    bool refined = false;
+    bool refined = false, recognized = false;
     for (const auto& m : h.said) refined = refined || m.find("AUTO affiné") != std::string::npos;
+    for (const auto& m : h.said) recognized = recognized || m.find("J'entends") != std::string::npos || m.find("J'hésite") != std::string::npos;
     OMNIS_CHECK(refined);
+    OMNIS_CHECK(recognized); // sans style nommé, AUTO dit ce qu'il reconnaît
     OMNIS_CHECK(h.plain(ParamId::LimPunch) < 1.0);
     OMNIS_CHECK(h.plain(ParamId::LimGain) + h.plain(ParamId::ClipDrive) > 3.0);
     std::filesystem::remove(path);
@@ -268,6 +270,48 @@ OMNIS_TEST("plug-in AUTO: un son glissé est analysé en entier (calme puis fort
     }
     OMNIS_CHECK(!h.said.empty() && h.said.back().find("illisible") != std::string::npos);
     OMNIS_CHECK(h.plain(ParamId::LimGain) == lim);
+}
+
+OMNIS_TEST("plug-in reconnaissance: « c'est quel style ? » répond ; nommer le style l'apprend (mémoire sur le poste)") {
+    const auto dir = std::filesystem::temp_directory_path() / "omnis_test_styles";
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    std::filesystem::create_directories(dir);
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", dir.string().c_str());
+#else
+    setenv("OMNIS_USER_DATA_DIR", dir.string().c_str(), 1);
+#endif
+    Host h;
+    std::string a = h.ctrl->ask("c'est quel style ?");
+    OMNIS_CHECK(a.find("lecture") != std::string::npos); // rien entendu encore
+    for (int i = 0; i < 80; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+        if (i > 40) break;
+    }
+    for (int i = 0; i < 60 && h.ctrl->ask("c'est quel style ?").find("lecture") != std::string::npos; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    a = h.ctrl->ask("c'est quel style ?");
+    std::printf("      %s\n", a.c_str());
+    OMNIS_CHECK(a.find("J'entends") != std::string::npos || a.find("J'hésite") != std::string::npos);
+    a = h.ctrl->ask("c'est de la drill, un peu plus de punch");
+    std::printf("      %s\n", a.c_str());
+    OMNIS_CHECK(a.find("Noté") != std::string::npos);
+    OMNIS_CHECK(std::filesystem::exists(dir / "styles_appris.txt"));
+    // Deux exemples de plus : la prod est désormais reconnue comme drill.
+    (void)h.ctrl->ask("c'est de la drill");
+    (void)h.ctrl->ask("drill");
+    a = h.ctrl->ask("c'est quel style ?");
+    std::printf("      après 3 exemples : %s\n", a.c_str());
+    OMNIS_CHECK(a.find("drill") != std::string::npos);
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", "");
+#else
+    unsetenv("OMNIS_USER_DATA_DIR");
+#endif
 }
 
 OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un titre choisi règle la chaîne et reste avec la session") {

@@ -58,6 +58,7 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     i18n=${CMAKE_SOURCE_DIR}/data/i18n_en.txt
     classement=${CMAKE_SOURCE_DIR}/data/genres_classement.txt
     styles=${CMAKE_SOURCE_DIR}/data/styles_artistes.txt
+    groupes=${CMAKE_SOURCE_DIR}/data/groupes_sonores.txt
 )
 
 add_library(omnis_core STATIC
@@ -91,6 +92,8 @@ add_library(omnis_core STATIC
     source/ai/EmbeddedData.h
     source/ai/Feedback.cpp
     source/ai/GenreProfiles.cpp
+    source/ai/StyleRecognizer.cpp
+    source/ai/StyleRecognizer.h
     source/ai/GenreProfiles.h
     source/ai/Feedback.h
     source/ai/Lexicon.cpp
@@ -315,6 +318,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestSearchMaster.cpp
         tests/TestCompressor.cpp
         tests/TestPhraseBank.cpp
+        tests/TestStyleRecognizer.cpp
         tests/TestMultiband.cpp
         tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp

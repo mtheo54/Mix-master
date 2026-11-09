@@ -136,6 +136,12 @@ clipper before OMNIS): it needs that room to work well.
 | Very loud | −7 LUFS | rage, hard clipping: clipping on purpose |
 | Style | the style's or the chosen reference's | following a reference |
 
+**Your track's style.** If you named no style and chose no reference, AUTO **recognises the style
+by listening** (trap, drill, rage, plugg / new wave, boom bap, melodic / pop, electro, rock,
+hyperpop, soundtrack) and says so: "I hear: trap (64 %)", or, when unsure, its three candidates. It
+aims at the first. Type the right style ("it's drill"): **it remembers** and recognises your next
+beats better (memory on your computer, measurements only). Ask "what style is it?" any time.
+
 **The safety net**: OMNIS never compresses more than the level allows. If your beat is very
 dynamic, it stops before crushing it and tells you ("Level stopped at …"). To go louder, make it
 denser in your project (808 and kick compressed or saturated), then run AUTO again. Changing the
