@@ -9,10 +9,27 @@
 #include <chrono>
 #include <cstring>
 #include <exception>
+#include <filesystem>
+#include <string>
 
 int main(int argc, char** argv) {
     // Les tests vérifient les textes français : langue fixée, quel que soit le système.
     omnis::i18n::overrideLanguageForTests(omnis::i18n::Lang::Fr);
+    // Jamais le vrai dossier de l'utilisateur (journal d'apprentissage, styles appris, base perso) :
+    // un dossier temporaire neuf à chaque exécution.
+    {
+        const auto stamp = std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+        const auto dir = std::filesystem::temp_directory_path() / ("omnis_tests_" + stamp);
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+        const std::string text = dir.string();
+#if defined(_WIN32)
+        _putenv_s("OMNIS_TEST_USER_DIR", text.c_str());
+#else
+        setenv("OMNIS_TEST_USER_DIR", text.c_str(), 1);
+#endif
+        omnis::test::restoreUserDataDir();
+    }
     const char* filter = argc > 1 ? argv[1] : nullptr;
     int run = 0, failedTests = 0;
     for (const auto& test : omnis::test::registry()) {

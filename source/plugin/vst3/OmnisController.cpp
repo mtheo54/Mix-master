@@ -14,6 +14,7 @@
 #include "ai/EmbeddedData.h"
 #include "ai/MixDiagnosis.h"
 #include "ai/StyleRecognizer.h"
+#include "ai/HabitLearning.h"
 #include "ai/TextMatch.h"
 #include "import/ReferenceImport.h"
 #include "AudioRead.h"
@@ -37,6 +38,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -55,6 +57,20 @@ const ai::StyleStats& soundGroups() {
     return stats;
 }
 std::filesystem::path styleMemoryPath() { return userDataDir() / "styles_appris.txt"; }
+std::filesystem::path learningDir() { return userDataDir() / "apprentissage"; }
+std::filesystem::path journalPath() { return learningDir() / "journal.tsv"; }
+std::filesystem::path habitNetPath() { return learningDir() / "reseau.txt"; }
+std::string pathText(const std::filesystem::path& p) {
+    const auto u = p.u8string();
+    return std::string(u.begin(), u.end());
+}
+std::optional<ai::HabitNet> loadHabitNet() {
+    std::ifstream in(habitNetPath(), std::ios::binary);
+    if (!in) return std::nullopt;
+    std::ostringstream text;
+    text << in.rdbuf();
+    return ai::HabitNet::parse(text.str());
+}
 std::vector<ai::StyleExample> loadStyleMemory() {
     std::ifstream in(styleMemoryPath(), std::ios::binary);
     if (!in) return {};
@@ -238,6 +254,18 @@ std::string OmnisController::undoLast() {
     UndoStep step = std::move(undo_.back());
     undo_.pop_back();
     pursuing_ = false; // la course au volume de l'action annulée s'arrête
+    if (step.label == "AUTO" && autoPending_) {
+        // AUTO défait aussitôt : noté comme un mauvais choix (sans direction à apprendre).
+        ai::JournalEvent e;
+        e.kind = ai::JournalKind::Undo;
+        e.time = static_cast<std::int64_t>(std::time(nullptr));
+        e.group = recognizedGroup_;
+        e.features = autoFeatures_;
+        std::error_code ec;
+        std::filesystem::create_directories(learningDir(), ec);
+        ai::appendJournal(pathText(journalPath()), e);
+        autoPending_ = false;
+    }
     applyPlan(step.values);
     return "Annulé : la console est revenue à l'état d'avant « " + step.label + " »" +
            (undo_.empty() ? "." : " (encore " + std::to_string(undo_.size()) + " retour(s) possible(s)).");
@@ -254,6 +282,11 @@ OmnisController::~OmnisController() {
     // doit pas disparaître sous lui).
     if (import_) import_->cancel = true;
     if (importThread_.joinable()) importThread_.join();
+    // La séance se ferme : ce que la personne a gardé du dernier AUTO est noté.
+    try {
+        noteRetouch();
+    } catch (...) {
+    }
     if (autoJob_) autoJob_->cancel = true; // AUTO précis : au plus un rendu à finir
     if (autoThread_.joinable()) autoThread_.join();
     if (fileThread_.joinable()) fileThread_.join(); // un fichier en lecture : quelques secondes
@@ -379,9 +412,37 @@ std::string OmnisController::ask(const std::string& request) {
             restartTutorial();
             return "Le guide s'ouvre : SUIVANT pour avancer, PASSER pour le fermer. Le mode d'emploi complet est livré avec le plug-in.";
         }
+        // Apprentissage : exporter (anonyme, un fichier) ou oublier.
+        static constexpr std::string_view kExportLearning[] = {"exporte mon apprentissage", "export apprentissage", "exporte l apprentissage",
+                                                               "export my learning", "partage mon apprentissage"};
+        for (const auto phrase : kExportLearning)
+            if (plain.find(phrase) != std::string::npos) {
+                const auto journal = ai::loadJournal(pathText(journalPath()));
+                const auto file = learningDir() / "export_anonyme.tsv";
+                std::error_code ec;
+                std::filesystem::create_directories(learningDir(), ec);
+                std::ofstream(file, std::ios::binary) << ai::exportAnonymous(journal);
+                const auto samples = ai::samplesFromJournal(journal).size();
+                char b[400];
+                std::snprintf(b, sizeof b, i18n::tr("Export anonyme écrit (%d séance(s), des nombres seulement, rien n'est envoyé) : %s").c_str(),
+                              static_cast<int>(samples), pathText(file).c_str());
+                return b;
+            }
+        static constexpr std::string_view kForget[] = {"oublie mes habitudes", "oublie tout ce que tu as appris", "efface l apprentissage",
+                                                       "reset apprentissage", "forget my habits"};
+        for (const auto phrase : kForget)
+            if (plain.find(phrase) != std::string::npos) {
+                std::error_code ec;
+                std::filesystem::remove(journalPath(), ec);
+                std::filesystem::remove(habitNetPath(), ec);
+                std::filesystem::remove(styleMemoryPath(), ec);
+                autoPending_ = false;
+                return "Oublié : tes habitudes, tes styles nommés et le journal sont effacés de ce poste.";
+            }
         static constexpr std::string_view kExport[] = {"export", "exporter", "pret a exporter", "je peux exporter", "check export", "ready to export"};
         for (const auto phrase : kExport)
             if (plain == phrase || plain.find(std::string(phrase) + " ") == 0 || plain.find(" " + std::string(phrase)) != std::string::npos) {
+                noteRetouch(); // les réglages au moment d'exporter : ce que la personne a gardé
                 const auto problems = exportProblems();
                 if (problems.empty()) return "PRÊT À EXPORTER : rien ne fausse le fichier (écoute normale, qualité max, true peak sous -1 dBTP).";
                 std::string s = "PAS ENCORE PRÊT À EXPORTER : ";
@@ -857,18 +918,23 @@ std::string OmnisController::applyAuto(const analysis::SpectralSignature& loud, 
     const auto plan = chosen.empty() ? ai::planAuto(loud, lib, autoStyle_, current) : ai::planAuto(loud, chosen, refName_, current);
     std::vector<std::pair<std::uint32_t, double>> settings;
     for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+    noteRetouch(); // l'AUTO précédent : ce que la personne en a gardé
+    std::optional<double> target = plan.targetLufs;
+    const std::string habits = applyHabits(loud, settings, target);
     rememberForUndo("AUTO");
     applyPlan(settings);
+    autoFeatures_ = ai::styleFeatures(loud);
+    noteAuto();
     // AUTO précis : assez de son gardé (4 s au moins) -> essais clip / limiteur ; sinon le
     // volume est mené à l'écoute.
-    const bool search = plan.targetLufs && sr > 0.0 && static_cast<double>(excerpt.size()) >= 2.0 * 4.0 * sr;
-    if (plan.targetLufs) {
-        loudTarget_ = *plan.targetLufs;
+    const bool search = target && sr > 0.0 && static_cast<double>(excerpt.size()) >= 2.0 * 4.0 * sr;
+    if (target) {
+        loudTarget_ = *target;
         pursuitTicks_ = pursuitStable_ = pursuitSteps_ = 0;
         pursuing_ = !search;
-        if (search) startAutoSearch(std::move(excerpt), sr, *plan.targetLufs);
+        if (search) startAutoSearch(std::move(excerpt), sr, *target);
     }
-    return (recognition.empty() ? std::string() : recognition + " ") + joined(plan.said, " · ") +
+    return (recognition.empty() ? std::string() : recognition + " ") + joined(plan.said, " · ") + (habits.empty() ? "" : " · " + habits) +
            (search ? ". Essais clip / limiteur en cours…" : ". Tout reste réglable à la main. (« annule » pour revenir en arrière)");
 }
 
@@ -876,10 +942,92 @@ std::string OmnisController::recognizeHeard(const analysis::SpectralSignature& h
     const auto memory = loadStyleMemory();
     const auto rec = ai::recognizeGroup(heard, soundGroups(), {}, &memory);
     if (rec.empty()) return {};
-    if (style) *style = ai::styleForGroup(rec.ranked.front().style);
+    if (style) {
+        *style = ai::styleForGroup(rec.ranked.front().style);
+        recognizedGroup_ = rec.ranked.front().style;
+    }
     std::string text = ai::describeRecognition(rec);
     if (style && !rec.confident) text += " " + i18n::tr("Je vise le premier ; écris le style si je me trompe, je m'en souviendrai.");
     return text;
+}
+
+std::array<double, 6> OmnisController::habitValues() {
+    using P = params::ParamId;
+    const auto v = [this](P id) { return plainOf(static_cast<std::uint32_t>(id)); };
+    const auto w = [this](int band) { return plainOf(static_cast<std::uint32_t>(P::ImgWidthFirst) + static_cast<std::uint32_t>(band)); };
+    return {v(P::MatchTilt), v(P::SubGain), v(P::InflHighEffect), v(P::ClipDrive) + v(P::LimGain), 0.5 * (w(2) + w(3)),
+            v(P::CompOn) >= 0.5 ? v(P::CompThreshold) : 0.0};
+}
+
+std::string OmnisController::applyHabits(const analysis::SpectralSignature& heard, std::vector<std::pair<std::uint32_t, double>>& settings,
+                                         std::optional<double>& targetLufs) {
+    const auto net = loadHabitNet();
+    if (!net || !net->trained()) return {};
+    const auto d = net->predict(ai::styleFeatures(heard));
+    using P = params::ParamId;
+    // Valeur après le plan d'AUTO (le plan, sinon la console), plus l'écart appris.
+    const auto planned = [&](P id) {
+        for (const auto& [pid, v] : settings)
+            if (pid == static_cast<std::uint32_t>(id)) return v;
+        return plainOf(static_cast<std::uint32_t>(id));
+    };
+    const auto put = [&](P id, double v) {
+        for (auto& [pid, x] : settings)
+            if (pid == static_cast<std::uint32_t>(id)) {
+                x = v;
+                return;
+            }
+        settings.emplace_back(static_cast<std::uint32_t>(id), v);
+    };
+    const auto at = [&](ai::Habit h) { return d[static_cast<std::size_t>(h)]; };
+    if (std::fabs(at(ai::Habit::Tilt)) >= 0.1) put(P::MatchTilt, planned(P::MatchTilt) + at(ai::Habit::Tilt));
+    if (std::fabs(at(ai::Habit::Sub)) >= 0.1) put(P::SubGain, planned(P::SubGain) + at(ai::Habit::Sub));
+    if (std::fabs(at(ai::Habit::Inflate)) >= 1.0) put(P::InflHighEffect, planned(P::InflHighEffect) + at(ai::Habit::Inflate));
+    if (std::fabs(at(ai::Habit::Width)) >= 2.0)
+        for (int band : {2, 3}) {
+            const auto id = static_cast<P>(static_cast<int>(P::ImgWidthFirst) + band);
+            put(id, planned(id) + at(ai::Habit::Width));
+        }
+    if (std::fabs(at(ai::Habit::Comp)) >= 0.5 && planned(P::CompOn) >= 0.5) put(P::CompThreshold, planned(P::CompThreshold) + at(ai::Habit::Comp));
+    // Le volume : la cible bouge (le garde-fou du NIVEAU tient toujours).
+    if (targetLufs && std::fabs(at(ai::Habit::Loudness)) >= 0.2) *targetLufs += at(ai::Habit::Loudness);
+    return ai::describeHabits(d, net->samples());
+}
+
+void OmnisController::noteAuto() {
+    autoProposal_ = habitValues();
+    autoPending_ = true;
+    ai::JournalEvent e;
+    e.kind = ai::JournalKind::Auto;
+    e.time = static_cast<std::int64_t>(std::time(nullptr));
+    e.group = recognizedGroup_;
+    e.features = autoFeatures_;
+    for (int i = 0; i < ai::kHabits; ++i) e.values[static_cast<std::size_t>(i)] = autoProposal_[static_cast<std::size_t>(i)];
+    std::error_code ec;
+    std::filesystem::create_directories(learningDir(), ec);
+    ai::appendJournal(pathText(journalPath()), e);
+}
+
+void OmnisController::noteRetouch() {
+    if (!autoPending_) return;
+    autoPending_ = false;
+    const auto now = habitValues();
+    ai::JournalEvent e;
+    e.kind = ai::JournalKind::Retouch;
+    e.time = static_cast<std::int64_t>(std::time(nullptr));
+    e.group = recognizedGroup_;
+    e.features = autoFeatures_;
+    for (int i = 0; i < ai::kHabits; ++i) {
+        const auto k = static_cast<std::size_t>(i);
+        e.values[k] = now[k] - autoProposal_[k]; // rien retouché : écart nul, AUTO convenait (c'est aussi une leçon)
+    }
+    std::error_code ec;
+    std::filesystem::create_directories(learningDir(), ec);
+    ai::appendJournal(pathText(journalPath()), e);
+    // Le réseau réapprend de tout le journal (quelques millisecondes).
+    ai::HabitNet net;
+    if (net.train(ai::samplesFromJournal(ai::loadJournal(pathText(journalPath())))))
+        std::ofstream(habitNetPath(), std::ios::binary) << net.serialize();
 }
 
 std::string OmnisController::learnStyle(const std::string& genre) {

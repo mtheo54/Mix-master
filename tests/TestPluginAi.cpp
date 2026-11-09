@@ -24,6 +24,8 @@
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -307,11 +309,75 @@ OMNIS_TEST("plug-in reconnaissance: « c'est quel style ? » répond ; nommer le
     a = h.ctrl->ask("c'est quel style ?");
     std::printf("      après 3 exemples : %s\n", a.c_str());
     OMNIS_CHECK(a.find("drill") != std::string::npos);
+    omnis::test::restoreUserDataDir();
+}
+
+OMNIS_TEST("plug-in apprentissage: 3 AUTO suivis de « sub +2 dB » à la main -> le 4e AUTO remonte le sub tout seul ; « oublie mes habitudes »") {
+    const auto dir = std::filesystem::temp_directory_path() / "omnis_test_habits";
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    std::filesystem::create_directories(dir);
 #if defined(_WIN32)
-    _putenv_s("OMNIS_USER_DATA_DIR", "");
+    _putenv_s("OMNIS_USER_DATA_DIR", dir.string().c_str());
 #else
-    unsetenv("OMNIS_USER_DATA_DIR");
+    setenv("OMNIS_USER_DATA_DIR", dir.string().c_str(), 1);
 #endif
+    Host h;
+    h.context.state = 0; // tout se fait sur le fichier
+    tools::AudioFile song;
+    song.sampleRate = 48000.0;
+    song.resize(2, 8 * 48000);
+    for (int c = 0; c < 2; ++c)
+        for (int i = 0; i < song.numFrames(); ++i)
+            song.channels[static_cast<std::size_t>(c)][static_cast<std::size_t>(i)] = h.signal.channels[static_cast<std::size_t>(c)][static_cast<std::size_t>(i % h.signal.numFrames())];
+    const auto path = dir / "prod.wav";
+    std::string error;
+    OMNIS_CHECK(tools::writeWav(path.string(), song, tools::SampleFormat::Float32, error));
+    const auto u8 = path.u8string();
+    const auto runAuto = [&] {
+        h.said.clear();
+        (void)h.ctrl->autoFromFile(std::string(u8.begin(), u8.end()));
+        const auto t0 = std::chrono::steady_clock::now();
+        while (h.ctrl->autoProgress() >= 0.0 && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(240)) {
+            h.run(0.1, true);
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        }
+    };
+    const auto setSub = [&](double db) {
+        const auto* spec = params::findParameter(ParamId::SubGain);
+        h.ctrl->editParameter(static_cast<Steinberg::Vst::ParamID>(ParamId::SubGain), params::toNormalized(*spec, db));
+    };
+    double autoSub = 0.0;
+    for (int session = 0; session < 3; ++session) {
+        setSub(0.0); // un projet neuf à chaque séance
+        runAuto();
+        autoSub = h.plain(ParamId::SubGain);
+        setSub(autoSub + 2.0);       // la personne remonte toujours le sub de 2 dB…
+        (void)h.ctrl->ask("export"); // …puis vérifie l'export : la retouche est notée
+    }
+    setSub(0.0);
+    runAuto(); // applique l'habitude apprise
+    const double learnt = h.plain(ParamId::SubGain);
+    std::string said;
+    for (const auto& m : h.said) said += m;
+    std::printf("      sub proposé : %.2f dB sans habitude, %.2f dB avec ; %s\n", autoSub, learnt, said.find("habitude") != std::string::npos ? "habitude annoncée" : "pas d'habitude annoncée");
+    OMNIS_CHECK(learnt > autoSub + 0.3);  // 3 séances : confiance 3/11, environ +0.5 dB
+    OMNIS_CHECK(learnt < autoSub + 2.01); // jamais plus que l'habitude elle-même
+    OMNIS_CHECK(said.find("ton habitude") != std::string::npos);
+    OMNIS_CHECK(std::filesystem::exists(dir / "apprentissage" / "journal.tsv"));
+    OMNIS_CHECK(std::filesystem::exists(dir / "apprentissage" / "reseau.txt"));
+    // Le journal ne contient que des nombres : ni le nom du fichier, ni une phrase.
+    {
+        std::ifstream in(dir / "apprentissage" / "journal.tsv");
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        OMNIS_CHECK(text.find("prod.wav") == std::string::npos);
+    }
+    const std::string exported = h.ctrl->ask("exporte mon apprentissage");
+    std::printf("      %s\n", exported.c_str());
+    OMNIS_CHECK(std::filesystem::exists(dir / "apprentissage" / "export_anonyme.tsv"));
+    (void)h.ctrl->ask("oublie mes habitudes");
+    OMNIS_CHECK(!std::filesystem::exists(dir / "apprentissage" / "reseau.txt"));
+    omnis::test::restoreUserDataDir();
 }
 
 OMNIS_TEST("plug-in menu RÉFÉRENCE: styles, artistes, titres de la base ; un titre choisi règle la chaîne et reste avec la session") {
@@ -396,11 +462,7 @@ OMNIS_TEST("plug-in mode promo: « /fbi » bascule les monogrammes, gardé dans 
         OMNIS_CHECK(!h.ctrl->ask("/fbi").empty() && !h.ctrl->promoMode());
         OMNIS_CHECK(!std::filesystem::exists(dir / "mode_promo.txt"));
     }
-#if defined(_WIN32)
-    _putenv_s("OMNIS_USER_DATA_DIR", "");
-#else
-    unsetenv("OMNIS_USER_DATA_DIR");
-#endif
+    omnis::test::restoreUserDataDir();
     std::filesystem::remove_all(dir, ec);
 }
 
@@ -634,10 +696,6 @@ OMNIS_TEST("plug-in: « Ajouter un fichier de référence » — reconnu par son
         OMNIS_CHECK(!other->onlineRecognition());
         other->terminate();
     }
-#if defined(_WIN32)
-    _putenv_s("OMNIS_USER_DATA_DIR", "");
-#else
-    unsetenv("OMNIS_USER_DATA_DIR");
-#endif
+    omnis::test::restoreUserDataDir();
     std::filesystem::remove_all(dir, ec);
 }

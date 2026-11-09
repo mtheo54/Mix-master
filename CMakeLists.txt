@@ -93,6 +93,8 @@ add_library(omnis_core STATIC
     source/ai/Feedback.cpp
     source/ai/GenreProfiles.cpp
     source/ai/StyleRecognizer.cpp
+    source/ai/HabitLearning.cpp
+    source/ai/HabitLearning.h
     source/ai/StyleRecognizer.h
     source/ai/GenreProfiles.h
     source/ai/Feedback.h
@@ -319,6 +321,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestCompressor.cpp
         tests/TestPhraseBank.cpp
         tests/TestStyleRecognizer.cpp
+        tests/TestHabitLearning.cpp
         tests/TestMultiband.cpp
         tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp

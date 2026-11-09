@@ -21,6 +21,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -224,6 +225,16 @@ private:
     bool styleNamed_ = false;
     std::string recognizeHeard(const analysis::SpectralSignature& heard, std::string* style);
     std::string learnStyle(const std::string& genre);
+    // Habitudes (étape 5) : AUTO applique ce que le réseau a appris ; la retouche qui suit est notée.
+    std::string recognizedGroup_;
+    bool autoPending_ = false;            ///< un AUTO dont on n'a pas encore noté la suite
+    std::vector<double> autoFeatures_;
+    std::array<double, 6> autoProposal_{};
+    [[nodiscard]] std::array<double, 6> habitValues();
+    std::string applyHabits(const analysis::SpectralSignature& heard, std::vector<std::pair<std::uint32_t, double>>& settings,
+                            std::optional<double>& targetLufs);
+    void noteAuto();
+    void noteRetouch();
     int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
     static constexpr int kPursuitSettleTicks = 130; ///< ~4 s de minuterie (30 Hz) : la mesure suit le réglage
     std::string runRequest(const std::string& text);

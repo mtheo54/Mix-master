@@ -56,6 +56,15 @@
 
 ## Fait récemment
 
+- **09/11 — Étape 5 : apprendre les habitudes** (`ai/HabitLearning`, contrôleur). Journal sur le
+  poste (`apprentissage/journal.tsv`, versionné, nombres seulement : grandeurs de la prod, groupe,
+  réglages proposés, écarts retouchés, « annule » après AUTO, réglages à l'export). Petit réseau
+  (16 neurones tanh + chemin linéaire direct, 6 sorties bornées) réentraîné à chaque retouche,
+  sauvegardé (`reseau.txt`) ; il corrige AUTO avec une part n/(n+8) et le dit (« ton habitude :
+  sub +0.6 dB »). Export anonyme (« exporte mon apprentissage »), « oublie mes habitudes ». Les
+  tests écrivent dans un dossier temporaire (`OMNIS_TEST_USER_DIR`), plus jamais dans le vrai
+  dossier. Tests : 3 unitaires (journal relu à l'identique, courbe d'apprentissage, bornes et
+  hasard), 1 plug-in (3 séances « sub +2 » → 4e AUTO propose +0,55 dB et l'annonce).
 - **09/11 — Reconnaissance du style à l'écoute** (`ai/StyleRecognizer`, `data/groupes_sonores.txt`
   via `omnis_refdb groupes`). 10 groupes sonores (trap, drill, rage, plugg / new wave, boom bap,
   mélodique / pop, rock, électro, hyperpop, B.O.) ; moyenne et dispersion par groupe (agrégées,

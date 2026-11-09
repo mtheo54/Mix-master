@@ -8,6 +8,24 @@
 // =============================================================================
 #pragma once
 
+#include <cstdlib>
+#include <string>
+
+namespace omnis::test {
+/// Les tests ne touchent jamais le vrai dossier de l'utilisateur : TestMain le place dans un
+/// dossier temporaire (OMNIS_TEST_USER_DIR). Un test qui le change le rend ensuite avec ceci.
+inline void restoreUserDataDir() {
+    const char* base = std::getenv("OMNIS_TEST_USER_DIR");
+    const std::string dir = base ? base : "";
+#if defined(_WIN32)
+    _putenv_s("OMNIS_USER_DATA_DIR", dir.c_str());
+#else
+    if (dir.empty()) unsetenv("OMNIS_USER_DATA_DIR");
+    else setenv("OMNIS_USER_DATA_DIR", dir.c_str(), 1);
+#endif
+}
+} // namespace omnis::test
+
 #include <cmath>
 #include <cstdio>
 #include <functional>

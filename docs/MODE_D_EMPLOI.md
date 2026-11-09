@@ -145,6 +145,16 @@ vise le premier. Écris le bon style (« c'est de la drill ») : **il s'en souvi
 mieux tes prochaines prods (mémoire sur ton poste, des mesures seulement). Demande « c'est quel
 style ? » à tout moment.
 
+**Tes habitudes.** Si, après AUTO, tu retouches souvent les mêmes réglages (le sub, la pente,
+l'Inflator, le volume, la largeur, le seuil du Comp), OMNIS **l'apprend** : un petit réseau de
+neurones, sur ton poste, relie tes retouches à la prod (son spectre, sa largeur, son tempo, son
+style). Aux AUTO suivants, il applique ta correction tout seul et le dit (« ton habitude : sub
++0.8 dB (appris sur 6 séances) »). Il commence doucement (sa part grandit avec le nombre de
+séances) et reste dans des bornes étroites (sub et pente ±2 dB, Inflator ±15 %, volume ±2 dB,
+largeur ±20 %, Comp ±6 dB). Un « annule » juste après AUTO compte comme « mauvais choix ». Écris
+**« oublie mes habitudes »** pour tout effacer, **« exporte mon apprentissage »** pour écrire un
+fichier anonyme (des nombres seulement) que tu pourras partager si tu le veux : rien n'est envoyé.
+
 **Le garde-fou** : OMNIS ne compresse jamais plus que ce que le niveau permet. Si ta prod est très
 dynamique, il s'arrête avant de l'écraser et te le dit (« Volume arrêté à … »). Pour aller plus
 fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), puis relance AUTO.
@@ -536,6 +546,9 @@ actifs.
 - Il contient tes références ajoutées (des mesures, jamais de son), les pochettes que tu as
   fournies, tes préférences et ce qu'OMNIS a appris de tes retours. Supprime-le pour tout remettre
   à neuf.
+- `apprentissage/` : le journal de tes séances (`journal.tsv` : mesures de la prod, réglages
+  proposés et tes retouches — jamais de son, jamais de nom de fichier) et le réseau appris
+  (`reseau.txt`). « oublie mes habitudes » les supprime.
 - Le projet du DAW garde tes réglages et la référence choisie.
 
 ---

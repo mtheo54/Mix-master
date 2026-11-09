@@ -142,6 +142,15 @@ hyperpop, soundtrack) and says so: "I hear: trap (64 %)", or, when unsure, its t
 aims at the first. Type the right style ("it's drill"): **it remembers** and recognises your next
 beats better (memory on your computer, measurements only). Ask "what style is it?" any time.
 
+**Your habits.** If, after AUTO, you often tweak the same settings (sub, tilt, Inflator, level,
+width, Comp threshold), OMNIS **learns it**: a small neural network, on your computer, links your
+tweaks to the beat (its spectrum, width, tempo, style). On the next AUTO runs it applies your
+correction itself and says so ("your habit: sub +0.8 dB (learned over 6 sessions)"). It starts
+gently (its share grows with the number of sessions) and stays within tight bounds (sub and tilt
+±2 dB, Inflator ±15 %, level ±2 dB, width ±20 %, Comp ±6 dB). An "undo" right after AUTO counts as
+"wrong choice". Type **"forget my habits"** to erase everything, **"export my learning"** to write
+an anonymous file (numbers only) you can share if you want: nothing is sent.
+
 **The safety net**: OMNIS never compresses more than the level allows. If your beat is very
 dynamic, it stops before crushing it and tells you ("Level stopped at …"). To go louder, make it
 denser in your project (808 and kick compressed or saturated), then run AUTO again. Changing the
@@ -528,6 +537,9 @@ listening is **Off**. A neutral module (default settings) lets the sound through
   - macOS: `~/Library/Application Support/Abrasion Labs/OMNIS`
 - It holds the references you added (measurements, never audio), the artwork you supplied, your
   preferences and what OMNIS learned from your feedback. Delete it to start fresh.
+- `apprentissage/`: the log of your sessions (`journal.tsv`: beat measurements, proposed settings
+  and your tweaks — never audio, never a file name) and the learned network (`reseau.txt`).
+  "forget my habits" deletes them.
 - The DAW project keeps your settings and the chosen reference.
 
 ---
