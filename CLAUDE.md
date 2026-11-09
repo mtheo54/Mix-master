@@ -68,8 +68,8 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
   « remets tout à zéro »), éditeur VSTGUI (`OmnisEditor.cpp`).
 - **Mastering seulement** (09/11) : le mixage (chaînes de stems, chef d'orchestre) est retiré ;
   plan de la refonte : `docs/REFONTE.md`. `omnis_auto` rejoue l'AUTO du plug-in sur un fichier.
-  Mais OMNIS peut **écouter** pistes et bus (RÔLE Bus / Piste, `link/`, `stems/`) : page
-  COMPOSITION, son inchangé, latence 0.
+  Mais OMNIS peut **écouter les bus** (RÔLE Bus, rien sur les pistes ; `link/`, `stems/BusListener`) :
+  page COMPOSITION, son inchangé, latence 0 ; `omnis_bus fichier.wav` rejoue l'écoute d'un bus.
 - `tools/` : outils en ligne de commande ; `tests/` : un fichier par domaine.
 
 ## Docs utiles

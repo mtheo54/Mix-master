@@ -308,13 +308,12 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
 }
 
 void OmnisProcessor::startLink(int r) {
-    if (r == static_cast<int>(params::InstanceRole::Bus)) link_.start(link::Role::Bus, sampleRate_);
-    else if (r == static_cast<int>(params::InstanceRole::Track)) link_.start(link::Role::Track, sampleRate_);
+    if (r == static_cast<int>(params::InstanceRole::Bus)) link_.start(sampleRate_);
     else link_.stop();
 }
 
 void OmnisProcessor::switchRole(int newRole) {
-    newRole = std::clamp(newRole, 0, 2);
+    newRole = std::clamp(newRole, 0, 1);
     // Le réglage suit tout de suite (l'hôte relit la latence avant de renvoyer le paramètre) ;
     // déjà le bon (état relu) : gardé tel quel.
     if (const auto* spec = params::findParameter(ParamId::InstanceRole); spec && std::lround(plainOf(ParamId::InstanceRole)) != newRole) {
@@ -348,7 +347,7 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
     }
     if (id == kRoleMessage) {
         int64 r = 0;
-        if (message->getAttributes() && message->getAttributes()->getInt(kRoleAttribute, r) == kResultTrue && r >= 0 && r <= 2)
+        if (message->getAttributes() && message->getAttributes()->getInt(kRoleAttribute, r) == kResultTrue && r >= 0 && r <= 1)
             switchRole(static_cast<int>(r));
         return kResultOk;
     }
@@ -363,7 +362,7 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
 }
 
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
-    // Bus et Piste ne retardent pas leur piste. L'hôte peut demander avant l'activation :
+    // Un bus n'est pas retardé. L'hôte peut demander avant l'activation :
     // on lit le réglage plutôt que le rôle actif.
     if (std::lround(plainOf(ParamId::InstanceRole)) != static_cast<long>(params::InstanceRole::Master)) return 0;
     return static_cast<uint32>(engine_.latencySamples());
@@ -536,7 +535,7 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
     const bool hasAudio = data.numSamples > 0 && data.numInputs >= 1 && data.numOutputs >= 1 && data.inputs && data.outputs &&
                           buffersOk(data.inputs[0]) && buffersOk(data.outputs[0]);
     if (role() != params::InstanceRole::Master) {
-        // Bus / Piste : les réglages sont gardés (rien à traiter), le son passe tel quel, on écoute.
+        // Bus : les réglages sont gardés (rien à traiter), le son passe tel quel, on écoute.
         for (int i = 0; i < numEvents_; ++i)
             applyParameter(events_[static_cast<std::size_t>(i)].id, events_[static_cast<std::size_t>(i)].normalized, false);
         numEvents_ = 0;
@@ -599,8 +598,7 @@ template <typename Sample>
 void OmnisProcessor::processListening(ProcessData& data, Sample** inputs) {
     // Avant la copie vers la sortie : l'hôte peut traiter en place, l'entrée est encore intacte.
     const auto* ctx = data.processContext;
-    const bool playing = ctx && (ctx->state & ProcessContext::kPlaying) != 0;
-    link_.process(inputs[0], inputs[1], data.numSamples, playing ? static_cast<std::int64_t>(ctx->projectTimeSamples) : link::kNoPosition);
+    link_.process(inputs[0], inputs[1], data.numSamples, ctx && (ctx->state & ProcessContext::kPlaying) != 0);
 }
 
 // -----------------------------------------------------------------------------

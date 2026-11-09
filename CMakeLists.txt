@@ -134,21 +134,20 @@ add_library(omnis_core STATIC
     source/engine/ProdListener.cpp
     source/engine/ReferenceCapture.h
     source/engine/Stage.h
-    source/link/BandFrames.h
     source/link/LinkBus.cpp
     source/link/LinkBus.h
     source/link/LinkClient.cpp
     source/link/LinkClient.h
     source/link/SharedRegion.cpp
     source/link/SharedRegion.h
+    source/stems/BusListener.cpp
+    source/stems/BusListener.h
     source/stems/Composition.cpp
     source/stems/Composition.h
     source/stems/DrumBus.cpp
     source/stems/DrumBus.h
     source/stems/Element.cpp
     source/stems/Element.h
-    source/stems/ElementClassifier.cpp
-    source/stems/ElementClassifier.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
     source/stages/CompressorStage.cpp
@@ -310,7 +309,7 @@ if(OMNIS_BUILD_TOOLS OR OMNIS_BUILD_TESTS)
 endif()
 
 if(OMNIS_BUILD_TOOLS)
-    foreach(tool testgen analyze render compare tune match refdb ask learn auto)
+    foreach(tool testgen analyze render compare tune match refdb ask learn auto bus)
         add_executable(omnis_${tool} tools/${tool}/main.cpp)
         target_link_libraries(omnis_${tool} PRIVATE omnis_tools_common omnis_compile_options)
     endforeach()
@@ -348,6 +347,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestStems.cpp
         tests/TestDrumBus.cpp
         tests/TestComposition.cpp
+        tests/TestBusListener.cpp
         tests/TestMusic.cpp
         tests/TestAvatarStylizer.cpp
         tests/TestLoudness.cpp

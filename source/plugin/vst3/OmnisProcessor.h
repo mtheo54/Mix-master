@@ -24,10 +24,10 @@
 //     soit (setupProcessing, setActive), on ferme la porte
 //     et on attend que process() en soit sorti ; porte fermée ou instance
 //     inactive, process() laisse passer le son tel quel sans toucher à rien.
-//   - Rôle (« role ») : Master (le mastering) ; Bus ou Piste : le son passe
-//     tel quel, sans latence ; l'instance publie le nom de sa piste, ce
-//     qu'elle reconnaît et l'empreinte de ce qu'elle entend (link/LinkClient),
-//     lus par la page COMPOSITION des autres instances.
+//   - Rôle (« role ») : Master (le mastering) ; Bus : le son passe tel quel,
+//     sans latence ; l'instance écoute le bus et publie son nom et ce qu'elle
+//     y entend (link/LinkClient), lus par la page COMPOSITION de toutes les
+//     instances.
 // =============================================================================
 #pragma once
 

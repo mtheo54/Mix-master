@@ -56,21 +56,24 @@
 
 ## Fait récemment
 
-- **09/11 — OMNIS sur les pistes et les bus, page COMPOSITION, groupe EFX** (demande de
-  l'utilisateur : « une partie qui montre chaque élément présent dans les stems, avec son nom
-  d'origine du DAW et ce que le plugin devine ; un groupe EFX pour les reverse cymbals ; OMNIS sur
-  les bus, qui reprennent les noms des éléments du bus »). RÔLE (`role`, id 15) : Master / Bus /
-  Piste ; en Bus et Piste le son passe bit à bit, latence 0. Chaque instance publie dans une
-  mémoire partagée (`link/LinkBus`, version 3) le nom de sa piste (IInfoListener), l'élément
-  reconnu (`stems/ElementClassifier`, + reverse cymbal / riser / impact) et une empreinte (énergie
-  de 6 bandes par trame de 2048 éch., alignée sur le projet, `link/BandFrames`). `stems/Composition`
-  retrouve qui va dans quel bus : moindres carrés positifs (une piste et ses décalages d'une trame),
-  gain borné par « une piste ne dépasse jamais son bus », part ≥ 3 % dans une bande, gain ≥ −14 dB.
-  Mesuré : 40 pistes / 6 bus rangées sans erreur en 43 ms ; bus saturé, décalé de 300 éch., avec
-  une snare sans OMNIS : bonnes pistes. FL ne dit pas aux plug-ins ce qui entre dans un bus : d'où
-  l'écoute. Page COMPOSITION (tiroir, bouton en bas à droite), barre IA « composition », « rôle
-  bus / piste / master ». Tests : 7 éléments / EFX, 8 composition et lien (dont TSan), 1 plug-in
-  de bout en bout (6 instances).
+- **09/11 — OMNIS sur les bus : page COMPOSITION, groupe EFX** (demande de l'utilisateur : voir
+  ce qu'il y a dans chaque bus, un groupe EFX pour les reverse cymbals ; puis, décision : **rien sur
+  les pistes**, « sinon ça pose problème au mixage », et pas de script FL : « on garde uniquement
+  l'option 1 », l'écoute). VST3 ne donne à un plug-in que le nom de SA piste : le bus ne connaît pas
+  les noms de ses pistes, il entend ce qu'il contient. RÔLE (`role`, id 15) : Master / Bus ; en Bus
+  le son passe bit à bit, latence 0. `stems/BusListener` : séparation tenu / frappé / bruit (HPSS,
+  médianes 230 ms × 17 bins, marge 2), puis règles lisibles : DRUMS (`stems/DrumBus`, confirmé par
+  la forme des attaques : kick dans le sub, snare / clap = bruit large qui tient > 30 ms et monte
+  dans l'aigu, assez de coups pour la durée), 808 (grave tenu ≥ 250 ms à 12 dB de son sommet), MÉLO
+  (harmonique du médium hors harmoniques de la 808 ; nappe / lead), EFX (montées continues de
+  l'aigu, sans creux : reverse < 1,5 s coupée net, riser ≥ 1,5 s ; impact : coup large qui retombe).
+  Vérifié sur les stems de l'utilisateur (`omnis_bus`) : DRUMS = kick 168, snare / clap 363, hats
+  145, open hats 44 (+ 2 reverse plausibles à 60,9 et 105,6 s) ; MELO et « sans omnis melo » =
+  lead + nappe seulement ; 808 = 808 seulement. Les fausses détections trouvées en route (rentrées
+  de hats, roulements de snare, attaques de notes, mélo qui démarre après un silence) ont chacune
+  leur garde. Région partagée v4 (`link/LinkBus`) : nom du bus et ce qu'il contient. Page
+  COMPOSITION, barre IA « composition », « rôle bus / master ». Tests : 6 écouteur de bus, 3
+  composition / lien (dont TSan), 1 plug-in (3 bus + master).
 - **09/11 — Étape 5 : apprendre les habitudes** (`ai/HabitLearning`, contrôleur). Journal sur le
   poste (`apprentissage/journal.tsv`, versionné, nombres seulement : grandeurs de la prod, groupe,
   réglages proposés, écarts retouchés, « annule » après AUTO, réglages à l'export). Petit réseau

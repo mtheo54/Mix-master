@@ -1,17 +1,12 @@
 // =============================================================================
 //  Abrasion Labs // OMNIS
-//  stems/Element.h — Ce que joue une piste (instance OMNIS en rôle PISTE ou BUS).
+//  stems/Element.h — Les éléments d'une prod et leurs groupes.
 //
-//  Chaque instance posée sur une piste porte un élément (kick, open hat, lead,
-//  808, reverse cymbal…), rangé dans un groupe : DRUMS, 808 / BASSE, MÉLO,
-//  VOIX, EFX. La page COMPOSITION les montre, bus par bus, avec le nom de la
-//  piste dans le DAW et ce qu'OMNIS a deviné. L'élément vient, dans l'ordre :
-//    1. du choix de la personne (paramètre « Element », s'il n'est pas sur Auto) ;
-//    2. de l'écoute (stems/ElementClassifier.h) : les sons de packs ont des noms
-//       illisibles, ce qu'ils jouent ne ment pas ;
-//    3. du nom de la piste donné par l'hôte (data/elements.txt) : un indice qui
-//       précise l'écoute à l'intérieur d'une famille (« guitare » et « piano »
-//       sonnent pareil pour l'analyse, pas pour la personne).
+//  25 éléments (kick, open hat, lead, 808, reverse cymbal…) rangés en groupes :
+//  DRUMS, 808 / BASSE, MÉLO, VOIX, EFX. OMNIS sur un bus dit lesquels il y
+//  entend (stems/BusListener). Le nom d'un bus dans le DAW (« DRUMS », « MELO »,
+//  « EFX », « 808 ») donne son groupe : data/elements.txt (formes des noms de
+//  packs, découpés en mots : « SH_Kick_Hard_04 », « RevCrash », « 808Mafia »).
 //
 //  L'ordre des valeurs est publié dans la mémoire partagée : ne jamais le changer
 //  sans changer la version de la disposition du lien (link/LinkBus.h).

@@ -467,27 +467,24 @@ l'analyseur. OMNIS vérifie :
 
 ## 14. Et les pistes ?
 
-OMNIS masterise sur le master. Il peut aussi **écouter tes pistes et tes bus**, sans toucher à leur
-son, pour te montrer ce qu'il y a dans chaque bus (page **COMPOSITION**, bouton en bas à droite).
+OMNIS masterise sur le master. Il peut aussi **écouter tes bus**, sans toucher à leur son, et te
+dire ce qu'il y a dans chacun (page **COMPOSITION**, bouton en bas à droite). **Rien à mettre sur
+les pistes** : ton mixage n'est pas touché.
 
-1. Sur chaque **bus** (DRUMS, 808, MÉLO, EFX…), mets OMNIS **en premier** et choisis
-   **RÔLE : Bus** (page COMPOSITION, ou écris « rôle bus »).
-2. Sur chaque **piste** que tu veux voir (kick, lead, reverse cymbal…), mets OMNIS **en dernier**
-   et choisis **RÔLE : Piste**.
-3. Lance la lecture. En quelques secondes, chaque OMNIS (le master comme les bus) montre :
-   - chaque bus et son groupe : **DRUMS**, **808 / BASSE**, **MÉLO** (synthés, nappes, piano…),
-     **VOIX**, **EFX** (reverse cymbals, risers, impacts, sweeps, vinyle…) ;
-   - dans chaque bus, ses pistes : **le nom de la piste dans FL** → **ce qu'OMNIS entend**
-     (« SH_Kick_Hard_04 → Kick 74 % », « Rev Crash 03 → Reverse cymbal ») ;
-   - ce que l'écoute d'un bus de drums entend dedans (kick, snare / clap, hi-hat, open hat), même
-     sans OMNIS sur ses pistes ;
-   - les pistes qui vont directement au master (« HORS BUS »).
+1. Sur chaque **bus** (DRUMS, 808, MÉLO, EFX…), mets OMNIS et choisis **RÔLE : Bus** (page
+   COMPOSITION, ou écris « rôle bus » dans la barre IA).
+2. Lance la lecture. Au bout de quelques secondes, chaque OMNIS (le master comme les bus) montre
+   chaque bus, avec son nom dans FL, son groupe et ce qu'OMNIS entend dedans :
+   - **DRUMS** : kick, snare / clap, hi-hat, open hat (avec le nombre de coups) ;
+   - **808 / BASSE** : la 808 (combien de temps elle tient) ;
+   - **MÉLO** : lead / synthé (des notes attaquées), nappe (un son qui tient) ;
+   - **EFX** : reverse cymbal (monte puis s'arrête net), riser (monte longtemps), impact (gros
+     coup grave et large qui retombe lentement).
 
-En **Bus** et **Piste**, le son passe **tel quel** et sans latence. OMNIS retrouve qui va dans quel
-bus **à l'écoute** (FL ne le dit pas aux plug-ins) : en comparant ce que chaque piste et chaque bus
-entendent au même moment. Une piste baissée de plus de 14 dB dans son bus, ou deux pistes qui jouent
-exactement le même son aux mêmes instants, peuvent lui échapper. Écris « composition » dans la barre
-IA pour la liste complète.
+En **Bus**, le son passe **tel quel** et sans latence. FL ne dit pas aux plug-ins quelles pistes
+entrent dans un bus : OMNIS ne connaît donc pas le nom de tes pistes, il **entend** ce que le bus
+contient. Le groupe d'un bus vient de son nom (« DRUMS », « MELO », « EFX », « 808 »…), sinon de ce
+qu'il contient. Écris « composition » dans la barre IA pour la liste complète.
 
 Ce qui se corrige mieux piste par piste (une 808 trop forte, un bas-médium qui s'accumule), le
 **diagnostic du mix** te le dit, pour que tu le règles dans ton projet.

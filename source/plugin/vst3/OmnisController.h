@@ -12,9 +12,9 @@
 //  compilé avec (OMNIS_HAS_GUI), sinon l'éditeur générique de l'hôte.
 //
 //  Nom de la piste : l'hôte le donne par ChannelContext::IInfoListener ; il est
-//  passé au processeur (rôle Bus / Piste : publié aux autres instances).
-//  composition() lit la région partagée (link::Observer) : quels éléments dans
-//  quel bus, avec leur nom d'origine et ce qu'OMNIS a deviné (page COMPOSITION).
+//  passé au processeur (rôle Bus : publié aux autres instances avec ce que le
+//  bus contient). composition() lit la région partagée (link::Observer) : chaque
+//  bus du projet et ce qu'OMNIS y entend (page COMPOSITION).
 // =============================================================================
 #pragma once
 
@@ -53,11 +53,11 @@ public:
     /// Nom (et couleur) de la piste où l'instance est posée.
     Steinberg::tresult PLUGIN_API setChannelContextInfos(Steinberg::Vst::IAttributeList* list) override;
     [[nodiscard]] const std::string& trackName() const noexcept { return trackName_; }
-    /// Rôle choisi (Master / Bus / Piste).
+    /// Rôle choisi (Master / Bus).
     [[nodiscard]] params::InstanceRole instanceRole();
-    /// Pistes et bus OMNIS du projet (relu au plus une fois par seconde). Vide sans instance Bus / Piste.
+    /// Les bus OMNIS du projet et ce qu'ils contiennent (relu au plus une fois par seconde). Vide sans bus.
     [[nodiscard]] const stems::Composition& composition();
-    /// Ce que la page COMPOSITION et la barre IA disent (« BUS « DRUMS » (DRUMS) : … »).
+    /// Ce que la barre IA dit (« BUS « DRUMS » (DRUMS) : Kick (24), … »).
     [[nodiscard]] std::string compositionText();
 
     Steinberg::IPlugView* PLUGIN_API createView(Steinberg::FIDString name) override;

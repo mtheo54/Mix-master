@@ -345,7 +345,7 @@ const std::array<TutorialStep, 12> kTutorial{{
     {CRect(942, 556, 1190, 726), "ÉCOUTES ET EXPORT",
      {"ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…", "Elle reste en rouge : remets-la sur Off avant d'exporter.",
       "DIAGNOSTIC DU MIX : ce que le master ne rattrape pas, à corriger dans ton projet.",
-      "COMPOSITION : avec OMNIS sur tes bus et pistes, ce qu'il y a dans chaque bus."}, 2},
+      "COMPOSITION : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dans chacun."}, 2},
     {CRect(796, 10, 830, 50), "C'EST PARTI",
      {"Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
 }};
@@ -630,7 +630,7 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     buildScreens(face);
     buildMaster(face);
     omnis()->requestFeed();
-    // Sur une piste ou un bus, la console de mastering ne sert pas : la page COMPOSITION d'abord.
+    // Sur un bus, la console de mastering ne sert pas : la page COMPOSITION d'abord.
     if (omnis()->instanceRole() != params::InstanceRole::Master) page_ = kCompPage;
     selectPage(page_);
     // Le guide, par-dessus tout ; montré tout seul à la toute première ouverture.
@@ -1688,7 +1688,7 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
     }
     {
         // Composition : chaque élément des bus, son nom dans le DAW et ce qu'OMNIS devine.
-        auto* p = page(drawer, kCompPage, "B", "COMPOSITION", "Tes bus et leurs éléments : nom dans FL → ce qu'OMNIS entend.");
+        auto* p = page(drawer, kCompPage, "B", "COMPOSITION", "Tes bus et ce qu'OMNIS entend dedans. Rien à mettre sur les pistes.");
         auto* list = new Screen(CRect(12, row1 - 6, W - 14, row1 + 206), [this](CDrawContext* dc, const CRect& r) { paintComposition(dc, r); }, true);
         list->setMouseEnabled(false);
         p->addView(list);
@@ -1906,20 +1906,6 @@ void OmnisEditor::paintComposition(CDrawContext* dc, const CRect& r) {
         bool header = false;
     };
     std::vector<Row> rows;
-    const auto memberRow = [&](const stems::Member& m) {
-        Row row;
-        row.left = "  " + (m.name.empty() ? i18n::tr("piste sans nom") : m.name);
-        row.leftColor = color::kText;
-        if (m.element == stems::Element::Auto) {
-            row.right = i18n::tr("écoute en cours…");
-            row.rightColor = color::kText3;
-        } else {
-            row.right = i18n::tr(stems::elementLabel(m.element)) + (m.confidence > 0.0 ? fmt("  %.0f %%", 100.0 * m.confidence) : std::string{});
-            if (m.nameDisagrees) row.right += i18n::tr(" (le nom dit autre chose)");
-            row.rightColor = familyColor(static_cast<int>(m.family()));
-        }
-        rows.push_back(std::move(row));
-    };
     for (const auto& b : comp.buses) {
         Row h;
         h.left = i18n::tr("BUS ") + "« " + (b.name.empty() ? i18n::tr("sans nom") : b.name) + " »";
@@ -1928,27 +1914,28 @@ void OmnisEditor::paintComposition(CDrawContext* dc, const CRect& r) {
         h.rightColor = familyColor(static_cast<int>(b.family));
         h.header = true;
         rows.push_back(std::move(h));
-        for (const auto& m : b.members) memberRow(m);
-        std::string inside;
-        for (const auto& [on, name] : {std::pair{b.kick, "Kick"}, std::pair{b.snare, "Snare / clap"}, std::pair{b.hat, "Hi-hat"}, std::pair{b.openHat, "Open hat"}})
-            if (on) inside += (inside.empty() ? "" : ", ") + std::string(name);
-        if (b.members.empty())
-            rows.push_back({"  " + i18n::tr(b.enoughToMatch ? "aucune piste OMNIS dedans" : "lance la lecture…"),
-                            inside.empty() ? std::string{} : i18n::tr("entendu : ") + inside, color::kText3, color::kText2});
-        else if (!inside.empty())
-            rows.push_back({"  " + i18n::tr("entendu dans le bus"), inside, color::kText3, color::kText2});
-    }
-    if (!comp.direct.empty()) {
-        rows.push_back({comp.buses.empty() ? i18n::tr("PISTES") : i18n::tr("HORS BUS (vers le master)"), {}, color::kText2, color::kText2, true});
-        for (const auto& m : comp.direct) memberRow(m);
+        if (b.listening()) {
+            rows.push_back({"  " + i18n::tr("lance la lecture…"), {}, color::kText3, color::kText3});
+            continue;
+        }
+        if (b.content.items.empty()) rows.push_back({"  " + i18n::tr("rien de net pour l'instant"), {}, color::kText3, color::kText3});
+        // Ce qui est entendu : l'élément à gauche (couleur de son groupe), le détail à droite.
+        for (const auto& item : b.content.items) {
+            Row row;
+            row.left = "  " + stems::describeItem(item);
+            row.leftColor = familyColor(static_cast<int>(stems::familyOf(item.element)));
+            row.right = fmt("%.0f %%", 100.0 * item.confidence);
+            row.rightColor = color::kText3;
+            rows.push_back(std::move(row));
+        }
     }
     if (rows.empty()) {
-        text(dc, i18n::tr("Aucune piste ni aucun bus OMNIS pour l'instant."), CRect(r.left + 10, r.top + 10, r.right - 10, r.top + 26), color::kText2, mono(10));
-        text(dc, i18n::tr("Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur"), CRect(r.left + 10, r.top + 34, r.right - 10, r.top + 50), color::kText3, mono(10));
-        text(dc, i18n::tr("leurs pistes, choisis le RÔLE, puis lance la lecture."), CRect(r.left + 10, r.top + 50, r.right - 10, r.top + 66), color::kText3, mono(10));
+        text(dc, i18n::tr("Aucun bus OMNIS pour l'instant."), CRect(r.left + 10, r.top + 10, r.right - 10, r.top + 26), color::kText2, mono(10));
+        text(dc, i18n::tr("Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…), RÔLE : Bus,"), CRect(r.left + 10, r.top + 34, r.right - 10, r.top + 50), color::kText3, mono(10));
+        text(dc, i18n::tr("puis lance la lecture. Rien à mettre sur les pistes."), CRect(r.left + 10, r.top + 50, r.right - 10, r.top + 66), color::kText3, mono(10));
         return;
     }
-    const double mid = r.left + 0.55 * r.getWidth();
+    const double mid = r.left + 0.62 * r.getWidth();
     constexpr double kRow = 13.0;
     const int maxRows = static_cast<int>((r.getHeight() - 8) / kRow);
     for (int i = 0; i < static_cast<int>(rows.size()) && i < maxRows; ++i) {
@@ -1964,8 +1951,7 @@ void OmnisEditor::paintComposition(CDrawContext* dc, const CRect& r) {
             dc->drawLine(CPoint(r.left + 8, y - 1.5), CPoint(r.right - 8, y - 1.5));
         }
         text(dc, row.left, CRect(r.left + 10, y, mid - 6, y + kRow), row.leftColor, mono(row.header ? 9.5 : 9, row.header));
-        if (!row.header) text(dc, "→", CRect(mid - 14, y, mid, y + kRow), color::kText3, mono(9));
-        text(dc, row.right, CRect(mid + 4, y, r.right - 10, y + kRow), row.rightColor, mono(row.header ? 9.5 : 9, row.header));
+        text(dc, row.right, CRect(mid + 4, y, r.right - 10, y + kRow), row.rightColor, mono(row.header ? 9.5 : 9, row.header), row.header ? kLeftText : kRightText);
     }
 }
 
@@ -2257,15 +2243,14 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             break;
         }
         case kCompPage: {
-            caption("OMNIS SUR TES PISTES ET TES BUS");
-            const auto role = omnis()->instanceRole();
-            const char* roleText = role == params::InstanceRole::Bus ? "CETTE INSTANCE : BUS" : role == params::InstanceRole::Track ? "CETTE INSTANCE : PISTE" : "CETTE INSTANCE : MASTER";
-            text(c, i18n::tr(roleText) + (omnis()->trackName().empty() ? "" : " « " + omnis()->trackName() + " »"), CRect(plot.left, plot.top + 4, plot.right, plot.top + 20),
-                 color::kAccent, mono(10, true));
-            const char* lines[] = {"1. Sur chaque piste : OMNIS en DERNIER,", "   RÔLE : Piste.", "2. Sur chaque bus : OMNIS en PREMIER,", "   RÔLE : Bus.",
-                                   "3. Lance la lecture : je retrouve qui va", "   dans quel bus, et ce que c'est.", "Le son des pistes et des bus ne change pas."};
-            for (int i = 0; i < 7; ++i)
-                text(c, i18n::tr(lines[i]), CRect(plot.left, plot.top + 30 + 15 * i, plot.right, plot.top + 44 + 15 * i), i == 6 ? color::kText3 : color::kText2, mono(9.5));
+            caption("OMNIS SUR TES BUS");
+            const bool bus = omnis()->instanceRole() == params::InstanceRole::Bus;
+            text(c, i18n::tr(bus ? "CETTE INSTANCE : BUS" : "CETTE INSTANCE : MASTER") + (omnis()->trackName().empty() ? "" : " « " + omnis()->trackName() + " »"),
+                 CRect(plot.left, plot.top + 4, plot.right, plot.top + 20), color::kAccent, mono(10, true));
+            const char* lines[] = {"1. Sur chaque bus (DRUMS, 808, MÉLO, EFX…) :", "   OMNIS, RÔLE : Bus.", "2. Lance la lecture : j'écoute chaque bus",
+                                   "   et te dis ce qu'il y a dedans.", "Rien à mettre sur les pistes : le son des", "bus ne change pas, le mixage non plus."};
+            for (int i = 0; i < 6; ++i)
+                text(c, i18n::tr(lines[i]), CRect(plot.left, plot.top + 30 + 15 * i, plot.right, plot.top + 44 + 15 * i), i >= 4 ? color::kText3 : color::kText2, mono(9.5));
             // Les groupes et leur couleur.
             double x = plot.left;
             for (int f = 1; f < stems::kFamilyCount; ++f) {

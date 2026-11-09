@@ -1,8 +1,8 @@
 // =============================================================================
 //  Abrasion Labs // OMNIS
-//  tests/TestPluginLink.cpp — OMNIS sur les pistes et les bus d'un projet :
-//  le son passe tel quel, sans latence ; le master (et chaque bus) voit quels
-//  éléments sont dans quel bus, avec leur nom d'origine et ce qu'OMNIS devine.
+//  tests/TestPluginLink.cpp — OMNIS sur les bus d'un projet (rien sur les
+//  pistes) : le son passe tel quel, sans latence ; le master (et chaque bus)
+//  voit chaque bus, son nom dans le DAW et ce qu'OMNIS entend dedans.
 // =============================================================================
 #include "TestFramework.h"
 
@@ -69,7 +69,7 @@ struct Instance {
         // L'hôte donne le nom de la piste (IInfoListener), puis la personne choisit le rôle.
         if (trackName) {
             auto list = HostAttributeList::make();
-            const auto name = VST3::StringConvert::convert(std::string(trackName));
+            const auto name = Steinberg::Vst::StringConvert::convert(std::string(trackName));
             list->setString(ChannelContext::kChannelNameKey, name.data());
             ctrl->setChannelContextInfos(list);
         }
@@ -149,70 +149,56 @@ void setNamespace(const std::string& ns) {
 
 } // namespace
 
-OMNIS_TEST("plug-in pistes et bus: le son passe tel quel sans latence, le master voit qui est dans quel bus") {
+OMNIS_TEST("plug-in bus: le son passe tel quel sans latence, le master voit chaque bus et ce qu'il contient") {
     const std::string ns = "omnisplug" + std::to_string(static_cast<unsigned>(std::random_device{}() % 100000)) + "x";
     setNamespace(ns);
     {
         const double seconds = 12.0;
         const auto kick = kickPart(seconds), rev = reversePart(seconds), lead = leadPart(seconds);
-        std::vector<double> drums(kick.size()), efx(kick.size());
-        for (std::size_t i = 0; i < kick.size(); ++i) {
-            drums[i] = 0.8 * kick[i];
-            efx[i] = rev[i];
-        }
-        auto kickTrack = std::make_unique<Instance>("SH_Kick_Hard_04", params::InstanceRole::Track);
-        auto revTrack = std::make_unique<Instance>("Rev Crash 03", params::InstanceRole::Track);
-        auto leadTrack = std::make_unique<Instance>("Serum Lead", params::InstanceRole::Track);
         auto drumBus = std::make_unique<Instance>("DRUMS", params::InstanceRole::Bus);
         auto efxBus = std::make_unique<Instance>("EFX", params::InstanceRole::Bus);
+        auto meloBus = std::make_unique<Instance>("Insert 7", params::InstanceRole::Bus); // nom qui ne dit rien
         auto master = std::make_unique<Instance>("Master", params::InstanceRole::Master);
-        // Bus et Piste : aucune latence ; le master garde la sienne (phase linéaire).
-        OMNIS_CHECK(kickTrack->proc->getLatencySamples() == 0 && drumBus->proc->getLatencySamples() == 0);
-        OMNIS_CHECK(master->proc->getLatencySamples() > 0);
-        // La lecture, comme l'hôte : toutes les instances au même instant du projet, ~6x le temps réel.
+        // Un bus n'est pas retardé ; le master garde sa latence (phase linéaire).
+        OMNIS_CHECK(drumBus->proc->getLatencySamples() == 0 && master->proc->getLatencySamples() > 0);
         double worst = 0.0;
         const int blocks = static_cast<int>(seconds * kFs / 512.0);
         for (int b = 0; b < blocks; ++b) {
             const int pos = b * 512;
-            worst = std::max({worst, kickTrack->block(kick, pos), revTrack->block(rev, pos), leadTrack->block(lead, pos), drumBus->block(drums, pos),
-                              efxBus->block(efx, pos)});
+            worst = std::max({worst, drumBus->block(kick, pos), efxBus->block(rev, pos), meloBus->block(lead, pos)});
             master->block(lead, pos);
             if (b % 16 == 0) std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         OMNIS_CHECK(worst == 0.0); // bit à bit
-        // Le thread du lien publie toutes les 500 ms : on lui laisse le temps.
-        std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+        // Le thread du lien publie chaque seconde : on lui laisse le temps.
+        std::this_thread::sleep_for(std::chrono::milliseconds(2200));
         const auto& c = master->ctrl->composition();
         const std::string text = master->ctrl->compositionText();
         std::printf("%s\n", text.c_str());
+        OMNIS_CHECK(c.buses.size() == 3);
         const stems::BusView* d = nullptr;
         const stems::BusView* e = nullptr;
-        for (const auto& bus : c.buses) {
-            if (bus.name == "DRUMS") d = &bus;
-            if (bus.name == "EFX") e = &bus;
+        const stems::BusView* m = nullptr;
+        for (const auto& bus : c.buses) (bus.name == "DRUMS" ? d : bus.name == "EFX" ? e : m) = &bus;
+        OMNIS_CHECK(d && e && m);
+        if (d && e && m) {
+            OMNIS_CHECK(d->family == stems::Family::Drums && d->content.has(stems::Element::Kick));
+            OMNIS_CHECK(e->family == stems::Family::Fx && e->content.has(stems::Element::ReverseCymbal));
+            OMNIS_CHECK(m->family == stems::Family::Instrument && m->content.has(stems::Element::Lead)); // groupe d'après le contenu
+            OMNIS_CHECK(!d->content.has(stems::Element::Lead) && !e->content.has(stems::Element::Kick));
         }
-        OMNIS_CHECK(d && e);
-        if (d && e) {
-            OMNIS_CHECK(d->members.size() == 1 && d->members[0].name == "SH_Kick_Hard_04" && d->members[0].element == stems::Element::Kick);
-            OMNIS_CHECK(e->members.size() == 1 && e->members[0].name == "Rev Crash 03" && e->members[0].element == stems::Element::ReverseCymbal);
-            OMNIS_CHECK(d->family == stems::Family::Drums && e->family == stems::Family::Fx);
-            OMNIS_CHECK(d->kick); // l'écoute du bus entend le kick
-        }
-        OMNIS_CHECK(c.direct.size() == 1 && c.direct[0].name == "Serum Lead" && c.direct[0].family() == stems::Family::Instrument);
-        OMNIS_CHECK(text.find("« SH_Kick_Hard_04 » → Kick (DRUMS") != std::string::npos);
-        // La barre IA : « composition », et une instance de bus le dit aussi.
-        OMNIS_CHECK(master->ctrl->ask("qu'est-ce qu'il y a dans mes bus ?").find("BUS « DRUMS »") != std::string::npos);
+        OMNIS_CHECK(text.find("BUS « DRUMS » (DRUMS) : Kick") != std::string::npos);
+        // La barre IA : « composition » ; un bus refuse poliment le mastering.
+        OMNIS_CHECK(master->ctrl->ask("qu'est-ce qu'il y a dans mes bus ?").find("BUS « EFX »") != std::string::npos);
         OMNIS_CHECK(drumBus->ctrl->ask("monte le sub").find("RÔLE Bus") != std::string::npos);
-        // Repasser une piste en Master : elle quitte la région (plus vue), sa latence revient.
+        // Le bus repasse en Master : il quitte la liste, sa latence revient.
         const auto* spec = params::findParameter(ParamId::InstanceRole);
-        leadTrack->ctrl->setParamNormalized(static_cast<ParamID>(ParamId::InstanceRole), params::toNormalized(*spec, 0.0));
-        OMNIS_CHECK(leadTrack->proc->getLatencySamples() > 0);
+        meloBus->ctrl->setParamNormalized(static_cast<ParamID>(ParamId::InstanceRole), params::toNormalized(*spec, 0.0));
+        OMNIS_CHECK(meloBus->proc->getLatencySamples() > 0);
         std::this_thread::sleep_for(std::chrono::milliseconds(1100));
-        const auto& after = master->ctrl->composition();
-        OMNIS_CHECK(after.direct.empty());
+        OMNIS_CHECK(master->ctrl->composition().buses.size() == 2);
         // Une instance retirée du projet : elle disparaît.
         efxBus.reset();
-        revTrack.reset();
         std::this_thread::sleep_for(std::chrono::milliseconds(1100));
         OMNIS_CHECK(master->ctrl->composition().buses.size() == 1);
     }

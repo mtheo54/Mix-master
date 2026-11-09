@@ -85,9 +85,8 @@
 
 ## source/link/
 
-- `BandFrames.h` (104 l.) — L'empreinte de ce qu'entend une piste ou un bus. · types : BandFrames, Biquad · fonctions : prepare, reset, process, publish, run
-- `LinkBus.h/cpp` (393 l.) — Les instances d'un projet se voient (pistes, bus, master). · types : Identity, InstanceView, BandFrame, Header, Endpoint, Observer · enums : Role · fonctions : regionName, nowMs, isLive, join, leave, heartbeat, publish, writeFrame, open, close
-- `LinkClient.h/cpp` (248 l.) — Une instance PISTE ou BUS dans la région partagée. · types : LinkClient, RtAccess · fonctions : start, stop, setTrackName, process, access, run, publishEndpoint
+- `LinkBus.h/cpp` (319 l.) — Les bus d'un projet se voient. · types : InstanceView, Item, Header, Endpoint, Observer · enums : Role · fonctions : regionName, nowMs, isLive, join, leave, heartbeat, publish, open, close
+- `LinkClient.h/cpp` (178 l.) — Une instance BUS dans la région partagée. · types : LinkClient · fonctions : start, stop, setTrackName, process, run
 - `SharedRegion.h/cpp` (136 l.) — Mémoire partagée nommée entre instances du plug-in. · types : SharedRegion · fonctions : open, close, unlink
 
 ## source/params/
@@ -96,11 +95,11 @@
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (1694 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, UndoStep · enums : RefKind · fonctions : createInstance, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode, importReferenceFile
-- `OmnisEditor.h/cpp` (2807 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
+- `OmnisController.h/cpp` (1689 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, UndoStep · enums : RefKind · fonctions : createInstance, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode, importReferenceFile
+- `OmnisEditor.h/cpp` (2792 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (32 l.) — Identifiants de classes VST3.
-- `OmnisProcessor.h/cpp` (827 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, switchRole, startLink, processListening, passThrough, feedBlock
+- `OmnisProcessor.h/cpp` (825 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, switchRole, startLink, processListening, passThrough, feedBlock
 - `OmnisState.h/cpp` (126 l.) — Format binaire de l'état du processeur. · fonctions : writeState, readState, writeExtras, readExtras
 - `OmnisVersion.h` (27 l.) — Identité et version du plug-in.
 - `UiFeed.h/cpp` (110 l.) — Ce que le processeur montre à l'interface, sans passer par les paramètres de sortie (trop lents et trop maigres pour un spectre ou un goniomètre). · types : UiMeters, UiFeed · fonctions : registerFeed, unregisterFeed, findFeed
@@ -126,15 +125,16 @@
 
 ## source/stems/
 
-- `Composition.h/cpp` (485 l.) — Qui est dans quel bus : la page COMPOSITION. · types : Heard, Member, BusView, Composition, MatchOptions, BusFit · fonctions : readInstances, describeComposition, describeMember
+- `BusListener.h/cpp` (512 l.) — Ce qu'il y a dans un bus, à l'écoute. · types : HeardItem, BusContent, BusListener, Frame · fonctions : describeItem, prepare, reset, push, analyse
+- `Composition.h/cpp` (91 l.) — Tes bus et ce qu'il y a dedans : la page COMPOSITION. · types : BusView, Composition · fonctions : buildComposition, describeComposition
 - `DrumBus.h/cpp` (234 l.) — Ce qu'il y a dans un bus de drums : kick, snare / clap, hi-hat, open hat, reconnus à leurs coups (thread du lien, jamais l'audio). · types : DrumContent, Item, DrumBusAnalyzer, Biquad · fonctions : describeDrumBus, prepare, reset, push, run, endFrame
-- `Element.h/cpp` (329 l.) — Ce que joue une piste (instance OMNIS en rôle PISTE ou BUS). · types : NameHint · enums : Element, Family · fonctions : familyOf, familyLabel, familyFromName, elementLabel, elementKey, elementFromKey, elementChoiceLabels, elementMeterLabels, nameWords, elementFromName
-- `ElementClassifier.h/cpp` (557 l.) — Reconnaître ce que joue une piste en l'écoutant. · types : Character, Identification, ElementClassifier, Frame · fonctions : prepare, reset, push, analyseFrame, combine
+- `Element.h/cpp` (324 l.) — Les éléments d'une prod et leurs groupes. · types : NameHint · enums : Element, Family · fonctions : familyOf, familyLabel, familyFromName, elementLabel, elementKey, elementFromKey, elementChoiceLabels, elementMeterLabels, nameWords, elementFromName
 
 ## tests/
 
 - `TestAvatarStylizer.cpp` (255 l.) — L'illustration d'une pochette : macaron du coin retiré, grain effacé, teinte gardée, trait sur les contours, détourage. · 9 tests : avatar HD: 256 px, macaron du coin retiré, couleurs d'origine, fondu s ; avatar peint (option): macaron retiré, teinte gardée, détourage radial ; avatar emblème: des formes posées d'après l'image (pas de filtre), ron ; emblème: chaque forme rapproche du modèle (un disque est retrouvé) ; avatar: un bloc de texte noir et blanc est repéré dans un coin, jamais ; avatar: les deux couleurs dominantes (monogramme du mode promo) ; …
-- `TestComposition.cpp` (413 l.) — Qui est dans quel bus (empreintes, région partagée). · 8 tests : composition: empreinte par bandes alignée sur le projet, trames entamé ; composition: chaque piste retrouvée dans son bus (DRUMS, 808, MÉLO, EF ; composition: une piste hors bus va « vers le master » ; un bus sans pi ; composition: bus légèrement saturé, décalé, avec une piste sans OMNIS  ; composition: gros projet (40 pistes, 6 bus) relu vite (thread de l'int ; composition: pas assez de lecture commune -> on n'invente pas de piste ; …
+- `TestBusListener.cpp` (174 l.) — Ce qu'OMNIS entend dans un bus (sans rien sur les pistes). · 6 tests : bus: un bus DRUMS -> kick, snare / clap, hi-hat, open hat, et rien d'a ; bus: 808 (propre ou saturée) entendue comme 808, pas comme du mélo ; a ; bus: MÉLO -> nappe (tenue) et lead / synthé (attaques), sans drums ni  ; bus: EFX -> reverse cymbal, riser, impact reconnus ; les hats n'en fon ; bus: toute la prod dans un bus -> tous les groupes entendus ; bus: silence, bruit de fond, trop peu d'écoute -> rien d'inventé
+- `TestComposition.cpp` (170 l.) — Les bus du projet se voient (région partagée, page COMPOSITION, thread du lien). · 3 tests : composition: chaque bus, son groupe (nom, sinon contenu) et ce qu'il c ; composition: la région partagée (bus, noms, contenu) se lit d'une autr ; lien: thread audio, thread du lien et lecture d'une autre instance en 
 - `TestCompressor.cpp` (204 l.) — Compresseur de bus (stages/CompressorStage) : courbe à genou continue, réduction statique exacte, rien sous le seuil (au bit près), stéréo liée, passe-haut du détecteur (la 808 ne pompe pas), · 7 tests : compresseur: courbe à genou doux continue (0 sous le seuil, pente 1/R  ; compresseur: réduction statique exacte (sinus -6 dBFS, seuil -18, 4:1  ; compresseur: stéréo liée (même gain à gauche et à droite) ; Mix 0 % =  ; compresseur: le passe-haut du détecteur empêche la 808 (40 Hz) de fair ; compresseur: attaque et relâchement (FET 1 ms rapide ; relâchement sui ; compresseur Opto: relâche vite après un coup bref, lentement après une ; …
 - `TestConvolution.cpp` (133 l.) — FFT, convolution UPOLS, noyaux à phase linéaire. · 3 tests : fft: identique à la DFT directe, aller-retour exact (N = 8 … 4096) ; upols: deux canaux = convolutions directes, latence exacte B, changeme ; noyaux sub: réponse conforme à la cible, phase linéaire (symétrie), Mi
 - `TestCore.cpp` (191 l.) — Primitives temps réel. · 9 tests : smoother: 99 % atteint au temps de lissage, sans dépassement ; smoother: colle exactement à la cible et s'arrête ; smoother: temps nul = saut immédiat ; spsc: sémantique FIFO, bouclage et file pleine ; spsc: concurrence producteur/consommateur, 2 millions d'éléments ordon ; triple buffer: le lecteur ne voit jamais d'état déchiré, versions croi ; …
@@ -162,7 +162,7 @@
 - `TestParameters.cpp` (93 l.) — Table de paramètres. · 6 tests : params: identifiants et clés uniques, défauts dans les bornes ; params: aller-retour normalisé <-> plain ; params: convention VST3 des valeurs discrètes ; params: formatage et saisie texte ; params: indépendant de la locale de l'hôte (virgule décimale) ; params: échelle logarithmique des fréquences
 - `TestPhraseBank.cpp` (148 l.) — Banque de phrases réelles (beatmaker : parlé, SMS, argot, anglais) : chacune doit agir sur le bon axe, DANS LE BON SENS. Garde-fou contre les inversions (« mon kick est trop fort » montait le · 1 tests : banque de phrases: chaque demande agit sur le bon axe, dans le bon sen
 - `TestPluginAi.cpp` (702 l.) — La barre IA et AUTO dans le plug-in : le vrai processeur écoute la prod, le vrai contrôleur comprend la demande, règle les modules et mène le volume à la cible par la mesure. · 18 tests : plug-in barre IA: « plus de punch, plus fort, garde ma 808 » règle les ; plug-in AUTO: écoute le morceau entier jusqu'à l'arrêt, règle la chaîn ; plug-in AUTO: un second clic pendant l'écoute la termine ; avant le so ; plug-in AUTO: un son glissé est analysé en entier (calme puis fort), r ; plug-in reconnaissance: « c'est quel style ? » répond ; nommer le styl ; plug-in apprentissage: 3 AUTO suivis de « sub +2 dB » à la main -> le  ; …
-- `TestPluginLink.cpp` (222 l.) — OMNIS sur les pistes et les bus d'un projet : le son passe tel quel, sans latence ; le master (et chaque bus) voit quels éléments sont dans quel bus, avec leur nom d'origine et ce qu'OMNIS devine. · 1 tests : plug-in pistes et bus: le son passe tel quel sans latence, le master v
+- `TestPluginLink.cpp` (208 l.) — OMNIS sur les bus d'un projet (rien sur les pistes) : le son passe tel quel, sans latence ; le master (et chaque bus) voit chaque bus, son nom dans le DAW et ce qu'OMNIS entend dedans. · 1 tests : plug-in bus: le son passe tel quel sans latence, le master voit chaque
 - `TestPluginRealtime.cpp` (146 l.) — Le thread audio n'alloue JAMAIS de mémoire : une allocation dans process() peut bloquer (verrou de l'allocateur) et faire craquer le son dans le DAW. On compte toutes les allocations faites PENDANT · 1 tests : temps réel: process() n'alloue jamais (automation de tout, bypass, Del
 - `TestPluginSlotToggle.cpp` (202 l.) — Le bouton rond d'un slot du mixer de FL Studio : l'hôte désactive / réactive l'instance pendant que son thread audio continue d'appeler process(). Rien ne doit planter, ni sortir autre · 3 tests : slot FL: activer / désactiver pendant process() (Seul) ne plante pas ; slot FL: deux instances activées / désactivées en même temps pendant p ; slot FL: clics sur le slot mêlés à des messages de l'interface en rout
 - `TestPluginState.cpp` (319 l.) — État du processeur VST3 (aller-retour complet). · 6 tests : plug-in: getState(setState(x)) = x pour les 90 paramètres persistants ; plug-in: une session d'avant le compresseur (ordre à 7 modules, id 8)  ; plug-in: la référence jouée sur l'entrée auxiliaire entre dans la base ; plug-in: une écoute de moins de 60 s n'est pas retenue ; plug-in: état de session tronqué ou corrompu (processeur, contrôleur,  ; plug-in: hôte aberrant (fréquence 0 / NaN / 10 MHz, bloc de 2^30, bloc
@@ -173,7 +173,7 @@
 - `TestReferenceImport.cpp` (173 l.) — Ajouter un fichier de référence : étiquettes, nom « Artiste - Titre » (dans les deux sens), MusicBrainz (réponses simulées, aucun réseau pendant les tests), mesure et écriture dans la base de la personne. · 5 tests : import: nom de fichier « Artiste - Titre » (numéro, clip, prod, bpm, t ; import: étiquettes ID3v2 (titre, artiste, ISRC, pochette), FLAC et WAV ; import: MusicBrainz retenu seulement si artiste ET titre ET durée coll ; import: « Titre - Artiste » remis dans l'ordre (artiste connu, ou Musi ; import: fichier ajouté = mesuré, rangé dans la base de la personne ; s
 - `TestRobustness.cpp` (168 l.) — Entrées non fiables : ce que le plug-in lit sans le maîtriser (fichiers audio ajoutés, leurs étiquettes, réponses de MusicBrainz, base de références de la personne). Des milliers de versions · 3 tests : robustesse: étiquettes ID3 / FLAC / WAV tronquées ou corrompues (milli ; robustesse: réponses MusicBrainz et base de références corrompues : ri ; robustesse: fichiers WAV, MP3 et FLAC abîmés ajoutés comme référence :
 - `TestSearchMaster.cpp` (111 l.) — AUTO précis (tools/common/LoudnessTuner, searchMaster) : trois répartitions clip / limiteur menées à la sonie visée, jamais au-delà du garde-fou, la mieux notée retenue ; une prod déjà assez · 4 tests : AUTO précis: 3 répartitions menées à -11 LUFS, la mieux notée retenue, ; AUTO précis: garde-fou serré -> la cible n'est pas atteinte, aucun ess ; AUTO précis: une prod déjà plus forte que la cible n'est pas poussée ( ; AUTO précis: annulé avant de commencer, rien n'est essayé
-- `TestStems.cpp` (375 l.) — Reconnaître les éléments des stems (nom et écoute). · 6 tests : stems: nom de piste -> élément (noms de packs, abréviations, collés) ; stems: l'écoute reconnaît kick, 808, snare, clap, hats, piano, nappe,  ; stems: sons saturés ou « bizarres » toujours reconnus, caractère mesur ; stems: écoute et nom combinés (le nom précise, l'écoute nette l'emport ; stems: groupes DRUMS / 808 / MÉLO / VOIX / EFX, nom d'un bus -> son gr ; stems: EFX reconnus à l'écoute (reverse cymbal, riser, impact), pas pr
+- `TestStems.cpp` (60 l.) — Éléments, groupes, noms de pistes et de bus. · 2 tests : stems: nom de piste -> élément (noms de packs, abréviations, collés) ; stems: groupes DRUMS / 808 / MÉLO / VOIX / EFX, nom d'un bus -> son gr
 - `TestStyleRecognizer.cpp` (113 l.) — Reconnaître le style d'une prod (ai/StyleRecognizer) : groupes sonores livrés, probabilités, mémoire personnelle (les styles nommés par la personne l'emportent peu à peu), · 4 tests : style: les groupes sonores livrés se relisent (10 groupes, statistique ; style: chaque sous-genre a son groupe sonore (trap fr = trap, plugg =  ; style: probabilités qui somment à 1, le plus proche en tête ; rien ent ; style: la mémoire personnelle l'emporte peu à peu (5 prods nommées « d
 - `TestSubControl.cpp` (299 l.) — Étage Sub Control & Mono Maker. · 11 tests : mono maker: Side à 40 Hz supprimé (LR4 -37 dB, LR8 -70 dB), Side à 1 k ; mono maker: un signal mono reste mono (|L − R| < 1e-12) ; mono maker: image au-dessus de f_mono intacte (L seul à 2 kHz -> R res ; mono maker: amount 0 % = passe-tout (module plat L et R) ; low cut: Butterworth 24 dB/oct, -3.01 dB à fc, DC supprimé ; sub shelf: +6 dB sous la fréquence, 0 dB au-dessus ; …
 - `TestTruePeak.cpp` (87 l.) — Crête vraie (BS.1770-4 Annexe 2). · 5 tests : true peak: sinus fs/4 à 45° -> sample peak -3.01, true peak 0.00 dBTP ; true peak: sinus 997 Hz 0 dBFS -> 0 dBTP, jamais sous le sample peak ; true peak: phase 0 = identité exacte ; true peak: interpolateur plat (+/-0.01 dB) jusqu'à 0.45 fs ; true peak: crêtes inter-échantillons d'un signal transitoire >= sample
@@ -190,6 +190,10 @@
 ## tools/auto/
 
 - `main.cpp` (212 l.) — AUTO du plug-in, hors ligne, sur un fichier.
+
+## tools/bus/
+
+- `main.cpp` (44 l.) — Ce qu'OMNIS entend dans un bus (stems/BusListener), sur un fichier : comme OMNIS posé sur ce bus en RÔLE Bus, pendant la lecture.
 
 ## tools/codemap/
 
@@ -212,7 +216,7 @@
 
 ## tools/guishot/
 
-- `main.cpp` (289 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
+- `main.cpp` (255 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
 
 ## tools/learn/
 

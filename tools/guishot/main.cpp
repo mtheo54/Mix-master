@@ -108,62 +108,28 @@ bool savePng(VSTGUI::CFrame* frame, const std::string& path) {
 
 namespace {
 
-/// Un petit projet pour la page COMPOSITION : des pistes et des bus OMNIS dans la région partagée
-/// (empreintes synthétiques : le bus est la somme de ses pistes).
+/// Un petit projet pour la page COMPOSITION : quatre bus OMNIS dans la région partagée.
 std::vector<std::unique_ptr<omnis::link::Endpoint>> shotProject() {
     using namespace omnis;
-    using link::Role;
     using stems::Element;
-    struct Part {
+    struct Bus {
         const char* name;
-        Element element;
-        float confidence;
-        int bus; // -1 : vers le master
+        std::vector<stems::HeardItem> items;
     };
-    const Part parts[] = {{"SH_Kick_Hard_04", Element::Kick, 0.74f, 0},     {"Snr Crack", Element::Snare, 0.61f, 0},
-                          {"PL_ClosedHat_12", Element::HiHat, 1.0f, 0},    {"OH 03", Element::OpenHat, 0.88f, 0},
-                          {"808 Mafia", Element::Bass808, 1.0f, 1},         {"Serum Lead", Element::Lead, 0.52f, 2},
-                          {"Pad Dreamy", Element::Pad, 0.93f, 2},           {"Rhodes Chords", Element::Keys, 0.66f, 2},
-                          {"Rev Crash 03", Element::ReverseCymbal, 1.0f, 3}, {"Uplifter 8 bars", Element::Riser, 1.0f, 3},
-                          {"Vinyl Crackle", Element::Fx, 0.4f, -1}};
-    const char* buses[] = {"DRUMS", "808", "MELO", "EFX"};
+    const Bus buses[] = {
+        {"DRUMS", {{Element::Kick, 1.0, 168, 0.0}, {Element::Snare, 1.0, 363, 0.0}, {Element::HiHat, 1.0, 145, 0.0}, {Element::OpenHat, 1.0, 44, 0.0}}},
+        {"808", {{Element::Bass808, 1.0, 41, 37.0}}},
+        {"MELO", {{Element::Lead, 0.92, 451, 0.0}, {Element::Pad, 0.92, 0, 146.0}}},
+        {"EFX", {{Element::ReverseCymbal, 0.67, 2, 0.0}, {Element::Riser, 0.5, 1, 0.0}, {Element::Impact, 0.5, 1, 0.0}}},
+    };
     std::vector<std::unique_ptr<link::Endpoint>> out;
-    constexpr int kFrames = 400;
-    std::vector<std::array<std::array<float, link::kBands>, kFrames>> busFrames(4);
-    for (auto& b : busFrames)
-        for (auto& f : b) f.fill(0.0f);
-    int seed = 1;
-    for (const auto& p : parts) {
+    for (const auto& b : buses) {
         auto e = std::make_unique<link::Endpoint>();
-        if (!e->join(Role::Track, p.name, 48000.0)) continue;
-        link::Identity id;
-        id.element = id.heard = p.element;
-        id.confidence = p.confidence;
-        id.secondsHeard = 30.0f;
-        e->publish(p.name, id);
-        // Une empreinte propre à chaque piste : bandes et rythme différents.
-        const int main = stems::familyOf(p.element) == stems::Family::Drums ? (p.element == Element::Kick ? 1 : 5)
-                         : stems::familyOf(p.element) == stems::Family::Bass  ? 0
-                         : stems::familyOf(p.element) == stems::Family::Fx    ? 5
-                                                                               : 3;
-        for (int k = 0; k < kFrames; ++k) {
-            std::array<float, link::kBands> en{};
-            const double pulse = 0.5 + 0.5 * std::sin(0.37 * seed * k + seed) * std::cos(0.11 * k * (seed % 3 + 1));
-            for (int b = 0; b < link::kBands; ++b) en[static_cast<std::size_t>(b)] = static_cast<float>(pulse * std::exp(-std::abs(b - main) * 1.3) * 1e-3);
-            e->writeFrame(k, en);
-            if (p.bus >= 0)
-                for (int b = 0; b < link::kBands; ++b) busFrames[static_cast<std::size_t>(p.bus)][static_cast<std::size_t>(k)][static_cast<std::size_t>(b)] += en[static_cast<std::size_t>(b)];
-        }
-        ++seed;
-        out.push_back(std::move(e));
-    }
-    for (int b = 0; b < 4; ++b) {
-        auto e = std::make_unique<link::Endpoint>();
-        if (!e->join(Role::Bus, buses[b], 48000.0)) continue;
-        link::Identity id;
-        if (b == 0) id.kick = id.snare = id.hat = id.openHat = true;
-        e->publish(buses[b], id);
-        for (int k = 0; k < kFrames; ++k) e->writeFrame(k, busFrames[static_cast<std::size_t>(b)][static_cast<std::size_t>(k)]);
+        if (!e->join(b.name)) continue;
+        stems::BusContent c;
+        c.items = b.items;
+        c.secondsHeard = 147.0;
+        e->publish(b.name, c);
         out.push_back(std::move(e));
     }
     return out;
@@ -240,7 +206,7 @@ int main(int argc, char** argv) {
                                       shotRef ? shotRef : "BloodyWraith Pee - DRILL 229 (feat. Konor Marley & DAÏCO CHUP)");
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
                                                {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-comp"}, {8, "9-composition"}, {9, "10-diagnostic"}};
-        // La page COMPOSITION : un projet avec ses pistes et ses bus (région à part, effacée à la fin).
+        // La page COMPOSITION : un projet avec ses bus (région à part, effacée à la fin).
         setenv("OMNIS_LINK_NAMESPACE", "omnisshot", 1);
         auto project = shotProject();
         for (const auto& [page, name] : pages) {

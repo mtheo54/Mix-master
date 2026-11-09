@@ -602,47 +602,32 @@ MÉLO	MELODY
 VOIX	VOCALS
 Piste	Track
 COMPOSITION	COMPOSITION
-Tes bus et leurs éléments : nom dans FL → ce qu'OMNIS entend.	Your buses and their elements: name in FL → what OMNIS hears.
 RÔLE DE CETTE INSTANCE	ROLE OF THIS INSTANCE
-OMNIS SUR TES PISTES ET TES BUS	OMNIS ON YOUR TRACKS AND BUSES
 CETTE INSTANCE : BUS	THIS INSTANCE: BUS
-CETTE INSTANCE : PISTE	THIS INSTANCE: TRACK
 CETTE INSTANCE : MASTER	THIS INSTANCE: MASTER
-1. Sur chaque piste : OMNIS en DERNIER,	1. On each track: OMNIS LAST,
-   RÔLE : Piste.	   ROLE: Track.
-2. Sur chaque bus : OMNIS en PREMIER,	2. On each bus: OMNIS FIRST,
-   RÔLE : Bus.	   ROLE: Bus.
-3. Lance la lecture : je retrouve qui va	3. Press play: I find out what goes
-   dans quel bus, et ce que c'est.	   into which bus, and what it is.
-Le son des pistes et des bus ne change pas.	The sound of tracks and buses is not changed.
-piste sans nom	unnamed track
 sans nom	unnamed
-écoute en cours	listening
-écoute en cours…	listening…
- (le nom dit autre chose)	 (the name says otherwise)
- : le nom dit autre chose, je me fie à l'écoute	: the name says otherwise, I trust my ears
- ; l'écoute seule : 	; listening alone: 
 BUS « 	BUS « 
- : lance la lecture, je retrouve ses pistes en quelques secondes.	: press play, I find its tracks within a few seconds.
- : aucune piste OMNIS retrouvée dedans.	: no OMNIS track found in it.
-entendu dans le bus : 	heard in the bus: 
-entendu dans le bus	heard in the bus
-entendu : 	heard: 
-aucune piste OMNIS dedans	no OMNIS track inside
 lance la lecture…	press play…
-PISTES :	TRACKS:
-PISTES	TRACKS
-HORS BUS (vers le master) :	OUTSIDE BUSES (to the master):
-HORS BUS (vers le master)	OUTSIDE BUSES (to the master)
 … +%.0f : écris « composition » à l'IA	… +%.0f: type "composition" in the AI bar
-Aucune piste ni aucun bus OMNIS pour l'instant.	No OMNIS track or bus yet.
-Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur	Put OMNIS on your buses (DRUMS, MELODY, EFX…) and on
-leurs pistes, choisis le RÔLE, puis lance la lecture.	their tracks, choose the ROLE, then press play.
-Aucune piste ni aucun bus OMNIS dans le projet. Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur leurs pistes, choisis RÔLE : Bus ou Piste, puis lance la lecture.	No OMNIS track or bus in the project. Put OMNIS on your buses (DRUMS, MELODY, EFX…) and on their tracks, choose ROLE: Bus or Track, then press play.
-RÔLE : Bus. Le son passe tel quel ; je retrouve les pistes OMNIS qui entrent dans ce bus (page COMPOSITION).	ROLE: Bus. The sound passes through untouched; I find the OMNIS tracks feeding this bus (COMPOSITION page).
-RÔLE : Piste. Le son passe tel quel ; je dis aux autres OMNIS ce que joue cette piste.	ROLE: Track. The sound passes through untouched; I tell the other OMNIS instances what this track plays.
 RÔLE : Master. La chaîne de mastering est de retour.	ROLE: Master. The mastering chain is back.
-Cette instance est en RÔLE 	This instance is in ROLE 
- : elle écoute sans toucher au son. Demande « composition », ou « rôle master » pour masteriser ici.	: it listens without touching the sound. Ask "composition", or "role master" to master here.
 Elle reste en rouge : remets-la sur Off avant d'exporter.	It stays red: set it back to Off before exporting.
-COMPOSITION : avec OMNIS sur tes bus et pistes, ce qu'il y a dans chaque bus.	COMPOSITION: with OMNIS on your buses and tracks, what is in each bus.
+Tes bus et ce qu'OMNIS entend dedans. Rien à mettre sur les pistes.	Your buses and what OMNIS hears in them. Nothing to put on the tracks.
+OMNIS SUR TES BUS	OMNIS ON YOUR BUSES
+1. Sur chaque bus (DRUMS, 808, MÉLO, EFX…) :	1. On each bus (DRUMS, 808, MELODY, EFX…):
+   OMNIS, RÔLE : Bus.	   OMNIS, ROLE: Bus.
+2. Lance la lecture : j'écoute chaque bus	2. Press play: I listen to each bus
+   et te dis ce qu'il y a dedans.	   and tell you what is in it.
+Rien à mettre sur les pistes : le son des	Nothing to put on the tracks: the sound of
+bus ne change pas, le mixage non plus.	the buses does not change, nor does your mix.
+rien de net pour l'instant	nothing clear yet
+Aucun bus OMNIS pour l'instant.	No OMNIS bus yet.
+Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…), RÔLE : Bus,	Put OMNIS on your buses (DRUMS, MELODY, EFX…), ROLE: Bus,
+puis lance la lecture. Rien à mettre sur les pistes.	then press play. Nothing to put on the tracks.
+ : lance la lecture, j'écoute ce qu'il y a dedans.	: press play, I listen to what is in it.
+ : rien de net entendu pour l'instant.	: nothing clear heard yet.
+%s (tenue %.0f s)	%s (held %.0f s)
+Snare / clap	Snare / clap
+Aucun bus OMNIS dans le projet. Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…), choisis RÔLE : Bus, puis lance la lecture : je te dis ce qu'il y a dans chacun. Rien à mettre sur les pistes.	No OMNIS bus in the project. Put OMNIS on your buses (DRUMS, MELODY, EFX…), choose ROLE: Bus, then press play: I tell you what is in each one. Nothing to put on the tracks.
+RÔLE : Bus. Le son passe tel quel ; lance la lecture, je te dis ce qu'il y a dans ce bus (page COMPOSITION).	ROLE: Bus. The sound passes through untouched; press play, I tell you what is in this bus (COMPOSITION page).
+Cette instance est en RÔLE Bus : elle écoute sans toucher au son. Demande « composition », ou « rôle master » pour masteriser ici.	This instance is in ROLE Bus: it listens without touching the sound. Ask "composition", or "role master" to master here.
+COMPOSITION : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dans chacun.	COMPOSITION: with OMNIS on your buses (ROLE Bus), what is in each one.

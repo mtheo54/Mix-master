@@ -17,7 +17,6 @@ namespace {
 
 constexpr std::uint32_t kMagic = 0x4B4C4D4Fu;       // « OMLK »
 constexpr std::uint32_t kInitializing = 0x54494E49u; // « INIT »
-constexpr std::uint32_t kFlagDisagrees = 1u, kFlagKick = 2u, kFlagSnare = 4u, kFlagHat = 8u, kFlagOpenHat = 16u;
 
 std::uint64_t newToken() {
     std::random_device rd;
@@ -32,8 +31,8 @@ stems::Element elementOf(std::uint32_t v) {
     return v < static_cast<std::uint32_t>(stems::kElementCount) ? static_cast<stems::Element>(v) : stems::Element::Other;
 }
 
-/// Nom et identité lus d'un seul tenant (séquence paire, inchangée pendant la lecture).
-bool readInfo(const Slot& s, std::string& name, Identity& id) {
+/// Nom et contenu lus d'un seul tenant (séquence paire, inchangée pendant la lecture).
+bool readInfo(const Slot& s, std::string& name, stems::BusContent& content) {
     for (int attempt = 0; attempt < 64; ++attempt) {
         const std::uint32_t a = s.infoSeq.load(std::memory_order_acquire);
         if (a & 1u) {
@@ -46,16 +45,14 @@ bool readInfo(const Slot& s, std::string& name, Identity& id) {
             if (!ch) break;
             name += ch;
         }
-        id.element = elementOf(s.element.load(std::memory_order_relaxed));
-        id.heard = elementOf(s.heard.load(std::memory_order_relaxed));
-        const std::uint32_t f = s.flags.load(std::memory_order_relaxed);
-        id.nameDisagrees = (f & kFlagDisagrees) != 0;
-        id.kick = (f & kFlagKick) != 0;
-        id.snare = (f & kFlagSnare) != 0;
-        id.hat = (f & kFlagHat) != 0;
-        id.openHat = (f & kFlagOpenHat) != 0;
-        id.confidence = s.confidence.load(std::memory_order_relaxed);
-        id.secondsHeard = s.secondsHeard.load(std::memory_order_relaxed);
+        content = {};
+        content.secondsHeard = s.secondsHeard.load(std::memory_order_relaxed);
+        const std::uint32_t count = std::min<std::uint32_t>(s.itemCount.load(std::memory_order_relaxed), kMaxItems);
+        for (std::uint32_t i = 0; i < count; ++i) {
+            const auto& it = s.items[i];
+            content.items.push_back({elementOf(it.element.load(std::memory_order_relaxed)), it.confidence.load(std::memory_order_relaxed),
+                                     static_cast<int>(it.count.load(std::memory_order_relaxed)), it.seconds.load(std::memory_order_relaxed)});
+        }
         std::atomic_thread_fence(std::memory_order_acquire);
         if (s.infoSeq.load(std::memory_order_relaxed) == a) return true;
     }
@@ -85,7 +82,7 @@ bool isLive(const Slot& slot, std::uint64_t now) noexcept {
 // -----------------------------------------------------------------------------
 //  Endpoint
 // -----------------------------------------------------------------------------
-bool Endpoint::join(Role role, std::string_view name, double sampleRate) {
+bool Endpoint::join(std::string_view name) {
     leave();
     if (!region_.open(regionName(), sizeof(Header))) return false;
     auto* h = static_cast<Header*>(region_.data());
@@ -109,10 +106,7 @@ bool Endpoint::join(Role role, std::string_view name, double sampleRate) {
         if (owner != 0 && isLive(s, now)) continue; // libre, ou abandonné : on le prend
         if (!s.owner.compare_exchange_strong(owner, token, std::memory_order_acq_rel)) continue;
         s.heartbeatMs.store(now, std::memory_order_relaxed);
-        s.role.store(static_cast<std::uint32_t>(role), std::memory_order_relaxed);
-        s.sampleRate.store(static_cast<std::uint32_t>(std::max(0.0, sampleRate) + 0.5), std::memory_order_relaxed);
-        for (auto& t : s.frameTag) t.store(0, std::memory_order_relaxed); // pas de trame héritée
-        std::atomic_thread_fence(std::memory_order_release);
+        s.role.store(static_cast<std::uint32_t>(Role::Bus), std::memory_order_relaxed);
         slot_ = &s;
         slotIndex_ = i;
         token_ = token;
@@ -140,7 +134,7 @@ void Endpoint::heartbeat() noexcept {
     slot_->heartbeatMs.store(nowMs(), std::memory_order_relaxed);
 }
 
-void Endpoint::publish(std::string_view name, const Identity& id) noexcept {
+void Endpoint::publish(std::string_view name, const stems::BusContent& content) noexcept {
     if (!slot_) return;
     Slot& s = *slot_;
     const std::uint32_t seq = s.infoSeq.load(std::memory_order_relaxed);
@@ -150,13 +144,16 @@ void Endpoint::publish(std::string_view name, const Identity& id) noexcept {
     // Pas de caractère UTF-8 coupé en deux (octets de continuation 10xxxxxx).
     while (n > 0 && n < name.size() && (static_cast<unsigned char>(name[n]) & 0xC0u) == 0x80u) --n;
     for (std::size_t i = 0; i < static_cast<std::size_t>(kNameLength); ++i) s.name[i].store(i < n ? name[i] : '\0', std::memory_order_relaxed);
-    s.element.store(static_cast<std::uint32_t>(id.element), std::memory_order_relaxed);
-    s.heard.store(static_cast<std::uint32_t>(id.heard), std::memory_order_relaxed);
-    s.flags.store((id.nameDisagrees ? kFlagDisagrees : 0u) | (id.kick ? kFlagKick : 0u) | (id.snare ? kFlagSnare : 0u) | (id.hat ? kFlagHat : 0u) |
-                      (id.openHat ? kFlagOpenHat : 0u),
-                  std::memory_order_relaxed);
-    s.confidence.store(id.confidence, std::memory_order_relaxed);
-    s.secondsHeard.store(id.secondsHeard, std::memory_order_relaxed);
+    s.secondsHeard.store(static_cast<float>(content.secondsHeard), std::memory_order_relaxed);
+    const std::size_t count = std::min<std::size_t>(content.items.size(), kMaxItems);
+    for (std::size_t i = 0; i < count; ++i) {
+        const auto& it = content.items[i];
+        s.items[i].element.store(static_cast<std::uint32_t>(it.element), std::memory_order_relaxed);
+        s.items[i].count.store(static_cast<std::uint32_t>(std::max(0, it.count)), std::memory_order_relaxed);
+        s.items[i].confidence.store(static_cast<float>(it.confidence), std::memory_order_relaxed);
+        s.items[i].seconds.store(static_cast<float>(it.seconds), std::memory_order_relaxed);
+    }
+    s.itemCount.store(static_cast<std::uint32_t>(count), std::memory_order_relaxed);
     s.infoSeq.store(seq + 2, std::memory_order_release);
 }
 
@@ -187,36 +184,13 @@ std::vector<InstanceView> Observer::instances() const {
     const std::uint64_t now = nowMs();
     for (int i = 0; i < kSlots; ++i) {
         const Slot& s = header_->slots[i];
-        if (!isLive(s, now)) continue;
+        if (!isLive(s, now) || s.role.load(std::memory_order_relaxed) != static_cast<std::uint32_t>(Role::Bus)) continue;
         InstanceView v;
         v.slot = i;
         v.owner = s.owner.load(std::memory_order_acquire);
-        const std::uint32_t role = s.role.load(std::memory_order_relaxed);
-        v.role = role == 1 ? Role::Track : role == 2 ? Role::Bus : Role::None;
-        v.sampleRate = s.sampleRate.load(std::memory_order_relaxed);
-        if (v.role == Role::None || !readInfo(s, v.name, v.identity)) continue;
+        if (!readInfo(s, v.name, v.content)) continue;
         out.push_back(std::move(v));
     }
-    return out;
-}
-
-std::vector<BandFrame> Observer::frames(int slot, std::uint64_t owner) const {
-    std::vector<BandFrame> out;
-    if (!header_ || slot < 0 || slot >= kSlots) return out;
-    const Slot& s = header_->slots[slot];
-    if (s.owner.load(std::memory_order_acquire) != owner) return out;
-    out.reserve(kFrameRing);
-    for (int r = 0; r < kFrameRing; ++r) {
-        const std::int64_t tag = s.frameTag[r].load(std::memory_order_acquire);
-        if (tag <= 0) continue;
-        BandFrame f;
-        f.index = tag - 1;
-        for (int b = 0; b < kBands; ++b) f.energy[static_cast<std::size_t>(b)] = s.frameEnergy[r][b].load(std::memory_order_relaxed);
-        std::atomic_thread_fence(std::memory_order_acquire);
-        if (s.frameTag[r].load(std::memory_order_relaxed) != tag) continue; // réécrite pendant la lecture
-        out.push_back(f);
-    }
-    std::sort(out.begin(), out.end(), [](const BandFrame& a, const BandFrame& b) { return a.index < b.index; });
     return out;
 }
 
