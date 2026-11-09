@@ -55,6 +55,7 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     slang=${CMAKE_SOURCE_DIR}/data/argot.txt
     references=${CMAKE_SOURCE_DIR}/data/profils_genres.txt
     catalogue=${CMAKE_SOURCE_DIR}/data/catalogue.txt
+    elements=${CMAKE_SOURCE_DIR}/data/elements.txt
     i18n=${CMAKE_SOURCE_DIR}/data/i18n_en.txt
     classement=${CMAKE_SOURCE_DIR}/data/genres_classement.txt
     styles=${CMAKE_SOURCE_DIR}/data/styles_artistes.txt
@@ -133,6 +134,21 @@ add_library(omnis_core STATIC
     source/engine/ProdListener.cpp
     source/engine/ReferenceCapture.h
     source/engine/Stage.h
+    source/link/BandFrames.h
+    source/link/LinkBus.cpp
+    source/link/LinkBus.h
+    source/link/LinkClient.cpp
+    source/link/LinkClient.h
+    source/link/SharedRegion.cpp
+    source/link/SharedRegion.h
+    source/stems/Composition.cpp
+    source/stems/Composition.h
+    source/stems/DrumBus.cpp
+    source/stems/DrumBus.h
+    source/stems/Element.cpp
+    source/stems/Element.h
+    source/stems/ElementClassifier.cpp
+    source/stems/ElementClassifier.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
     source/stages/CompressorStage.cpp
@@ -329,6 +345,9 @@ if(OMNIS_BUILD_TESTS)
         tests/TestLearning.cpp
         tests/TestReferenceCapture.cpp
         tests/TestRack.cpp
+        tests/TestStems.cpp
+        tests/TestDrumBus.cpp
+        tests/TestComposition.cpp
         tests/TestMusic.cpp
         tests/TestAvatarStylizer.cpp
         tests/TestLoudness.cpp
@@ -356,6 +375,7 @@ if(OMNIS_BUILD_TESTS)
             tests/TestFramework.h
             tests/TestMain.cpp
             tests/TestPluginState.cpp
+            tests/TestPluginLink.cpp
             tests/TestPluginSlotToggle.cpp
             tests/TestPluginAi.cpp
             tests/TestPluginRealtime.cpp

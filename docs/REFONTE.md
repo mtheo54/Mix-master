@@ -6,7 +6,7 @@
 
 | Sujet | Choix |
 |---|---|
-| Produit | **Un seul plug-in de mastering**, pour les beatmakers. Le mixage (instances liées Stem / Master, chef d'orchestre, chaînes par piste, voix) est **retiré**. |
+| Produit | **Un plug-in de mastering**, pour les beatmakers. Le mixage (chef d'orchestre, chaînes par piste, voix) est **retiré**. Depuis le 09/11 (demande de l'utilisateur), OMNIS peut aussi se poser sur les **bus et les pistes** (RÔLE Bus / Piste) pour **écouter sans toucher au son** : page COMPOSITION (nom de chaque élément dans le DAW, ce qu'OMNIS devine, groupes DRUMS / 808 / MÉLO / VOIX / EFX). |
 | Public | Beatmakers : prods instrumentales (808, drums, mélodies). Aucune voix à traiter. |
 | Barre IA | **Gardée, discrète** : tout se fait sans elle. |
 | Tutoriel | Gardé, raccourci ; l'interface doit se comprendre sans lui. |

@@ -342,9 +342,10 @@ const std::array<TutorialStep, 12> kTutorial{{
     {CRect(942, 10, 1190, 552), "LES MESURES",
      {"Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.", "Chaque mesure a son verdict en mots : BON, FORT, DENSE, PUNCHY…",
       "TRUE PEAK doit rester OK (sous -1 dBTP) pour le streaming.", "PLR = écart crête / sonie : plus il est grand, plus ça respire."}},
-    {CRect(942, 556, 1190, 696), "ÉCOUTES ET EXPORT",
-     {"ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…", "Elle reste en rouge et ne part jamais dans l'export : remets-la sur Off.",
-      "PRÊT À EXPORTER ? (en bas) : OMNIS dit si tout est bon.", "DIAGNOSTIC DU MIX : ce que le master ne rattrape pas, à corriger dans ton projet."}, 2},
+    {CRect(942, 556, 1190, 726), "ÉCOUTES ET EXPORT",
+     {"ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…", "Elle reste en rouge : remets-la sur Off avant d'exporter.",
+      "DIAGNOSTIC DU MIX : ce que le master ne rattrape pas, à corriger dans ton projet.",
+      "COMPOSITION : avec OMNIS sur tes bus et pistes, ce qu'il y a dans chaque bus."}, 2},
     {CRect(796, 10, 830, 50), "C'EST PARTI",
      {"Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
 }};
@@ -629,6 +630,8 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     buildScreens(face);
     buildMaster(face);
     omnis()->requestFeed();
+    // Sur une piste ou un bus, la console de mastering ne sert pas : la page COMPOSITION d'abord.
+    if (omnis()->instanceRole() != params::InstanceRole::Master) page_ = kCompPage;
     selectPage(page_);
     // Le guide, par-dessus tout ; montré tout seul à la toute première ouverture.
     tutorial_ = new TutorialOverlay(CRect(0, 0, kWidth, kHeight), *this);
@@ -1684,6 +1687,15 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         seg(p, CRect(306, row2 + 30, W - 14, row2 + 54), "CARACTÈRE", P::CompCharacter);
     }
     {
+        // Composition : chaque élément des bus, son nom dans le DAW et ce qu'OMNIS devine.
+        auto* p = page(drawer, kCompPage, "B", "COMPOSITION", "Tes bus et leurs éléments : nom dans FL → ce qu'OMNIS entend.");
+        auto* list = new Screen(CRect(12, row1 - 6, W - 14, row1 + 206), [this](CDrawContext* dc, const CRect& r) { paintComposition(dc, r); }, true);
+        list->setMouseEnabled(false);
+        p->addView(list);
+        live_.push_back(list);
+        seg(p, CRect(12, row1 + 222, 300, row1 + 246), "RÔLE DE CETTE INSTANCE", P::InstanceRole);
+    }
+    {
         // Diagnostic du mix : ce qu'OMNIS entend dans la prod, à corriger dans le projet.
         auto* p = page(drawer, kDiagPage, "D", "DIAGNOSTIC DU MIX", "Ce que le master ne rattrape pas : à corriger dans ton projet FL.");
         auto* list = new Screen(CRect(12, row1, W - 14, row1 + 214), [this](CDrawContext* dc, const CRect& r) {
@@ -1872,6 +1884,89 @@ bool OmnisEditor::dynMouse(const CPoint& p, int phase, bool fine, const CRect& r
         dynHeld_ = false;
     }
     return true;
+}
+
+CColor OmnisEditor::familyColor(int family) {
+    switch (static_cast<stems::Family>(family)) {
+        case stems::Family::Drums: return color::kAccent;
+        case stems::Family::Bass: return color::kAccentHot;
+        case stems::Family::Instrument: return color::kCool;
+        case stems::Family::Vocal: return color::kText;
+        case stems::Family::Fx: return CColor(190, 130, 255);
+        case stems::Family::Unknown:
+        default: return color::kText3;
+    }
+}
+
+void OmnisEditor::paintComposition(CDrawContext* dc, const CRect& r) {
+    const auto& comp = omnis()->composition();
+    struct Row {
+        std::string left, right;
+        CColor leftColor, rightColor;
+        bool header = false;
+    };
+    std::vector<Row> rows;
+    const auto memberRow = [&](const stems::Member& m) {
+        Row row;
+        row.left = "  " + (m.name.empty() ? i18n::tr("piste sans nom") : m.name);
+        row.leftColor = color::kText;
+        if (m.element == stems::Element::Auto) {
+            row.right = i18n::tr("écoute en cours…");
+            row.rightColor = color::kText3;
+        } else {
+            row.right = i18n::tr(stems::elementLabel(m.element)) + (m.confidence > 0.0 ? fmt("  %.0f %%", 100.0 * m.confidence) : std::string{});
+            if (m.nameDisagrees) row.right += i18n::tr(" (le nom dit autre chose)");
+            row.rightColor = familyColor(static_cast<int>(m.family()));
+        }
+        rows.push_back(std::move(row));
+    };
+    for (const auto& b : comp.buses) {
+        Row h;
+        h.left = i18n::tr("BUS ") + "« " + (b.name.empty() ? i18n::tr("sans nom") : b.name) + " »";
+        h.right = i18n::tr(stems::familyLabel(b.family));
+        h.leftColor = color::kText;
+        h.rightColor = familyColor(static_cast<int>(b.family));
+        h.header = true;
+        rows.push_back(std::move(h));
+        for (const auto& m : b.members) memberRow(m);
+        std::string inside;
+        for (const auto& [on, name] : {std::pair{b.kick, "Kick"}, std::pair{b.snare, "Snare / clap"}, std::pair{b.hat, "Hi-hat"}, std::pair{b.openHat, "Open hat"}})
+            if (on) inside += (inside.empty() ? "" : ", ") + std::string(name);
+        if (b.members.empty())
+            rows.push_back({"  " + i18n::tr(b.enoughToMatch ? "aucune piste OMNIS dedans" : "lance la lecture…"),
+                            inside.empty() ? std::string{} : i18n::tr("entendu : ") + inside, color::kText3, color::kText2});
+        else if (!inside.empty())
+            rows.push_back({"  " + i18n::tr("entendu dans le bus"), inside, color::kText3, color::kText2});
+    }
+    if (!comp.direct.empty()) {
+        rows.push_back({comp.buses.empty() ? i18n::tr("PISTES") : i18n::tr("HORS BUS (vers le master)"), {}, color::kText2, color::kText2, true});
+        for (const auto& m : comp.direct) memberRow(m);
+    }
+    if (rows.empty()) {
+        text(dc, i18n::tr("Aucune piste ni aucun bus OMNIS pour l'instant."), CRect(r.left + 10, r.top + 10, r.right - 10, r.top + 26), color::kText2, mono(10));
+        text(dc, i18n::tr("Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur"), CRect(r.left + 10, r.top + 34, r.right - 10, r.top + 50), color::kText3, mono(10));
+        text(dc, i18n::tr("leurs pistes, choisis le RÔLE, puis lance la lecture."), CRect(r.left + 10, r.top + 50, r.right - 10, r.top + 66), color::kText3, mono(10));
+        return;
+    }
+    const double mid = r.left + 0.55 * r.getWidth();
+    constexpr double kRow = 13.0;
+    const int maxRows = static_cast<int>((r.getHeight() - 8) / kRow);
+    for (int i = 0; i < static_cast<int>(rows.size()) && i < maxRows; ++i) {
+        const auto& row = rows[static_cast<std::size_t>(i)];
+        const double y = r.top + 4 + kRow * i;
+        if (i == maxRows - 1 && static_cast<int>(rows.size()) > maxRows) {
+            text(dc, fmt(i18n::tr("… +%.0f : écris « composition » à l'IA").c_str(), static_cast<double>(rows.size() - static_cast<std::size_t>(i))),
+                 CRect(r.left + 10, y, r.right - 10, y + kRow), color::kText3, mono(9));
+            break;
+        }
+        if (row.header && i > 0) {
+            dc->setFrameColor(color::kLine);
+            dc->drawLine(CPoint(r.left + 8, y - 1.5), CPoint(r.right - 8, y - 1.5));
+        }
+        text(dc, row.left, CRect(r.left + 10, y, mid - 6, y + kRow), row.leftColor, mono(row.header ? 9.5 : 9, row.header));
+        if (!row.header) text(dc, "→", CRect(mid - 14, y, mid, y + kRow), color::kText3, mono(9));
+        text(dc, row.right, CRect(mid + 4, y, r.right - 10, y + kRow), row.rightColor, mono(row.header ? 9.5 : 9, row.header));
+    }
 }
 
 void OmnisEditor::selectPage(int p) {
@@ -2161,6 +2256,28 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             hint("PUNCH " + valueText(id(ParamId::LimPunch)) + " · UPWARD " + valueText(id(ParamId::LimUpward)));
             break;
         }
+        case kCompPage: {
+            caption("OMNIS SUR TES PISTES ET TES BUS");
+            const auto role = omnis()->instanceRole();
+            const char* roleText = role == params::InstanceRole::Bus ? "CETTE INSTANCE : BUS" : role == params::InstanceRole::Track ? "CETTE INSTANCE : PISTE" : "CETTE INSTANCE : MASTER";
+            text(c, i18n::tr(roleText) + (omnis()->trackName().empty() ? "" : " « " + omnis()->trackName() + " »"), CRect(plot.left, plot.top + 4, plot.right, plot.top + 20),
+                 color::kAccent, mono(10, true));
+            const char* lines[] = {"1. Sur chaque piste : OMNIS en DERNIER,", "   RÔLE : Piste.", "2. Sur chaque bus : OMNIS en PREMIER,", "   RÔLE : Bus.",
+                                   "3. Lance la lecture : je retrouve qui va", "   dans quel bus, et ce que c'est.", "Le son des pistes et des bus ne change pas."};
+            for (int i = 0; i < 7; ++i)
+                text(c, i18n::tr(lines[i]), CRect(plot.left, plot.top + 30 + 15 * i, plot.right, plot.top + 44 + 15 * i), i == 6 ? color::kText3 : color::kText2, mono(9.5));
+            // Les groupes et leur couleur.
+            double x = plot.left;
+            for (int f = 1; f < stems::kFamilyCount; ++f) {
+                const auto fam = static_cast<stems::Family>(f);
+                const std::string label = i18n::tr(stems::familyLabel(fam));
+                c->setFillColor(familyColor(f));
+                c->drawRect(CRect(x, plot.bottom - 12, x + 8, plot.bottom - 4), kDrawFilled);
+                text(c, label, CRect(x + 11, plot.bottom - 16, x + 90, plot.bottom), color::kText2, mono(8.5));
+                x += 14.0 + 6.2 * static_cast<double>(label.size());
+            }
+            break;
+        }
         case kDiagPage: {
             caption("CE QU'OMNIS ENTEND DANS TA PROD (AVANT SES MODULES)");
             text(c, "Comparé à ta référence choisie, sinon", CRect(plot.left, plot.top + 10, plot.right, plot.top + 26), color::kText2, mono(10));
@@ -2339,6 +2456,10 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
     diag->setAccentText(true);
     col->addView(diag);
     live_.push_back(diag);
+    // Pistes et bus : la page COMPOSITION.
+    auto* comp = new HwButton(CRect(12, 698, W - 12, 722), "COMPOSITION", [this] { return page_ == kCompPage; }, [this] { selectPage(kCompPage); });
+    col->addView(comp);
+    live_.push_back(comp);
     // Prêt à exporter ? La réponse complète dans la ligne de réponse de la barre IA.
     auto* exportCheck = new HwButton(CRect(12, 664, W - 12, 690), "VÉRIFIER L'EXPORT", [] { return false; }, [this] { answer_ = omnis()->ask("export"); }, false);
     col->addView(exportCheck);

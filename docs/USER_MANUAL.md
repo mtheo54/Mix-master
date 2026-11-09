@@ -461,9 +461,30 @@ OMNIS checks:
 
 ## 14. What about tracks?
 
-OMNIS only goes on the master: it does not process tracks one by one. What is better fixed track
-by track (an 808 that is too loud, low-mid build-up), the **mix diagnosis** tells you, so you can
-fix it in your project.
+OMNIS masters on the master. It can also **listen to your tracks and buses**, without touching their
+sound, to show you what is in each bus (**COMPOSITION** page, button at the bottom right).
+
+1. On each **bus** (DRUMS, 808, MELODY, EFX…), put OMNIS **first** and choose **ROLE: Bus**
+   (COMPOSITION page, or type "role bus").
+2. On each **track** you want to see (kick, lead, reverse cymbal…), put OMNIS **last** and choose
+   **ROLE: Track**.
+3. Press play. Within a few seconds, every OMNIS (the master and the buses) shows:
+   - each bus and its group: **DRUMS**, **808 / BASS**, **MELODY** (synths, pads, piano…),
+     **VOCALS**, **EFX** (reverse cymbals, risers, impacts, sweeps, vinyl…);
+   - in each bus, its tracks: **the track name in FL** → **what OMNIS hears**
+     ("SH_Kick_Hard_04 → Kick 74 %", "Rev Crash 03 → Reverse cymbal");
+   - what listening to a drum bus hears inside it (kick, snare / clap, hi-hat, open hat), even with
+     no OMNIS on its tracks;
+   - the tracks going straight to the master ("OUTSIDE BUSES").
+
+In **Bus** and **Track**, the sound passes **untouched**, with no latency. OMNIS finds out which
+track goes into which bus **by listening** (FL does not tell plug-ins): by comparing what each track
+and each bus hear at the same moment. A track turned down by more than 14 dB in its bus, or two
+tracks playing exactly the same sound at the same instants, may slip through. Type "composition" in
+the AI bar for the full list.
+
+What is better fixed track by track (an 808 that is too loud, low-mid build-up), the **mix
+diagnosis** tells you, so you can fix it in your project.
 
 ---
 

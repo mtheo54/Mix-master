@@ -56,6 +56,21 @@
 
 ## Fait récemment
 
+- **09/11 — OMNIS sur les pistes et les bus, page COMPOSITION, groupe EFX** (demande de
+  l'utilisateur : « une partie qui montre chaque élément présent dans les stems, avec son nom
+  d'origine du DAW et ce que le plugin devine ; un groupe EFX pour les reverse cymbals ; OMNIS sur
+  les bus, qui reprennent les noms des éléments du bus »). RÔLE (`role`, id 15) : Master / Bus /
+  Piste ; en Bus et Piste le son passe bit à bit, latence 0. Chaque instance publie dans une
+  mémoire partagée (`link/LinkBus`, version 3) le nom de sa piste (IInfoListener), l'élément
+  reconnu (`stems/ElementClassifier`, + reverse cymbal / riser / impact) et une empreinte (énergie
+  de 6 bandes par trame de 2048 éch., alignée sur le projet, `link/BandFrames`). `stems/Composition`
+  retrouve qui va dans quel bus : moindres carrés positifs (une piste et ses décalages d'une trame),
+  gain borné par « une piste ne dépasse jamais son bus », part ≥ 3 % dans une bande, gain ≥ −14 dB.
+  Mesuré : 40 pistes / 6 bus rangées sans erreur en 43 ms ; bus saturé, décalé de 300 éch., avec
+  une snare sans OMNIS : bonnes pistes. FL ne dit pas aux plug-ins ce qui entre dans un bus : d'où
+  l'écoute. Page COMPOSITION (tiroir, bouton en bas à droite), barre IA « composition », « rôle
+  bus / piste / master ». Tests : 7 éléments / EFX, 8 composition et lien (dont TSan), 1 plug-in
+  de bout en bout (6 instances).
 - **09/11 — Étape 5 : apprendre les habitudes** (`ai/HabitLearning`, contrôleur). Journal sur le
   poste (`apprentissage/journal.tsv`, versionné, nombres seulement : grandeurs de la prod, groupe,
   réglages proposés, écarts retouchés, « annule » après AUTO, réglages à l'export). Petit réseau

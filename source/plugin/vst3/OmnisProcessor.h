@@ -24,11 +24,16 @@
 //     soit (setupProcessing, setActive), on ferme la porte
 //     et on attend que process() en soit sorti ; porte fermée ou instance
 //     inactive, process() laisse passer le son tel quel sans toucher à rien.
+//   - Rôle (« role ») : Master (le mastering) ; Bus ou Piste : le son passe
+//     tel quel, sans latence ; l'instance publie le nom de sa piste, ce
+//     qu'elle reconnaît et l'empreinte de ce qu'elle entend (link/LinkClient),
+//     lus par la page COMPOSITION des autres instances.
 // =============================================================================
 #pragma once
 
 #include "engine/Engine.h"
 #include "engine/ReferenceCapture.h"
+#include "link/LinkClient.h"
 #include "params/Parameters.h"
 #include "UiFeed.h"
 
@@ -100,6 +105,15 @@ private:
     void onCaptureFinished(const ReferenceCapture::Result& result); ///< thread d'analyse
 
     [[nodiscard]] double plainOf(params::ParamId id) const noexcept;
+    /// Hors thread audio : change de rôle tout de suite (porte fermée le temps du changement).
+    void switchRole(int role);
+    void startLink(int role);
+    [[nodiscard]] params::InstanceRole role() const noexcept { return static_cast<params::InstanceRole>(activeRole_.load(std::memory_order_relaxed)); }
+    template <typename Sample>
+    void processListening(Steinberg::Vst::ProcessData& data, Sample** inputs);
+
+    link::LinkClient link_;
+    std::atomic<int> activeRole_{0};
 
     Engine engine_;
     ReferenceCapture capture_;

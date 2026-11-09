@@ -206,6 +206,7 @@ tresult PLUGIN_API OmnisProcessor::initialize(FUnknown* context) {
 tresult PLUGIN_API OmnisProcessor::terminate() {
     GateHold hold(*this);
     active_.store(false);
+    link_.stop();
     feed_->prod.release();
     capture_.release();
     return AudioEffect::terminate();
@@ -291,14 +292,48 @@ tresult PLUGIN_API OmnisProcessor::setActive(TBool state) {
         capture_.prepare(sampleRate_);
         const int index = params::parameterIndex(ParamId::RefCapture);
         capture_.setCapturing(index >= 0 && normalized_[static_cast<std::size_t>(index)].load(std::memory_order_relaxed) >= 0.5);
-        feed_->prod.prepare(sampleRate_);
+        // Le rôle est pris ici : il fixe la latence annoncée à l'hôte.
+        activeRole_.store(static_cast<int>(std::lround(plainOf(ParamId::InstanceRole))));
+        startLink(activeRole_.load());
+        if (role() == params::InstanceRole::Master) feed_->prod.prepare(sampleRate_);
+        else feed_->prod.release();
         active_.store(true);
     } else {
         active_.store(false);
+        link_.stop();
         capture_.release();
         feed_->prod.release();
     }
     return AudioEffect::setActive(state);
+}
+
+void OmnisProcessor::startLink(int r) {
+    if (r == static_cast<int>(params::InstanceRole::Bus)) link_.start(link::Role::Bus, sampleRate_);
+    else if (r == static_cast<int>(params::InstanceRole::Track)) link_.start(link::Role::Track, sampleRate_);
+    else link_.stop();
+}
+
+void OmnisProcessor::switchRole(int newRole) {
+    newRole = std::clamp(newRole, 0, 2);
+    // Le réglage suit tout de suite (l'hôte relit la latence avant de renvoyer le paramètre) ;
+    // déjà le bon (état relu) : gardé tel quel.
+    if (const auto* spec = params::findParameter(ParamId::InstanceRole); spec && std::lround(plainOf(ParamId::InstanceRole)) != newRole) {
+        const int index = params::parameterIndex(ParamId::InstanceRole);
+        if (index >= 0 && index < static_cast<int>(kMaxParams))
+            normalized_[static_cast<std::size_t>(index)].store(params::toNormalized(*spec, static_cast<double>(newRole)), std::memory_order_relaxed);
+    }
+    if (newRole == activeRole_.load() || !active_.load()) return; // inactif : setActive le prendra
+    // Le thread audio sort de process() (au plus un bloc), puis on change ici.
+    GateHold hold(*this);
+    if (!active_.load()) return;
+    startLink(newRole);
+    if (newRole == static_cast<int>(params::InstanceRole::Master)) {
+        engine_.reset();
+        feed_->prod.prepare(sampleRate_);
+    } else {
+        feed_->prod.release();
+    }
+    activeRole_.store(newRole);
 }
 
 tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
@@ -311,10 +346,26 @@ tresult PLUGIN_API OmnisProcessor::notify(IMessage* message) {
         }
         return kResultOk;
     }
+    if (id == kRoleMessage) {
+        int64 r = 0;
+        if (message->getAttributes() && message->getAttributes()->getInt(kRoleAttribute, r) == kResultTrue && r >= 0 && r <= 2)
+            switchRole(static_cast<int>(r));
+        return kResultOk;
+    }
+    if (id == kTrackNameMessage) {
+        const void* data = nullptr;
+        uint32 size = 0;
+        if (message->getAttributes() && message->getAttributes()->getBinary(kTrackNameAttribute, data, size) == kResultTrue && data)
+            link_.setTrackName(std::string(static_cast<const char*>(data), std::min<uint32>(size, 256)));
+        return kResultOk;
+    }
     return AudioEffect::notify(message);
 }
 
 uint32 PLUGIN_API OmnisProcessor::getLatencySamples() {
+    // Bus et Piste ne retardent pas leur piste. L'hôte peut demander avant l'activation :
+    // on lit le réglage plutôt que le rôle actif.
+    if (std::lround(plainOf(ParamId::InstanceRole)) != static_cast<long>(params::InstanceRole::Master)) return 0;
     return static_cast<uint32>(engine_.latencySamples());
 }
 
@@ -484,6 +535,17 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
     };
     const bool hasAudio = data.numSamples > 0 && data.numInputs >= 1 && data.numOutputs >= 1 && data.inputs && data.outputs &&
                           buffersOk(data.inputs[0]) && buffersOk(data.outputs[0]);
+    if (role() != params::InstanceRole::Master) {
+        // Bus / Piste : les réglages sont gardés (rien à traiter), le son passe tel quel, on écoute.
+        for (int i = 0; i < numEvents_; ++i)
+            applyParameter(events_[static_cast<std::size_t>(i)].id, events_[static_cast<std::size_t>(i)].normalized, false);
+        numEvents_ = 0;
+        if (!hasAudio) return kResultOk;
+        if (is64) processListening(data, data.inputs[0].channelBuffers64);
+        else processListening(data, data.inputs[0].channelBuffers32);
+        passThrough(data);
+        return kResultOk;
+    }
     if (!hasAudio) {
         // Appel de « flush » des paramètres (numSamples == 0) : on applique tout.
         for (int i = 0; i < numEvents_; ++i)
@@ -533,6 +595,14 @@ tresult PLUGIN_API OmnisProcessor::process(ProcessData& data) {
     return kResultOk;
 }
 
+template <typename Sample>
+void OmnisProcessor::processListening(ProcessData& data, Sample** inputs) {
+    // Avant la copie vers la sortie : l'hôte peut traiter en place, l'entrée est encore intacte.
+    const auto* ctx = data.processContext;
+    const bool playing = ctx && (ctx->state & ProcessContext::kPlaying) != 0;
+    link_.process(inputs[0], inputs[1], data.numSamples, playing ? static_cast<std::int64_t>(ctx->projectTimeSamples) : link::kNoPosition);
+}
+
 // -----------------------------------------------------------------------------
 //  État
 // -----------------------------------------------------------------------------
@@ -557,6 +627,8 @@ tresult PLUGIN_API OmnisProcessor::setState(IBStream* state) {
     for (std::size_t i = 0; i < all.size() && i < kMaxParams; ++i)
         normalized_[i].store(values[i], std::memory_order_relaxed);
     pendingState_.store(true, std::memory_order_release);
+    // Projet rechargé pendant que l'instance tourne : le rôle sauvegardé s'applique tout de suite.
+    switchRole(static_cast<int>(std::lround(plainOf(ParamId::InstanceRole))));
     return kResultOk;
 }
 

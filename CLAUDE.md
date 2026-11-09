@@ -66,8 +66,10 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
 - `source/params/` : tous les paramètres (`Parameters.cpp`, ids stables).
 - `source/plugin/vst3/` : processeur, contrôleur (`ask()` : barre IA, `/fbi` mode promo,
   « remets tout à zéro »), éditeur VSTGUI (`OmnisEditor.cpp`).
-- **Mastering seulement** (09/11) : le mixage (instances liées, stems, chef d'orchestre) est retiré ;
+- **Mastering seulement** (09/11) : le mixage (chaînes de stems, chef d'orchestre) est retiré ;
   plan de la refonte : `docs/REFONTE.md`. `omnis_auto` rejoue l'AUTO du plug-in sur un fichier.
+  Mais OMNIS peut **écouter** pistes et bus (RÔLE Bus / Piste, `link/`, `stems/`) : page
+  COMPOSITION, son inchangé, latence 0.
 - `tools/` : outils en ligne de commande ; `tests/` : un fichier par domaine.
 
 ## Docs utiles

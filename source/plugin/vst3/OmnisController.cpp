@@ -41,6 +41,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -162,7 +163,51 @@ tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue v
     // Mode de latence : la latence annoncée change, l'hôte doit réactiver le plug-in.
     if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LowLatency) && before != value && componentHandler)
         componentHandler->restartComponent(kLatencyChanged);
+    // Rôle : le processeur change tout de suite ; la latence annoncée aussi (Bus / Piste : 0).
+    if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::InstanceRole) && before != value) {
+        if (IPtr<IMessage> message = owned(allocateMessage())) {
+            message->setMessageID(kRoleMessage);
+            message->getAttributes()->setInt(kRoleAttribute, static_cast<int64>(std::lround(value * 2.0)));
+            sendMessage(message);
+        }
+        compositionAtMs_ = 0;
+        if (componentHandler) componentHandler->restartComponent(kLatencyChanged);
+    }
     return result;
+}
+
+tresult PLUGIN_API OmnisController::setChannelContextInfos(IAttributeList* list) {
+    if (!list) return kInvalidArgument;
+    String128 name{};
+    if (list->getString(ChannelContext::kChannelNameKey, name, sizeof(name)) != kResultTrue) return kResultOk;
+    trackName_ = StringConvert::convert(name);
+    if (IPtr<IMessage> message = owned(allocateMessage())) {
+        message->setMessageID(kTrackNameMessage);
+        message->getAttributes()->setBinary(kTrackNameAttribute, trackName_.data(), static_cast<uint32>(trackName_.size()));
+        sendMessage(message);
+    }
+    return kResultOk;
+}
+
+params::InstanceRole OmnisController::instanceRole() {
+    return static_cast<params::InstanceRole>(std::clamp<long>(std::lround(plainOf(static_cast<std::uint32_t>(params::ParamId::InstanceRole))), 0, 2));
+}
+
+const stems::Composition& OmnisController::composition() {
+    const std::uint64_t now = link::nowMs();
+    if (compositionAtMs_ != 0 && now < compositionAtMs_ + 1000) return composition_;
+    compositionAtMs_ = now;
+    if (!observer_.isOpen()) observer_.open();
+    composition_ = observer_.isOpen() ? stems::buildComposition(stems::readInstances(observer_)) : stems::Composition{};
+    return composition_;
+}
+
+std::string OmnisController::compositionText() {
+    const auto& c = composition();
+    if (c.empty())
+        return i18n::tr("Aucune piste ni aucun bus OMNIS dans le projet. Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur leurs pistes, "
+                        "choisis RÔLE : Bus ou Piste, puis lance la lecture.");
+    return stems::describeComposition(c);
 }
 
 IPlugView* PLUGIN_API OmnisController::createView(FIDString name) {
@@ -478,6 +523,37 @@ std::string OmnisController::ask(const std::string& request) {
             if (plain == phrase || plain.starts_with(std::string(phrase) + " ")) return undoLast();
     }
     if (!feed_) requestFeed();
+    // Pistes et bus : « qu'est-ce qu'il y a dans mes bus ? », « composition », « rôle bus ».
+    {
+        const std::string plain = ai::normalizeText(request);
+        const auto hasAny = [&](std::initializer_list<std::string_view> phrases) {
+            for (const auto phrase : phrases)
+                if (plain.find(phrase) != std::string::npos) return true;
+            return false;
+        };
+        const auto setRole = [&](params::InstanceRole r) {
+            const auto pid = static_cast<ParamID>(params::ParamId::InstanceRole);
+            editParameter(pid, params::toNormalized(*params::findParameter(params::ParamId::InstanceRole), static_cast<double>(r)));
+        };
+        if (hasAny({"role bus", "mode bus", "en bus", "c est un bus", "sur un bus"})) {
+            setRole(params::InstanceRole::Bus);
+            return "RÔLE : Bus. Le son passe tel quel ; je retrouve les pistes OMNIS qui entrent dans ce bus (page COMPOSITION).";
+        }
+        if (hasAny({"role piste", "mode piste", "role track", "c est une piste", "sur une piste"})) {
+            setRole(params::InstanceRole::Track);
+            return "RÔLE : Piste. Le son passe tel quel ; je dis aux autres OMNIS ce que joue cette piste.";
+        }
+        if (hasAny({"role master", "mode master", "mode mastering"})) {
+            setRole(params::InstanceRole::Master);
+            return "RÔLE : Master. La chaîne de mastering est de retour.";
+        }
+        if (hasAny({"composition", "dans mes bus", "dans le bus", "dans ce bus", "mes stems", "mes pistes", "quels elements", "quel element",
+                    "c est quoi cette piste", "what s in", "my stems", "my buses"}))
+            return compositionText();
+        if (instanceRole() != params::InstanceRole::Master)
+            return i18n::tr("Cette instance est en RÔLE ") + i18n::tr(instanceRole() == params::InstanceRole::Bus ? "Bus" : "Piste") +
+                   i18n::tr(" : elle écoute sans toucher au son. Demande « composition », ou « rôle master » pour masteriser ici.");
+    }
     if (!feed_) return "OMNIS ne trouve pas son moteur : réessaie dans un instant.";
     // Un style nommé sert aussi à AUTO.
     const auto lib = libraryWithUser();

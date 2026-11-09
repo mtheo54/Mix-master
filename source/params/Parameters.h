@@ -52,6 +52,7 @@ enum class ParamId : std::uint32_t {
     LowLatency = 11,  ///< mode travail : filtres courts, latence basse, qualité réduite
     ListenSim = 12,   ///< écoute simulée (écouteurs, téléphone, TikTok…) : jamais gardée, jamais exportée
     LoudnessLevel = 13, ///< niveau visé par AUTO et les références : Style / Streaming / Équilibré / Fort / Très fort
+    InstanceRole = 15,  ///< Master (mastering) / Bus / Piste : sur un bus ou une piste, OMNIS écoute sans toucher au son
 
     // --- Sub Control & Mono Maker (100–199) ----------------------------------
     LowCutFreq = 100,
@@ -203,6 +204,8 @@ enum class MonitorMode : int { Stereo = 0, Mid = 1, Side = 2 };
 /// Niveau visé (LoudnessLevel) : sonie intégrée du passage fort, en LUFS ; Style : celle
 /// du style ou de la référence (bornée).
 enum class LoudnessLevel : int { Style = 0, Streaming = 1, Balanced = 2, Loud = 3, VeryLoud = 4 };
+/// Rôle de l'instance (link/LinkBus.h) : Bus et Piste ne traitent pas le son, aucune latence.
+enum class InstanceRole : int { Master = 0, Bus = 1, Track = 2 };
 inline constexpr double loudnessLevelLufs(LoudnessLevel l) noexcept {
     return l == LoudnessLevel::Streaming ? -14.0 : l == LoudnessLevel::Balanced ? -11.0 : l == LoudnessLevel::Loud ? -9.0 : -7.0;
 }
@@ -242,7 +245,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 169;
+inline constexpr std::size_t kParameterCount = 170;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

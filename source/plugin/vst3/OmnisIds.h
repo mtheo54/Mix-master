@@ -21,4 +21,11 @@ inline constexpr const char* kFeedRequest = "omnis.getFeed";
 inline constexpr const char* kFeedMessage = "omnis.feed";
 inline constexpr const char* kFeedAttribute = "token";
 
+/// Contrôleur -> processeur : nom de la piste dans l'hôte (attribut binaire « name », UTF-8),
+/// et changement de rôle (attribut entier « role » : params::InstanceRole), pris tout de suite.
+inline constexpr const char* kTrackNameMessage = "omnis.trackName";
+inline constexpr const char* kTrackNameAttribute = "name";
+inline constexpr const char* kRoleMessage = "omnis.role";
+inline constexpr const char* kRoleAttribute = "role";
+
 } // namespace omnis::vst3

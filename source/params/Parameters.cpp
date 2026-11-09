@@ -21,6 +21,7 @@ constexpr std::array<std::string_view, 3> kMonitorLabels{"Stereo", "Mid", "Side"
 constexpr std::array<std::string_view, 2> kSlopeLabels{"24 dB/oct", "48 dB/oct"};
 constexpr std::array<std::string_view, 2> kPhaseLabels{"Linear", "Analog"};
 constexpr std::array<std::string_view, 2> kLatencyLabels{"Max Quality", "Low Latency"};
+constexpr std::array<std::string_view, 3> kRoleLabels{"Master", "Bus", "Piste"};
 // Ordre de engine/ListenSim.h (Preset).
 constexpr std::array<std::string_view, 19> kListenLabels{
     "Off", "AirPods (2/3)", "AirPods Pro 2", "AirPods Max", "Beats Studio Pro", "Sony WH-1000XM5", "Galaxy Buds2 Pro",
@@ -56,6 +57,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // Niveau visé : Équilibré par défaut (le contraste couplet / refrain reste).
     {ParamId::LoudnessLevel,     "level",         "Loudness Level",       "Level",  "",     ParamKind::Choice,     0.0,    4.0,   2.0,   4,    kLevelLabels,   0.0,    0},
     {ParamId::ListenSim,         "listen",        "Listen As",            "Listen", "",     ParamKind::Choice,     0.0,    18.0,  0.0,   18,   kListenLabels,  0.0,    0, ParamScale::Linear, false, false},
+    {ParamId::InstanceRole,      "role",          "Instance Role",        "Role",   "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kRoleLabels,    0.0,    0, ParamScale::Linear, true, false},
     {ParamId::LowLatency,        "low_latency",   "Latency Mode",         "Lat",    "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kLatencyLabels, 0.0,    0, ParamScale::Linear, true, false},
 
     // Sub Control & Mono Maker — défauts calibrés sur les mixes de référence

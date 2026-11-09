@@ -73,8 +73,10 @@ public:
     void buildInto(VSTGUI::CViewContainer* root);
     /// Un pas de minuterie : relire le flux, redessiner ce qui a changé.
     void tick();
-    /// Page du tiroir : 0 … 7 les modules (index params::Module), kDiagPage le diagnostic du mix.
+    /// Page du tiroir : 0 … 7 les modules (index params::Module), kCompPage les pistes et bus, kDiagPage le diagnostic du mix.
     void selectPage(int page);
+    void paintComposition(VSTGUI::CDrawContext* c, const VSTGUI::CRect& r);
+    static VSTGUI::CColor familyColor(int family);
     /// Analyse les échantillons arrivés (spectre, goniomètre) : pour l'outil.
     void pumpFeed();
     /// Tutoriel : montré à la première ouverture, relancé par « ? ». step < 0 : fermé.
@@ -84,7 +86,7 @@ public:
     /// Match EQ : vue 0 (la courbe) ou 1 (EQ dynamique, bande `band` au tiroir).
     void showMatchView(int view, int band);
 
-    enum Page : int { kDiagPage = 9 }; // 7 : le compresseur ; 8 : ancienne page du mixage, retirée
+    enum Page : int { kCompPage = 8, kDiagPage = 9 }; // 7 : le compresseur ; 8 : pistes et bus (COMPOSITION)
 
 private:
     OmnisController* omnis() const;

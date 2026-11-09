@@ -114,8 +114,7 @@ par paramètre). Les rafales au-delà de la capacité sont réduites au dernier 
 | Analyse de référence → courbe du Match EQ | `ai::planMatch` → 43 paramètres (`match_*`) | ✅ outils ; câblage plug-in module 5–6 |
 | IA → paramètres utilisateur | `beginEdit / performEdit / endEdit` du contrôleur | module 5 |
 | DSP → UI (scope, spectre) | `IDataExchange` (SDK ≥ 3.7.9) | module 6 |
-| Stem (thread audio) → master (thread du lien) | Mémoire partagée nommée, anneau audio d'atomiques + seqlock (`link/LinkBus.h`) | ✅ |
-| Master → stem (ordres) | Même région, seqlock lu par le thread audio du stem (4 essais, sinon ordres précédents) | ✅ gain |
+| Piste / bus (thread audio) → toutes les instances (contrôleur) | Mémoire partagée nommée : trames d'empreinte marquées de leur numéro, nom et reconnaissance sous seqlock (`link/LinkBus.h`) | ✅ |
 
 Décision importante : les **réglages** prédits par l'IA passent par le contrôleur
 (`performEdit`), donc par l'hôte. Ils sont ainsi visibles, automatisables et annulables (undo) dans
@@ -156,172 +155,87 @@ deux profils seront proposés :
 
 Le paramètre de mode arrive avec le clipper et le limiteur (module 3).
 
-## 11. Instances liées
+## 11. Pistes et bus (`link/`) : OMNIS écoute sans toucher au son
 
-Une instance **master** (bus master) et des instances **stem** (une par piste) d'un même groupe
-(1 à 8) partagent une région de mémoire nommée : `link/SharedRegion` (CreateFileMapping « Local\ »
-sous Windows, shm_open ailleurs). On a choisi une région nommée plutôt qu'une variable globale,
-parce que certains hôtes chargent chaque plug-in dans son propre processus. FL Studio en
-« pont » et Bitwig le font.
+Réglage **RÔLE** (`role`, id 15) : **Master** (le mastering), **Bus** ou **Piste**. En Bus et Piste,
+le son passe au bit près, la latence annoncée est 0 (le contrôleur demande `kLatencyChanged`, le
+processeur change de rôle tout de suite derrière sa porte, `switchRole`). Le chaînage de stems,
+les ordres du master et le chef d'orchestre des premières versions sont retirés (08/11).
 
-**Disposition** (`link/LinkBus.h`) :
-- 32 emplacements de taille fixe.
-- Une mémoire neuve, remplie de zéros, vaut « tous libres ».
-- La version de la disposition fait partie du nom de la région : deux versions d'OMNIS ne lisent
-  jamais la même mémoire.
+Toutes les instances Bus / Piste partagent une région de mémoire nommée (`link/SharedRegion` :
+CreateFileMapping « Local\ » sous Windows, shm_open ailleurs ; une région nommée parce que certains
+hôtes chargent chaque plug-in dans son propre processus). Disposition `link/LinkBus.h`, version 3
+dans le nom de la région ; une mémoire neuve, à zéro, vaut « tout libre ».
 
-**Un emplacement contient :**
-- son jeton (64 bits aléatoires) et l'heure de son dernier battement de cœur ;
-- son rôle, son élément (`stems::Element` : kick, open hat, piano, 808… ; disposition version 2), son nom
-  (celui de la piste dans l'hôte) ;
-- un anneau audio de 2 × 65 536 trames `std::atomic<float>`, marqué de la position projet et des
-  trames exactes de départ et d'arrêt de la lecture ;
-- les ordres du master.
-
-**Atomiques :** tout ce qui est partagé est atomique sans verrou (`is_always_lock_free` vérifié à la
-compilation), donc valide entre processus. La cohérence des petits groupes de champs (position de
-l'anneau, ordres, nom) passe par une séquence « seqlock » à un seul écrivain.
-
-**Vie et mort :**
-- Un emplacement dont le cœur ne bat plus depuis 3 s (hôte planté) est repris par la prochaine
-  instance.
-- L'ancienne instance vérifie son jeton et n'y touche plus.
+**Un emplacement (64 en tout) contient :** jeton (64 bits aléatoires) et battement de cœur (repris
+après 3 s de silence), rôle, nom de la piste dans l'hôte, ce qui a été reconnu (élément, écoute
+seule, confiance, désaccord avec le nom, kick / snare / hat / open hat entendus dans un bus) sous une
+séquence « seqlock », et un anneau de **1024 trames d'empreinte** : l'énergie de six bandes
+(20–60, 60–150, 150–400, 400–2000, 2000–6000, 6000–20 000 Hz, passe-bandes RBJ sur le Mid) par
+trame de 2048 échantillons, numérotée par la position dans le projet (`link/BandFrames`). Chaque
+trame est marquée de son numéro APRÈS ses valeurs ; une trame entamée (départ, saut de la tête) est
+jetée. Tout est atomique sans verrou (`is_always_lock_free` vérifié à la compilation).
 
 **Threads :**
-- **Thread audio d'un stem** : écrit son audio et lit ses ordres sans verrou ni appel système.
-  L'Endpoint courant lui est prêté par `LinkClient::RtAccess` : un drapeau « occupé » et un
-  pointeur atomique en séquentiel cohérent. Un changement de groupe remplace l'Endpoint sans jamais
-  le détruire pendant que le thread audio s'en sert.
-- **Thread du lien** (50 ms) : rejoint le groupe, bat le cœur. Côté master, il écoute les stems
-  (`StemListener`, une signature par stem, seulement pendant la lecture).
-- **Retard du master** : s'il a plus de 0.7 s de retard, il saute au plus récent et compte la
-  perte.
+- **Thread audio** (Bus / Piste) : copie l'entrée vers la sortie, écrit l'empreinte dans son
+  emplacement et pousse le son (pendant la lecture) dans une file sans attente. L'Endpoint lui est
+  prêté par `LinkClient::RtAccess` (drapeau « occupé » + pointeur atomique) : jamais détruit sous lui.
+- **Thread du lien** (50 ms) : rejoint la région (réessaie chaque seconde), bat le cœur avant et
+  après le travail lourd, écoute au plus ~1 s de son par tour (`ElementClassifier`, et `DrumBus`
+  pour un bus), publie nom et reconnaissance toutes les 500 ms (ou tout de suite si la piste est
+  renommée).
+- **Contrôleur** (toutes les instances, Master compris) : `link::Observer` lit la région sans
+  prendre d'emplacement ; `stems::buildComposition` au plus une fois par seconde (page COMPOSITION,
+  barre IA « composition »).
 
-**Latence :** un stem annonce 0 échantillon : sa chaîne (§13) est sans latence, puis un gain lissé
-(30 ms) ordonné par le master. Le rôle est pris à l'activation. Le contrôleur demande
-`kLatencyChanged` quand il change.
+## 12. Reconnaître l'élément d'une piste (`stems/Element`, `stems/ElementClassifier`)
 
-## 12. Reconnaître l'élément d'un stem (`stems/`)
+25 éléments en 5 groupes : **DRUMS** (kick, snare, clap, hi-hat, open hat, cymbale, percu, boucle),
+**808 / BASSE**, **MÉLO** (piano, guitare, cuivres, cordes, nappe, lead / synthé, pluck), **VOIX**,
+**EFX** (reverse cymbal, riser, impact, autre EFX). L'élément vient :
 
-Chaque stem sait ce qu'il porte : son élément choisit sa chaîne (§13) et ce que le master peut lui
-demander. Paramètre `link_stem` (« Stem Element ») : **Auto** ou l'un des 21 éléments ;
-afficheur `meter_element` : ce qui a été reconnu.
+1. **de l'écoute** (thread du lien, son de la piste pendant la lecture) : trames de ~46 ms, six
+   bandes, part de l'énergie dans des pics (note ou bruit), largeur, crête / RMS ; les coups (montée,
+   décroissance de 20 dB, ce que chaque coup ajoute) ; et les **montées** pour les EFX : une reverse
+   cymbal est un bruit aigu qui monte de 12 dB ou plus sur plus de 300 ms et s'arrête net (−20 dB en
+   ~70 ms) ; un riser monte longtemps (> 1,5 s) ; un impact est un gros coup large et rare qui traîne
+   (> 0,8 s). Une montée n'est ni une cymbale frappée ni une nappe. Des règles lisibles donnent un
+   score par élément ;
+2. **du nom de la piste** (`data/elements.txt`, donné par l'hôte via `ChannelContext::IInfoListener`
+   puis le message `omnis.trackName`) : noms de packs découpés (« SH_KickHard04 », « RevCrash »,
+   « 808Mafia ») ; la forme la plus longue gagne (« rev crash » = reverse, pas cymbale). Le nom
+   précise l'écoute dans un groupe ; si le groupe entendu le contredit, une écoute nette l'emporte et
+   le désaccord est noté. Le nom d'un bus donne son groupe (`familyFromName` : DRUMS, MELO, EFX…).
 
-1. **Le choix de la personne** passe avant tout.
-2. **L'écoute** (`stems/ElementClassifier`, thread du lien, seulement pendant la lecture, sur le son
-   SEC de la piste, avant sa chaîne : ce que la chaîne fait ne change pas ce qui est reconnu) : trames de
-   ~46 ms, six bandes, part de l'énergie dans des pics (note ou bruit), largeur, crête / RMS ; puis
-   les coups (montée de 8 dB, ou une bande qui monte de 12 dB, réarmés après une retombée de 3 dB),
-   leur temps de montée, leur décroissance de 20 dB, ce que chaque coup ajoute au son d'avant. Des
-   règles lisibles donnent un score par élément. Les sons saturés restent reconnus : la saturation se
-   lit dans le caractère (crête basse), pas dans l'identité.
-3. **Le nom de la piste** (`data/elements.txt`) : l'hôte le donne par `ChannelContext::IInfoListener`
-   (la norme VST3), le contrôleur le passe au processeur par message (`omnis.trackName`). Les noms de
-   packs sont découpés (« SH_KickHard04 », « ClosedHat », « 808Mafia »). Le nom précise l'écoute dans
-   une famille (guitare plutôt que piano) ; si la famille entendue contredit le nom, une écoute nette
-   l'emporte et le désaccord est noté.
+Seuils vérifiés sur des sons synthétiques (tests) : à calibrer sur de vrais stems.
 
-Les seuils sont des points de départ vérifiés sur des sons synthétiques (kick, 808, snare, clap, hats,
-open hat, piano, nappe, voix, boucle, kick et 808 saturés) : à calibrer sur de vrais stems.
+## 13. Qui est dans quel bus (`stems/Composition`)
 
-## 13. La chaîne d'un stem (`stems/StemSettings`, `stems/StemChain`)
+VST3 ne dit pas à un plug-in ce qui entre dans son bus : OMNIS le retrouve à l'écoute. Le bus reçoit
+la somme de ses pistes ; les filtres de l'empreinte sont linéaires, donc l'empreinte du bus est à peu
+près la somme pondérée de celles de ses pistes. Pour chaque bus, sur les ~26 dernières secondes de
+lecture commune :
 
-Sur chaque piste en rôle Stem, sans aucune latence. **« Stem Mode »** (`stem_mode`) :
-- **Off** (défaut) : le son passe au bit près ;
-- **Auto** : OMNIS règle à partir de l'élément reconnu et de ce que l'écoute a mesuré ;
-- **Manuel** : la personne règle les doses (`stem_hpf`, `stem_comp`, `stem_sat`, `stem_clean`,
-  `stem_width`) ; fréquences et temps restent ceux de l'élément. `stem_trim` vaut dans les deux modes.
+- **moindres carrés positifs** (descente de coordonnées) : chaque piste est un régresseur, avec deux
+  copies décalées d'une trame (latence mal compensée jusqu'à ~43 ms) ; chaque bande pèse autant ;
+- **borne physique** : une piste du bus n'y pèse jamais plus que le bus ; son gain total est au plus
+  1,25 × le 10e centile du rapport bus / piste sur trois trames. Une piste qui n'est pas dans le bus
+  joue aussi quand le bus se tait : sa borne tombe à presque rien, elle ne « bouche » pas le trou
+  d'une piste du bus sans OMNIS ;
+- **décision** : part ≥ 3 % dans au moins une bande (des hats discrets sont l'essentiel de l'aigu du
+  bus), perte d'explication sans elle ≥ 0,1 % de la bande, dépassement du bus sur ≤ 15 % des trames,
+  gain ≥ −14 dB (en dessous, elle ne fait que combler un reste).
 
-**Par famille** (modèles de `templateFor`, doses moyennes, à calibrer sur de vrais stems) :
+Mesuré (`tests/TestComposition.cpp`) : 4 bus et 7 pistes dont un kick et une 808 qui tombent
+ensemble, sans erreur ; bus saturé (tanh), décalé de 300 échantillons, avec une snare sans OMNIS :
+les bonnes pistes ; 40 pistes et 6 bus : 40/40 en 43 ms. Limites : deux pistes jouant exactement le
+même son aux mêmes instants ne se distinguent pas ; OMNIS BUS doit être EN PREMIER sur le bus (ce
+qui compresse le bus avant lui fausse la somme), OMNIS PISTE EN DERNIER sur la piste.
 
-| | passe-haut | EQ dynamique | compression | saturation | M/S |
-|---|---|---|---|---|---|
-| kick | aucun (voir plus bas) | carton 400 Hz | 3:1, 4 dB, att. 15 ms | 25 % | mono < 150 Hz |
-| snare / clap | 80–120 Hz | 350 / 800 Hz, 5 kHz | 2,5–3:1 | 15–20 % | mono < 150 Hz |
-| hats / open hat / cymbale | 300–350 Hz | dureté 5–7 kHz | open hat 2:1 | — | largeur 110–115 % |
-| 808 | aucun | « boum » 250 Hz | 2:1, 3 dB, att. 30 ms | 30 % | mono < 200 Hz |
-| basse | aucun | 250, 800 Hz | 3:1 | 20 % | mono < 150 Hz |
-| instruments | 60–120 Hz | boue ~250, carton ~600, dureté ~3 k | lead, cuivres 2:1 | — | mono partiel < 120–150 Hz |
-| voix lead | 80 Hz | 250, 3,5 k, sifflantes 7 k | 3:1, 5 dB | — | centrée |
+## 14. (retiré le 08/11) Le chef d'orchestre et les chaînes de stems
 
-**Ce que l'écoute a mesuré est respecté (Auto)** :
-- crête / RMS basse (son déjà saturé ou écrasé, voulu) : saturation réduite (jusqu'à 20 % de la
-  dose), compression divisée par deux ou retirée ;
-- piste déjà large (Side à moins de 6 dB du Mid) : pas d'élargissement ;
-- instrument qui joue vraiment dans le grave : le passe-haut descend tant que l'octave au-dessus de
-  sa coupure porte plus de 15 % de l'énergie ;
-- kick, 808, basse : jamais de passe-haut automatique. Sur une vraie 808 écrêtée (stems de
-  l'utilisateur), retirer le continu de l'attaque décale la forme d'onde : +3 à +4 dB de crête,
-  même à 10 Hz, pour 0,5 % d'énergie sous 25 Hz. Le grondement est l'affaire du master ;
-- l'EQ dynamique ne coupe que ce qui déborde par moments (voir 3. ci-dessous) : un son dont la
-  mélodie vit à 150–400 Hz garde son corps.
-
-**Bornes fixes** (`clampSettings`, quoi qu'il arrive) : passe-haut ≤ 500 Hz, coupe ≤ 6 dB par bande,
-saturation ≤ 50 %, compression ≤ 4:1 et ≤ 8 dB, largeur 0–150 %, trim −24…+12 dB ; NaN neutralisés.
-
-**La chaîne**, dans l'ordre :
-1. trim ;
-2. passe-haut SVF, deux sections Butterworth (en 12 dB/oct la seconde descend à 5 Hz : on glisse
-   d'une pente à l'autre sans changer de topologie ; éteint, il n'est plus traversé) ;
-3. EQ dynamique, 3 bandes : l'énergie d'un passe-bande sur le Mid rapportée à celle du reste de la
-   piste (5 / 80 ms). 2:1 au-delà du plus haut de deux seuils : l'équilibre d'un bruit rose + marge,
-   et l'habitude de la piste (moyenne en dB sur ~4 s) + 3 dB. Une note qui résonne ou une
-   accumulation est calmée ; le caractère permanent du son est respecté (un excès permanent qui gêne
-   un autre stem sera proposé par le master). Cloche SVF ;
-4. compresseur lié en stéréo, seuil = crête récente (relâche 3 s) − profondeur, genou 6 dB,
-   compensation = réduction moyenne sur 2 s (le niveau de la piste reste le même, le gain staging
-   est l'affaire du master) ;
-5. saturation : courbe de l'Inflator (exposant 3) rapportée à la crête récente. Le bas monte, les
-   crêtes du grave restent en place ; la partie non linéaire passe seule en 2x (repliement mesuré
-   à −108 dB pour un sinus de 9 kHz), le son direct n'a aucun retard ;
-6. M/S : Side séparé en Linkwitz-Riley 24 dB/oct, bas réduit (mono), haut × largeur ; le Mid
-   n'est jamais touché.
-
-Les réglages sont recalculés à chaque bloc (fonction pure, sans allocation) à partir de l'écoute
-publiée par le thread du lien (`LinkClient::rtListening`, triple tampon) et rejoints en ~100 ms ;
-Off ↔ actif en fondu de 30 ms. Coût mesuré : 0,4 à 0,9 % d'un cœur par stem à 48 kHz.
-
-**Outil** : `omnis_stems fichier.wav [...] [--render dossier]` montre l'élément reconnu, le
-caractère, les réglages Auto, et ce que la chaîne fait sur tout le fichier (niveau, crête, bandes,
-compression et EQ dynamique au fil du morceau).
-
-## 14. Le master chef d'orchestre (`stems/StemTimeline`, `stems/Conductor`)
-
-Le master repère qu'un stem en gêne un autre et **propose** une retouche ; rien n'est appliqué sans
-l'accord de la personne.
-
-**Écoute alignée sur le temps du projet.** Deux pistes ne se masquent que si elles jouent en même
-temps. Le master range ce qu'il entend de chaque stem par blocs de 8192 trames de temps projet
-(position envoyée par le stem avec son audio) : le bloc k de deux stems est le même instant du
-morceau. Par bloc, une FFT (Hann, ~5 Hz de résolution) : énergie du Mid en 15 bandes serrées dans le
-grave, et du Side sous 150 Hz. Un passage rejoué (boucle) est moyenné.
-
-**Masquages** (toutes les 2 s, thread du lien du master) :
-- grave : un instrument, une voix, un FX ou un drum (hors kick) dans la zone de la 808, de la basse
-  ou du kick (sous 300 Hz, là où elle est à moins de 20 dB de son maximum). Dans son cœur (à 10 dB de
-  son maximum), gêne si le gêneur est à moins de 8 dB d'elle ; dans le haut de son corps (ce qui la
-  fait entendre sur de petites enceintes), s'il y est plus fort qu'elle ;
-- voix lead : un instrument, un FX ou des backs à moins de 3 dB d'elle entre 1,2 et 6 kHz.
-
-Écart mesuré bande par bande, médiane sur les blocs où les deux jouent (au moins 4 s ensemble).
-
-**Retouches proposées**, toujours sur le gêneur : passe-haut 12 dB/oct en haut de la bande gênante
-(plateau −3 dB si ce grave est le cœur du gêneur, ≥ 40 % de son énergie) ; cloche −2 ou −3 dB dans
-la présence de la voix. Chaque proposition a une clé stable (gêneur, victime, sorte) : acceptée ou
-refusée, elle n'est plus reproposée.
-
-**Circuit** :
-1. le processeur du master publie le nombre de propositions (`meter_proposals`) ;
-2. l'interface demande le texte (message `omnis.getProposals` → `omnis.proposals`) et répond
-   (`omnis.answer` : accepter, refuser, annuler) ;
-3. une retouche acceptée part au stem dans ses ordres (`orderReserved[0…15]` : 4 retouches, sans
-   changer la disposition de la mémoire), renvoyés chaque seconde ;
-4. le stem l'ajoute à sa chaîne, juste après le passe-haut, sans latence, en fondu, bornée
-   (`clampCorrection`) ; aussi en mode Off (pas en bypass). Un stem qui reprend un emplacement
-   n'hérite d'aucune retouche.
-
-Sur la prod de l'utilisateur (808, DRUMS, MELO) : aucune proposition, à raison : aux moments où la
-808 joue, la mélo est 28 dB sous elle à 100–150 Hz. `omnis_stems` donne ce bilan bande par bande.
+Le master qui écoutait les stems et leur envoyait des ordres (gain, retouches), et la chaîne propre
+à chaque stem, sont retirés avec le mixage. Leur historique est dans `docs/SUIVI.md`.
 
 ## 15. Le rack (`engine/Engine`) et le limiteur complet (`stages/LimiterStage`)
 
@@ -400,4 +314,5 @@ fort du bus), snare / clap (corps + claquement), hat (cymbales sans corps ; open
 plus de 150 ms à retomber de 15 dB). Présent après 4 coups. Chaîne du bus : kick mono sous
 150 Hz, snare +8 % de largeur (sauf bus déjà large), dureté des cymbales calmée vers 7 kHz
 (6,5 kHz pour un open hat). Sur le DRUMS de l'utilisateur : 168 kicks, 363 snares / claps,
-145 hats, 44 open hats ; sur un bus sans grave : pas de kick.
+145 hats, 44 open hats ; sur un bus sans grave : pas de kick. Depuis le 09/11, il n'y a plus de
+chaîne de bus : ce qui est entendu s'affiche dans la page COMPOSITION (« entendu dans le bus »).

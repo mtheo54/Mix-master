@@ -10,11 +10,20 @@
 //
 //  createView() : l'interface OMNIS (OmnisEditor, VSTGUI) quand le plug-in est
 //  compilé avec (OMNIS_HAS_GUI), sinon l'éditeur générique de l'hôte.
+//
+//  Nom de la piste : l'hôte le donne par ChannelContext::IInfoListener ; il est
+//  passé au processeur (rôle Bus / Piste : publié aux autres instances).
+//  composition() lit la région partagée (link::Observer) : quels éléments dans
+//  quel bus, avec leur nom d'origine et ce qu'OMNIS a deviné (page COMPOSITION).
 // =============================================================================
 #pragma once
 
 #include "analysis/SpectralSignature.h"
+#include "link/LinkBus.h"
+#include "params/Parameters.h"
+#include "stems/Composition.h"
 
+#include "pluginterfaces/vst/ivstchannelcontextinfo.h"
 #include "public.sdk/source/vst/vsteditcontroller.h"
 
 #include <array>
@@ -31,7 +40,7 @@ namespace omnis::vst3 {
 
 class UiFeed;
 
-class OmnisController : public Steinberg::Vst::EditController {
+class OmnisController : public Steinberg::Vst::EditController, public Steinberg::Vst::ChannelContext::IInfoListener {
 public:
     static Steinberg::FUnknown* createInstance(void*) {
         return static_cast<Steinberg::Vst::IEditController*>(new OmnisController());
@@ -41,6 +50,15 @@ public:
     Steinberg::tresult PLUGIN_API setComponentState(Steinberg::IBStream* state) override;
     /// Mode de latence : l'hôte doit relire la latence et réactiver l'instance.
     Steinberg::tresult PLUGIN_API setParamNormalized(Steinberg::Vst::ParamID tag, Steinberg::Vst::ParamValue value) override;
+    /// Nom (et couleur) de la piste où l'instance est posée.
+    Steinberg::tresult PLUGIN_API setChannelContextInfos(Steinberg::Vst::IAttributeList* list) override;
+    [[nodiscard]] const std::string& trackName() const noexcept { return trackName_; }
+    /// Rôle choisi (Master / Bus / Piste).
+    [[nodiscard]] params::InstanceRole instanceRole();
+    /// Pistes et bus OMNIS du projet (relu au plus une fois par seconde). Vide sans instance Bus / Piste.
+    [[nodiscard]] const stems::Composition& composition();
+    /// Ce que la page COMPOSITION et la barre IA disent (« BUS « DRUMS » (DRUMS) : … »).
+    [[nodiscard]] std::string compositionText();
 
     Steinberg::IPlugView* PLUGIN_API createView(Steinberg::FIDString name) override;
     /// Messages du processeur : le flux de l'interface (UiFeed).
@@ -252,6 +270,18 @@ private:
     int abSlot_ = 0;
     [[nodiscard]] std::vector<std::pair<std::uint32_t, double>> snapshot();
     void apply(const std::vector<std::pair<std::uint32_t, double>>& values);
+
+    std::string trackName_;
+    link::Observer observer_;
+    stems::Composition composition_;
+    std::uint64_t compositionAtMs_ = 0;
+
+public:
+    OBJ_METHODS(OmnisController, EditController)
+    DEFINE_INTERFACES
+        DEF_INTERFACE(Steinberg::Vst::ChannelContext::IInfoListener)
+    END_DEFINE_INTERFACES(EditController)
+    REFCOUNT_METHODS(EditController)
 };
 
 } // namespace omnis::vst3

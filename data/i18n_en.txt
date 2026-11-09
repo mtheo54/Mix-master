@@ -584,3 +584,65 @@ seuil du Comp	Comp threshold
 largeur	width
 Export anonyme écrit (%d séance(s), des nombres seulement, rien n'est envoyé) : %s	Anonymous export written (%d session(s), numbers only, nothing is sent): %s
 Oublié : tes habitudes, tes styles nommés et le journal sont effacés de ce poste.	Forgotten: your habits, named styles and journal are erased from this computer.
+Nappe	Pad
+Piano / clavier	Piano / keys
+Percu	Perc
+Cymbale	Cymbal
+Basse	Bass
+Drums (boucle)	Drums (loop)
+Voix lead	Lead vocal
+Backs / adlibs	Backs / adlibs
+Guitare	Guitar
+Cordes	Strings
+Cuivres / vents	Brass / winds
+Pluck / cloche	Pluck / bell
+Autre	Other
+808 / BASSE	808 / BASS
+MÉLO	MELODY
+VOIX	VOCALS
+Piste	Track
+COMPOSITION	COMPOSITION
+Tes bus et leurs éléments : nom dans FL → ce qu'OMNIS entend.	Your buses and their elements: name in FL → what OMNIS hears.
+RÔLE DE CETTE INSTANCE	ROLE OF THIS INSTANCE
+OMNIS SUR TES PISTES ET TES BUS	OMNIS ON YOUR TRACKS AND BUSES
+CETTE INSTANCE : BUS	THIS INSTANCE: BUS
+CETTE INSTANCE : PISTE	THIS INSTANCE: TRACK
+CETTE INSTANCE : MASTER	THIS INSTANCE: MASTER
+1. Sur chaque piste : OMNIS en DERNIER,	1. On each track: OMNIS LAST,
+   RÔLE : Piste.	   ROLE: Track.
+2. Sur chaque bus : OMNIS en PREMIER,	2. On each bus: OMNIS FIRST,
+   RÔLE : Bus.	   ROLE: Bus.
+3. Lance la lecture : je retrouve qui va	3. Press play: I find out what goes
+   dans quel bus, et ce que c'est.	   into which bus, and what it is.
+Le son des pistes et des bus ne change pas.	The sound of tracks and buses is not changed.
+piste sans nom	unnamed track
+sans nom	unnamed
+écoute en cours	listening
+écoute en cours…	listening…
+ (le nom dit autre chose)	 (the name says otherwise)
+ : le nom dit autre chose, je me fie à l'écoute	: the name says otherwise, I trust my ears
+ ; l'écoute seule : 	; listening alone: 
+BUS « 	BUS « 
+ : lance la lecture, je retrouve ses pistes en quelques secondes.	: press play, I find its tracks within a few seconds.
+ : aucune piste OMNIS retrouvée dedans.	: no OMNIS track found in it.
+entendu dans le bus : 	heard in the bus: 
+entendu dans le bus	heard in the bus
+entendu : 	heard: 
+aucune piste OMNIS dedans	no OMNIS track inside
+lance la lecture…	press play…
+PISTES :	TRACKS:
+PISTES	TRACKS
+HORS BUS (vers le master) :	OUTSIDE BUSES (to the master):
+HORS BUS (vers le master)	OUTSIDE BUSES (to the master)
+… +%.0f : écris « composition » à l'IA	… +%.0f: type "composition" in the AI bar
+Aucune piste ni aucun bus OMNIS pour l'instant.	No OMNIS track or bus yet.
+Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur	Put OMNIS on your buses (DRUMS, MELODY, EFX…) and on
+leurs pistes, choisis le RÔLE, puis lance la lecture.	their tracks, choose the ROLE, then press play.
+Aucune piste ni aucun bus OMNIS dans le projet. Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…) et sur leurs pistes, choisis RÔLE : Bus ou Piste, puis lance la lecture.	No OMNIS track or bus in the project. Put OMNIS on your buses (DRUMS, MELODY, EFX…) and on their tracks, choose ROLE: Bus or Track, then press play.
+RÔLE : Bus. Le son passe tel quel ; je retrouve les pistes OMNIS qui entrent dans ce bus (page COMPOSITION).	ROLE: Bus. The sound passes through untouched; I find the OMNIS tracks feeding this bus (COMPOSITION page).
+RÔLE : Piste. Le son passe tel quel ; je dis aux autres OMNIS ce que joue cette piste.	ROLE: Track. The sound passes through untouched; I tell the other OMNIS instances what this track plays.
+RÔLE : Master. La chaîne de mastering est de retour.	ROLE: Master. The mastering chain is back.
+Cette instance est en RÔLE 	This instance is in ROLE 
+ : elle écoute sans toucher au son. Demande « composition », ou « rôle master » pour masteriser ici.	: it listens without touching the sound. Ask "composition", or "role master" to master here.
+Elle reste en rouge : remets-la sur Off avant d'exporter.	It stays red: set it back to Off before exporting.
+COMPOSITION : avec OMNIS sur tes bus et pistes, ce qu'il y a dans chaque bus.	COMPOSITION: with OMNIS on your buses and tracks, what is in each bus.
