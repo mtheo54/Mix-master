@@ -34,7 +34,7 @@ qualite lampe      : lampe | lampes | a lampe | saturation lampe | tube | tubes 
 qualite transistor : transistor | transistors | a transistor | saturation transistor | solid state | transistor saturation | fuzz => saturation +0.5
 qualite froid      : froid | cold | clinique | digital | numerique | chirurgical | colder | sterile | clinical | dry => bas_medium -1, air +1
 qualite sombre     : sombre | dark | obscur | nocturne | tenebreux | darker | moody | gloomy | dark af | plus sombre => presence -1, air -1.5
-qualite gras       : gras | epais | fat | gros | lourd | massif | plein | du corps | charnu | costaud | thick | heavy | imposant | fatter | thicker | heavier | beefy | beefier | meaty | chunky | body | fuller | full | girthy | phat | weight | weighty | massive | big | bigger | huge | enorme | gros son gras | qui a du corps => bas +1.5, bas_medium +0.5
+qualite gras       : corps | du corps | de corps | plus de corps | epaisseur | de l epaisseur | gras | epais | fat | gros | lourd | massif | plein | du corps | charnu | costaud | thick | heavy | imposant | fatter | thicker | heavier | beefy | beefier | meaty | chunky | body | fuller | full | girthy | phat | weight | weighty | massive | big | bigger | huge | enorme | gros son gras | qui a du corps => bas +1.5, bas_medium +0.5
 qualite basse      : basse | basses | bass | sub | 808 | grave | graves | low | lows | low end | sub bass | infra | subs | 808s | the 808 | bottom end | bottom | lowend | low frequencies | les bas | basses frequences | sub grave | la 8 | ma 8 => sub +2, bas +1
 qualite aigus      : aigus | aigu | high | highs | treble | hautes frequences | les hauts | le haut | top end | high end | the highs | les hautes | les hauts mediums | trebles => presence +1, air +1.5
 qualite mediums    : mediums | mids | les mids | milieu | le milieu | medium | midrange | mid range | middle | the mids | haut medium | hauts mediums | les mediums => medium +1.5
@@ -82,7 +82,7 @@ qualite comp_varimu : vari mu | varimu | variable mu | vari-mu | comp vari mu | 
 qualite streaming  : spotify | streaming | apple music | deezer | youtube | soundcloud | tidal | plateformes | tiktok | tik tok | reels | insta | instagram | shorts | youtube shorts | amazon music | apple => cible_lufs -14
 
 # ---- Propreté / caractère ---------------------------------------------------
-qualite propre     : propre | clean | net | precis | defini | lisible | transparent | pur | clair | limpide | nickel | carre net | soigne | sans bavure | cleaner | clarity | clear | clearer | tidy | defined | definition | detailed | detail | hifi | hi fi | cristallin propre | net net | super propre => proprete +1
+qualite propre     : sec | seche | plus sec | dry | tight | propre | clean | net | precis | defini | lisible | transparent | pur | clair | limpide | nickel | carre net | soigne | sans bavure | cleaner | clarity | clear | clearer | tidy | defined | definition | detailed | detail | hifi | hi fi | cristallin propre | net net | super propre => proprete +1
 qualite sale       : sale | dirty | crade | cra cra | agressif | violent | brutal | rugueux | rough | gritty | trash | destroy | sature a fond | ecrase a fond | dirtier | grimy | raw | rawer | aggressive | sauvage | bestial | vener sale | grit | gritty | dirt | dirty | overdriven | overdrive | qui crache | ca crache | crache => proprete -1, saturation +0.5, sonie +1
 qualite saturation : saturation | la saturation | de la saturation | saturer | drive | overdrive | harmoniques | harmonics | chaleur harmonique | grain harmonique => saturation +1
 
