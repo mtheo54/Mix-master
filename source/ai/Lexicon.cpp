@@ -8,6 +8,7 @@
 #include "TextMatch.h"
 
 #include <algorithm>
+#include <unordered_set>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -92,6 +93,10 @@ bool tokenEquals(const std::string& token, const std::string& word) {
     if (!word.empty() && word[0] == '=') return token.compare(0, std::string::npos, word, 1, std::string::npos) == 0;
     if (token == word) return true;
     if (word.size() < 3 || token.size() < 3) return false;
+    // Un mot court ne vaut pas un mot plus long de deux lettres : « mon » n'est pas « monte »
+    // (finales muettes retirées, même son), « mon kick est trop fort » montait le kick.
+    if (std::min(token.size(), word.size()) <= 4 && (token.size() > word.size() ? token.size() - word.size() : word.size() - token.size()) > 1)
+        return false;
     if (word.size() < 5) return phoneticKey(token) == phoneticKey(word);
     return fuzzyEquals(token, word);
 }
@@ -108,7 +113,7 @@ std::size_t matchPhrases(const std::vector<std::string>& tokens, std::size_t i, 
 }
 
 const Phrases& clauseBreaks() {
-    static const Phrases p = phrases({"mais", "et", "par contre", "sauf", "puis", "cependant", "pourtant", "=but", "=and", "however",
+    static const Phrases p = phrases({"mais", "et", "par contre", "=sauf", "puis", "cependant", "pourtant", "=but", "=and", "however",
                                       "though", "=also"});
     return p;
 }
@@ -148,7 +153,7 @@ const Phrases& less() {
     static const Phrases p = phrases({"moins", "moins de", "baisse", "baisser", "enleve", "enlever", "retire", "retirer", "reduis",
                                       "reduire", "=coupe", "=coupes", "=coupez", "couper", "calme", "calmer", "attenue", "attenuer", "adoucis", "adoucir",
                                       "vire", "virer", "degage", "diminue", "diminuer", "allege", "alleger", "retiens",
-                                      "reduce", "remove", "less of", "=less", "=cut", "lower", "decrease", "tame", "turn down",
+                                      "reduce", "remove", "=less of", "=less", "=cut", "lower", "decrease", "tame", "turn down",
                                       "bring down", "pull back", "dial back", "back off", "get rid of", "take out", "take away",
                                       "fewer", "minus", "=nix"});
     return p;
@@ -309,7 +314,8 @@ bool isNumber(const std::string& t) {
 /// + jetons identiques (une correspondance exacte bat une faute supposée :
 /// « ça claque » est « ça claque », pas « ça craque »). 0 si aucune.
 std::size_t matchConcept(const std::vector<std::string>& tokens, std::size_t i, std::size_t end, const Concept& c,
-                         std::size_t* length = nullptr, const std::vector<char>* grammar = nullptr) {
+                         std::size_t* length = nullptr, const std::vector<char>* grammar = nullptr,
+                         const std::unordered_set<std::string>* known = nullptr) {
     std::size_t best = 0, bestLen = 0;
     for (const auto& e : c.tokenized) {
         if (e.empty() || i + e.size() > end) continue;
@@ -319,7 +325,10 @@ std::size_t matchConcept(const std::vector<std::string>& tokens, std::size_t i, 
             // Un mot outil ou de la grammaire n'est jamais une faute de frappe : « turn » n'est
             // pas « terne », « sounds » n'est pas « soupe », « c » n'est pas « hq ».
             const bool tool = grammar ? (*grammar)[i + k] != 0 : isStopword(tokens[i + k]);
-            ok = tokens[i + k] == e[k] || (!tool && fuzzyEquals(tokens[i + k], e[k]));
+            // Un mot que le lexique connaît tel quel n'est pas une faute pour un autre :
+            // « écrasé » n'est pas « éclaté », « mon » n'est pas « monte ».
+            const bool exactWord = known && known->count(tokens[i + k]) > 0;
+            ok = tokens[i + k] == e[k] || (!tool && !exactWord && fuzzyEquals(tokens[i + k], e[k]));
             exact += tokens[i + k] == e[k] ? 1 : 0;
         }
         const std::size_t score = 2 * e.size() + exact;
@@ -509,7 +518,9 @@ bool isElement(const Concept& c) {
         if (c.id == id) return true;
     return false;
 }
-bool isLevel(const Concept& c) { return c.id == "fort" || c.id == "discret" || c.id == "presence" || c.id == "lointain"; }
+/// « mou » (faible, timide, sans patate) est aussi un niveau quand il qualifie un élément :
+/// « ma 808 est trop faible » monte la 808.
+bool isLevel(const Concept& c) { return c.id == "fort" || c.id == "discret" || c.id == "presence" || c.id == "lointain" || c.id == "mou"; }
 /// Sens d'un niveau : + pour « fort », « devant » ; − pour « discret », « lointain ».
 double levelSense(const Concept& c) { return c.effect[Axis::Loudness] + c.effect[Axis::Presence]; }
 
@@ -522,6 +533,11 @@ struct Clause {
 
 Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
     Interpretation out;
+    // Les mots du lexique, tels quels : jamais lus comme la faute d'un autre mot.
+    std::unordered_set<std::string> known;
+    for (const auto& c : lexicon.concepts())
+        for (const auto& e : c.tokenized)
+            for (const auto& w : e) known.insert(w);
     const std::vector<std::string> tokens = expandShorthand(tokenize(text));
     std::vector<char> grammar(tokens.size());
     for (std::size_t i = 0; i < tokens.size(); ++i) grammar[i] = isWord(tokens[i]) && isCommonWord(tokens[i]);
@@ -613,7 +629,7 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
                     while (k < end && k - j < 4) {
                         if (tokens[k] == kReferenceMarker) break; // « fein de <artiste reconnu> »
                         bool isConcept = false;
-                        for (const auto& c : lexicon.concepts()) isConcept = isConcept || matchConcept(tokens, k, end, c, nullptr, &grammar) > 0;
+                        for (const auto& c : lexicon.concepts()) isConcept = isConcept || matchConcept(tokens, k, end, c, nullptr, &grammar, &known) > 0;
                         if (isConcept || matchPhrases(tokens, k, end, desireMarkers()) || matchPhrases(tokens, k, end, keeps()) ||
                             matchPhrases(tokens, k, end, more()) || matchPhrases(tokens, k, end, less()) ||
                             matchPhrases(tokens, k, end, tooMuch()) || matchPhrases(tokens, k, end, intensifiers()) ||
@@ -681,7 +697,7 @@ Interpretation interpret(std::string_view text, const Lexicon& lexicon) {
             std::size_t bestScore = 0, bestLen = 0;
             for (const auto& c : lexicon.concepts()) {
                 std::size_t len = 0;
-                const std::size_t score = matchConcept(tokens, i, end, c, &len, &grammar);
+                const std::size_t score = matchConcept(tokens, i, end, c, &len, &grammar, &known);
                 if (score > bestScore) {
                     bestScore = score;
                     bestLen = len;

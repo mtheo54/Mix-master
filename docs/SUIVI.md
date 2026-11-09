@@ -56,6 +56,13 @@
 
 ## Fait récemment
 
+- **09/11 — Barre IA : audit des inversions** (tolérance aux fautes trop large) et **banque de
+  60 phrases réelles** (`tests/TestPhraseBank.cpp` : parlé, SMS, argot, anglais ; axe et sens
+  vérifiés). Corrigé : « **mon** kick est trop fort » montait le kick (« mon » lu « monte ») ;
+  « mon 808 est trop forte » montait le sub ; « c'est écrasé » lu « éclaté » ; « faible »,
+  « bave », « piquent » non compris. Règles : un mot court ne vaut pas un mot plus long de 2
+  lettres ; un mot connu tel quel du lexique n'est jamais la faute d'un autre ; « sauf », « less »
+  exacts. **Ajouter à la banque chaque phrase réelle mal comprise.**
 - **09/11 — Match EQ « Analogique »** : même courbe, phase minimale (méthode du cepstre, réponse
   placée à N/2 : latence et PDC inchangées) et cloches lissées sur ±1/3 d'octave ; aucun pré-écho
   devant les transitoires (mesuré). Sélecteur CARACTÈRE, écran lissé, barre IA (« EQ analogique »).

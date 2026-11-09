@@ -314,6 +314,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestProdListener.cpp
         tests/TestSearchMaster.cpp
         tests/TestCompressor.cpp
+        tests/TestPhraseBank.cpp
         tests/TestMultiband.cpp
         tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp
