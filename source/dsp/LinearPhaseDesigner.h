@@ -14,8 +14,17 @@
 //  Précision mesurée (N = 16384, 44.1 kHz) : Linkwitz-Riley à ±0.7 dB de la
 //  cible jusqu'à −60 dB, Butterworth 4 à 16 Hz : −3.3 dB à fc, −64 dB au DC.
 //  design() n'alloue pas : utilisable depuis un thread de calcul.
+//
+//  designMinimumPhase() : le même module, à phase MINIMALE (méthode du cepstre :
+//  log |H| -> cepstre replié sur les temps positifs -> exp), comme un EQ
+//  analogique : aucun pré-écho avant un transitoire. La réponse est placée à
+//  N/2 (même retard que la phase linéaire : latence et PDC inchangés), sur les
+//  N/2 taps restants, fin adoucie (demi-Hann sur le dernier huitième).
 // =============================================================================
 #pragma once
+
+#include <algorithm>
+#include <cmath>
 
 #include "Fft.h"
 #include "StereoConvolver.h"
@@ -48,8 +57,27 @@ public:
         finish(out);
     }
 
+    template <typename MagA, typename MagB>
+    void designMinimumPhase(MagA&& magA, MagB&& magB, StereoConvolver::Kernel& out) noexcept {
+        logMagnitude(magA);
+        minimumPhaseInto(timeA_);
+        logMagnitude(magB);
+        minimumPhaseInto(timeB_);
+        builder_.build(timeA_.data(), timeB_.data(), out);
+    }
+
 private:
     void finish(StereoConvolver::Kernel& out) noexcept;
+    template <typename Mag>
+    void logMagnitude(Mag&& mag) noexcept {
+        const int m = 2 * length_;
+        for (int k = 0; k <= length_; ++k) {
+            const std::complex<double> z{std::log(std::max(mag(k * sampleRate_ / m), 1.0e-6)), 0.0};
+            spectrum_[static_cast<std::size_t>(k)] = z;
+            if (k > 0 && k < length_) spectrum_[static_cast<std::size_t>(m - k)] = z;
+        }
+    }
+    void minimumPhaseInto(std::vector<double>& time) noexcept;
 
     double sampleRate_ = 48000.0;
     int length_ = 0;

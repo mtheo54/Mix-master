@@ -56,6 +56,11 @@
 
 ## Fait récemment
 
+- **09/11 — Match EQ « Analogique »** : même courbe, phase minimale (méthode du cepstre, réponse
+  placée à N/2 : latence et PDC inchangées) et cloches lissées sur ±1/3 d'octave ; aucun pré-écho
+  devant les transitoires (mesuré). Sélecteur CARACTÈRE, écran lissé, barre IA (« EQ analogique »).
+  **Corrigé** : « passe » était lu « pas » (négation) et « son » « sans » — « passe le grave en
+  mono » élargissait le grave, « passe le sub plus fort » le baissait. Test de non-régression.
 - **09/11 — Compresseur de bus « Comp »** (refonte, étape 4) : 8e module du rack, après le Match
   EQ, **éteint par défaut** (les sessions sonnent pareil). Caractères Opto (relâchement selon le
   programme), FET (crête), VCA (colle propre), Vari-mu (genou de 18 dB) ; sans latence, stéréo lié,

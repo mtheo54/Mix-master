@@ -14,6 +14,9 @@
 //  du nœud central (640 Hz, milieu géométrique de 20 Hz – 20 kHz), −T dB à
 //  20 Hz, +T dB à 20.5 kHz, constante au-delà. Mid et Side ensemble : « plus
 //  brillant / plus sombre » d'un seul geste, sans toucher à l'image stéréo.
+//
+//  Caractère Analogique : la courbe moyennée sur ±1/3 d'octave (cloches plus
+//  larges, plus douces) et un noyau à phase minimale (aucun pré-écho).
 // =============================================================================
 #pragma once
 
@@ -35,6 +38,7 @@ struct MatchKernelRequest {
     MatchCurve sideDb{};
     double amount = 1.0; ///< 0..1
     double tiltDb = 0.0; ///< gain à 20 kHz (et opposé à 20 Hz)
+    bool analog = false; ///< caractère Analogique : phase minimale, cloches lissées sur ±1/3 d'octave
 
     [[nodiscard]] double tiltAt(double frequency) const noexcept;
     [[nodiscard]] bool nearlyEquals(const MatchKernelRequest& o) const noexcept;
@@ -47,7 +51,10 @@ class MatchKernelDesigner {
 public:
     void prepare(double sampleRate, int kernelLength, int blockSize) { designer_.prepare(sampleRate, kernelLength, blockSize); }
     void design(const MatchKernelRequest& r, dsp::StereoConvolver::Kernel& out) noexcept {
-        designer_.design([&](double f) { return r.midMagnitude(f); }, [&](double f) { return r.sideMagnitude(f); }, out);
+        if (r.analog)
+            designer_.designMinimumPhase([&](double f) { return r.midMagnitude(f); }, [&](double f) { return r.sideMagnitude(f); }, out);
+        else
+            designer_.design([&](double f) { return r.midMagnitude(f); }, [&](double f) { return r.sideMagnitude(f); }, out);
     }
 
 private:

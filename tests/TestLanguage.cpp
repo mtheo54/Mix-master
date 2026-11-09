@@ -508,3 +508,16 @@ OMNIS_TEST("demande: « la 808 est trop dirty » vise la saleté, pas du sub en 
     const auto more = read("plus de 808");
     OMNIS_CHECK(more.desire[Axis::Sub] > 1.0);
 }
+
+OMNIS_TEST("langage: « passe » n'est pas « pas », « son » n'est pas « sans », « comp » n'est pas « coupe »") {
+    // Ces mots ont le même son que des négations ou des baisses : lus ainsi, la demande s'inversait.
+    OMNIS_CHECK(read("passe le grave en mono").desire[Axis::Width] < 0.0);   // mono = moins large
+    OMNIS_CHECK(read("passe le sub plus fort").desire[Axis::Sub] > 0.0);
+    OMNIS_CHECK(read("monte le son du sub").desire[Axis::Sub] > 0.0);
+    OMNIS_CHECK(read("comp vca").desire[Axis::Density] > 0.0);
+    // Les vraies négations et baisses restent comprises.
+    OMNIS_CHECK(read("pas de basse").desire[Axis::Sub] < 0.0);
+    OMNIS_CHECK(read("sans saturation").desire[Axis::Saturation] < 0.0);
+    OMNIS_CHECK(read("coupe les basses").desire[Axis::Sub] < 0.0);
+    OMNIS_CHECK(read("pa assez de sub").desire[Axis::Sub] > 0.0); // SMS
+}

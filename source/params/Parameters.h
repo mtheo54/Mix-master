@@ -70,6 +70,7 @@ enum class ParamId : std::uint32_t {
     // par MatchAmount. Nœud k : MatchMidFirst + k, MatchSideFirst + k.
     MatchAmount = 200,
     MatchTilt = 201, ///< pente d'ensemble : +T dB à 20 kHz, −T à 20 Hz, pivot 640 Hz (Mid et Side)
+    MatchCharacter = 202, ///< Propre (phase linéaire) / Analogique (phase minimale, cloches larges)
     MatchMidFirst = 210,  ///< … 230
     MatchSideFirst = 250, ///< … 270
     // EQ dynamique (4 bandes, après la courbe à phase linéaire, sans latence) :
@@ -241,7 +242,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 168;
+inline constexpr std::size_t kParameterCount = 169;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;

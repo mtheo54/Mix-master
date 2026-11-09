@@ -1261,7 +1261,9 @@ void OmnisEditor::buildRack(CViewContainer* root) {
                             if (std::fabs(g) > std::fabs(dynDb)) dynDb = g;
                         }
                     if (dynOn > 0) return std::to_string(n) + (n > 1 ? " NŒUDS" : " NŒUD") + " · DYN " + fmt("%+.1f", std::fabs(dynDb) < 0.05 ? 0.0 : dynDb);
-                    return "TILT " + fmt("%+.1f", plain(id(ParamId::MatchTilt))) + " · " + std::to_string(n) + (n > 1 ? " NŒUDS" : " NŒUD");
+                    // Court (le rack a 8 modules) : la pente, les nœuds, « A » en Analogique.
+                    return fmt("%+.1f", plain(id(ParamId::MatchTilt))) + " · " + std::to_string(n) + (n > 1 ? " NŒUDS" : " NŒUD") +
+                           (plain(id(ParamId::MatchCharacter)) >= 0.5 ? " · A" : "");
                 };
                 cb.level = [this] {
                     double m2 = std::fabs(plain(id(ParamId::MatchTilt))) / 6.0;
@@ -1567,11 +1569,12 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         });
         st->addView(side);
         live_.push_back(side);
-        auto* flat = new HwButton(CRect(270, row1 + 54, 400, row1 + 80), "À PLAT", [] { return false; }, [this] {
+        auto* flat = new HwButton(CRect(270, row1 + 54, 350, row1 + 80), "À PLAT", [] { return false; }, [this] {
             for (int k = 0; k < params::kMatchBands; ++k) setPlain(id(matchSide_ == 0 ? params::matchMidId(k) : params::matchSideId(k)), 0.0);
         }, false);
         st->addView(flat);
         live_.push_back(flat);
+        seg(st, CRect(360, row1 + 58, W - 14, row1 + 80), "CARACTÈRE", P::MatchCharacter);
         // La référence visée : pochette, photo (avec son crédit), tempo, tonalité, sonie.
         cardScreen_ = new Screen(CRect(12, row2 - 4, W - 14, row2 + 80), [this](CDrawContext* dc, const CRect& r) { paintReferenceCard(dc, r); }, false);
         cardScreen_->setMouse([this](const CPoint&, int phase, bool) {
@@ -2018,7 +2021,8 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                      valueText(dyn(dynBand_, params::DynControl::Threshold)) + " · MAINTENANT " + fmt("%+.1f dB", an_->meters.dynamicGainDb[dynBand_]));
                 break;
             }
-            caption(std::string("COURBE M/S · ÉDITION ") + (matchSide_ == 0 ? "MID" : "SIDE") + " · TILT " + fmt("%+.1f dB", plain(id(ParamId::MatchTilt))));
+            caption(std::string("COURBE M/S · ÉDITION ") + (matchSide_ == 0 ? "MID" : "SIDE") + " · TILT " + fmt("%+.1f dB", plain(id(ParamId::MatchTilt))) +
+                    (plain(id(ParamId::MatchCharacter)) >= 0.5 ? " · ANALOGIQUE" : ""));
             const double lo = 20.0, hi = 20480.0;
             gridLines(c, plot, lo, hi, true);
             // Le spectre de sortie en fond.
@@ -2053,7 +2057,15 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                     const double tl = tilt * std::clamp(std::log2(f / 640.0) / std::log2(20000.0 / 640.0), -1.0, 1.0);
                     return amount * (node + tl);
                 };
-                curve(lo, hi, 12.0, at, edited ? color::kAccent : withAlpha(color::kCool, 0.55), edited);
+                // Analogique : la courbe entendue est lissée sur ±1/3 d'octave (cloches plus larges).
+                const bool analog = plain(id(ParamId::MatchCharacter)) >= 0.5;
+                const auto heard = [&](double f) {
+                    if (!analog) return at(f);
+                    double sum = 0.0;
+                    for (int k = -4; k <= 4; ++k) sum += at(f * std::exp2(k / 12.0));
+                    return sum / 9.0;
+                };
+                curve(lo, hi, 12.0, heard, edited ? color::kAccent : withAlpha(color::kCool, 0.55), edited);
                 if (!edited) continue;
                 for (int k = 0; k < params::kMatchBands; ++k) {
                     const double x = xOfHz(params::matchBandHz(k), lo, hi, plot), y = plot.top + (12.0 - nodeDb(k)) / 24.0 * plot.getHeight();

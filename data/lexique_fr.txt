@@ -69,6 +69,9 @@ qualite fort       : fort | loud | puissant | niveau | volume | sonie | gros son
 qualite club       : club | boite de nuit | festival | soundsystem | sound system | banger | a fond | max | maximum | dancefloor | rave | pour le club | en club | en boite => sonie +4, densite +0.5
 qualite dynamique  : dynamique | respire | nuance | vivant | naturel | organique | aere dans la dynamique | qui respire | ouvert dans la dynamique | dynamic | dynamics | breathing | breathe | room to breathe | more dynamic | natural | organic | headroom | plus de headroom | de la marge | de la place pour respirer => sonie -3, densite -1, punch +0.5
 qualite dense      : dense | compact | compresse | homogene | tenu | coherent | cohesif | tight | tighter | together | gel | gelled | sticky => densite +1
+# Caractère du Match EQ : Analogique (phase minimale, cloches larges) ou Propre (phase linéaire).
+qualite eq_analog  : eq analogique | eq en analogique | en analogique | mode analogique | egaliseur analogique | analog eq | eq analog | eq vintage | eq a l ancienne | sans pre echo | sans pre ringing | no pre ringing | eq phase minimale | phase minimale | minimum phase => densite +0.05
+qualite eq_propre  : eq propre | eq transparent | eq lineaire | phase lineaire | linear phase | eq numerique | eq chirurgical | eq precis => densite +0.05
 # Compresseur de bus (module Comp) : la colle, et sa façon de compresser. Les noms de modèles
 # connus sont compris (jamais affichés : OMNIS répond avec le caractère, « Opto »…).
 qualite colle      : colle | glue | soude | colle bien | glued | gluey | qui colle | souder | coller le mix | bus comp | compresseur de bus | compression de bus | bus compression | glue comp | de la colle | plus de colle | mix soude => densite +0.05

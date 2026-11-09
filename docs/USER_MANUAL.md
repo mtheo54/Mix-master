@@ -255,6 +255,9 @@ The **EQ | DYN** switch at the top of the page chooses the view.
 octave each, ±12 dB). The AI bar and references write it; you touch it up by dragging the nodes on
 the screen.
 - **Amount** (0–100 %) scales the whole curve; **Tilt** (±6 dB) tilts it.
+- **Character**: **Clean** (linear phase, precise: the default) or **Analog** (wider, softer bells,
+  minimum phase like an analog EQ: no pre-echo in front of the kick and the 808 when you boost the
+  low end). Same latency. AI bar: "analog EQ", "linear phase".
 - **MID / SIDE**: the channel you are editing (the other one is drawn in blue).
 - **FLAT**: resets the edited channel to 0 dB.
 - The **TARGET REFERENCE** card reminds you what you are aiming at.

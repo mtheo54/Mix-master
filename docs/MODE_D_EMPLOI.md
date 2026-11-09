@@ -259,6 +259,9 @@ Le sélecteur **EQ | DYN**, en haut de la page, choisit la vue.
 demi-octave chacun, ±12 dB). La barre IA et les références l'écrivent ; tu la retouches en
 glissant les nœuds sur l'écran.
 - **Amount** (0–100 %) dose toute la courbe ; **Tilt** (±6 dB) penche l'ensemble.
+- **Caractère** : **Propre** (phase linéaire, précis : le défaut) ou **Analogique** (cloches plus
+  larges et plus douces, phase minimale comme un EQ analogique : aucun pré-écho devant le kick et
+  la 808 quand on pousse le grave). Même latence. Barre IA : « EQ analogique », « phase linéaire ».
 - **MID / SIDE** : le canal que tu édites (l'autre est affiché en bleu).
 - **À PLAT** : remet le canal édité à 0 dB.
 - La carte **RÉFÉRENCE VISÉE** rappelle ce que tu vises.

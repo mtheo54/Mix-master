@@ -61,6 +61,8 @@ void MatchEqStage::setParameter(ParamId id, double plain, bool /*immediate*/) no
     }
     if (id == ParamId::MatchAmount)
         request_.amount = plain * 0.01;
+    else if (id == ParamId::MatchCharacter)
+        request_.analog = plain >= 0.5;
     else if (id == ParamId::MatchTilt)
         request_.tiltDb = plain;
     else if (raw >= midFirst && raw < midFirst + bands)

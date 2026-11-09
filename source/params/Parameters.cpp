@@ -31,6 +31,7 @@ constexpr std::array<std::string_view, 3> kDynChannelLabels{"Stéréo", "Mid", "
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 4> kInflCharacterLabels{"Inflate", "Bande", "Lampe", "Transistor"};
 constexpr std::array<std::string_view, 4> kCompCharacterLabels{"Opto", "FET", "VCA", "Vari-mu"};
+constexpr std::array<std::string_view, 2> kMatchCharacterLabels{"Propre", "Analogique"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
 constexpr std::array<std::string_view, 9> kDeltaLabels{"Off", "Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter", "Comp"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
@@ -72,6 +73,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // Match EQ (docs/CALIBRATION_MODULE4.md). Pas de lissage par paramètre : un
     // changement de courbe est fondu sur une trame de convolution.
     {ParamId::MatchAmount,       "match_amount",  "Match Amount",         "Match",  "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             0.0,    0},
+    {ParamId::MatchCharacter,    "match_char",    "Match Character",      "MChar",  "",     ParamKind::Choice,     0.0,    1.0,   0.0,   1,    kMatchCharacterLabels, 0.0, 0},
     {ParamId::MatchTilt,         "match_tilt",    "Tilt",                 "Tilt",   "dB",   ParamKind::Continuous, -6.0,   6.0,   0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(210), "match_m_20",    "Match Mid 20",        "M20",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},
     {static_cast<ParamId>(211), "match_m_28",    "Match Mid 28",        "M28",    "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             0.0,    1},

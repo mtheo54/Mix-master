@@ -56,4 +56,29 @@ void LinearPhaseDesigner::finish(StereoConvolver::Kernel& out) noexcept {
     builder_.build(timeA_.data(), timeB_.data(), out);
 }
 
+void LinearPhaseDesigner::minimumPhaseInto(std::vector<double>& time) noexcept {
+    const int m = 2 * length_;
+    // Cepstre réel du log-module, replié sur les temps positifs : la phase minimale.
+    fft_.inverse(spectrum_.data());
+    for (int n = 0; n < m; ++n) {
+        const double w = (n == 0 || n == length_) ? 1.0 : (n < length_ ? 2.0 : 0.0);
+        spectrum_[static_cast<std::size_t>(n)] = {spectrum_[static_cast<std::size_t>(n)].real() * w, 0.0};
+    }
+    fft_.forward(spectrum_.data());
+    for (auto& z : spectrum_) z = std::exp(z);
+    fft_.inverse(spectrum_.data());
+    // Placée à N/2 (retard identique à la phase linéaire), fin adoucie.
+    const int half = length_ / 2;
+    const int fadeStart = half - half / 8;
+    for (int n = 0; n < length_; ++n) {
+        double v = 0.0;
+        if (n >= half) {
+            const int j = n - half;
+            const double t = j < fadeStart ? 1.0 : 0.5 + 0.5 * std::cos(3.141592653589793 * (j - fadeStart) / (half - fadeStart));
+            v = spectrum_[static_cast<std::size_t>(j)].real() * t;
+        }
+        time[static_cast<std::size_t>(n)] = v;
+    }
+}
+
 } // namespace omnis::dsp

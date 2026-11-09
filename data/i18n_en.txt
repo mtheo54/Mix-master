@@ -560,3 +560,8 @@ la colle propre	the clean glue
 arrondi, la compression monte peu à peu	round, the compression builds up gradually
 Comp éteint (plus de colle)	Comp off (no more glue)
 Comp : moins de colle, seuil 	Comp: less glue, threshold 
+Propre	Clean
+Analogique	Analog
+ · ANALOGIQUE	 · ANALOG
+Match EQ Analogique (cloches plus larges, aucun pré-écho sur les attaques)	Match EQ Analog (wider bells, no pre-echo on the attacks)
+Match EQ Propre (phase linéaire, précis)	Match EQ Clean (linear phase, precise)

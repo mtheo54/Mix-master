@@ -164,7 +164,8 @@ const Phrases& tooMuch() {
     return p;
 }
 const Phrases& negations() {
-    static const Phrases p = phrases({"pas", "pas de", "sans", "aucun", "aucune", "evite", "eviter", "jamais", "ni", "without",
+    // « pas » / « sans » exacts : « passe » (même son que « pas ») et « son » n'en sont pas.
+    static const Phrases p = phrases({"=pas", "=pas de", "=sans", "aucun", "aucune", "evite", "eviter", "jamais", "ni", "without",
                                       "=no", "=not", "never", "=zero", "=avoid"});
     return p;
 }

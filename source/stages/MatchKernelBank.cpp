@@ -31,7 +31,7 @@ double MatchKernelRequest::tiltAt(double f) const noexcept {
 
 bool MatchKernelRequest::nearlyEquals(const MatchKernelRequest& o) const noexcept {
     // Comparaison des gains effectifs (dosés) : 0.005 dB est inaudible.
-    if (std::fabs(tiltDb - o.tiltDb) > 0.005) return false;
+    if (analog != o.analog || std::fabs(tiltDb - o.tiltDb) > 0.005) return false;
     for (std::size_t k = 0; k < midDb.size(); ++k) {
         if (std::fabs(amount * midDb[k] - o.amount * o.midDb[k]) > 0.005) return false;
         if (std::fabs(amount * sideDb[k] - o.amount * o.sideDb[k]) > 0.005) return false;
@@ -39,12 +39,22 @@ bool MatchKernelRequest::nearlyEquals(const MatchKernelRequest& o) const noexcep
     return true;
 }
 
+namespace {
+/// Analogique : la courbe moyennée sur ±1/3 d'octave (9 points en log-fréquence).
+double curveAt(const MatchCurve& nodes, double f, bool analog) noexcept {
+    if (!analog || f <= 0.0) return matchCurveDb(nodes, f);
+    double sum = 0.0;
+    for (int k = -4; k <= 4; ++k) sum += matchCurveDb(nodes, f * std::exp2(k / 12.0));
+    return sum / 9.0;
+}
+} // namespace
+
 double MatchKernelRequest::midMagnitude(double f) const noexcept {
-    return std::pow(10.0, (amount * matchCurveDb(midDb, f) + tiltAt(f)) / 20.0);
+    return std::pow(10.0, (amount * curveAt(midDb, f, analog) + tiltAt(f)) / 20.0);
 }
 
 double MatchKernelRequest::sideMagnitude(double f) const noexcept {
-    return std::pow(10.0, (amount * matchCurveDb(sideDb, f) + tiltAt(f)) / 20.0);
+    return std::pow(10.0, (amount * curveAt(sideDb, f, analog) + tiltAt(f)) / 20.0);
 }
 
 } // namespace omnis

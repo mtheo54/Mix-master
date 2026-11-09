@@ -316,6 +316,23 @@ void applyBusComp(ConsolePlan& p, const Interpretation& in, const analysis::Spec
     p.said.push_back(b);
 }
 
+/// « EQ analogique » / « phase linéaire » : le caractère du Match EQ.
+void applyEqCharacter(ConsolePlan& p, const Interpretation& in) {
+    for (const auto& h : in.hits) {
+        if (h.weight <= 0.0) continue;
+        if (h.conceptId == "eq_analog") {
+            put(p, ParamId::MatchCharacter, 1.0);
+            p.said.push_back("Match EQ Analogique (cloches plus larges, aucun pré-écho sur les attaques)");
+            return;
+        }
+        if (h.conceptId == "eq_propre") {
+            put(p, ParamId::MatchCharacter, 0.0);
+            p.said.push_back("Match EQ Propre (phase linéaire, précis)");
+            return;
+        }
+    }
+}
+
 } // namespace
 
 std::vector<std::pair<ParamId, double>> glueSettings(double t) {
@@ -356,6 +373,7 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
     applyDynamicComplaints(p, u.interpretation, cur);
     applySaturationCharacter(p, u.interpretation, cur);
     applyBusComp(p, u.interpretation, prod, cur);
+    applyEqCharacter(p, u.interpretation);
     if (p.targetLufs) {
         p.targetLufs = std::clamp(*p.targetLufs, -20.0, -4.0);
         p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs));

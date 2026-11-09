@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <complex>
 #include <numbers>
 #include <vector>
@@ -173,4 +174,73 @@ OMNIS_TEST("match eq: tilt +3 dB (pivot 640 Hz) : -2.4 dB à 40 Hz, 0 à 640 Hz,
     r.tiltDb = 3.0;
     OMNIS_CHECK_NEAR(r.tiltAt(23000.0), 3.0, 1e-12);
     OMNIS_CHECK_NEAR(r.tiltAt(10.0), -3.0, 1e-12);
+}
+
+// -----------------------------------------------------------------------------
+//  Caractère Analogique : phase minimale, cloches lissées sur ±1/3 d'octave.
+// -----------------------------------------------------------------------------
+namespace {
+
+/// Énergie avant le transitoire / énergie totale, pour une impulsion à travers un grave poussé.
+double preEcho(bool analog, int* latency = nullptr) {
+    MatchEqStage st;
+    st.prepare({kFs, 256, 2});
+    st.setParameter(ParamId::MatchCharacter, analog ? 1.0 : 0.0, true);
+    for (int k : {2, 3, 4}) st.setParameter(params::matchMidId(k), 6.0, true); // 40 – 80 Hz +6 dB
+    Stereo s{std::vector<double>(96000, 0.0), std::vector<double>(96000, 0.0)};
+    s.l[4000] = s.r[4000] = 0.5;
+    run(st, s);
+    const auto at = static_cast<std::size_t>(4000 + st.latencySamples());
+    if (latency) *latency = st.latencySamples();
+    double pre = 0.0, total = 0.0;
+    for (std::size_t i = 0; i < s.l.size(); ++i) {
+        total += s.l[i] * s.l[i];
+        if (i + 4 < at) pre += s.l[i] * s.l[i];
+    }
+    return pre / total;
+}
+
+} // namespace
+
+OMNIS_TEST("match eq Analogique: aucun pré-écho avant un transitoire (Propre en a), latence identique") {
+    int latLinear = 0, latAnalog = 0;
+    const double linear = preEcho(false, &latLinear), analog = preEcho(true, &latAnalog);
+    std::printf("      énergie avant le coup : Propre %.2e, Analogique %.2e\n", linear, analog);
+    OMNIS_CHECK(linear > 1e-4);
+    OMNIS_CHECK(analog < 1e-7);
+    OMNIS_CHECK(latLinear == latAnalog);
+}
+
+OMNIS_TEST("match eq Analogique: courbe nulle = retard pur (1e-9) ; cloches plus larges, plateau tenu") {
+    {
+        MatchEqStage st;
+        st.prepare({kFs, 256, 2});
+        st.setParameter(ParamId::MatchCharacter, 1.0, true);
+        Stereo s = midSide(220.0, 0.3, 3000.0, 0.2, 1.0);
+        const Stereo in = s;
+        run(st, s);
+        const auto lat = static_cast<std::size_t>(st.latencySamples());
+        double err = 0.0;
+        for (std::size_t i = lat; i < s.l.size(); ++i) err = std::max(err, std::fabs(s.l[i] - in.l[i - lat]));
+        std::printf("      courbe nulle : écart %.2e\n", err);
+        OMNIS_CHECK(err < 1e-9);
+    }
+    const auto gainAt = [](bool analog, const std::vector<int>& nodes, double f) {
+        MatchEqStage st;
+        st.prepare({kFs, 256, 2});
+        st.setParameter(ParamId::MatchCharacter, analog ? 1.0 : 0.0, true);
+        for (int k : nodes) st.setParameter(params::matchMidId(k), 6.0, true);
+        Stereo s = midSide(f, 0.25, f, 0.0, 2.0);
+        run(st, s);
+        return db(amplitudeAt(midOf(s), f) / 0.25);
+    };
+    // Un seul nœud (+6 dB à 1,28 kHz) : la cloche s'élargit et s'adoucit ; ses voisins montent.
+    const double peakLinear = gainAt(false, {12}, 1280.0), peakAnalog = gainAt(true, {12}, 1280.0);
+    const double sideLinear = gainAt(false, {12}, 1810.0), sideAnalog = gainAt(true, {12}, 1810.0);
+    std::printf("      1,28 kHz : Propre %.2f dB, Analogique %.2f dB ; 1,81 kHz : %.2f / %.2f dB\n", peakLinear, peakAnalog, sideLinear, sideAnalog);
+    OMNIS_CHECK(peakAnalog > 3.0 && peakAnalog < peakLinear - 0.3);
+    OMNIS_CHECK(sideAnalog > sideLinear + 0.3);
+    // Un plateau large (5 nœuds) est tenu à son centre, loin, rien.
+    OMNIS_CHECK(std::fabs(gainAt(true, {10, 11, 12, 13, 14}, 1280.0) - 6.0) < 0.3);
+    OMNIS_CHECK(std::fabs(gainAt(true, {10, 11, 12, 13, 14}, 80.0)) < 0.1);
 }
