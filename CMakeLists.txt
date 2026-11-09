@@ -130,6 +130,8 @@ add_library(omnis_core STATIC
     source/engine/Stage.h
     source/stages/ClipperStage.cpp
     source/stages/ClipperStage.h
+    source/stages/CompressorStage.cpp
+    source/stages/CompressorStage.h
     source/stages/ImagerStage.cpp
     source/stages/ImagerStage.h
     source/stages/InflatorStage.cpp
@@ -311,6 +313,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestDynamicEq.cpp
         tests/TestProdListener.cpp
         tests/TestSearchMaster.cpp
+        tests/TestCompressor.cpp
         tests/TestMultiband.cpp
         tests/TestInflatorImager.cpp
         tests/TestMatchIntent.cpp

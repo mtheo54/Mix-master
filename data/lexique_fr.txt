@@ -68,7 +68,14 @@ qualite punch      : punch | punchy | patate | peche | impact | percutant | ca t
 qualite fort       : fort | loud | puissant | niveau | volume | sonie | gros son | qui envoie | envoie | pete | qui pete | vener | venere | enerve | louder | loudness | gain | crank | cranked | puissance | ca envoie | ca bute | ca defonce | ca arrache | qui arrache | qui defonce | qui bute | plus fort | bang | bangs | hard | goes hard | it goes hard => sonie +2
 qualite club       : club | boite de nuit | festival | soundsystem | sound system | banger | a fond | max | maximum | dancefloor | rave | pour le club | en club | en boite => sonie +4, densite +0.5
 qualite dynamique  : dynamique | respire | nuance | vivant | naturel | organique | aere dans la dynamique | qui respire | ouvert dans la dynamique | dynamic | dynamics | breathing | breathe | room to breathe | more dynamic | natural | organic | headroom | plus de headroom | de la marge | de la place pour respirer => sonie -3, densite -1, punch +0.5
-qualite dense      : dense | compact | compresse | colle | glue | soude | homogene | tenu | coherent | glued | cohesif | tight | tighter | together | gel | gelled | sticky | colle bien => densite +1
+qualite dense      : dense | compact | compresse | homogene | tenu | coherent | cohesif | tight | tighter | together | gel | gelled | sticky => densite +1
+# Compresseur de bus (module Comp) : la colle, et sa façon de compresser. Les noms de modèles
+# connus sont compris (jamais affichés : OMNIS répond avec le caractère, « Opto »…).
+qualite colle      : colle | glue | soude | colle bien | glued | gluey | qui colle | souder | coller le mix | bus comp | compresseur de bus | compression de bus | bus compression | glue comp | de la colle | plus de colle | mix soude => densite +0.05
+qualite comp_opto  : opto | optique | comp opto | compresseur opto | compression opto | compression douce | la2a | la 2a | la-2a | leveling amp => densite +0.05
+qualite comp_fet   : comp fet | compresseur fet | compression fet | fet comp | 1176 | compression rapide | compresseur rapide | compresseur qui claque => densite +0.05, punch +0.1
+qualite comp_vca   : vca | comp vca | compresseur vca | compression vca | ssl comp | bus ssl | compresseur ssl => densite +0.05
+qualite comp_varimu : vari mu | varimu | variable mu | vari-mu | comp vari mu | fairchild | compression arrondie | compresseur arrondi => densite +0.05
 qualite streaming  : spotify | streaming | apple music | deezer | youtube | soundcloud | tidal | plateformes | tiktok | tik tok | reels | insta | instagram | shorts | youtube shorts | amazon music | apple => cible_lufs -14
 
 # ---- Propreté / caractère ---------------------------------------------------

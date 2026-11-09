@@ -30,8 +30,9 @@ constexpr std::array<std::string_view, 5> kLevelLabels{"Style", "Streaming -14",
 constexpr std::array<std::string_view, 3> kDynChannelLabels{"Stéréo", "Mid", "Side"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
 constexpr std::array<std::string_view, 4> kInflCharacterLabels{"Inflate", "Bande", "Lampe", "Transistor"};
+constexpr std::array<std::string_view, 4> kCompCharacterLabels{"Opto", "FET", "VCA", "Vari-mu"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
-constexpr std::array<std::string_view, 8> kDeltaLabels{"Off", "Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter"};
+constexpr std::array<std::string_view, 9> kDeltaLabels{"Off", "Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter", "Comp"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
 
 // clang-format off
@@ -43,10 +44,10 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::Monitor,           "monitor",       "Monitor",              "Mon",    "",     ParamKind::Choice,     0.0,    2.0,   0.0,   2,    kMonitorLabels, 15.0,   0},
     {ParamId::RefCapture,        "ref_capture",   "Listen Reference",     "Ref",    "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0},
     // Rack : ordre des modules (réglé par l'interface, pas d'automation).
-    {ParamId::ChainOrder,        "chain_order",   "Chain Order",          "Order",  "",     ParamKind::Choice,     0.0,    5039.0, 0.0,  5039, {},             0.0,    0, ParamScale::Linear, true, false},
+    {ParamId::ChainOrder,        "rack_order",    "Rack Order",           "Order",  "",     ParamKind::Choice,     0.0,    40319.0, 0.0, 40319, {},             0.0,    0, ParamScale::Linear, true, false},
     // Outils d'écoute : jamais gardés (un export oublié en Match serait faux).
     {ParamId::GainMatch,         "gain_match",    "Gain Match",           "Match",  "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  0.0,    0, ParamScale::Linear, false, false},
-    {ParamId::DeltaListen,       "delta",         "Delta Listen",         "Delta",  "",     ParamKind::Choice,     0.0,    7.0,   0.0,   7,    kDeltaLabels,   0.0,    0, ParamScale::Linear, false, false},
+    {ParamId::DeltaListen,       "delta",         "Delta Listen",         "Delta",  "",     ParamKind::Choice,     0.0,    8.0,   0.0,   8,    kDeltaLabels,   0.0,    0, ParamScale::Linear, false, false},
     // Mode travail : filtres à phase linéaire raccourcis (latence ~10x plus basse,
     // grave moins précis). Gardé dans la session pour que l'avertissement reste
     // visible ; un rendu hors ligne (export) repasse de lui-même en qualité max.
@@ -195,6 +196,15 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     {ParamId::ClipSubDrive,      "clip_sub_drive","Clip Sub Drive",       "SubDrv", "dB",   ParamKind::Continuous, -12.0,  12.0,  0.0,   0,    {},             30.0,   1},
     {ParamId::ClipSubRoom,       "clip_sub_room", "Clip Sub Make-Room",   "Room",   "%",    ParamKind::Continuous, 0.0,    100.0, 0.0, 0,    {},             30.0,   0},
     {ParamId::ClipOn,            "clip_on",       "Clipper Module",       "ClipOn", "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
+    {ParamId::CompCharacter,     "comp_char",     "Comp Character",       "CmpChr", "",     ParamKind::Choice,     0.0,    3.0,   2.0,   3,    kCompCharacterLabels, 0.0, 0},
+    {ParamId::CompThreshold,     "comp_threshold","Comp Threshold",       "CmpThr", "dB",   ParamKind::Continuous, -40.0,  0.0,   -18.0, 0,    {},             30.0,   1},
+    {ParamId::CompRatio,         "comp_ratio",    "Comp Ratio",           "CmpRat", ":1",   ParamKind::Continuous, 1.0,    10.0,  2.0,   0,    {},             30.0,   1, kLog},
+    {ParamId::CompAttack,        "comp_attack",   "Comp Attack",          "CmpAtk", "ms",   ParamKind::Continuous, 0.1,    100.0, 10.0,  0,    {},             0.0,    1, kLog},
+    {ParamId::CompRelease,       "comp_release",  "Comp Release",         "CmpRel", "ms",   ParamKind::Continuous, 20.0,   2000.0, 200.0, 0,   {},             0.0,    0, kLog},
+    {ParamId::CompMakeup,        "comp_makeup",   "Comp Makeup",          "CmpMk",  "dB",   ParamKind::Continuous, 0.0,    12.0,  0.0,   0,    {},             30.0,   1},
+    {ParamId::CompMix,           "comp_mix",      "Comp Mix",             "CmpMix", "%",    ParamKind::Continuous, 0.0,    100.0, 100.0, 0,    {},             30.0,   0},
+    {ParamId::CompScHpf,         "comp_sc_hpf",   "Comp SC High-Pass",    "CmpSC",  "Hz",   ParamKind::Continuous, 20.0,   300.0, 90.0,  0,    {},             0.0,    0, kLog},
+    {ParamId::CompOn,            "comp_on",       "Comp Module",          "CompOn", "",     ParamKind::Toggle,     0.0,    1.0,   0.0,   1,    kToggleLabels,  20.0,   0},
 
     // Limiteur.
     {ParamId::LimGain,           "lim_gain",      "Limiter Gain",         "LGain",  "dB",   ParamKind::Continuous, 0.0,    24.0,  0.0,   0,    {},             30.0,   1},
@@ -276,21 +286,26 @@ ParamId moduleOnId(Module m) noexcept {
         case Module::Multiband: return ParamId::MbOn;
         case Module::Clipper: return ParamId::ClipOn;
         case Module::Limiter: return ParamId::LimOn;
+        case Module::Comp: return ParamId::CompOn;
     }
     return ParamId::SubOn;
 }
 
-// Rang d'une permutation (code de Lehmer) : le rang 0 est l'ordre par défaut.
-std::array<Module, kModules> chainOrder(int rank) noexcept {
-    rank = std::clamp(rank, 0, kChainOrders - 1);
-    std::array<int, kModules> pool{0, 1, 2, 3, 4, 5, 6};
-    int left = kModules;
-    std::array<Module, kModules> out{};
-    int factorial = kChainOrders / kModules; // 6!
-    for (int i = 0; i < kModules; ++i) {
+namespace {
+
+// Rang d'une permutation de n éléments (code de Lehmer) <-> permutation de 0 … n−1.
+template <std::size_t N>
+std::array<int, N> lehmerDecode(int rank) noexcept {
+    int factorial = 1;
+    for (std::size_t k = 2; k < N; ++k) factorial *= static_cast<int>(k);
+    std::array<int, N> pool{};
+    for (std::size_t k = 0; k < N; ++k) pool[k] = static_cast<int>(k);
+    std::array<int, N> out{};
+    int left = static_cast<int>(N);
+    for (std::size_t i = 0; i < N; ++i) {
         const int digit = rank / factorial;
         rank %= factorial;
-        out[static_cast<std::size_t>(i)] = static_cast<Module>(pool[static_cast<std::size_t>(digit)]);
+        out[i] = pool[static_cast<std::size_t>(digit)];
         for (int k = digit; k < left - 1; ++k) pool[static_cast<std::size_t>(k)] = pool[static_cast<std::size_t>(k) + 1];
         --left;
         if (left > 0) factorial /= left;
@@ -298,19 +313,62 @@ std::array<Module, kModules> chainOrder(int rank) noexcept {
     return out;
 }
 
-int chainOrderRank(const std::array<Module, kModules>& order) noexcept {
-    std::array<bool, kModules> used{};
-    int rank = 0, factorial = kChainOrders / kModules;
-    for (int i = 0; i < kModules; ++i) {
-        const int m = static_cast<int>(order[static_cast<std::size_t>(i)]);
-        if (m < 0 || m >= kModules || used[static_cast<std::size_t>(m)]) return 0; // pas une permutation
+template <std::size_t N>
+int lehmerEncode(const std::array<int, N>& perm) noexcept {
+    std::array<bool, N> used{};
+    int factorial = 1;
+    for (std::size_t k = 2; k < N; ++k) factorial *= static_cast<int>(k);
+    int rank = 0;
+    for (std::size_t i = 0; i < N; ++i) {
+        const int m = perm[i];
+        if (m < 0 || m >= static_cast<int>(N) || used[static_cast<std::size_t>(m)]) return 0; // pas une permutation
         int smaller = 0;
         for (int k = 0; k < m; ++k) smaller += used[static_cast<std::size_t>(k)] ? 0 : 1;
         used[static_cast<std::size_t>(m)] = true;
         rank += smaller * factorial;
-        if (kModules - 1 - i > 0) factorial /= (kModules - 1 - i);
+        if (N - 1 - i > 0) factorial /= static_cast<int>(N - 1 - i);
     }
     return rank;
+}
+
+int defaultPositionOf(Module m) noexcept {
+    for (int p = 0; p < kModules; ++p)
+        if (kDefaultChain[static_cast<std::size_t>(p)] == m) return p;
+    return -1;
+}
+
+} // namespace
+
+// Le rang porte sur les positions de l'ordre par défaut : le rang 0 est kDefaultChain.
+std::array<Module, kModules> chainOrder(int rank) noexcept {
+    const auto perm = lehmerDecode<kModules>(std::clamp(rank, 0, kChainOrders - 1));
+    std::array<Module, kModules> out{};
+    for (std::size_t i = 0; i < out.size(); ++i) out[i] = kDefaultChain[static_cast<std::size_t>(perm[i])];
+    return out;
+}
+
+int chainOrderRank(const std::array<Module, kModules>& order) noexcept {
+    std::array<int, kModules> perm{};
+    for (std::size_t i = 0; i < perm.size(); ++i) perm[i] = defaultPositionOf(order[i]);
+    return lehmerEncode<kModules>(perm);
+}
+
+int migrateLegacyChainOrder(int legacyRank) noexcept {
+    // Les 7 premiers modules : leur index était leur position par défaut (rang 0 = 0 … 6).
+    const auto old = lehmerDecode<7>(std::clamp(legacyRank, 0, 5039));
+    std::array<Module, kModules> order{};
+    std::size_t k = 0;
+    for (const int m : old) {
+        order[k++] = static_cast<Module>(m);
+        if (static_cast<Module>(m) == Module::Match) order[k++] = Module::Comp;
+    }
+    return chainOrderRank(order);
+}
+
+std::optional<std::pair<ParamId, double>> migrateLegacyValue(std::uint32_t id, double normalized) noexcept {
+    if (id != static_cast<std::uint32_t>(ParamId::LegacyChainOrder) || !std::isfinite(normalized)) return std::nullopt;
+    const int legacy = static_cast<int>(std::lround(std::clamp(normalized, 0.0, 1.0) * 5039.0));
+    return std::pair{ParamId::ChainOrder, static_cast<double>(migrateLegacyChainOrder(legacy)) / (kChainOrders - 1)};
 }
 
 const ParamSpec* findParameter(ParamId id) noexcept {

@@ -3,7 +3,7 @@
 *Abrasion Labs · VST3 mixing and mastering plug-in · version 0.1*
 
 OMNIS masters your track. It listens to it, understands what you type in English or French,
-sets its chain of 7 modules and brings the level where you want it. Everything stays visible
+sets its chain of 8 modules and brings the level where you want it. Everything stays visible
 and can be adjusted by hand.
 
 Type **/en** in the AI bar to switch the interface to English (**/fr** for French).
@@ -20,7 +20,7 @@ Type **/en** in the AI bar to switch the interface to English (**/fr** for Frenc
 6. [AUTO](#6-auto)
 7. [The AI bar](#7-the-ai-bar)
 8. [References](#8-references)
-9. [The 7 modules](#9-the-7-modules)
+9. [The 8 modules](#9-the-8-modules)
 10. [Honest listening](#10-honest-listening)
 11. [Meters](#11-meters)
 12. [Latency](#12-latency)
@@ -229,10 +229,11 @@ missing from MusicBrainz: the file is still added under the name you gave it.
 
 ---
 
-## 9. The 7 modules
+## 9. The 8 modules
 
-Default order: **Sub → Match EQ → Inflator → Imager → Multiband → Clipper → Limiter**. Each module
-has its **ON** switch; when it is off, it does not touch the sound.
+Default order: **Sub → Match EQ → Comp → Inflator → Imager → Multiband → Clipper → Limiter**. Each
+module has its **ON** switch; when it is off, it does not touch the sound. Comp arrives **off**:
+turn it on when you want glue.
 
 ### 1. Sub — infrasonics, mono low end, sub
 
@@ -349,6 +350,28 @@ aggressive sound. In that case the ceiling is held to the sample, but true peak 
 guaranteed.
 
 ---
+
+### 8. Comp — bus compressor (the glue)
+
+A compressor for the whole mix, with no latency and the same gain on left and right. Its detector
+listens to the track **without the low end** (SC High-Pass): the 808 does not make it pump.
+
+| Setting | Range | Default | Role |
+|---|---|---|---|
+| Threshold | −40…0 dB | −18 dB | above it, it compresses (read as peak) |
+| Ratio | 1–10 :1 | 2 :1 | strength of the compression |
+| Attack / Release | 0.1–100 ms / 20–2000 ms | 10 / 200 ms | how fast it acts / recovers |
+| Makeup | 0–12 dB | 0 dB | gives back the lost level |
+| Mix | 0–100 % | 100 % | < 100 %: parallel compression (keeps the attacks) |
+| SC High-Pass | 20–300 Hz | 90 Hz | the low end stays out of the detector |
+| Character | Opto · FET · VCA · Vari-mu | VCA | how it compresses (below) |
+
+- **Opto**: gentle; recovers fast after a short hit, slowly when it has been compressing for long.
+- **FET**: fast and biting (peak detection); to make drums snap.
+- **VCA**: the clean bus glue, the most neutral.
+- **Vari-mu**: very round, the compression builds up gradually; to smooth a track.
+
+Big **SQUEEZE** knob: from nothing to strong (threshold 0 → −36 dB), part of the level given back.
 
 ## 10. Honest listening
 
@@ -507,7 +530,7 @@ listening is **Off**. A neutral module (default settings) lets the sound through
 | Format | VST3, Windows 64-bit and macOS 10.15+ (Intel, Apple Silicon) |
 | Audio | stereo, 32- and 64-bit, all common sample rates (tested from 22.05 to 384 kHz) |
 | Latency | Max quality ≈ 710 ms · Work ≈ 90 ms |
-| Chain | 7 reorderable modules, 4-band dynamic EQ built into the Match EQ |
+| Chain | 8 reorderable modules (including a bus compressor with 4 characters), 4-band dynamic EQ built into the Match EQ |
 | Meters | BS.1770 loudness (LUFS M / S / I), LRA, true peak, PLR, correlation |
 | Simulated listening | 18, plus Off |
 | Languages | English, French |

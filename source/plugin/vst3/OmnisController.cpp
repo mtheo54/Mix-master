@@ -1034,7 +1034,10 @@ tresult PLUGIN_API OmnisController::setState(IBStream* state) {
             uint32 id = 0;
             double v = 0.0;
             if (!s.readInt32u(id) || !s.readDouble(v)) return kResultOk;
-            if (params::findParameter(id)) mem.emplace_back(id, std::clamp(v, 0.0, 1.0));
+            if (const auto migrated = params::migrateLegacyValue(id, v))
+                mem.emplace_back(static_cast<std::uint32_t>(migrated->first), migrated->second);
+            else if (params::findParameter(id))
+                mem.emplace_back(id, std::clamp(v, 0.0, 1.0));
         }
     }
     // Version 2 : la référence choisie au menu (gardée avec la session).

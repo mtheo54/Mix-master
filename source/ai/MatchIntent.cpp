@@ -184,6 +184,7 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
     //  - un mot du lexique ou un mot outil seul n'est jamais un nom ;
     //  - un nom reconnu avec une faute ne commence ni ne finit par un mot outil
     //    (« comme la » n'est pas « CALME ») ;
+    //  - une expression du lexique, mot pour mot, n'est pas un titre approchant ;
     //  - un titre d'un seul mot (« Intro », « Love ») n'est reconnu qu'après
     //    « comme », « genre », « titre »… ; les genres passent par la lecture.
     std::vector<std::string> tokens = tokenize(text);
@@ -193,6 +194,14 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
             for (const auto& e : c.tokenized)
                 if (e.size() == 1 && e[0] == t) return true;
         return isCommonWord(t);
+    };
+    // Une expression du lexique, mot pour mot (« comp fet ») : une demande, pas un titre
+    // approchant (« Compresses »).
+    const auto lexiconPhrase = [&](std::size_t i, std::size_t len) {
+        for (const auto& c : lexicon.concepts())
+            for (const auto& e : c.tokenized)
+                if (e.size() == len && std::equal(e.begin(), e.end(), tokens.begin() + static_cast<std::ptrdiff_t>(i))) return true;
+        return false;
     };
     const auto afterTrigger = [&](std::size_t i) {
         static const char* kTriggers[] = {"comme", "genre", "style", "facon", "type", "titre", "son", "morceau", "track", "sur", "like"};
@@ -216,7 +225,7 @@ Understanding understandRequest(std::string_view text, const Lexicon& lexicon, c
             // ambigus) ; un genre exact en plusieurs mots est repéré ici, sinon
             // « uk bass » se lisait « uk » + « basse ».
             if (!m.found() || (m.kind == Kind::Genre && (len < 2 || !m.exact))) continue;
-            if (!m.exact && (isCommonWord(tokens[i]) || isCommonWord(tokens[i + len - 1]))) continue;
+            if (!m.exact && (isCommonWord(tokens[i]) || isCommonWord(tokens[i + len - 1]) || lexiconPhrase(i, len))) continue;
             if (m.kind == Kind::Title && len == 1 && !afterTrigger(i)) continue;
             named.push_back(m);
             for (std::size_t k = i; k < i + len; ++k) tokens[k] = kReferenceMarker;

@@ -51,10 +51,10 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
 
 ## Architecture en bref (détails : `docs/ARCHITECTURE.md`)
 
-- `source/engine/` : `Engine` (rack de 7 étages réordonnable, PDC, bypass / Delta, garde-fou de
+- `source/engine/` : `Engine` (rack de 8 étages réordonnable, PDC, bypass / Delta, garde-fou de
   crête `Stage::limitsPeaks` / `setPeakGuard`), `MasteringChain` (construit la chaîne).
-- `source/stages/` : Sub → Match EQ → Inflator → Imager → Multiband → Clipper → Limiter
-  (`params::Module`, ordre = `chain_order`). Phase linéaire : latence totale ~710 ms.
+- `source/stages/` : Sub → Match EQ → Comp → Inflator → Imager → Multiband → Clipper → Limiter
+  (`params::kDefaultChain`, ordre = `rack_order` ; l'ancien `chain_order` à 7 est converti). Phase linéaire : latence totale ~710 ms.
 - `source/dsp/` : FIR / FFT / convolution, suréchantillonnage HIIR, `LookaheadGain`, ADAA.
 - `source/analysis/` : sonie BS.1770, true peak, signature spectrale, descripteurs musicaux.
 - `source/ai/` : lexique (`data/lexique_fr.txt`), compréhension des demandes, références,

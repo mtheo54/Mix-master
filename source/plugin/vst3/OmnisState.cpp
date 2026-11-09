@@ -47,6 +47,11 @@ bool readState(IBStream* stream, const std::function<void(std::uint32_t, double)
         uint32 id = 0;
         double value = 0.0;
         if (!streamer.readInt32u(id) || !streamer.readDouble(value)) return false;
+        // Session d'une version antérieure : l'ordre des 7 modules devient celui des 8.
+        if (const auto migrated = params::migrateLegacyValue(id, value)) {
+            setNormalized(static_cast<uint32>(migrated->first), migrated->second);
+            continue;
+        }
         const auto* spec = params::findParameter(id);
         if (!spec || !params::isPersistent(*spec) || !std::isfinite(value)) continue;
         setNormalized(id, std::clamp(value, 0.0, 1.0));

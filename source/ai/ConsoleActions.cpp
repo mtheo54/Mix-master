@@ -245,6 +245,77 @@ void applySaturationCharacter(ConsolePlan& p, const Interpretation& in, const Cu
     }
 }
 
+/// « de la colle », ou un caractère de compresseur nommé (« opto », « comp FET »…) : le module
+/// Comp, réglé pour une réduction de 2 à 3 dB sur les passages forts de la prod entendue.
+void applyBusComp(ConsolePlan& p, const Interpretation& in, const analysis::SpectralSignature& prod, const CurrentValue& cur0) {
+    struct Character {
+        const char* conceptId;
+        params::CompCharacter character;
+        double ratio, attackMs, releaseMs, mix;
+        const char* name;
+        const char* said;
+    };
+    static constexpr Character kCharacters[] = {
+        {"comp_opto", params::CompCharacter::Opto, 3.0, 10.0, 300.0, 100.0, "Opto", "doux, relâche selon le programme"},
+        {"comp_fet", params::CompCharacter::Fet, 4.0, 2.0, 100.0, 70.0, "FET", "rapide, en parallèle à 70 % pour garder les attaques"},
+        {"comp_vca", params::CompCharacter::Vca, 2.0, 10.0, 200.0, 100.0, "VCA", "la colle propre"},
+        {"comp_varimu", params::CompCharacter::VariMu, 2.5, 25.0, 500.0, 100.0, "Vari-mu", "arrondi, la compression monte peu à peu"},
+    };
+    const auto weightOf = [&](const char* id) {
+        double w = 0.0;
+        for (const auto& h : in.hits)
+            if (h.conceptId == id) w += h.weight;
+        return w;
+    };
+    const Character* named = nullptr;
+    for (const auto& c : kCharacters)
+        if (weightOf(c.conceptId) > 0.0) {
+            named = &c;
+            break;
+        }
+    const double glue = weightOf("colle");
+    if (!named && std::fabs(glue) < 1e-9) return;
+    const CurrentValue cur = withPlan(p, cur0);
+    const bool wasOn = cur(ParamId::CompOn) >= 0.5;
+    if (glue < 0.0 && !named) {
+        // « moins de colle » : le seuil remonte ; presque plus rien à faire -> éteint.
+        if (!wasOn) return;
+        const double thr = cur(ParamId::CompThreshold) + 4.0 * -glue;
+        if (thr > -6.0) {
+            put(p, ParamId::CompOn, 0.0);
+            p.said.push_back("Comp éteint (plus de colle)");
+        } else {
+            put(p, ParamId::CompThreshold, thr);
+            p.said.push_back("Comp : moins de colle, seuil " + format("%.0f dB", thr));
+        }
+        return;
+    }
+    // Sans caractère nommé : celui du module s'il tourne déjà, sinon VCA (kCharacters suit l'ordre de l'enum).
+    const auto current = static_cast<std::size_t>(wasOn ? std::clamp(static_cast<int>(std::lround(cur(ParamId::CompCharacter))), 0, 3) : 2);
+    const Character& c = named ? *named : kCharacters[current];
+    double threshold = cur(ParamId::CompThreshold);
+    if (!wasOn) {
+        // Seuil quelques dB au-dessus de la sonie moyenne : seuls les passages forts sont tenus.
+        threshold = prod.integratedLufs > -70.0 ? std::clamp(prod.integratedLufs + 5.0, -36.0, -6.0) : -18.0;
+    } else if (glue > 0.0) {
+        threshold = std::max(-40.0, threshold - 3.0 * glue); // « plus de colle »
+    }
+    put(p, ParamId::CompOn, 1.0);
+    put(p, ParamId::CompCharacter, static_cast<double>(c.character));
+    put(p, ParamId::CompThreshold, threshold);
+    if (named || !wasOn) {
+        put(p, ParamId::CompRatio, c.ratio);
+        put(p, ParamId::CompAttack, c.attackMs);
+        put(p, ParamId::CompRelease, c.releaseMs);
+        put(p, ParamId::CompMix, c.mix);
+        put(p, ParamId::CompMakeup, 1.0);
+    }
+    char b[256];
+    std::snprintf(b, sizeof b, i18n::tr("Comp %s : seuil %.0f dB, %.1f:1 — %s").c_str(), c.name, threshold,
+                  named || !wasOn ? c.ratio : cur(ParamId::CompRatio), i18n::tr(c.said).c_str());
+    p.said.push_back(b);
+}
+
 } // namespace
 
 std::vector<std::pair<ParamId, double>> glueSettings(double t) {
@@ -284,6 +355,7 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
     applyAxes(p, d, u.request, cur);
     applyDynamicComplaints(p, u.interpretation, cur);
     applySaturationCharacter(p, u.interpretation, cur);
+    applyBusComp(p, u.interpretation, prod, cur);
     if (p.targetLufs) {
         p.targetLufs = std::clamp(*p.targetLufs, -20.0, -4.0);
         p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs));

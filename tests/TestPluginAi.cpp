@@ -444,6 +444,32 @@ OMNIS_TEST("plug-in barre IA: « saturation à lampe », « bande », « transis
     OMNIS_CHECK(a.find("Punch") != std::string::npos);
 }
 
+OMNIS_TEST("plug-in barre IA: « compresseur opto pour la colle » allume le Comp (seuil calé sur la prod) ; « plus de colle », « moins de colle » ; « comp FET »") {
+    Host h;
+    h.run(4.0, true);
+    OMNIS_CHECK(h.plain(ParamId::CompOn) < 0.5); // éteint par défaut
+    (void)h.ctrl->ask("un compresseur opto pour la colle");
+    for (int i = 0; i < 80 && h.plain(ParamId::CompOn) < 0.5; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    OMNIS_CHECK(h.plain(ParamId::CompOn) >= 0.5);
+    OMNIS_CHECK(std::lround(h.plain(ParamId::CompCharacter)) == 0); // Opto
+    const double thr = h.plain(ParamId::CompThreshold);
+    std::printf("      seuil %.1f dB, ratio %.1f:1, release %.0f ms\n", thr, h.plain(ParamId::CompRatio), h.plain(ParamId::CompRelease));
+    OMNIS_CHECK(thr <= -6.0 && thr >= -36.0);
+    std::string a = h.ctrl->ask("encore plus de colle");
+    std::printf("      %s\n", a.c_str());
+    OMNIS_CHECK(h.plain(ParamId::CompThreshold) < thr - 1.0);
+    OMNIS_CHECK(std::lround(h.plain(ParamId::CompCharacter)) == 0); // le caractère reste
+    a = h.ctrl->ask("comp fet");
+    std::printf("      %s\n", a.c_str());
+    OMNIS_CHECK(std::lround(h.plain(ParamId::CompCharacter)) == 1 && h.plain(ParamId::CompMix) < 100.0);
+    for (int i = 0; i < 12 && h.plain(ParamId::CompOn) >= 0.5; ++i) a = h.ctrl->ask("moins de colle");
+    std::printf("      %s\n", a.c_str());
+    OMNIS_CHECK(h.plain(ParamId::CompOn) < 0.5); // assez retiré : éteint
+}
+
 OMNIS_TEST("plug-in: « annule » défait la dernière action (ici la remise à zéro), pas à pas") {
     Host h;
     const auto id = static_cast<Steinberg::Vst::ParamID>(params::ParamId::ClipDrive);

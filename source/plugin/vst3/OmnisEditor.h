@@ -7,7 +7,7 @@
 //   │ ruban 1 : marque, AUTO, A / B, bypass, Match,  │  MASTER  │
 //   │           Delta, écoute, aide, latence         │  In/Out  │
 //   │ ruban 2 : la demande à l'IA                    │ bargraph │
-//   │ rack : 7 modules au format 500 (gros bouton,   │ mesures  │
+//   │ rack : 8 modules au format 500 (gros bouton,   │ mesures  │
 //   │        voyant, état ; glisser pour réordonner) │ (verdict │
 //   │ tiroir : TOUS les réglages du module choisi    │ en mots) │
 //   │          | écran du module (courbe, GR…)       │ écoute,  │
@@ -73,7 +73,7 @@ public:
     void buildInto(VSTGUI::CViewContainer* root);
     /// Un pas de minuterie : relire le flux, redessiner ce qui a changé.
     void tick();
-    /// Page du tiroir : 0 … 6 les modules, kDiagPage le diagnostic du mix.
+    /// Page du tiroir : 0 … 7 les modules (index params::Module), kDiagPage le diagnostic du mix.
     void selectPage(int page);
     /// Analyse les échantillons arrivés (spectre, goniomètre) : pour l'outil.
     void pumpFeed();
@@ -84,7 +84,7 @@ public:
     /// Match EQ : vue 0 (la courbe) ou 1 (EQ dynamique, bande `band` au tiroir).
     void showMatchView(int view, int band);
 
-    enum Page : int { kDiagPage = 9 }; // 7 et 8 : anciennes pages du mixage, retirées
+    enum Page : int { kDiagPage = 9 }; // 7 : le compresseur ; 8 : ancienne page du mixage, retirée
 
 private:
     OmnisController* omnis() const;
@@ -105,7 +105,7 @@ private:
     void layoutRack();
     /// `later` (un module) est allumé et placé après `first` dans le rack.
     [[nodiscard]] bool onAfter(int first, int later) const;
-    [[nodiscard]] std::array<int, 7> order() const;
+    [[nodiscard]] std::array<int, 8> order() const; ///< modules dans l'ordre du rack (params::kModules)
     void dragMove(int module, double frameX);
     void drop(int module, double frameX);
     void askAi();
@@ -142,7 +142,7 @@ private:
     int tutorialStep_ = -1;
     VSTGUI::CView* tutorial_ = nullptr;
     friend class TutorialOverlay;
-    std::array<gui::RackSlot*, 7> slots_{};
+    std::array<gui::RackSlot*, 8> slots_{};
     VSTGUI::CViewContainer* rack_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 10> pages_{};
     std::string diagnosis_; ///< texte du diagnostic du mix (page D)

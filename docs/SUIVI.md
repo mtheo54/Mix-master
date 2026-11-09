@@ -56,6 +56,15 @@
 
 ## Fait récemment
 
+- **09/11 — Compresseur de bus « Comp »** (refonte, étape 4) : 8e module du rack, après le Match
+  EQ, **éteint par défaut** (les sessions sonnent pareil). Caractères Opto (relâchement selon le
+  programme), FET (crête), VCA (colle propre), Vari-mu (genou de 18 dB) ; sans latence, stéréo lié,
+  passe-haut du détecteur (90 Hz : la 808 ne pompe pas), Mix parallèle. Ordre du rack sur 8
+  modules (`rack_order`, id 14) ; les sessions et mémoires A/B à 7 modules (id 8) sont converties
+  à la lecture. Interface : rack à 8 (titres resserrés), page COMP, gros bouton SQUEEZE, DELTA.
+  Barre IA : « colle », « opto », « comp FET », « VCA », « vari-mu », « moins de colle » ;
+  « comp » n'est plus lu « coupe », une expression du lexique n'est plus prise pour un titre
+  approchant (« comp fet » ≠ « Compresses »). Tests : compresseur (7), rack, état, barre IA.
 - **09/11 — Caractères de saturation** (refonte, étape 4) : l'Inflator a 4 caractères — Inflate
   (densité), Bande (crêtes tassées, impaires), Lampe (asymétrique, paires), Transistor (coude
   franc, impaires hautes) —, même structure parallèle (exacte au repos), fondu de 10 ms au

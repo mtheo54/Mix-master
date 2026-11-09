@@ -3,7 +3,7 @@
 *Abrasion Labs · plug-in de mixage et de mastering VST3 · version 0.1*
 
 OMNIS masterise ta prod : il l'écoute, comprend ce que tu lui écris en français ou en anglais,
-règle sa chaîne de 7 modules et amène le volume là où tu le veux. Tout reste visible et réglable
+règle sa chaîne de 8 modules et amène le volume là où tu le veux. Tout reste visible et réglable
 à la main.
 
 ---
@@ -18,7 +18,7 @@ règle sa chaîne de 7 modules et amène le volume là où tu le veux. Tout rest
 6. [AUTO](#6-auto)
 7. [La barre IA](#7-la-barre-ia)
 8. [Les références](#8-les-références)
-9. [Les 7 modules](#9-les-7-modules)
+9. [Les 8 modules](#9-les-8-modules)
 10. [Écouter honnêtement](#10-écouter-honnêtement)
 11. [Les mesures](#11-les-mesures)
 12. [La latence](#12-la-latence)
@@ -233,10 +233,11 @@ Tu peux aussi faire écouter un son à OMNIS sans fichier :
 
 ---
 
-## 9. Les 7 modules
+## 9. Les 8 modules
 
-Ordre par défaut : **Sub → Match EQ → Inflator → Imager → Multiband → Clipper → Limiter**. Chaque
-module a son **ON** ; éteint, il ne touche plus au son.
+Ordre par défaut : **Sub → Match EQ → Comp → Inflator → Imager → Multiband → Clipper → Limiter**.
+Chaque module a son **ON** ; éteint, il ne touche plus au son. Le Comp arrive **éteint** : allume-le
+quand tu veux de la colle.
 
 ### 1. Sub — infra-grave, grave mono, sub
 
@@ -353,6 +354,28 @@ le Clipper après le Limiter pour un son plus agressif. Dans ce cas, le plafond 
 l'échantillon près, mais le true peak n'est plus garanti.
 
 ---
+
+### 8. Comp — compresseur de bus (la colle)
+
+Un compresseur pour tout le mix, sans latence, le même gain à gauche et à droite. Son détecteur
+écoute la prod **sans le grave** (SC High-Pass) : la 808 ne le fait pas pomper.
+
+| Réglage | Plage | Défaut | Rôle |
+|---|---|---|---|
+| Threshold | −40…0 dB | −18 dB | au-dessus, il compresse (lu en crête) |
+| Ratio | 1–10 :1 | 2 :1 | force de la compression |
+| Attack / Release | 0,1–100 ms / 20–2000 ms | 10 / 200 ms | vitesse d'action / de retour |
+| Makeup | 0–12 dB | 0 dB | rend le volume perdu |
+| Mix | 0–100 % | 100 % | < 100 % : compression parallèle (garde les attaques) |
+| SC High-Pass | 20–300 Hz | 90 Hz | le grave n'entre pas dans le détecteur |
+| Caractère | Opto · FET · VCA · Vari-mu | VCA | la façon de compresser (ci-dessous) |
+
+- **Opto** : doux ; relâche vite après un coup bref, lentement quand ça compresse longtemps.
+- **FET** : rapide et mordant (détection de crête) ; pour faire claquer les drums.
+- **VCA** : la colle propre du bus, la plus neutre.
+- **Vari-mu** : très arrondi, la compression augmente peu à peu ; pour lisser une prod.
+
+Gros bouton **SQUEEZE** : de rien à fort (seuil 0 → −36 dB), le volume en partie rendu.
 
 ## 10. Écouter honnêtement
 
@@ -514,7 +537,7 @@ actifs.
 | Format | VST3, Windows 64 bits et macOS 10.15+ (Intel, Apple Silicon) |
 | Audio | stéréo, 32 et 64 bits, toutes les fréquences courantes (testé de 22,05 à 384 kHz) |
 | Latence | Qualité max ≈ 710 ms · Travail ≈ 90 ms |
-| Chaîne | 7 modules réordonnables, EQ dynamique à 4 bandes intégré au Match EQ |
+| Chaîne | 8 modules réordonnables (dont un compresseur de bus à 4 caractères), EQ dynamique à 4 bandes intégré au Match EQ |
 | Mesures | sonie BS.1770 (LUFS M / S / I), LRA, true peak, PLR, corrélation |
 | Écoutes simulées | 18, plus Off |
 | Langues | français, anglais |

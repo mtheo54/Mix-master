@@ -430,7 +430,14 @@ void RackSlot::drawBackgroundRect(CDrawContext* c, const CRect& /*updateRect*/) 
     // En-tête : numéro, nom, voyant.
     const double dim = dimmed_ || !on ? 0.38 : 1.0;
     text(c, number_, CRect(8, 12, 22, 28), selected ? color::kAccent : color::kText3, mono(10));
-    text(c, title_, CRect(22, 12, r.getWidth() - 36, 28), withAlpha(color::kText, dim), sans(11.5, true));
+    // Huit modules côte à côte : le titre se resserre plutôt que d'être coupé (« Multiband »).
+    auto font = sans(11.5, true);
+    c->setFont(font);
+    for (double size = 11.0; size >= 9.0 && c->getStringWidth(title_.c_str()) > r.getWidth() - 58; size -= 0.5) {
+        font = sans(size, true);
+        c->setFont(font);
+    }
+    text(c, title_, CRect(22, 12, r.getWidth() - 36, 28), withAlpha(color::kText, dim), font);
     const CRect lr = ledRect();
     hwFace(c, lr, false);
     led(c, CPoint(lr.left + 8, lr.top + lr.getHeight() / 2), on, 2.6);

@@ -69,7 +69,7 @@ constexpr double kRibbon1 = 10.0, kRibbon2 = 58.0, kRackT = 106.0, kRackB = 306.
 constexpr double kScreensT = 612.0, kScreensB = 740.0;
 constexpr double kDrawerSplit = 557.0; // réglages (60 %) | gorge | écran (40 %)
 
-const std::array<const char*, 7> kModuleTitles{"Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter"};
+const std::array<const char*, 8> kModuleTitles{"Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter", "Comp"};
 
 /// Un fond de panneau : face anodisée, découpe usinée.
 class Panel : public CViewContainer {
@@ -315,7 +315,7 @@ const std::array<TutorialStep, 12> kTutorial{{
     {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
      {"OMNIS masterise ta prod : mets-le en dernier sur le master.", "Clique AUTO, joue le morceau en entier, puis ajuste",
       "avec les boutons ou en mots dans la barre IA.", "Suis le guide (2 minutes)."}},
-    {CRect(10, 106, 932, 306), "LE RACK : 7 MODULES",
+    {CRect(10, 106, 932, 306), "LE RACK : 8 MODULES",
      {"Chaque module a un gros bouton (le réglage principal) et un voyant ON.", "Clique un module pour ouvrir TOUS ses réglages en dessous.",
       "Glisse un module par son nom pour changer l'ordre de la chaîne.", "La barre d'état montre ce qu'il fait en ce moment."}},
     {CRect(10, 314, 932, 604), "LE TIROIR : TOUT RÉGLER",
@@ -469,7 +469,7 @@ struct OmnisEditor::Analysis {
     dsp::Fft fft{kFft};
     std::vector<std::complex<double>> work = std::vector<std::complex<double>>(kFft);
     std::array<float, kBands> spectrum{};
-    std::array<float, kHistory> limHistory{}, clipHistory{};
+    std::array<float, kHistory> limHistory{}, clipHistory{}, compHistory{};
     int historyPos = 0;
     UiMeters meters{};
     std::array<float, 2> peakHold{-120.0f, -120.0f};
@@ -681,7 +681,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     add(new HwButton(CRect(562, 7, 636, 33), "DELTA", [this] { return plain(id(ParamId::DeltaListen)) >= 0.5; }, [this] {
         const bool on = plain(id(ParamId::DeltaListen)) >= 0.5;
         // On écoute ce que le module ouvert change.
-        setPlain(id(ParamId::DeltaListen), on || page_ > 6 ? 0.0 : static_cast<double>(page_ + 1));
+        setPlain(id(ParamId::DeltaListen), on || page_ >= params::kModules ? 0.0 : static_cast<double>(page_ + 1));
     }));
     auto* mon = new SegControl(CRect(644, 8, 790, 32), {"STÉRÉO", "MID", "SIDE"}, [this] { return static_cast<int>(std::lround(plain(id(ParamId::Monitor)))); },
                                [this](int i) { setPlain(id(ParamId::Monitor), i); });
@@ -1211,19 +1211,25 @@ bool OmnisEditor::onAfter(int first, int later) const {
     return false;
 }
 
-std::array<int, 7> OmnisEditor::order() const {
+std::array<int, 8> OmnisEditor::order() const {
+    static_assert(params::kModules == 8);
     const auto o = params::chainOrder(static_cast<int>(std::lround(plain(id(ParamId::ChainOrder)))));
-    std::array<int, 7> out{};
-    for (int i = 0; i < 7; ++i) out[static_cast<std::size_t>(i)] = static_cast<int>(o[static_cast<std::size_t>(i)]);
+    std::array<int, 8> out{};
+    for (int i = 0; i < params::kModules; ++i) out[static_cast<std::size_t>(i)] = static_cast<int>(o[static_cast<std::size_t>(i)]);
     return out;
 }
+
+namespace {
+/// Largeur d'un emplacement du rack : les modules côte à côte, 6 px entre eux.
+double rackSlotWidth(double rackWidth) { return (rackWidth - 16.0 - 6.0 * (params::kModules - 1)) / params::kModules; }
+} // namespace
 
 void OmnisEditor::buildRack(CViewContainer* root) {
     rack_ = new Panel(CRect(kWorkL, kRackT, kWorkR, kRackB));
     root->addView(rack_);
-    const double slotW = (rack_->getViewSize().getWidth() - 16.0 - 6.0 * 6.0) / 7.0, slotH = rack_->getViewSize().getHeight() - 16.0;
+    const double slotW = rackSlotWidth(rack_->getViewSize().getWidth()), slotH = rack_->getViewSize().getHeight() - 16.0;
     OmnisController* c = omnis();
-    for (int m = 0; m < 7; ++m) {
+    for (int m = 0; m < params::kModules; ++m) {
         const auto module = static_cast<params::Module>(m);
         const std::uint32_t onId = id(params::moduleOnId(module));
         RackSlot::Callbacks cb;
@@ -1363,10 +1369,35 @@ void OmnisEditor::buildRack(CViewContainer* root) {
                 cb.level = [this] { return -an_->meters.limiterGrDb / 12.0; };
                 macro = model(id(ParamId::LimGain));
                 break;
+            case params::Module::Comp: {
+                cb.status = [this] {
+                    const bool on = plain(id(ParamId::CompOn)) >= 0.5;
+                    return "GR " + fmt("%.1f dB", on ? an_->meters.compGrDb : 0.0f) + " · " + i18n::tr(valueText(id(ParamId::CompCharacter)));
+                };
+                cb.level = [this] { return plain(id(ParamId::CompOn)) >= 0.5 ? -an_->meters.compGrDb / 12.0 : 0.0; };
+                // « Squeeze » : de rien (seuil 0 dB) à fort (seuil −36 dB), compensation de la moitié.
+                const auto thr = id(ParamId::CompThreshold), mk = id(ParamId::CompMakeup), ratio = id(ParamId::CompRatio);
+                macro.get = [this, thr] { return clamp01(-plain(thr) / 36.0); };
+                macro.set = [this, c, thr, mk, ratio](double t) {
+                    const double threshold = -36.0 * t, r = std::max(1.0, plain(ratio));
+                    c->performGesture(thr, params::toNormalized(*params::findParameter(thr), threshold));
+                    c->performGesture(mk, params::toNormalized(*params::findParameter(mk), std::clamp(-0.25 * threshold * (1.0 - 1.0 / r), 0.0, 12.0)));
+                };
+                macro.begin = [c, thr, mk] {
+                    c->beginGesture(thr);
+                    c->beginGesture(mk);
+                };
+                macro.end = [c, thr, mk] {
+                    c->endGesture(thr);
+                    c->endGesture(mk);
+                };
+                macro.text = [this, thr] { return fmt("%.0f %%", 100.0 * clamp01(-plain(thr) / 36.0)); };
+                break;
+            }
         }
         auto* slot = new RackSlot(CRect(0, 0, slotW, slotH), std::to_string(m + 1), kModuleTitles[static_cast<std::size_t>(m)], cb);
         const double kh = LedKnob::heightFor(LedKnob::Size::Big);
-        static const std::array<const char*, 7> kMacroNames{"SUB", "TONE", "INFLATE", "WIDTH", "GLUE", "DRIVE", "LOUD"};
+        static const std::array<const char*, 8> kMacroNames{"SUB", "TONE", "INFLATE", "WIDTH", "GLUE", "DRIVE", "LOUD", "SQUEEZE"};
         auto* knob = new LedKnob(CRect(4, 30, slotW - 4, 30 + kh), kMacroNames[static_cast<std::size_t>(m)], macro, LedKnob::Size::Big);
         slot->addView(knob);
         live_.push_back(knob);
@@ -1380,8 +1411,8 @@ void OmnisEditor::buildRack(CViewContainer* root) {
 void OmnisEditor::layoutRack() {
     if (!rack_) return;
     const auto o = order();
-    const double slotW = (rack_->getViewSize().getWidth() - 16.0 - 6.0 * 6.0) / 7.0, slotH = rack_->getViewSize().getHeight() - 16.0;
-    for (int pos = 0; pos < 7; ++pos) {
+    const double slotW = rackSlotWidth(rack_->getViewSize().getWidth()), slotH = rack_->getViewSize().getHeight() - 16.0;
+    for (int pos = 0; pos < params::kModules; ++pos) {
         RackSlot* s = slots_[static_cast<std::size_t>(o[static_cast<std::size_t>(pos)])];
         if (!s) continue;
         const double x = 8.0 + pos * (slotW + 6.0);
@@ -1401,13 +1432,13 @@ void OmnisEditor::dragMove(int module, double frameX) {
     dragFrom_ = module;
     CPoint origin(0, 0);
     rack_->localToFrame(origin);
-    const double slotW = (rack_->getViewSize().getWidth() - 16.0 - 6.0 * 6.0) / 7.0;
+    const double slotW = rackSlotWidth(rack_->getViewSize().getWidth());
     const double local = frameX - origin.x - 8.0;
-    dropAt_ = std::clamp(static_cast<int>(std::floor((local + 3.0) / (slotW + 6.0) + 0.5)), 0, 7); // une place entre deux modules
+    dropAt_ = std::clamp(static_cast<int>(std::floor((local + 3.0) / (slotW + 6.0) + 0.5)), 0, params::kModules); // une place entre deux modules
     const auto o = order();
-    for (int pos = 0; pos < 7; ++pos) {
+    for (int pos = 0; pos < params::kModules; ++pos) {
         RackSlot* s = slots_[static_cast<std::size_t>(o[static_cast<std::size_t>(pos)])];
-        if (s) s->setDropMark(pos == dropAt_ ? -1 : (pos == 6 && dropAt_ == 7 ? 1 : 0));
+        if (s) s->setDropMark(pos == dropAt_ ? -1 : (pos == params::kModules - 1 && dropAt_ == params::kModules ? 1 : 0));
     }
 }
 
@@ -1423,9 +1454,9 @@ void OmnisEditor::drop(int module, double frameX) {
     if (to > from) --to; // la place libérée par le module
     std::vector<int> v(o.begin(), o.end());
     v.erase(v.begin() + from);
-    v.insert(v.begin() + std::clamp(to, 0, 6), module);
-    std::array<params::Module, 7> next{};
-    for (int i = 0; i < 7; ++i) next[static_cast<std::size_t>(i)] = static_cast<params::Module>(v[static_cast<std::size_t>(i)]);
+    v.insert(v.begin() + std::clamp(to, 0, params::kModules - 1), module);
+    std::array<params::Module, params::kModules> next{};
+    for (int i = 0; i < params::kModules; ++i) next[static_cast<std::size_t>(i)] = static_cast<params::Module>(v[static_cast<std::size_t>(i)]);
     setPlain(id(ParamId::ChainOrder), params::chainOrderRank(next));
     if (to != from) answer_ = std::string(kModuleTitles[static_cast<std::size_t>(module)]) + " déplacé : la chaîne passe au son sec le temps de se recaler.";
     dragFrom_ = dropAt_ = -1;
@@ -1481,7 +1512,7 @@ void OmnisEditor::knobs(CViewContainer* parent, const CRect& area, const char* t
         const std::string name = spec ? std::string(spec->shortName) : std::string();
         // Noms lisibles : le nom d'affichage sans le préfixe du module.
         std::string label = spec ? std::string(spec->name) : name;
-        for (const char* prefix : {"Inflate ", "Limiter ", "Clip ", "MB Sub ", "MB Low ", "MB Mid ", "MB High ", "Imager ", "Match ", "Stem ", "Dyn EQ 1 ",
+        for (const char* prefix : {"Inflate ", "Limiter ", "Comp ", "Clip ", "MB Sub ", "MB Low ", "MB Mid ", "MB High ", "Imager ", "Match ", "Stem ", "Dyn EQ 1 ",
                                    "Dyn EQ 2 ", "Dyn EQ 3 ", "Dyn EQ 4 ", "Dyn EQ "})
             if (label.rfind(prefix, 0) == 0) label = label.substr(std::string(prefix).size());
         for (auto& ch : label) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
@@ -1642,6 +1673,12 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         auto* p = page(drawer, 6, "7", "LIMITER", "Plafond final, true peak. Punch : plus de relief.");
         knobs(p, CRect(12, row1, W - 14, row1 + 104), "VOLUME", {id(P::LimGain), id(P::LimCeiling), id(P::LimRelease), id(P::LimAutoRelease)});
         knobs(p, CRect(12, row2, W - 14, row2 + 104), "RELIEF · STÉRÉO", {id(P::LimPunch), id(P::LimUpward), id(P::LimUnlinkTransient), id(P::LimUnlinkSustain)});
+    }
+    {
+        auto* p = page(drawer, static_cast<int>(params::Module::Comp), "C", "COMP", "Compresseur de bus : la colle. Le grave ne le fait pas pomper (SC HPF).");
+        knobs(p, CRect(12, row1, W - 14, row1 + 104), "COMPRESSION", {id(P::CompThreshold), id(P::CompRatio), id(P::CompAttack), id(P::CompRelease)});
+        knobs(p, CRect(12, row2, 296, row2 + 104), "SORTIE · DÉTECTEUR", {id(P::CompMakeup), id(P::CompMix), id(P::CompScHpf)});
+        seg(p, CRect(306, row2 + 30, W - 14, row2 + 54), "CARACTÈRE", P::CompCharacter);
     }
     {
         // Diagnostic du mix : ce qu'OMNIS entend dans la prod, à corriger dans le projet.
@@ -1842,7 +1879,7 @@ void OmnisEditor::selectPage(int p) {
         if (pageScreens_[static_cast<std::size_t>(i)]) pageScreens_[static_cast<std::size_t>(i)]->setVisible(i == page_);
     }
     // Delta suit le module ouvert.
-    if (page_ <= 6 && plain(id(ParamId::DeltaListen)) >= 0.5 && std::lround(plain(id(ParamId::DeltaListen))) != page_ + 1)
+    if (page_ < params::kModules && plain(id(ParamId::DeltaListen)) >= 0.5 && std::lround(plain(id(ParamId::DeltaListen))) != page_ + 1)
         setPlain(id(ParamId::DeltaListen), page_ + 1);
     if (rack_) rack_->invalid();
 }
@@ -2096,6 +2133,14 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                 const double y = mode == 0 ? dsp::shapes::hard(u) : (mode == 1 ? dsp::shapes::softKnee(u, knee) : dsp::shapes::diode(u));
                 return y * ceil;
             }, 1.2);
+            break;
+        }
+        case static_cast<int>(params::Module::Comp): { // Compresseur : courbe statique + réduction dans le temps
+            const bool on = plain(id(ParamId::CompOn)) >= 0.5;
+            caption(i18n::tr(valueText(id(ParamId::CompCharacter))) + " · RÉDUCTION " + fmt("%.1f dB", on ? an_->meters.compGrDb : 0.0f) +
+                    (on ? "" : " · MODULE ÉTEINT"));
+            history(an_->compHistory, 12.0, color::kAccent);
+            hint("SEUIL " + valueText(id(ParamId::CompThreshold)) + " · " + valueText(id(ParamId::CompRatio)) + " · MIX " + valueText(id(ParamId::CompMix)));
             break;
         }
         case 6: { // Limiteur : réduction de gain dans le temps
@@ -2410,6 +2455,7 @@ void OmnisEditor::pumpFeed() {
     }
     an_->limHistory[static_cast<std::size_t>(an_->historyPos)] = an_->meters.limiterGrDb;
     an_->clipHistory[static_cast<std::size_t>(an_->historyPos)] = an_->meters.clipperGrDb;
+    an_->compHistory[static_cast<std::size_t>(an_->historyPos)] = plain(id(ParamId::CompOn)) >= 0.5 ? an_->meters.compGrDb : 0.0f;
     an_->historyPos = (an_->historyPos + 1) % Analysis::kHistory;
 }
 

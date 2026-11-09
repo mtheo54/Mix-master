@@ -179,7 +179,7 @@ LE MASTER DU MÊME GROUPE ENTEND CETTE PISTE	THE MASTER OF THE SAME GROUP HEARS 
 Le master écoute les stems de son groupe et propose.	The master listens to the stems of its group and makes proposals.
 Le mix est déjà très fort et écrasé	The mix is already very loud and crushed
 le Punch du limiteur	the limiter's Punch
-LE RACK : 7 MODULES	THE RACK: 7 MODULES
+LE RACK : 8 MODULES	THE RACK: 8 MODULES
 Le sub / la 808 est plus fort que la référence (+%.1f dB).	The sub / 808 is louder than the reference (+%.1f dB).
 Le sub manque par rapport à la référence (%.1f dB).	The sub is lacking compared to the reference (%.1f dB).
 LE TIROIR : TOUT RÉGLER	THE DRAWER: SET EVERYTHING
@@ -548,3 +548,15 @@ Densité et couleur, la 808 et le mix à part.	Density and colour, the 808 and t
 Inflator : caractère Bande (crêtes tassées en douceur, harmoniques impaires)	Inflator: Tape character (peaks gently squeezed, odd harmonics)
 Inflator : caractère Lampe (harmoniques paires, plus rond)	Inflator: Tube character (even harmonics, rounder)
 Inflator : caractère Transistor (propre puis mordant)	Inflator: Transistor character (clean, then biting)
+Compresseur de bus : la colle. Le grave ne le fait pas pomper (SC HPF).	Bus compressor: the glue. The low end does not make it pump (SC HPF).
+COMPRESSION	COMPRESSION
+SORTIE · DÉTECTEUR	OUTPUT · DETECTOR
+ · MODULE ÉTEINT	 · MODULE OFF
+SEUIL 	THRESHOLD 
+Comp %s : seuil %.0f dB, %.1f:1 — %s	Comp %s: threshold %.0f dB, %.1f:1 — %s
+doux, relâche selon le programme	gentle, releases with the music
+rapide, en parallèle à 70 % pour garder les attaques	fast, 70 % parallel to keep the attacks
+la colle propre	the clean glue
+arrondi, la compression monte peu à peu	round, the compression builds up gradually
+Comp éteint (plus de colle)	Comp off (no more glue)
+Comp : moins de colle, seuil 	Comp: less glue, threshold 

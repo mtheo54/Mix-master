@@ -45,7 +45,8 @@ enum class ParamId : std::uint32_t {
     Monitor = 3,
     RefCapture = 4, ///< écoute de la référence jouée sur l'entrée auxiliaire
     // 5 – 7 : réservés (instances liées des premières versions), jamais réutilisés.
-    ChainOrder = 8,   ///< ordre des 7 modules du rack (rang d'une permutation, voir chainOrder())
+    LegacyChainOrder = 8, ///< ordre des 7 premiers modules (sessions d'avant le compresseur) : lu, converti, jamais écrit
+    ChainOrder = 14,  ///< ordre des 8 modules du rack (rang d'une permutation, voir chainOrder())
     GainMatch = 9,    ///< écoute au même volume que l'entrée (jamais gardé dans la session)
     DeltaListen = 10, ///< écouter seulement ce qu'un module change (jamais gardé)
     LowLatency = 11,  ///< mode travail : filtres courts, latence basse, qualité réduite
@@ -111,6 +112,15 @@ enum class ParamId : std::uint32_t {
     ClipSubDrive = 506,
     ClipSubRoom = 507,
     ClipOn = 599,
+    CompCharacter = 700,
+    CompThreshold = 701,
+    CompRatio = 702,
+    CompAttack = 703,
+    CompRelease = 704,
+    CompMakeup = 705,
+    CompMix = 706,
+    CompScHpf = 707,
+    CompOn = 799,
 
     // --- Lookahead Brickwall Limiter (600–699) --------------------------------
     LimGain = 600,
@@ -231,7 +241,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 159;
+inline constexpr std::size_t kParameterCount = 168;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;
@@ -250,17 +260,31 @@ double clampPlain(const ParamSpec& spec, double plain) noexcept;
 inline bool isPersistent(const ParamSpec& spec) noexcept { return spec.kind != ParamKind::Meter && spec.persistent; }
 
 /// Les modules du rack, dans l'ordre par défaut de la chaîne.
+/// Caractère du compresseur de bus (principes reformulés, sans marque).
+enum class CompCharacter : int { Opto = 0, Fet = 1, Vca = 2, VariMu = 3 };
+
 /// Caractère de la saturation de l'Inflator (principes reformulés, sans marque).
 enum class InflCharacter : int { Inflate = 0, Tape = 1, Tube = 2, Transistor = 3 };
 
-enum class Module : int { Sub = 0, Match = 1, Inflator = 2, Imager = 3, Multiband = 4, Clipper = 5, Limiter = 6 };
-inline constexpr int kModules = 7;
-inline constexpr int kChainOrders = 5040; ///< 7!
+/// Index des modules = ordre de construction des étages (MasteringChain). Le compresseur,
+/// arrivé après, est le 8e étage construit mais se place après le Match EQ par défaut.
+enum class Module : int { Sub = 0, Match = 1, Inflator = 2, Imager = 3, Multiband = 4, Clipper = 5, Limiter = 6, Comp = 7 };
+inline constexpr int kModules = 8;
+inline constexpr int kChainOrders = 40320; ///< 8!
+/// L'ordre par défaut (rang 0).
+inline constexpr std::array<Module, kModules> kDefaultChain{Module::Sub,       Module::Match,     Module::Comp,    Module::Inflator,
+                                                             Module::Imager,    Module::Multiband, Module::Clipper, Module::Limiter};
 /// Interrupteur du module.
 ParamId moduleOnId(Module m) noexcept;
 /// Ordre des modules : rang (0 … 5039, 0 = ordre par défaut) <-> permutation.
 std::array<Module, kModules> chainOrder(int rank) noexcept;
 int chainOrderRank(const std::array<Module, kModules>& order) noexcept;
+/// Une session d'avant le compresseur (rang sur 7 modules, ParamId::LegacyChainOrder) :
+/// le même ordre, le compresseur juste après le Match EQ.
+int migrateLegacyChainOrder(int legacyRank) noexcept;
+/// Une valeur normalisée lue dans une session ancienne, sous un id qui n'existe plus :
+/// l'id et la valeur d'aujourd'hui (aucun : ignorer). Seul LegacyChainOrder est concerné.
+std::optional<std::pair<ParamId, double>> migrateLegacyValue(std::uint32_t id, double normalized) noexcept;
 
 /// Formatage pour l'affichage (non temps réel : alloue une std::string).
 std::string formatValue(const ParamSpec& spec, double plain, bool withUnit = false);

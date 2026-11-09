@@ -14,6 +14,9 @@
 #include "plugin/vst3/OmnisState.h"
 
 #include "public.sdk/source/common/memorystream.h"
+#include "base/source/fstreamer.h"
+
+#include <cmath>
 
 #include <map>
 
@@ -46,6 +49,36 @@ OMNIS_TEST("plug-in: getState(setState(x)) = x pour les 90 paramètres persistan
     for (const auto& [id, v] : written)
         if (std::fabs(read[id] - v) > 1e-12) ++mismatches;
     OMNIS_CHECK(mismatches == 0);
+}
+
+OMNIS_TEST("plug-in: une session d'avant le compresseur (ordre à 7 modules, id 8) se relit avec le compresseur après le Match EQ") {
+    // État écrit par une version antérieure : l'ordre « Match EQ en premier » (rang 720 sur 7).
+    IPtr<MemoryStream> in = owned(new MemoryStream());
+    {
+        IBStreamer s(in, kLittleEndian);
+        s.writeInt32u(vst3::kStateMagic);
+        s.writeInt32u(1);
+        s.writeInt32u(2);
+        s.writeInt32u(8);
+        s.writeDouble(720.0 / 5039.0);
+        s.writeInt32u(static_cast<std::uint32_t>(params::ParamId::InflDrive));
+        s.writeDouble(0.75);
+    }
+    in->seek(0, IBStream::kIBSeekSet, nullptr);
+    IPtr<vst3::OmnisProcessor> processor = owned(new vst3::OmnisProcessor());
+    OMNIS_CHECK(processor->setState(in) == kResultOk);
+    IPtr<MemoryStream> out = owned(new MemoryStream());
+    OMNIS_CHECK(processor->getState(out) == kResultOk);
+    out->seek(0, IBStream::kIBSeekSet, nullptr);
+    std::map<std::uint32_t, double> read;
+    OMNIS_CHECK(vst3::readState(out, [&](std::uint32_t id, double v) { read[id] = v; }));
+    OMNIS_CHECK(read.count(8) == 0); // l'ancien id n'est plus écrit
+    const auto order = params::chainOrder(static_cast<int>(std::lround(read[static_cast<std::uint32_t>(params::ParamId::ChainOrder)] * (params::kChainOrders - 1))));
+    using M = params::Module;
+    const std::array<M, 8> expected{M::Match, M::Comp, M::Sub, M::Inflator, M::Imager, M::Multiband, M::Clipper, M::Limiter};
+    OMNIS_CHECK(order == expected);
+    OMNIS_CHECK(std::fabs(read[static_cast<std::uint32_t>(params::ParamId::InflDrive)] - 0.75) < 1e-12);
+    OMNIS_CHECK(read[static_cast<std::uint32_t>(params::ParamId::CompOn)] == 0.0); // le compresseur arrive éteint : même son
 }
 
 // -----------------------------------------------------------------------------

@@ -148,6 +148,8 @@ int main(int argc, char** argv) {
         rig.set(static_cast<ParamId>(812), 130.0);
         rig.set(omnis::params::mbId(1, omnis::params::MbControl::Threshold), -20.0);
         rig.set(omnis::params::mbId(1, omnis::params::MbControl::Ratio), 3.0);
+        rig.set(omnis::params::ParamId::CompOn, 1.0); // le compresseur allumé : sa réduction se voit
+        rig.set(omnis::params::ParamId::CompThreshold, -24.0);
         rig.run(4.0);
 
         auto* editor = new omnis::vst3::OmnisEditor(rig.ctrl);
@@ -167,7 +169,7 @@ int main(int argc, char** argv) {
             rig.ctrl->chooseReference(omnis::vst3::OmnisController::RefKind::Title,
                                       shotRef ? shotRef : "BloodyWraith Pee - DRILL 229 (feat. Konor Marley & DAÏCO CHUP)");
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
-                                               {5, "6-clipper"}, {6, "7-limiter"}, {9, "10-diagnostic"}};
+                                               {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-comp"}, {9, "10-diagnostic"}};
         for (const auto& [page, name] : pages) {
             editor->selectPage(page);
             for (int t = 0; t < 40; ++t) {

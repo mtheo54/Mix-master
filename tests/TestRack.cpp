@@ -88,15 +88,47 @@ const std::vector<std::pair<ParamId, double>> kDriven{
 
 } // namespace
 
-OMNIS_TEST("rack: ordre des modules, rang <-> permutation pour les 5040 ordres") {
+OMNIS_TEST("rack: ordre des 8 modules, rang <-> permutation pour les 40320 ordres ; sessions à 7 modules converties") {
     bool ok = true;
     for (int r = 0; r < params::kChainOrders; ++r) ok = ok && params::chainOrderRank(params::chainOrder(r)) == r;
     OMNIS_CHECK(ok);
-    const auto first = params::chainOrder(0);
-    for (int i = 0; i < params::kModules; ++i) OMNIS_CHECK(static_cast<int>(first[static_cast<std::size_t>(i)]) == i);
+    // Rang 0 : l'ordre par défaut, le compresseur après le Match EQ.
+    OMNIS_CHECK(params::chainOrder(0) == params::kDefaultChain);
+    OMNIS_CHECK(params::kDefaultChain[2] == Module::Comp);
     // Le limiteur avant le clipper : un seul échange en fin d'ordre.
-    std::array<Module, 7> swapped{Module::Sub, Module::Match, Module::Inflator, Module::Imager, Module::Multiband, Module::Limiter, Module::Clipper};
+    const std::array<Module, 8> swapped{Module::Sub,    Module::Match,     Module::Comp,    Module::Inflator,
+                                        Module::Imager, Module::Multiband, Module::Limiter, Module::Clipper};
     OMNIS_CHECK(params::chainOrderRank(swapped) == 1);
+    // Sessions d'avant le compresseur : même ordre, le compresseur juste après le Match EQ.
+    OMNIS_CHECK(params::migrateLegacyChainOrder(0) == 0);
+    OMNIS_CHECK(params::migrateLegacyChainOrder(1) == 1);
+    // Ancien ordre « Match EQ en premier » (Match, Sub, Inflator, …) : rang 720 sur 7 modules.
+    const auto moved = params::chainOrder(params::migrateLegacyChainOrder(720));
+    const std::array<Module, 8> expected{Module::Match,  Module::Comp,      Module::Sub,     Module::Inflator,
+                                         Module::Imager, Module::Multiband, Module::Clipper, Module::Limiter};
+    OMNIS_CHECK(moved == expected);
+    // La valeur normalisée lue dans un état ancien (id 8) devient celle de l'ordre à 8 (id 14).
+    const auto value = params::migrateLegacyValue(static_cast<std::uint32_t>(ParamId::LegacyChainOrder), 720.0 / 5039.0);
+    OMNIS_CHECK(value && value->first == ParamId::ChainOrder);
+    OMNIS_CHECK(value && params::chainOrder(static_cast<int>(std::lround(value->second * (params::kChainOrders - 1)))) == expected);
+    OMNIS_CHECK(!params::migrateLegacyValue(static_cast<std::uint32_t>(ParamId::InflDrive), 0.5));
+}
+
+OMNIS_TEST("rack: le Comp, allumé, tient le bus après le Match EQ ; éteint (défaut), la chaîne sonne comme avant") {
+    const Stereo in = from(tools::signals::drumLoop(kFs, 4));
+    auto base = kDriven;
+    auto off = chain(base);
+    auto onSettings = base;
+    onSettings.push_back({ParamId::CompOn, 1.0});
+    onSettings.push_back({ParamId::CompThreshold, -30.0});
+    onSettings.push_back({ParamId::CompRatio, 4.0});
+    auto on = chain(onSettings);
+    OMNIS_CHECK(on->stageOrder()[2] == static_cast<int>(Module::Comp)); // position par défaut
+    const Stereo a = render(*off, in), b = render(*on, in);
+    const double err = maxDiff(a, b, static_cast<std::size_t>(0.5 * kFs));
+    std::printf("    écart dû au Comp : %.3f\n", err);
+    OMNIS_CHECK(err > 1e-3);
+    OMNIS_CHECK(on->latencySamples() == off->latencySamples()); // sans latence
 }
 
 OMNIS_TEST("rack: tous les modules éteints = entrée retardée de la latence, bit à bit (même poussés)") {
@@ -185,7 +217,8 @@ OMNIS_TEST("rack Delta: on n'entend que ce que le module change (limiteur en fin
 
 OMNIS_TEST("rack: réordonner en route passe au son sec puis rejoint le nouvel ordre") {
     const Stereo in = from(tools::signals::drumLoop(kFs, 8));
-    std::array<Module, 7> order{Module::Sub, Module::Match, Module::Inflator, Module::Imager, Module::Multiband, Module::Limiter, Module::Clipper};
+    const std::array<Module, 8> order{Module::Sub,    Module::Match,     Module::Comp,    Module::Inflator,
+                                      Module::Imager, Module::Multiband, Module::Limiter, Module::Clipper};
     const double rank = params::chainOrderRank(order);
     auto moved = chain(kDriven);
     auto target = kDriven;
@@ -193,7 +226,7 @@ OMNIS_TEST("rack: réordonner en route passe au son sec puis rejoint le nouvel o
     auto direct = chain(target);
     const Stereo a = render(*moved, in, 40, ParamId::ChainOrder, rank);
     const Stereo b = render(*direct, in);
-    OMNIS_CHECK(moved->stageOrder()[5] == static_cast<int>(Module::Limiter));
+    OMNIS_CHECK(moved->stageOrder()[6] == static_cast<int>(Module::Limiter));
     // Les états des étages (enveloppes, release) oublient l'ancien ordre en quelques secondes.
     const double err = maxDiff(a, b, a.l.size() - static_cast<std::size_t>(2.0 * kFs));
     std::printf("    écart après réordonnancement : %.2e\n", err);

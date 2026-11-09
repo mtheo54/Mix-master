@@ -11,6 +11,7 @@
 #include "core/UserDataDir.h"
 #include "engine/MasteringChain.h"
 #include "stages/ClipperStage.h"
+#include "stages/CompressorStage.h"
 #include "stages/LimiterStage.h"
 #include "stages/MatchEqStage.h"
 #include "stages/MultibandStage.h"
@@ -81,6 +82,7 @@ OmnisProcessor::OmnisProcessor() {
     lastMeterValues_.fill(-1.0);
     limiter_ = dynamic_cast<LimiterStage*>(engine_.stage(static_cast<int>(params::Module::Limiter)));
     clipper_ = dynamic_cast<ClipperStage*>(engine_.stage(static_cast<int>(params::Module::Clipper)));
+    comp_ = dynamic_cast<CompressorStage*>(engine_.stage(static_cast<int>(params::Module::Comp)));
     multiband_ = dynamic_cast<MultibandStage*>(engine_.stage(static_cast<int>(params::Module::Multiband)));
     matchEq_ = dynamic_cast<MatchEqStage*>(engine_.stage(static_cast<int>(params::Module::Match)));
     feedToken_ = registerFeed(feed_);
@@ -127,6 +129,7 @@ void OmnisProcessor::publishFeed() noexcept {
     outPeak_ = {};
     m.limiterGrDb = limiter_ ? static_cast<float>(limiter_->gainReductionDb()) : 0.0f;
     m.clipperGrDb = clipper_ ? static_cast<float>(clipper_->reductionDb()) : 0.0f;
+    m.compGrDb = comp_ ? static_cast<float>(comp_->gainReductionDb()) : 0.0f;
     for (int b = 0; b < 4; ++b) m.multibandGrDb[b] = multiband_ ? static_cast<float>(multiband_->gainReductionDb(b)) : 0.0f;
     for (int b = 0; b < params::kDynBands; ++b) m.dynamicGainDb[b] = matchEq_ ? static_cast<float>(matchEq_->dynamicGainDb(b)) : 0.0f;
     m.gainMatchDb = static_cast<float>(engine_.gainMatchDb());

@@ -43,6 +43,7 @@
 namespace omnis {
 class LimiterStage;
 class ClipperStage;
+class CompressorStage;
 class MultibandStage;
 class MatchEqStage;
 } // namespace omnis
@@ -147,6 +148,7 @@ private:
     std::array<float, 2> inPeak_{}, outPeak_{};
     omnis::LimiterStage* limiter_ = nullptr;
     omnis::ClipperStage* clipper_ = nullptr;
+    omnis::CompressorStage* comp_ = nullptr;
     omnis::MultibandStage* multiband_ = nullptr;
     omnis::MatchEqStage* matchEq_ = nullptr;
     template <typename Sample>

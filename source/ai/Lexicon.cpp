@@ -144,8 +144,9 @@ const Phrases& more() {
     return p;
 }
 const Phrases& less() {
+    // « coupe » exact : « comp » (compresseur) a le même son.
     static const Phrases p = phrases({"moins", "moins de", "baisse", "baisser", "enleve", "enlever", "retire", "retirer", "reduis",
-                                      "reduire", "coupe", "couper", "calme", "calmer", "attenue", "attenuer", "adoucis", "adoucir",
+                                      "reduire", "=coupe", "=coupes", "=coupez", "couper", "calme", "calmer", "attenue", "attenuer", "adoucis", "adoucir",
                                       "vire", "virer", "degage", "diminue", "diminuer", "allege", "alleger", "retiens",
                                       "reduce", "remove", "less of", "=less", "=cut", "lower", "decrease", "tame", "turn down",
                                       "bring down", "pull back", "dial back", "back off", "get rid of", "take out", "take away",

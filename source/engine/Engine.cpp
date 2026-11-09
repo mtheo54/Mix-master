@@ -170,7 +170,7 @@ void Engine::applyParameter(ParamId id, double plainValue, bool immediate) noexc
         case ParamId::OutputGain: outputGain_.setTarget(dbToGain(plainValue)); break;
         case ParamId::Monitor: setMonitorTargets(static_cast<int>(plainValue), false); break;
         case ParamId::ChainOrder: {
-            // L'ordre ne vaut que pour la chaîne complète (7 étages) ; appliqué au son sec.
+            // L'ordre ne vaut que pour la chaîne complète (8 étages) ; appliqué au son sec.
             if (static_cast<int>(stages_.size()) != params::kModules) break;
             const auto order = params::chainOrder(static_cast<int>(plainValue));
             for (int i = 0; i < params::kModules; ++i) wantedOrder_[static_cast<std::size_t>(i)] = static_cast<int>(order[static_cast<std::size_t>(i)]);

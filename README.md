@@ -261,7 +261,7 @@ brillance, écrêtage. Pour compléter les fiches depuis tes sons : `omnis_refdb
   ([images et droits](docs/REFERENCES.md#les-images-photo-dartiste-pochette)). Elle s'applique tout de suite (courbe du Match EQ, punch,
   grave mono, écart couplet / refrain, écrêtage, volume) et AUTO la vise ensuite. Le choix est
   gardé avec le projet ; « Aucune » rend la main aux mots.
-- **Rack** : 7 modules (Sub, Match EQ, Inflator, Imager, Multiband, Clipper, Limiter), chacun
+- **Rack** : 8 modules (Sub, Match EQ, Comp, Inflator, Imager, Multiband, Clipper, Limiter), chacun
   avec son gros bouton, son voyant ON et son état. Clic : ouvrir. Glisser par le nom :
   changer l'ordre.
 - **Tiroir** : TOUS les réglages du module ouvert et son écran (nœuds du Match EQ et

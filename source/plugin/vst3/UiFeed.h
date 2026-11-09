@@ -35,6 +35,7 @@ struct UiMeters {
     float outPeakDb[2] = {-120.0f, -120.0f}; ///< sortie
     float limiterGrDb = 0.0f;                ///< <= 0
     float clipperGrDb = 0.0f;
+    float compGrDb = 0.0f;                   ///< compresseur de bus, <= 0
     float multibandGrDb[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     float dynamicGainDb[4] = {0.0f, 0.0f, 0.0f, 0.0f}; ///< EQ dynamique du Match EQ, par bande
     float gainMatchDb = 0.0f;                ///< compensation de Gain Match
