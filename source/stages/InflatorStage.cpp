@@ -45,6 +45,37 @@ double InflatorCurve::slope(double x, double m) noexcept {
     return 1.0 + (1.0 - m * std::pow(u, m - 1.0)) / (m - 1.0);
 }
 
+namespace {
+// Famille « coude » : f(x) = x / (1 + |s·x|^k)^(1/k), s = 1 au-dessus de 0, `neg` en dessous.
+double kneeShape(double x, double k, double neg) noexcept {
+    const double s = x < 0.0 ? neg : 1.0;
+    return x / std::pow(1.0 + std::pow(std::fabs(s * x), k), 1.0 / k);
+}
+double kneeSlope(double x, double k, double neg) noexcept {
+    const double s = x < 0.0 ? neg : 1.0;
+    return std::pow(1.0 + std::pow(std::fabs(s * x), k), -1.0 / k - 1.0);
+}
+constexpr double kTubeNegative = 0.4; // H2 au-dessus de H3 de -1 à +4 dBFS
+} // namespace
+
+double InflatorCurve::shape(int character, double x, double m) noexcept {
+    switch (character) {
+        case 1: return kneeShape(x, 0.625 * m, 1.0);
+        case 2: return kneeShape(x, 0.5 * m, kTubeNegative);
+        case 3: return kneeShape(x, 1.5 * m, 1.0);
+        default: return shape(x, m);
+    }
+}
+
+double InflatorCurve::slope(int character, double x, double m) noexcept {
+    switch (character) {
+        case 1: return kneeSlope(x, 0.625 * m, 1.0);
+        case 2: return kneeSlope(x, 0.5 * m, kTubeNegative);
+        case 3: return kneeSlope(x, 1.5 * m, 1.0);
+        default: return slope(x, m);
+    }
+}
+
 int InflatorStage::splitKernelLengthFor(double sampleRate) noexcept {
     if (sampleRate <= 50000.0) return 4096;
     if (sampleRate <= 100000.0) return 8192;
@@ -111,6 +142,7 @@ void InflatorStage::prepare(const ProcessSpec& spec) {
 
     for (auto* v : {&eLow_, &eHigh_, &drives_, &exponents_, &biases_, &restShape_, &restSlope_, &outs_}) v->assign(m, 0.0);
     dcCoefficient_ = std::exp(-2.0 * std::numbers::pi * 5.0 / (sampleRate_ * low_.oversampler.factor()));
+    characterFadeStep_ = 1.0 / std::max(1.0, 0.010 * sampleRate_); // 10 ms
     reset();
 }
 
@@ -130,6 +162,8 @@ void InflatorStage::reset() noexcept {
     }
     align_.reset();
     padding_.reset();
+    character_ = pendingCharacter_;
+    characterFade_ = 1.0;
 }
 
 void InflatorStage::setParameter(ParamId id, double plain, bool immediate) noexcept {
@@ -147,6 +181,13 @@ void InflatorStage::setParameter(ParamId id, double plain, bool immediate) noexc
         case ParamId::InflWarmth: set(bias_, kMaxBias * plain * 0.01); break;
         case ParamId::InflOutput: set(output_, dbToGain(plain)); break;
         case ParamId::InflSplit: set(splitLog_, std::log(plain)); break;
+        case ParamId::InflCharacter:
+            pendingCharacter_ = std::clamp(static_cast<int>(std::lround(plain)), 0, 3);
+            if (immediate) {
+                character_ = pendingCharacter_;
+                characterFade_ = 1.0;
+            }
+            break;
         case ParamId::InflOversampling: requestedStages_ = std::clamp(static_cast<int>(plain), 0, dsp::Oversampler::kMaxStages); break;
         default: break;
     }
@@ -190,7 +231,7 @@ void InflatorStage::harmonicsOf(Band& band, int numSamples) noexcept {
             const auto b = static_cast<std::size_t>(j >> stages);
             const double d = drives_[b];
             // Ce que la courbe ajoute au-delà de sa pente au repos : les harmoniques.
-            const double shaped = (InflatorCurve::shape(d * x[j] + biases_[b], exponents_[b]) - restShape_[b]) / d;
+            const double shaped = (InflatorCurve::shape(character_, d * x[j] + biases_[b], exponents_[b]) - restShape_[b]) / d;
             const double nl = shaped - restSlope_[b] * x[j];
             // Le décentrage (chaleur) crée du continu : bloqueur de DC à 5 Hz.
             const double y = nl - x1 + r * y1;
@@ -207,23 +248,29 @@ void InflatorStage::harmonicsOf(Band& band, int numSamples) noexcept {
 
 void InflatorStage::process(double* const* channels, int numSamples) noexcept {
     applyOversamplingChoice();
+    // Nouveau caractère : appliqué une fois l'effet effacé (fondu ci-dessous).
+    if (pendingCharacter_ != character_ && characterFade_ <= 0.0) character_ = pendingCharacter_;
 
     double lowPeak = 0.0, highPeak = 0.0;
     for (int i = 0; i < numSamples; ++i) {
         const auto k = static_cast<std::size_t>(i);
-        eLow_[k] = lowEffect_.next();
-        eHigh_[k] = highEffect_.next();
+        // Fondu de caractère : vers 0 tant qu'un autre est demandé, puis retour à 1.
+        characterFade_ = pendingCharacter_ != character_ ? std::max(0.0, characterFade_ - characterFadeStep_)
+                                                         : std::min(1.0, characterFade_ + characterFadeStep_);
+        eLow_[k] = lowEffect_.next() * characterFade_;
+        eHigh_[k] = highEffect_.next() * characterFade_;
         lowPeak = std::max(lowPeak, eLow_[k]);
         highPeak = std::max(highPeak, eHigh_[k]);
         drives_[k] = drive_.next();
         exponents_[k] = exponent_.next();
         biases_[k] = bias_.next();
         // Point de repos : recalculé seulement quand la chaleur ou la courbe bougent.
-        if (biases_[k] != restBias_ || exponents_[k] != restExponent_) {
+        if (biases_[k] != restBias_ || exponents_[k] != restExponent_ || character_ != restCharacter_) {
             restBias_ = biases_[k];
             restExponent_ = exponents_[k];
-            restShapeValue_ = InflatorCurve::shape(restBias_, restExponent_);
-            restSlopeValue_ = InflatorCurve::slope(restBias_, restExponent_);
+            restCharacter_ = character_;
+            restShapeValue_ = InflatorCurve::shape(character_, restBias_, restExponent_);
+            restSlopeValue_ = InflatorCurve::slope(character_, restBias_, restExponent_);
         }
         restShape_[k] = restShapeValue_;
         restSlope_[k] = restSlopeValue_;

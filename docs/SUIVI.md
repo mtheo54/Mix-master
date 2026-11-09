@@ -56,6 +56,12 @@
 
 ## Fait récemment
 
+- **09/11 — Caractères de saturation** (refonte, étape 4) : l'Inflator a 4 caractères — Inflate
+  (densité), Bande (crêtes tassées, impaires), Lampe (asymétrique, paires), Transistor (coude
+  franc, impaires hautes) —, même structure parallèle (exacte au repos), fondu de 10 ms au
+  changement. Paramètre `infl_char` (id 308, 159 au total). Barre IA : « à lampe », « effet
+  bande », « transistor » (« tape » seul reste « ça frappe »). Tests : courbes, harmoniques
+  mesurées, pas de clic, barre IA.
 - **09/11 — AUTO précis** (refonte, étape 3) : AUTO écoute le **morceau entier** (fin : arrêt de la
   lecture, second clic, 6 s de silence ou 8 min), ou un **son glissé** sur la barre IA (Maj : il
   rejoint les références). Puis 3 essais de répartition clip / limiteur sur les 15 s les plus

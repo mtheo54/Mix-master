@@ -160,9 +160,9 @@ int main(int argc, char** argv) {
             if (const auto* spec = params::findParameter(id)) base.emplace_back(std::string(spec->key), v);
         const AudioFile excerpt = loudestExcerpt(input, 15.0);
         const auto found = searchMaster(excerpt, base, opt);
-        for (const auto& r : found.tried)
-            std::printf("  essai %-14s gain %5.1f dB  %6.1f LUFS  distorsion %6.1f dB  tonal %.1f dB%s\n", r.strategy.name.c_str(), r.totalGainDb,
-                        r.integratedLufs, r.distortion.weightedDb, r.tonal.maxDeviationDb, r.reached ? "" : "  (cible non atteinte)");
+        for (const auto& t : found.tried)
+            std::printf("  essai %-14s gain %5.1f dB  %6.1f LUFS  distorsion %6.1f dB  tonal %.1f dB%s\n", t.strategy.name.c_str(), t.totalGainDb,
+                        t.integratedLufs, t.distortion.weightedDb, t.tonal.maxDeviationDb, t.reached ? "" : "  (cible non atteinte)");
         if (found.best >= 0) {
             const auto& best = found.tried[static_cast<std::size_t>(found.best)];
             std::printf("retenu : %s\n", best.strategy.name.c_str());

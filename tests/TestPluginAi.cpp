@@ -420,6 +420,30 @@ OMNIS_TEST("plug-in barre IA: « ça siffle » allume une bande de l'EQ dynamiqu
                                 g.ctrl->getParamNormalized(static_cast<Steinberg::Vst::ParamID>(params::dynId(2, DynControl::On)))) < 0.5);
 }
 
+OMNIS_TEST("plug-in barre IA: « saturation à lampe », « bande », « transistor » choisissent le caractère de l'Inflator ; « ça tape » reste du punch") {
+    Host h;
+    h.run(4.0, true);
+    const auto character = [&h] { return static_cast<int>(std::lround(h.plain(ParamId::InflCharacter))); };
+    OMNIS_CHECK(character() == 0); // Inflate par défaut
+    (void)h.ctrl->ask("mets une saturation à lampe"); // gardée jusqu'à ce que la prod soit entendue
+    for (int i = 0; i < 80 && character() != 2; ++i) {
+        h.run(0.25, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    }
+    std::string a;
+    for (const auto& m : h.said) a += m;
+    OMNIS_CHECK(character() == 2 && a.find("Lampe") != std::string::npos);
+    OMNIS_CHECK(h.plain(ParamId::InflHighEffect) >= 20.0);
+    a = h.ctrl->ask("plutôt un effet bande");
+    std::printf("      %s\n", a.c_str());
+    OMNIS_CHECK(character() == 1);
+    a = h.ctrl->ask("du transistor");
+    OMNIS_CHECK(character() == 3);
+    a = h.ctrl->ask("ça tape pas assez");
+    OMNIS_CHECK(character() == 3); // « tape » (ça frappe) ne touche pas au caractère
+    OMNIS_CHECK(a.find("Punch") != std::string::npos);
+}
+
 OMNIS_TEST("plug-in: « annule » défait la dernière action (ici la remise à zéro), pas à pas") {
     Host h;
     const auto id = static_cast<Steinberg::Vst::ParamID>(params::ParamId::ClipDrive);

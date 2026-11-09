@@ -27,7 +27,11 @@
 qualite brillant   : brillant | brillance | bright | briller | eclatant | lumineux | scintillant | cristallin | clarte | etincelant | shiny | brighter | brightness | sparkle | sparkly | shimmer | shimmery | sheen | glossy | shine | crystal | cristal | clinquant | qui brille | qui scintille => presence +1, air +2
 qualite air        : air | aere | aerien | airy | ouvert | ouverture | souffle | respire en haut | de l air | airier | more air | breathy | open top | du air | aere en haut | sizzle | sizzly | sizzling => air +2
 qualite crispy     : crispy | crisp | croustillant | croquant | craquant | crunchy | crunch | grain | granuleux | qui croustille | croustille | crispier | crispiness | bite | bitey | edge | edgy | du mordant | mordant | qui mord => presence +1.5, air +1, saturation +0.5
-qualite chaud      : chaud | warm | chaleureux | analogique | analog | vintage | velours | rond | moelleux | soyeux | cosy | warmer | warmth | tube | tubey | lush | cozy | rondeur | de la chaleur => bas_medium +1, air -1, saturation +0.3
+qualite chaud      : chaud | warm | chaleureux | analogique | analog | vintage | velours | rond | moelleux | soyeux | cosy | warmer | warmth | lush | cozy | rondeur | de la chaleur => bas_medium +1, air -1, saturation +0.3
+# Caractères de saturation de l'Inflator (le mot choisit la courbe ; « tape » seul veut dire « ça frappe »).
+qualite bande      : bande | a bande | saturation bande | bande magnetique | magneto | magnetophone | effet bande | son bande | tape saturation | tape sat | tape machine | saturation tape => saturation +0.5
+qualite lampe      : lampe | lampes | a lampe | saturation lampe | tube | tubes | tubey | valve | ampli a lampe | tube saturation | tube warmth => saturation +0.5, bas_medium +0.5
+qualite transistor : transistor | transistors | a transistor | saturation transistor | solid state | transistor saturation | fuzz => saturation +0.5
 qualite froid      : froid | cold | clinique | digital | numerique | chirurgical | colder | sterile | clinical | dry => bas_medium -1, air +1
 qualite sombre     : sombre | dark | obscur | nocturne | tenebreux | darker | moody | gloomy | dark af | plus sombre => presence -1, air -1.5
 qualite gras       : gras | epais | fat | gros | lourd | massif | plein | du corps | charnu | costaud | thick | heavy | imposant | fatter | thicker | heavier | beefy | beefier | meaty | chunky | body | fuller | full | girthy | phat | weight | weighty | massive | big | bigger | huge | enorme | gros son gras | qui a du corps => bas +1.5, bas_medium +0.5

@@ -1608,8 +1608,9 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         showMatchView(0, 0);
     }
     {
-        auto* p = page(drawer, 2, "3", "INFLATOR", "Densité et chaleur, la 808 et le mix à part.");
-        knobs(p, CRect(12, row1, W - 14, row1 + 104), "DOSE", {id(P::InflLowEffect), id(P::InflHighEffect), id(P::InflSplit)});
+        auto* p = page(drawer, 2, "3", "INFLATOR", "Densité et couleur, la 808 et le mix à part.");
+        knobs(p, CRect(12, row1, 296, row1 + 104), "DOSE", {id(P::InflLowEffect), id(P::InflHighEffect), id(P::InflSplit)});
+        seg(p, CRect(306, row1 + 30, W - 14, row1 + 54), "CARACTÈRE", P::InflCharacter);
         knobs(p, CRect(12, row2, 420, row2 + 104), "COULEUR", {id(P::InflDrive), id(P::InflCurve), id(P::InflWarmth), id(P::InflOutput)});
         seg(p, CRect(430, row2 + 30, W - 14, row2 + 54), "SURÉCH.", P::InflOversampling);
     }
@@ -2028,11 +2029,13 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             break;
         }
         case 2: { // Inflator : courbe de transfert
-            caption("COURBE · 808 " + fmt("%.0f %%", plain(id(ParamId::InflLowEffect))) + " · MIX " + fmt("%.0f %%", plain(id(ParamId::InflHighEffect))));
+            caption(i18n::tr(valueText(id(ParamId::InflCharacter))) + " · 808 " + fmt("%.0f %%", plain(id(ParamId::InflLowEffect))) + " · MIX " +
+                    fmt("%.0f %%", plain(id(ParamId::InflHighEffect))));
+            const int character = static_cast<int>(std::lround(plain(id(ParamId::InflCharacter))));
             const double effect = std::max(plain(id(ParamId::InflLowEffect)), plain(id(ParamId::InflHighEffect))) / 100.0;
             const double drive = std::pow(10.0, plain(id(ParamId::InflDrive)) / 20.0), m = InflatorCurve::exponentFor(plain(id(ParamId::InflCurve)));
             const double out = std::pow(10.0, plain(id(ParamId::InflOutput)) / 20.0);
-            transfer([&](double x) { return out * (x + effect * (InflatorCurve::shape(drive * x, m) / drive - x)); }, 1.2);
+            transfer([&](double x) { return out * (x + effect * (InflatorCurve::shape(character, drive * x, m) / drive - x)); }, 1.2);
             hint("DRIVE " + valueText(id(ParamId::InflDrive)) + " · COURBE " + valueText(id(ParamId::InflCurve)));
             break;
         }

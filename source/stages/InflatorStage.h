@@ -25,6 +25,18 @@
 //    filtres d'oversampling, le son d'origine ne les traverse jamais.
 //  Effets à 0 % (défaut) : sortie = entrée retardée, au bit près.
 //
+//  Caractères (« Character ») : la même structure parallèle, d'autres courbes f.
+//    Inflate     g(u) ci-dessus : densité (pente > 1 au repos) et crête tenue ;
+//    Bande       f(x) = x / (1 + |x|^k)^(1/k) : compression douce des crêtes,
+//                harmoniques impaires qui montent avec le niveau (k = 0,625·m) ;
+//    Lampe       la même, plus douce du côté négatif (|0,4·x|) : asymétrique,
+//                harmoniques paires dominantes (k = 0,5·m) ;
+//    Transistor  coude franc (k = 1,5·m) : propre sous le coude, puis impaires
+//                hautes (H5 proche de H3) : du mordant.
+//  Pente 1 au repos pour Bande / Lampe / Transistor : couleur, pas de gain de
+//  densité. Changer de caractère : l'effet s'efface en 10 ms, la courbe change,
+//  l'effet revient (aucun clic).
+//
 //  Latence constante : N/2 + B de la séparation + retard de phase 16x arrondi.
 // =============================================================================
 #pragma once
@@ -51,6 +63,9 @@ struct InflatorCurve {
     static double shape(double x, double m) noexcept;
     /// Pente au point x (dérivée de shape).
     static double slope(double x, double m) noexcept;
+    /// La courbe du caractère choisi (params::InflCharacter) ; m vient de « Curve ».
+    static double shape(int character, double x, double m) noexcept;
+    static double slope(int character, double x, double m) noexcept;
 };
 
 class InflatorStage final : public Stage {
@@ -117,6 +132,10 @@ private:
     // Paramètres au taux de base pour le bloc courant.
     std::vector<double> eLow_, eHigh_, drives_, exponents_, biases_, restShape_, restSlope_, outs_;
     double restBias_ = -1.0, restExponent_ = -1.0, restShapeValue_ = 0.0, restSlopeValue_ = 1.0; ///< point de repos en cache
+    int restCharacter_ = -1;
+    // Caractère : celui des courbes (character_) et celui demandé ; fondu de l'effet entre les deux.
+    int character_ = 0, pendingCharacter_ = 0;
+    double characterFade_ = 1.0, characterFadeStep_ = 1.0 / 480.0;
 };
 
 } // namespace omnis

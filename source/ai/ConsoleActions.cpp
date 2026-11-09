@@ -220,6 +220,31 @@ void applyDynamicComplaints(ConsolePlan& p, const Interpretation& in, const Curr
     }
 }
 
+/// Un caractère de saturation nommé (« à lampe », « bande », « transistor ») : la courbe de
+/// l'Inflator, et assez d'effet pour l'entendre.
+void applySaturationCharacter(ConsolePlan& p, const Interpretation& in, const CurrentValue& cur0) {
+    struct Choice {
+        const char* conceptId;
+        params::InflCharacter character;
+        const char* said;
+    };
+    static constexpr Choice kChoices[] = {
+        {"bande", params::InflCharacter::Tape, "Inflator : caractère Bande (crêtes tassées en douceur, harmoniques impaires)"},
+        {"lampe", params::InflCharacter::Tube, "Inflator : caractère Lampe (harmoniques paires, plus rond)"},
+        {"transistor", params::InflCharacter::Transistor, "Inflator : caractère Transistor (propre puis mordant)"},
+    };
+    for (const auto& c : kChoices) {
+        const bool named = std::any_of(in.hits.begin(), in.hits.end(), [&](const ConceptHit& h) { return h.conceptId == c.conceptId && h.weight > 0.0; });
+        if (!named) continue;
+        const CurrentValue cur = withPlan(p, cur0);
+        put(p, ParamId::InflCharacter, static_cast<double>(c.character));
+        if (cur(ParamId::InflHighEffect) < 20.0) put(p, ParamId::InflHighEffect, 20.0);
+        put(p, ParamId::InflOn, 1.0);
+        p.said.push_back(c.said);
+        return; // un seul caractère : le premier nommé
+    }
+}
+
 } // namespace
 
 std::vector<std::pair<ParamId, double>> glueSettings(double t) {
@@ -258,6 +283,7 @@ ConsolePlan planRequest(const Understanding& u, const analysis::SpectralSignatur
     }
     applyAxes(p, d, u.request, cur);
     applyDynamicComplaints(p, u.interpretation, cur);
+    applySaturationCharacter(p, u.interpretation, cur);
     if (p.targetLufs) {
         p.targetLufs = std::clamp(*p.targetLufs, -20.0, -4.0);
         p.said.push_back("volume vers " + format("%.1f LUFS", *p.targetLufs));

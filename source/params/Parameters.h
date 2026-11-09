@@ -88,6 +88,7 @@ enum class ParamId : std::uint32_t {
     InflOutput = 305,
     InflSplit = 306,
     InflOversampling = 307,
+    InflCharacter = 308,
     InflOn = 399,
 
     // --- Multi-Band Dynamic Processor (400–499) --------------------------------
@@ -230,7 +231,7 @@ struct ParamSpec {
 
 /// Nombre de paramètres de la table (vérifié à la compilation dans
 /// Parameters.cpp) : dimensionne les tableaux du processeur VST3.
-inline constexpr std::size_t kParameterCount = 158;
+inline constexpr std::size_t kParameterCount = 159;
 
 /// Tous les paramètres, dans l'ordre d'enregistrement auprès de l'hôte.
 std::span<const ParamSpec> allParameters() noexcept;
@@ -249,6 +250,9 @@ double clampPlain(const ParamSpec& spec, double plain) noexcept;
 inline bool isPersistent(const ParamSpec& spec) noexcept { return spec.kind != ParamKind::Meter && spec.persistent; }
 
 /// Les modules du rack, dans l'ordre par défaut de la chaîne.
+/// Caractère de la saturation de l'Inflator (principes reformulés, sans marque).
+enum class InflCharacter : int { Inflate = 0, Tape = 1, Tube = 2, Transistor = 3 };
+
 enum class Module : int { Sub = 0, Match = 1, Inflator = 2, Imager = 3, Multiband = 4, Clipper = 5, Limiter = 6 };
 inline constexpr int kModules = 7;
 inline constexpr int kChainOrders = 5040; ///< 7!

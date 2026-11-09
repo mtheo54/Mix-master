@@ -185,6 +185,95 @@ OMNIS_TEST("inflator: « Inflate 808 » ne touche que le bas (50 Hz gonflé, 1 k
     OMNIS_CHECK(std::fabs(gainAt(1000.0)) < 0.02); // le mix au-dessus du split n'est pas touché
 }
 
+OMNIS_TEST("inflator caractères: courbes continues, f(0) = 0, pente 1 au repos (Bande, Lampe, Transistor)") {
+    for (int c = 1; c <= 3; ++c)
+        for (double m : {2.0, 4.0, 6.0}) {
+            OMNIS_CHECK(InflatorCurve::shape(c, 0.0, m) == 0.0);
+            OMNIS_CHECK(std::fabs(InflatorCurve::slope(c, 0.0, m) - 1.0) < 1e-12);
+            // Dérivée numérique = pente annoncée, et la courbe ne dépasse jamais l'identité.
+            for (double x = -1.5; x <= 1.5; x += 0.05) {
+                const double h = 1e-6;
+                const double num = (InflatorCurve::shape(c, x + h, m) - InflatorCurve::shape(c, x - h, m)) / (2 * h);
+                OMNIS_CHECK(std::fabs(num - InflatorCurve::slope(c, x, m)) < 1e-5);
+                OMNIS_CHECK(std::fabs(InflatorCurve::shape(c, x, m)) <= std::fabs(x) + 1e-12);
+            }
+        }
+    // Bande et Transistor impairs ; Lampe asymétrique (plus douce en négatif).
+    OMNIS_CHECK(std::fabs(InflatorCurve::shape(1, 0.7, 4.0) + InflatorCurve::shape(1, -0.7, 4.0)) < 1e-12);
+    OMNIS_CHECK(std::fabs(InflatorCurve::shape(3, 0.7, 4.0) + InflatorCurve::shape(3, -0.7, 4.0)) < 1e-12);
+    OMNIS_CHECK(std::fabs(InflatorCurve::shape(2, -0.7, 4.0)) > std::fabs(InflatorCurve::shape(2, 0.7, 4.0)) + 0.01);
+    // Inflate (0) : la courbe d'origine, inchangée.
+    OMNIS_CHECK(InflatorCurve::shape(0, 0.5, 3.0) == InflatorCurve::shape(0.5, 3.0));
+}
+
+OMNIS_TEST("inflator caractères: Bande / Transistor = harmoniques impaires, Lampe = paires ; crête jamais plus haute ; à 0 % rien") {
+    struct Measure {
+        double h2, h3, h5, peak;
+    };
+    const auto measure = [](int character, double effect) {
+        InflatorStage st;
+        st.prepare({kFs, 256, 2});
+        st.setParameter(ParamId::InflCharacter, character, true);
+        st.setParameter(ParamId::InflHighEffect, effect, true);
+        Stereo s = midSide(1000.0, 0.8, 1000.0, 0.0, 2.0);
+        run(st, s);
+        const double h1 = amplitudeAt(s.l, 1000.0);
+        return Measure{db(amplitudeAt(s.l, 2000.0) / h1), db(amplitudeAt(s.l, 3000.0) / h1), db(amplitudeAt(s.l, 5000.0) / h1),
+                       peakOfLastSecond(s.l)};
+    };
+    const char* names[] = {"Inflate", "Bande", "Lampe", "Transistor"};
+    Measure m[4];
+    for (int c = 0; c < 4; ++c) {
+        m[c] = measure(c, 100.0);
+        std::printf("      %-10s H2 %6.1f dB  H3 %6.1f dB  H5 %6.1f dB  crête %.3f\n", names[c], m[c].h2, m[c].h3, m[c].h5, m[c].peak);
+        // Bande, Lampe, Transistor tassent la crête (0,8) ; Inflate la densifie sans passer 0 dBFS.
+        OMNIS_CHECK(m[c].peak <= (c == 0 ? 1.0 : 0.8 * 1.0001));
+    }
+    OMNIS_CHECK(m[1].h3 > -40.0 && m[1].h2 < -80.0);              // Bande : impaires
+    OMNIS_CHECK(m[3].h2 < -80.0 && m[3].h5 - m[3].h3 > m[1].h5 - m[1].h3 + 10.0); // Transistor : impaires hautes
+    OMNIS_CHECK(m[2].h2 > -40.0 && m[2].h2 > m[2].h3);            // Lampe : paires dominantes
+    // Effet à 0 % : entrée retardée, quel que soit le caractère.
+    for (int c = 1; c < 4; ++c) {
+        InflatorStage st;
+        st.prepare({kFs, 256, 2});
+        st.setParameter(ParamId::InflCharacter, c, true);
+        Stereo s = midSide(1000.0, 0.8, 1000.0, 0.0, 0.5);
+        const Stereo in = s;
+        run(st, s);
+        const auto lat = static_cast<std::size_t>(st.latencySamples());
+        double diff = 0.0;
+        for (std::size_t i = lat; i < s.l.size(); ++i) diff = std::max(diff, std::fabs(s.l[i] - in.l[i - lat]));
+        OMNIS_CHECK(diff == 0.0);
+    }
+}
+
+OMNIS_TEST("inflator caractères: changer de caractère en lecture ne claque pas (fondu de 10 ms)") {
+    InflatorStage st;
+    st.prepare({kFs, 256, 2});
+    st.setParameter(ParamId::InflHighEffect, 100.0, true);
+    st.setParameter(ParamId::InflDrive, 6.0, true);
+    Stereo s = midSide(220.0, 0.7, 220.0, 0.0, 1.0);
+    // Bloc par bloc, le caractère change toutes les 0,1 s (automation brutale).
+    const int block = 256;
+    std::vector<double> l(block), r(block);
+    double maxStep = 0.0, prev = 0.0;
+    const int n = static_cast<int>(s.l.size());
+    for (int pos = 0, b = 0; pos + block <= n; pos += block, ++b) {
+        if (b % 19 == 0) st.setParameter(ParamId::InflCharacter, (b / 19) % 4, false);
+        std::copy(s.l.begin() + pos, s.l.begin() + pos + block, l.begin());
+        std::copy(s.r.begin() + pos, s.r.begin() + pos + block, r.begin());
+        double* ch[2] = {l.data(), r.data()};
+        st.process(ch, block);
+        for (int i = 0; i < block; ++i) {
+            if (pos + i > st.latencySamples() + 10) maxStep = std::max(maxStep, std::fabs(l[static_cast<std::size_t>(i)] - prev));
+            prev = l[static_cast<std::size_t>(i)];
+        }
+    }
+    // Un sinus de 220 Hz à 0,7 bouge d'au plus 2π·220/48000·0,7 ≈ 0,02 par échantillon ; saturé un peu plus.
+    std::printf("      plus grand saut entre deux échantillons : %.4f\n", maxStep);
+    OMNIS_CHECK(maxStep < 0.05);
+}
+
 // -----------------------------------------------------------------------------
 //  Imager
 // -----------------------------------------------------------------------------

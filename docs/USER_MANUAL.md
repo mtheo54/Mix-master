@@ -294,6 +294,15 @@ rest of the mix are set separately.
 | Warmth | 0–100 % | 0 % | even harmonics (the "warm") |
 | Output | −12…+6 dB | 0 dB | output level |
 | Oversampling | 1x–16x | 8x | quality against aliasing |
+| Character | Inflate · Tape · Tube · Transistor | Inflate | the colour of the saturation (below) |
+
+**The characters** (switching during playback does not click):
+- **Inflate**: density, the peak stays where it is. The "loudest" to the ear.
+- **Tape**: gently squeezes the peaks, discreet odd harmonics. Glues, softens.
+- **Tube**: even harmonics, rounder and warmer. Good on an 808 or cold melodies.
+- **Transistor**: clean until pushed, then biting (high harmonics). For grit.
+
+In the AI bar: "tube saturation", "tape saturation", "transistor".
 
 ### 4. Imager — stereo width per band
 

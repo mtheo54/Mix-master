@@ -29,6 +29,7 @@ constexpr std::array<std::string_view, 19> kListenLabels{
 constexpr std::array<std::string_view, 5> kLevelLabels{"Style", "Streaming -14", "Équilibré -11", "Fort -9", "Très fort -7"};
 constexpr std::array<std::string_view, 3> kDynChannelLabels{"Stéréo", "Mid", "Side"};
 constexpr std::array<std::string_view, 3> kClipModeLabels{"Hard", "Soft Knee", "Diode"};
+constexpr std::array<std::string_view, 4> kInflCharacterLabels{"Inflate", "Bande", "Lampe", "Transistor"};
 constexpr std::array<std::string_view, 5> kOversamplingLabels{"1x", "2x", "4x", "8x", "16x"};
 constexpr std::array<std::string_view, 8> kDeltaLabels{"Off", "Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter"};
 constexpr ParamScale kLog = ParamScale::Logarithmic;
@@ -154,6 +155,7 @@ constexpr std::array<ParamSpec, kParameterCount> kParameters{{
     // 8x par défaut : avec du drive, le coude de la courbe (|u| = 1) replie à
     // −48 dB sous la fondamentale en 4x (sinus de 13 kHz, drive +12 dB), −76 dB en 8x.
     {ParamId::InflOversampling,  "infl_os",       "Inflate Oversampling", "InfOS",  "",     ParamKind::Choice,     0.0,    4.0,   3.0,   4,    kOversamplingLabels, 0.0, 0},
+    {ParamId::InflCharacter,     "infl_char",     "Inflate Character",    "InfChr", "",     ParamKind::Choice,     0.0,    3.0,   0.0,   3,    kInflCharacterLabels, 0.0, 0},
     {ParamId::InflOn,            "infl_on",       "Inflator Module",      "InflOn", "",     ParamKind::Toggle,     0.0,    1.0,   1.0,   1,    kToggleLabels,  20.0,   0},
 
     // Multibande (docs/CALIBRATION_MODULE4.md §6). Défauts neutres : ratio 1,

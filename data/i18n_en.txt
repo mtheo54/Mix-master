@@ -541,3 +541,10 @@ AUTO : j'analyse « 	AUTO: analysing “
 fichier illisible	unreadable file
 Glisse un son ici : AUTO l'écoute en entier (Maj : l'ajouter aux références)	Drop a sound here: AUTO listens to all of it (Shift: add it to references)
 AUTO : ta prod est déjà à %.1f LUFS, plus fort que le NIVEAU (%.1f) : rien n'est poussé. Pour la baisser, descends son volume avant OMNIS ; pour garder ce volume, choisis un NIVEAU plus fort.	AUTO: your track is already at %.1f LUFS, louder than the LEVEL (%.1f): nothing is pushed. To lower it, turn it down before OMNIS; to keep this loudness, pick a louder LEVEL.
+CARACTÈRE	CHARACTER
+Bande	Tape
+Lampe	Tube
+Densité et couleur, la 808 et le mix à part.	Density and colour, the 808 and the mix apart.
+Inflator : caractère Bande (crêtes tassées en douceur, harmoniques impaires)	Inflator: Tape character (peaks gently squeezed, odd harmonics)
+Inflator : caractère Lampe (harmoniques paires, plus rond)	Inflator: Tube character (even harmonics, rounder)
+Inflator : caractère Transistor (propre puis mordant)	Inflator: Transistor character (clean, then biting)

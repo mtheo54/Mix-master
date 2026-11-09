@@ -298,6 +298,15 @@ reste du mix sont réglés séparément.
 | Warmth | 0–100 % | 0 % | harmoniques paires (le « chaud ») |
 | Output | −12…+6 dB | 0 dB | niveau de sortie |
 | Oversampling | 1x–16x | 8x | qualité contre le repliement |
+| Caractère | Inflate · Bande · Lampe · Transistor | Inflate | la couleur de la saturation (ci-dessous) |
+
+**Les caractères** (changer en lecture ne claque pas) :
+- **Inflate** : densité, la crête reste à sa place. Le plus « fort » à l'oreille.
+- **Bande** : tasse les crêtes en douceur, harmoniques impaires discrètes. Colle, adoucit.
+- **Lampe** : harmoniques paires, plus rond et chaud. Bien sur une 808 ou des mélodies froides.
+- **Transistor** : propre tant qu'on ne pousse pas, puis mordant (harmoniques hautes). Pour du grain.
+
+Dans la barre IA : « saturation à lampe », « effet bande », « du transistor ».
 
 ### 4. Imager — largeur stéréo par bande
 
