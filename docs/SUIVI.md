@@ -61,7 +61,7 @@
   remonte chaque attaque, que le limiteur réécrase. Sans lui, à volume égal (−11 LUFS) :
   distorsion −27,2 dB au lieu de −21,5, écart tonal 0,6 au lieu de 1,2 dB, continu 111 ppm au lieu
   de 796, même relief (PLR 13,0). AUTO ne pousse plus le Punch : il le propose (« dis plus de
-  punch »). **Maquette de la nouvelle interface** (esprit Abrasion, chaîne à la Guitar Rig) :
+  punch »). **Maquette de la nouvelle interface** (style du site abrasion labs — le style Micro-Contact est écarté —, chaîne à la Guitar Rig) :
   https://claude.ai/artifact/JMr9KJZghGe5a9m5n9GNH6 — à valider avant la refonte (étape 7).
 - **09/11 — Barre IA : audit des inversions** (tolérance aux fautes trop large) et **banque de
   60 phrases réelles** (`tests/TestPhraseBank.cpp` : parlé, SMS, argot, anglais ; axe et sens
