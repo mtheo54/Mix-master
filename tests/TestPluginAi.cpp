@@ -195,7 +195,7 @@ OMNIS_TEST("plug-in AUTO: écoute le morceau entier jusqu'à l'arrêt, règle la
     const double st = h.plain(ParamId::MeterShortTerm);
     std::printf("      clip %.1f dB, limiteur %.1f dB, punch %.0f %%, sortie %.1f LUFS\n", h.plain(ParamId::ClipDrive), h.plain(ParamId::LimGain),
                 h.plain(ParamId::LimPunch), st);
-    OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
+    OMNIS_CHECK(h.plain(ParamId::LimPunch) < 1.0); // AUTO ne pousse jamais le Punch (il faisait taper les attaques dans le limiteur)
     OMNIS_CHECK(h.plain(ParamId::LimGain) + h.plain(ParamId::ClipDrive) > 3.0);
     OMNIS_CHECK(st > -14.5 && st < -4.5);
 }
@@ -224,7 +224,7 @@ OMNIS_TEST("plug-in AUTO: un second clic pendant l'écoute la termine ; avant le
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     OMNIS_CHECK(h.ctrl->autoProgress() < 0.0);
-    OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
+    OMNIS_CHECK(h.plain(ParamId::LimPunch) < 1.0);
 }
 
 OMNIS_TEST("plug-in AUTO: un son glissé est analysé en entier (calme puis fort), réglé et essayé sans lecture ; un fichier illisible le dit") {
@@ -256,7 +256,7 @@ OMNIS_TEST("plug-in AUTO: un son glissé est analysé en entier (calme puis fort
     bool refined = false;
     for (const auto& m : h.said) refined = refined || m.find("AUTO affiné") != std::string::npos;
     OMNIS_CHECK(refined);
-    OMNIS_CHECK(h.plain(ParamId::LimPunch) >= 15.0);
+    OMNIS_CHECK(h.plain(ParamId::LimPunch) < 1.0);
     OMNIS_CHECK(h.plain(ParamId::LimGain) + h.plain(ParamId::ClipDrive) > 3.0);
     std::filesystem::remove(path);
     // Un fichier qui n'existe pas : dit, rien de changé.

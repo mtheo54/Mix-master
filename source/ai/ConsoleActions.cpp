@@ -118,9 +118,9 @@ void applyMusic(ConsolePlan& p, const analysis::MusicDescriptors& ref, const ana
     const double prodPunch = (prod.microDb[1] + prod.microDb[2] + prod.microDb[3]) / 3.0;
     const double gap = refPunch - prodPunch;
     if (gap > 0.8 && !punchAsked) {
-        const double v = std::clamp(cur(ParamId::LimPunch) + 15.0 * gap, 0.0, 80.0);
-        put(p, ParamId::LimPunch, v);
-        p.said.push_back(format("la réf attaque plus (+%.1f dB) : Punch ", gap) + format("%.0f %%", v));
+        // Jamais de Punch sans demande : il remonte chaque attaque, que le limiteur réécrase
+        // (mesuré sur une prod de l'utilisateur : 6 dB de distorsion en plus, aucun relief gagné).
+        p.said.push_back(format("la réf attaque plus (+%.1f dB) : dis « plus de punch » pour la suivre", gap));
     } else if (gap < -1.5 && !punchAsked) {
         // Jamais de compression vers le haut sans demande (docs/REFONTE.md §3) :
         // elle remonte tout ce qui est calme et se bat contre les fondus.
@@ -437,11 +437,11 @@ ConsolePlan planAuto(const analysis::SpectralSignature& loud, const std::vector<
     p.said.insert(p.said.begin(), "AUTO vers " + from +
                                       (profile ? std::string(" (profil de genre)")
                                                : refs.size() == 1 ? std::string(" (1 titre)") : format(" (%.0f titres)", static_cast<double>(refs.size()))));
-    // Une base de mastering rap / trap : du relief, et la densité du niveau choisi.
-    if (cur(ParamId::LimPunch) < 15.0) put(p, ParamId::LimPunch, 15.0);
+    // La densité du niveau choisi, plafond -1 dBTP. Pas de Punch d'office : il faisait taper
+    // chaque attaque dans le limiteur (« ça compresse trop, ça tue la vibe »).
     put(p, ParamId::LimCeiling, -1.0);
     applyLevel(p, cur, intent.targetLufs);
-    p.said.push_back("punch, densité du niveau choisi ; plafond -1 dBTP");
+    p.said.push_back("densité du niveau choisi ; plafond -1 dBTP");
     // La fiche complète des références (punch, grave mono, sections, écrêtage) passe
     // après la base : elle la précise.
     const auto refMusic = averageMusic(refs);

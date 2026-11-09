@@ -13,6 +13,8 @@
 | IA | **Refaite** avec un **modèle de langue local, hors ligne** (le lexique reste pour l'instantané et en secours). |
 | Apprentissage | Un **système qui apprend** (« neuronal ») : une base propre de ce qui se passe, un petit réseau qui s'ajuste, et plus tard une mise en commun anonyme via le serveur d'un ami de l'utilisateur. |
 | Visuels | **Originaux**, dessinés par OMNIS (aucune pochette ni photo de rappeur livrée : droits des labels). |
+| Interface (09/11) | **Simplifiée au maximum**, dans l'**esprit Abrasion** (celui de Micro-Contact : graphite mat, fissure orange, étincelle cyan, chemin du signal animé, Roboto). Chaîne **à la Guitar Rig** : bibliothèque de modules à glisser-déposer (ajouter, retirer, déplacer, plusieurs caractères), ou construite par l'IA avec une animation. Le détail d'un module n'apparaît qu'en le cliquant. Maquette validée avant le code : https://claude.ai/artifact/JMr9KJZghGe5a9m5n9GNH6 |
+| Limiteur (09/11) | « Ça compresse trop, ça tue la vibe » : AUTO ne met plus de **Punch** d'office (mesuré : 6 dB de distorsion et 7× plus de continu en plus, aucun relief gagné). Le Punch ne bouge que sur demande. |
 | Méthode | Étapes enchaînées en autonomie, **vérifiées à chaque fois** (tests, mesures sur les prods de l'utilisateur, validateur, CI) ; l'utilisateur teste quand une étape est prête. |
 
 ## 2. Constat mesuré (« à la millanaise 2 », sans / avec OMNIS, preset rap FR)
@@ -130,7 +132,7 @@ mixage « bascule », pas à chaque fois.
 | 4 (en cours) | **Rack modulaire** à caractères (compresseurs, saturations, EQ, imagers…). Fait : **Inflator** à 4 caractères (Inflate, Bande, Lampe, Transistor ; `infl_char`, id 308), fondu de 10 ms au changement, barre IA (« à lampe », « effet bande », « transistor »). **Comp** (compresseur de bus, 8e module, ids 700–799, éteint par défaut) à 4 caractères (Opto, FET, VCA, Vari-mu), sans latence, détecteur sans le grave ; ordre du rack sur 8 (`rack_order`, id 14 ; l'ancien `chain_order` id 8 converti à la lecture) ; barre IA (« colle », « opto », « comp FET »…). **Match EQ Analogique** (`match_char`, id 202) : phase minimale (cepstre) à latence identique, cloches lissées ±1/3 d'octave ; pré-écho 4·10⁻³² contre 1·10⁻³ en Propre. Reste : caractères de l'Imager, ajouter / retirer des modules. | chaque caractère testé (réponse, distorsion, null-test neutre) |
 | 5 | **Apprentissage** : journal, réseau local, tests ; export anonyme prêt pour le serveur. | tests, base relue à l'identique |
 | 6 | **IA locale** : modèle de langue, banque de phrases réelles, glisser-déposer. | 0 contresens sur la banque |
-| 7 | **Interface** : écran principal, AVANCÉ, presets, visuels originaux. | rendus `guishot` relus |
+| 7 | **Interface** : refonte dans l'esprit Abrasion d'après la maquette (chaîne glisser-déposer, bibliothèque, caractères, IA animée, STYLE / NIVEAU / AUTO, réglage au clic) ; modules en plusieurs exemplaires possibles. | maquette validée par l'utilisateur ; rendus `guishot` relus |
 | 8 | **Guide et mode d'emploi** raccourcis. | |
 | 9 | **Vérification** finale : tests, ASan / TSan, validateur, CI Windows / macOS, critères mesurés. | tout vert |
 

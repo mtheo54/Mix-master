@@ -118,7 +118,7 @@ OMNIS_TEST("fiche: écrite dans la base puis relue à l'identique (et une fiche 
     OMNIS_CHECK(!old.entries().front().signature.music.valid);
 }
 
-OMNIS_TEST("fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch, un grave mono le met mono") {
+OMNIS_TEST("fiche: OMNIS s'en sert — une réf qui attaque plus est SIGNALÉE (pas de Punch d'office), un grave mono le met mono") {
     ai::ReferenceLibrary lib;
     ai::ReferenceEntry ref;
     ref.artist = "Ref";
@@ -143,7 +143,12 @@ OMNIS_TEST("fiche: OMNIS s'en sert — une réf qui attaque plus donne du Punch,
         if (id == params::ParamId::MonoAmount) mono = v;
     }
     for (const auto& s : plan.said) std::printf("    %s\n", s.c_str());
-    OMNIS_CHECK(punch > 40.0);
+    // Le Punch faisait taper chaque attaque dans le limiteur (6 dB de distorsion en plus sur une
+    // prod réelle, sans relief gagné) : AUTO ne le pousse plus, il le propose.
+    OMNIS_CHECK(punch < 0.0);
+    bool proposed = false;
+    for (const auto& s : plan.said) proposed = proposed || s.find("plus de punch") != std::string::npos;
+    OMNIS_CHECK(proposed);
     OMNIS_CHECK(mono == 100.0);
 }
 

@@ -565,3 +565,5 @@ Analogique	Analog
  · ANALOGIQUE	 · ANALOG
 Match EQ Analogique (cloches plus larges, aucun pré-écho sur les attaques)	Match EQ Analog (wider bells, no pre-echo on the attacks)
 Match EQ Propre (phase linéaire, précis)	Match EQ Clean (linear phase, precise)
+la réf attaque plus (+%.1f dB) : dis « plus de punch » pour la suivre	the reference hits harder (+%.1f dB): say “more punch” to follow it
+densité du niveau choisi ; plafond -1 dBTP	density of the chosen level; ceiling -1 dBTP
