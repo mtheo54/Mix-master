@@ -129,6 +129,7 @@ std::vector<std::unique_ptr<omnis::link::Endpoint>> shotProject() {
         stems::BusContent c;
         c.items = b.items;
         c.secondsHeard = 147.0;
+        c.songSeconds = c.songEnd = 147.0;
         e->publish(b.name, c);
         out.push_back(std::move(e));
     }

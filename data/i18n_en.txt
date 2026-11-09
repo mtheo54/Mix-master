@@ -615,8 +615,8 @@ Tes bus et ce qu'OMNIS entend dedans. Rien à mettre sur les pistes.	Your buses 
 OMNIS SUR TES BUS	OMNIS ON YOUR BUSES
 1. Sur chaque bus (DRUMS, 808, MÉLO, EFX…) :	1. On each bus (DRUMS, 808, MELODY, EFX…):
    OMNIS, RÔLE : Bus.	   OMNIS, ROLE: Bus.
-2. Lance la lecture : j'écoute chaque bus	2. Press play: I listen to each bus
-   et te dis ce qu'il y a dedans.	   and tell you what is in it.
+2. Joue le morceau du début à la fin :	2. Play the song from start to end:
+   chaque bus l'écoute en entier.	   each bus listens to all of it.
 Rien à mettre sur les pistes : le son des	Nothing to put on the tracks: the sound of
 bus ne change pas, le mixage non plus.	the buses does not change, nor does your mix.
 rien de net pour l'instant	nothing clear yet
@@ -631,3 +631,9 @@ Aucun bus OMNIS dans le projet. Pose OMNIS sur tes bus (DRUMS, MÉLO, EFX…), c
 RÔLE : Bus. Le son passe tel quel ; lance la lecture, je te dis ce qu'il y a dans ce bus (page COMPOSITION).	ROLE: Bus. The sound passes through untouched; press play, I tell you what is in this bus (COMPOSITION page).
 Cette instance est en RÔLE Bus : elle écoute sans toucher au son. Demande « composition », ou « rôle master » pour masteriser ici.	This instance is in ROLE Bus: it listens without touching the sound. Ask "composition", or "role master" to master here.
 COMPOSITION : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dans chacun.	COMPOSITION: with OMNIS on your buses (ROLE Bus), what is in each one.
+morceau écouté : 	song heard: 
+ sur 	 of 
+ (des passages manquent)	 (some passages missing)
+RÉÉCOUTER	RELISTEN
+Aucun bus OMNIS dans le projet : rien à réécouter.	No OMNIS bus in the project: nothing to relisten.
+Les bus repartent de zéro : lance la lecture du début à la fin, ils réécoutent tout le morceau.	The buses start over: play from start to end, they listen to the whole song again.

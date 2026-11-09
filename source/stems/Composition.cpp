@@ -7,6 +7,8 @@
 #include "core/I18n.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 
 namespace omnis::stems {
 
@@ -29,6 +31,19 @@ Composition buildComposition(const std::vector<link::InstanceView>& instances) {
     return out;
 }
 
+std::string describeListened(const BusView& b) {
+    if (b.content.songSeconds < 1.0) return {};
+    const auto mmss = [](double s) {
+        char t[16];
+        const int v = static_cast<int>(std::lround(s));
+        std::snprintf(t, sizeof t, "%d:%02d", v / 60, v % 60);
+        return std::string(t);
+    };
+    // Tout entendu jusqu'au point le plus loin : le morceau (ou ce qui en a été joué) en entier.
+    if (b.content.songSeconds + 1.5 >= b.content.songEnd) return i18n::tr("morceau écouté : ") + mmss(b.content.songSeconds);
+    return i18n::tr("morceau écouté : ") + mmss(b.content.songSeconds) + i18n::tr(" sur ") + mmss(b.content.songEnd) + i18n::tr(" (des passages manquent)");
+}
+
 std::string describeComposition(const Composition& c) {
     std::string s;
     for (const auto& b : c.buses) {
@@ -41,6 +56,7 @@ std::string describeComposition(const Composition& c) {
         } else {
             s += " :";
             for (std::size_t i = 0; i < b.content.items.size(); ++i) s += (i ? ", " : " ") + describeItem(b.content.items[i]);
+            if (const std::string l = describeListened(b); !l.empty()) s += " (" + l + ")";
         }
     }
     return s;

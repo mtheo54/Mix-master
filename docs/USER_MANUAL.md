@@ -467,8 +467,10 @@ put on the tracks**: your mix is not touched.
 
 1. On each **bus** (DRUMS, 808, MELODY, EFX…), put OMNIS and choose **ROLE: Bus** (COMPOSITION
    page, or type "role bus" in the AI bar).
-2. Press play. Within a few seconds, every OMNIS (the master and the buses) shows each bus, with
-   its name in FL, its group and what OMNIS hears in it:
+2. Play the song **from start to end**. Each bus listens to the whole song, each second only once:
+   replaying a loop does not count its hits twice, and the page says what has been heard ("song
+   heard: 2:27"). Every OMNIS (the master and the buses) shows each bus, with its name in FL, its
+   group and what OMNIS hears in it:
    - **DRUMS**: kick, snare / clap, hi-hat, open hat (with the number of hits);
    - **808 / BASS**: the 808 (how long it is held);
    - **MELODY**: lead / synth (attacked notes), pad (a held sound);
@@ -478,7 +480,8 @@ put on the tracks**: your mix is not touched.
 In **Bus**, the sound passes **untouched**, with no latency. FL does not tell plug-ins which tracks
 feed a bus: OMNIS therefore does not know your track names, it **hears** what the bus contains. A
 bus's group comes from its name ("DRUMS", "MELO", "EFX", "808"…), otherwise from what it contains.
-Type "composition" in the AI bar for the full list.
+Type "composition" in the AI bar for the full list. Changed your mix? **RELISTEN** (COMPOSITION
+page, or "relisten" in the AI bar): every bus starts over.
 
 What is better fixed track by track (an 808 that is too loud, low-mid build-up), the **mix
 diagnosis** tells you, so you can fix it in your project.

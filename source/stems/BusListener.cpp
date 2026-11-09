@@ -21,7 +21,7 @@ constexpr double kBandEdges[BusListener::kBands + 1] = {30.0, 120.0, 300.0, 4000
 constexpr double kTiny = 1e-20;
 constexpr double kSilenceDb = -60.0; ///< sous −60 dBFS : du souffle, pas de la musique
 constexpr double kMargin = 2.0;      ///< séparation : tenu si 2 fois plus « temps » que « fréquence », et l'inverse
-constexpr std::size_t kMaxFrames = 16384; ///< ~3 min à ~11 ms
+constexpr std::size_t kMaxFrames = 131072; ///< ~23 min à ~11 ms : le morceau entier (52 octets par trame)
 
 double toDb(double p) { return 10.0 * std::log10(p + kTiny); }
 
@@ -154,8 +154,8 @@ void BusListener::analyse() {
         }
         std::nth_element(row, row + count / 2, row + count);
         const double e = centre[static_cast<std::size_t>(k)], ht = column[kTimeMedian / 2], pf = row[count / 2];
-        (ht >= kMargin * pf ? f.h : pf >= kMargin * ht ? f.p : f.r)[band] += e;
-        f.total += e;
+        (ht >= kMargin * pf ? f.h : pf >= kMargin * ht ? f.p : f.r)[band] += static_cast<float>(e);
+        f.total += static_cast<float>(e);
     }
     if (toDb(f.total) > kSilenceDb) ++soundFrames_;
     frames_.push_back(f);
@@ -191,7 +191,7 @@ BusContent BusListener::content() const {
         double held = 0.0;
         for (const auto& [a, b] : notes) {
             double peak = 0.0;
-            for (std::size_t t = a; t < b; ++t) peak = std::max(peak, at(t).h[kSub]);
+            for (std::size_t t = a; t < b; ++t) peak = std::max(peak, static_cast<double>(at(t).h[kSub]));
             std::size_t near = 0;
             for (std::size_t t = a; t < b; ++t) near += toDb(at(t).h[kSub]) >= toDb(peak) - 12.0;
             if (ms(near) >= 250.0) {

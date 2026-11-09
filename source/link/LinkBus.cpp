@@ -47,6 +47,8 @@ bool readInfo(const Slot& s, std::string& name, stems::BusContent& content) {
         }
         content = {};
         content.secondsHeard = s.secondsHeard.load(std::memory_order_relaxed);
+        content.songSeconds = s.songSeconds.load(std::memory_order_relaxed);
+        content.songEnd = s.songEnd.load(std::memory_order_relaxed);
         const std::uint32_t count = std::min<std::uint32_t>(s.itemCount.load(std::memory_order_relaxed), kMaxItems);
         for (std::uint32_t i = 0; i < count; ++i) {
             const auto& it = s.items[i];
@@ -134,6 +136,11 @@ void Endpoint::heartbeat() noexcept {
     slot_->heartbeatMs.store(nowMs(), std::memory_order_relaxed);
 }
 
+std::uint32_t Endpoint::relistenCount() const noexcept {
+    const auto* h = static_cast<const Header*>(region_.data());
+    return slot_ && h ? h->relisten.load(std::memory_order_acquire) : 0;
+}
+
 void Endpoint::publish(std::string_view name, const stems::BusContent& content) noexcept {
     if (!slot_) return;
     Slot& s = *slot_;
@@ -145,6 +152,8 @@ void Endpoint::publish(std::string_view name, const stems::BusContent& content) 
     while (n > 0 && n < name.size() && (static_cast<unsigned char>(name[n]) & 0xC0u) == 0x80u) --n;
     for (std::size_t i = 0; i < static_cast<std::size_t>(kNameLength); ++i) s.name[i].store(i < n ? name[i] : '\0', std::memory_order_relaxed);
     s.secondsHeard.store(static_cast<float>(content.secondsHeard), std::memory_order_relaxed);
+    s.songSeconds.store(static_cast<float>(content.songSeconds), std::memory_order_relaxed);
+    s.songEnd.store(static_cast<float>(content.songEnd), std::memory_order_relaxed);
     const std::size_t count = std::min<std::size_t>(content.items.size(), kMaxItems);
     for (std::size_t i = 0; i < count; ++i) {
         const auto& it = content.items[i];
@@ -164,7 +173,7 @@ bool Observer::open() {
     if (header_) return true;
     // N'ouvre que si la région existe déjà et porte la bonne version.
     if (!region_.open(regionName(), sizeof(Header))) return false;
-    const auto* h = static_cast<const Header*>(region_.data());
+    auto* h = static_cast<Header*>(region_.data());
     if (h->magic.load(std::memory_order_acquire) != kMagic || h->version.load(std::memory_order_relaxed) != kLayoutVersion) {
         region_.close();
         return false;
@@ -176,6 +185,10 @@ bool Observer::open() {
 void Observer::close() noexcept {
     header_ = nullptr;
     region_.close();
+}
+
+void Observer::requestRelisten() noexcept {
+    if (header_) header_->relisten.fetch_add(1, std::memory_order_acq_rel);
 }
 
 std::vector<InstanceView> Observer::instances() const {

@@ -34,6 +34,9 @@ struct Composition {
 
 Composition buildComposition(const std::vector<link::InstanceView>& instances);
 
+/// Ce que le bus a écouté du morceau : « morceau écouté : 2:27 » (vide : rien encore).
+std::string describeListened(const BusView& b);
+
 /// En clair, pour la barre IA : « BUS « DRUMS » (DRUMS) : Kick (24), Snare / clap (23)… ». Vide sans bus.
 std::string describeComposition(const Composition& c);
 

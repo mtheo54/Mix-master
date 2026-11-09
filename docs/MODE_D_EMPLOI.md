@@ -473,7 +473,9 @@ les pistes** : ton mixage n'est pas touché.
 
 1. Sur chaque **bus** (DRUMS, 808, MÉLO, EFX…), mets OMNIS et choisis **RÔLE : Bus** (page
    COMPOSITION, ou écris « rôle bus » dans la barre IA).
-2. Lance la lecture. Au bout de quelques secondes, chaque OMNIS (le master comme les bus) montre
+2. Lance la lecture **du début à la fin du morceau**. Chaque bus écoute le morceau entier, chaque
+   seconde une seule fois : rejouer une boucle ne compte pas ses coups deux fois, et la page dit ce
+   qui a été écouté (« morceau écouté : 2:27 »). Chaque OMNIS (le master comme les bus) montre
    chaque bus, avec son nom dans FL, son groupe et ce qu'OMNIS entend dedans :
    - **DRUMS** : kick, snare / clap, hi-hat, open hat (avec le nombre de coups) ;
    - **808 / BASSE** : la 808 (combien de temps elle tient) ;
@@ -484,7 +486,8 @@ les pistes** : ton mixage n'est pas touché.
 En **Bus**, le son passe **tel quel** et sans latence. FL ne dit pas aux plug-ins quelles pistes
 entrent dans un bus : OMNIS ne connaît donc pas le nom de tes pistes, il **entend** ce que le bus
 contient. Le groupe d'un bus vient de son nom (« DRUMS », « MELO », « EFX », « 808 »…), sinon de ce
-qu'il contient. Écris « composition » dans la barre IA pour la liste complète.
+qu'il contient. Écris « composition » dans la barre IA pour la liste complète. Tu as changé ton mix ?
+**RÉÉCOUTER** (page COMPOSITION, ou « réécoute » dans la barre IA) : tous les bus repartent de zéro.
 
 Ce qui se corrige mieux piste par piste (une 808 trop forte, un bas-médium qui s'accumule), le
 **diagnostic du mix** te le dit, pour que tu le règles dans ton projet.

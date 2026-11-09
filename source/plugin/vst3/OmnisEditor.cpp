@@ -1694,6 +1694,10 @@ void OmnisEditor::buildDrawer(CViewContainer* root) {
         p->addView(list);
         live_.push_back(list);
         seg(p, CRect(12, row1 + 222, 300, row1 + 246), "RÔLE DE CETTE INSTANCE", P::InstanceRole);
+        // Après un changement du mix : tous les bus oublient et réécoutent le morceau.
+        auto* again = new HwButton(CRect(316, row1 + 222, W - 14, row1 + 246), "RÉÉCOUTER", [] { return false; }, [this] { answer_ = omnis()->relistenBuses(); }, false);
+        p->addView(again);
+        live_.push_back(again);
     }
     {
         // Diagnostic du mix : ce qu'OMNIS entend dans la prod, à corriger dans le projet.
@@ -1918,6 +1922,7 @@ void OmnisEditor::paintComposition(CDrawContext* dc, const CRect& r) {
             rows.push_back({"  " + i18n::tr("lance la lecture…"), {}, color::kText3, color::kText3});
             continue;
         }
+        if (const std::string l = stems::describeListened(b); !l.empty()) rows.push_back({"  " + l, {}, color::kText3, color::kText3});
         if (b.content.items.empty()) rows.push_back({"  " + i18n::tr("rien de net pour l'instant"), {}, color::kText3, color::kText3});
         // Ce qui est entendu : l'élément à gauche (couleur de son groupe), le détail à droite.
         for (const auto& item : b.content.items) {
@@ -2247,8 +2252,8 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
             const bool bus = omnis()->instanceRole() == params::InstanceRole::Bus;
             text(c, i18n::tr(bus ? "CETTE INSTANCE : BUS" : "CETTE INSTANCE : MASTER") + (omnis()->trackName().empty() ? "" : " « " + omnis()->trackName() + " »"),
                  CRect(plot.left, plot.top + 4, plot.right, plot.top + 20), color::kAccent, mono(10, true));
-            const char* lines[] = {"1. Sur chaque bus (DRUMS, 808, MÉLO, EFX…) :", "   OMNIS, RÔLE : Bus.", "2. Lance la lecture : j'écoute chaque bus",
-                                   "   et te dis ce qu'il y a dedans.", "Rien à mettre sur les pistes : le son des", "bus ne change pas, le mixage non plus."};
+            const char* lines[] = {"1. Sur chaque bus (DRUMS, 808, MÉLO, EFX…) :", "   OMNIS, RÔLE : Bus.", "2. Joue le morceau du début à la fin :",
+                                   "   chaque bus l'écoute en entier.", "Rien à mettre sur les pistes : le son des", "bus ne change pas, le mixage non plus."};
             for (int i = 0; i < 6; ++i)
                 text(c, i18n::tr(lines[i]), CRect(plot.left, plot.top + 30 + 15 * i, plot.right, plot.top + 44 + 15 * i), i >= 4 ? color::kText3 : color::kText2, mono(9.5));
             // Les groupes et leur couleur.

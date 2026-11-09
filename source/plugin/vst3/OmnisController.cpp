@@ -202,6 +202,14 @@ const stems::Composition& OmnisController::composition() {
     return composition_;
 }
 
+std::string OmnisController::relistenBuses() {
+    if (!observer_.isOpen()) observer_.open();
+    if (!observer_.isOpen()) return "Aucun bus OMNIS dans le projet : rien à réécouter.";
+    observer_.requestRelisten();
+    compositionAtMs_ = 0;
+    return "Les bus repartent de zéro : lance la lecture du début à la fin, ils réécoutent tout le morceau.";
+}
+
 std::string OmnisController::compositionText() {
     const auto& c = composition();
     if (c.empty())
@@ -543,6 +551,7 @@ std::string OmnisController::ask(const std::string& request) {
             setRole(params::InstanceRole::Master);
             return "RÔLE : Master. La chaîne de mastering est de retour.";
         }
+        if (hasAny({"reecoute", "re ecoute", "relisten", "ecoute a nouveau", "reecouter"})) return relistenBuses();
         if (hasAny({"composition", "dans mes bus", "dans le bus", "dans ce bus", "mes stems", "quels elements", "quel element", "what s in", "my stems",
                     "my buses"}))
             return compositionText();

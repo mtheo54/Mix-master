@@ -59,6 +59,8 @@ public:
     [[nodiscard]] const stems::Composition& composition();
     /// Ce que la barre IA dit (« BUS « DRUMS » (DRUMS) : Kick (24), … »).
     [[nodiscard]] std::string compositionText();
+    /// Tous les bus oublient ce qu'ils ont entendu et réécoutent le morceau (après un changement du mix).
+    std::string relistenBuses();
 
     Steinberg::IPlugView* PLUGIN_API createView(Steinberg::FIDString name) override;
     /// Messages du processeur : le flux de l'interface (UiFeed).

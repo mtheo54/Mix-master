@@ -166,7 +166,7 @@ entend ce qu'il contient (§12).
 
 Les instances Bus partagent une région de mémoire nommée (`link/SharedRegion` : CreateFileMapping
 « Local\ » sous Windows, shm_open ailleurs ; nommée parce que certains hôtes chargent chaque
-plug-in dans son propre processus). Disposition `link/LinkBus.h`, version 4 dans le nom de la
+plug-in dans son propre processus). Disposition `link/LinkBus.h`, version 5 dans le nom de la
 région ; une mémoire neuve, à zéro, vaut « tout libre ». Un emplacement (64 en tout) : jeton et
 battement de cœur (repris après 3 s de silence), nom du bus dans le DAW, secondes écoutées et
 jusqu'à 16 éléments entendus (élément, confiance, nombre de coups ou de notes, durée tenue), sous
@@ -174,10 +174,15 @@ une séquence « seqlock » à un seul écrivain. Tout est atomique sans verrou.
 
 **Threads :**
 - **Thread audio** (Bus) : copie l'entrée vers la sortie et pousse le son (pendant la lecture) dans
-  une file sans attente (perdu plutôt qu'attendre). Il ne touche jamais la région.
+  une file sans attente de ~11 s (vidée bien plus vite que le temps réel : rien ne se perd). Le
+  morceau entier est écouté, **chaque seconde du projet une seule fois** (repérée par
+  `projectTimeSamples` ; une seconde est « entendue » quand elle a été jouée depuis son début) :
+  rejouer une boucle ne double pas les coups. Il ne touche jamais la région.
 - **Thread du lien** (50 ms) : rejoint la région (réessaie chaque seconde), bat le cœur avant et
-  après le travail lourd, écoute au plus ~1 s de son par tour (`stems/BusListener`), publie le nom
-  et le contenu chaque seconde (ou tout de suite si le bus est renommé).
+  après le travail lourd, écoute au plus ~4 s de son par tour (`stems/BusListener`, jusqu'à ~23 min
+  de morceau gardées), publie le nom, le contenu et ce qui a été écouté du morceau chaque seconde
+  (ou tout de suite si le bus est renommé). RÉÉCOUTER (n'importe quelle instance) incrémente un
+  compteur de la région : chaque bus efface ses secondes entendues et repart de zéro.
 - **Contrôleur** (toutes les instances, Master compris) : `link::Observer` lit la région sans
   prendre d'emplacement ; `stems::buildComposition` au plus une fois par seconde (page COMPOSITION,
   barre IA « composition »).

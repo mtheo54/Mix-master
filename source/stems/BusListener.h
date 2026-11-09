@@ -47,7 +47,10 @@ struct HeardItem {
 
 struct BusContent {
     std::vector<HeardItem> items; ///< dans l'ordre DRUMS, 808, MÉLO, EFX
-    double secondsHeard = 0.0;
+    double secondsHeard = 0.0;    ///< secondes de son (non silencieuses) écoutées
+    // Ce qui a été écouté du morceau (positions dans le projet, chaque seconde une seule fois) :
+    double songSeconds = 0.0;     ///< secondes du morceau entendues
+    double songEnd = 0.0;         ///< jusqu'où (seconde du morceau la plus loin entendue)
     [[nodiscard]] bool has(Element e) const noexcept;
     [[nodiscard]] Family mainFamily() const noexcept; ///< le groupe qui pèse le plus (Unknown : rien)
 };
@@ -64,7 +67,7 @@ public:
     void reset();
     void push(const double* left, const double* right, int numFrames);
     [[nodiscard]] double secondsHeard() const noexcept;
-    /// Analyse de tout ce qui a été écouté (les ~3 dernières minutes).
+    /// Analyse de tout ce qui a été écouté (le morceau entier : jusqu'à ~23 min de son).
     [[nodiscard]] BusContent content() const;
 
     /// Bandes (exposées pour les tests) : grave 30–120, bas 120–300, médium 300–4000, aigu 4000–16000 Hz.
@@ -72,8 +75,8 @@ public:
 
 private:
     struct Frame {
-        double h[kBands]{}, p[kBands]{}, r[kBands]{}; ///< énergie harmonique / percussive / ni l'un ni l'autre (bruit)
-        double total = 0.0;
+        float h[kBands]{}, p[kBands]{}, r[kBands]{}; ///< énergie harmonique / percussive / ni l'un ni l'autre (bruit)
+        float total = 0.0f;
     };
     void analyse();
 

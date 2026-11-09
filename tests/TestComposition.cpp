@@ -134,7 +134,7 @@ OMNIS_TEST("lien: thread audio, thread du lien et lecture d'une autre instance e
     std::thread audio([&] {
         for (std::size_t pos = 0; !quit.load(); pos += 512) {
             const float* p = kick.data() + (pos % (kick.size() - 512));
-            bus.process(p, p, 512, true);
+            bus.process(p, p, 512, true, -1); // position inconnue : tout est écouté
             if (pos % 8192 == 0) std::this_thread::sleep_for(std::chrono::microseconds(300));
         }
     });
@@ -164,6 +164,74 @@ OMNIS_TEST("lien: thread audio, thread du lien et lecture d'une autre instance e
     bus.start(kFs);
     for (int i = 0; i < 30 && obs.instances().empty(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
     OMNIS_CHECK(obs.instances().size() == 1);
+    bus.stop();
+    obs.close();
+}
+
+OMNIS_TEST("lien: le morceau écouté une seule fois par seconde (une boucle rejouée ne double rien), RÉÉCOUTER repart de zéro") {
+    Namespace ns;
+    constexpr double kFs = 48000.0;
+    constexpr int kSeconds = 8;
+    std::vector<float> kick(static_cast<std::size_t>(kSeconds * kFs), 0.0f);
+    std::mt19937 rng(5);
+    std::uniform_real_distribution<float> u(-1.0f, 1.0f);
+    for (double t = 0.0; t < kSeconds; t += 60.0 / 140.0)
+        for (std::size_t k = 0; k < static_cast<std::size_t>(0.3 * kFs); ++k) {
+            const double s = static_cast<double>(k) / kFs;
+            const auto i = static_cast<std::size_t>(t * kFs) + k;
+            if (i < kick.size())
+                kick[i] += static_cast<float>(0.7 * std::exp(-s / 0.08) * std::sin(2 * std::numbers::pi * (50.0 * s + 3.0 * (1.0 - std::exp(-s / 0.03)))) +
+                                              0.3 * std::exp(-s / 0.004) * u(rng));
+        }
+    link::LinkClient bus;
+    bus.setTrackName("DRUMS");
+    bus.start(kFs);
+    // Le morceau joué du début à la fin (comme l'hôte : blocs de 512, position dans le projet).
+    const auto play = [&] {
+        for (std::size_t pos = 0; pos + 512 <= kick.size(); pos += 512)
+            bus.process(kick.data() + pos, kick.data() + pos, 512, true, static_cast<std::int64_t>(pos));
+        bus.process(kick.data(), kick.data(), 512, false, -1); // arrêt
+    };
+    const auto settle = [&](auto&& done) {
+        for (int i = 0; i < 80 && !done(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    };
+    const auto kicks = [&] {
+        for (const auto& it : bus.content().items)
+            if (it.element == Element::Kick) return it.count;
+        return 0;
+    };
+    // Stable : deux publications de suite identiques (l'écoute a fini de vider la file).
+    const auto stable = [&] {
+        for (int i = 0; i < 40; ++i) {
+            const int a = kicks();
+            const double h = bus.content().secondsHeard;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+            if (kicks() == a && bus.content().secondsHeard == h && a > 0) return;
+        }
+    };
+    play();
+    settle([&] { return bus.content().songSeconds >= kSeconds - 1 && kicks() > 0; });
+    stable();
+    const int first = kicks();
+    const double heard = bus.content().secondsHeard;
+    std::printf("      1re écoute : %d kicks, %.0f s du morceau (jusqu'à %.0f s)\n", first, bus.content().songSeconds, bus.content().songEnd);
+    OMNIS_CHECK(first >= 10 && bus.content().songSeconds >= kSeconds - 1 && bus.content().songEnd >= kSeconds - 1);
+    // La même boucle rejouée deux fois : rien de plus n'est écouté, les coups ne doublent pas.
+    play();
+    play();
+    stable();
+    std::printf("      après 2 relectures : %d kicks, %.1f s de son\n", kicks(), bus.content().secondsHeard);
+    OMNIS_CHECK(kicks() == first && std::fabs(bus.content().secondsHeard - heard) < 0.6);
+    // RÉÉCOUTER (depuis n'importe quelle instance) : tout repart de zéro, puis une écoute complète redonne la même chose.
+    link::Observer obs;
+    settle([&] { return obs.open(); });
+    obs.requestRelisten();
+    settle([&] { return bus.content().songSeconds == 0.0; });
+    OMNIS_CHECK(bus.content().songSeconds == 0.0 && kicks() == 0);
+    play();
+    settle([&] { return bus.content().songSeconds >= kSeconds - 1 && kicks() > 0; });
+    stable();
+    OMNIS_CHECK(std::abs(kicks() - first) <= 1);
     bus.stop();
     obs.close();
 }

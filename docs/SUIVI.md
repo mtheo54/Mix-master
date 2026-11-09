@@ -56,6 +56,12 @@
 
 ## Fait récemment
 
+- **09/11 — Écouter toute la prod** (demande de l'utilisateur, « pour que ce soit hyper précis ») :
+  chaque bus écoute le morceau entier (plus de limite à 3 min : ~23 min gardées, trames en float),
+  sans perte (file de ~11 s, vidée 4 s par tour), et chaque seconde du projet une seule fois (une
+  boucle rejouée ne double pas les coups). La page dit « morceau écouté : 2:27 » (ou les passages
+  manquants) ; RÉÉCOUTER (page ou barre IA) remet tous les bus à zéro après un changement du mix.
+  Test : 8 s jouées puis rejouées deux fois → 19 kicks avant comme après ; réécoute → 0 puis 19.
 - **09/11 — OMNIS sur les bus : page COMPOSITION, groupe EFX** (demande de l'utilisateur : voir
   ce qu'il y a dans chaque bus, un groupe EFX pour les reverse cymbals ; puis, décision : **rien sur
   les pistes**, « sinon ça pose problème au mixage », et pas de script FL : « on garde uniquement

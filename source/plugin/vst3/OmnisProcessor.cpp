@@ -598,7 +598,8 @@ template <typename Sample>
 void OmnisProcessor::processListening(ProcessData& data, Sample** inputs) {
     // Avant la copie vers la sortie : l'hôte peut traiter en place, l'entrée est encore intacte.
     const auto* ctx = data.processContext;
-    link_.process(inputs[0], inputs[1], data.numSamples, ctx && (ctx->state & ProcessContext::kPlaying) != 0);
+    const bool playing = ctx && (ctx->state & ProcessContext::kPlaying) != 0;
+    link_.process(inputs[0], inputs[1], data.numSamples, playing, playing ? static_cast<std::int64_t>(ctx->projectTimeSamples) : -1);
 }
 
 // -----------------------------------------------------------------------------

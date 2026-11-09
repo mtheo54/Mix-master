@@ -85,8 +85,8 @@
 
 ## source/link/
 
-- `LinkBus.h/cpp` (319 l.) — Les bus d'un projet se voient. · types : InstanceView, Item, Header, Endpoint, Observer · enums : Role · fonctions : regionName, nowMs, isLive, join, leave, heartbeat, publish, open, close
-- `LinkClient.h/cpp` (178 l.) — Une instance BUS dans la région partagée. · types : LinkClient · fonctions : start, stop, setTrackName, process, run
+- `LinkBus.h/cpp` (337 l.) — Les bus d'un projet se voient. · types : InstanceView, Item, Header, Endpoint, Observer · enums : Role · fonctions : regionName, nowMs, isLive, join, leave, heartbeat, publish, open, close, requestRelisten
+- `LinkClient.h/cpp` (251 l.) — Une instance BUS dans la région partagée. · types : LinkClient · fonctions : start, stop, setTrackName, relisten, process, run
 - `SharedRegion.h/cpp` (136 l.) — Mémoire partagée nommée entre instances du plug-in. · types : SharedRegion · fonctions : open, close, unlink
 
 ## source/params/
@@ -95,11 +95,11 @@
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (1689 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, UndoStep · enums : RefKind · fonctions : createInstance, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode, importReferenceFile
-- `OmnisEditor.h/cpp` (2792 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
+- `OmnisController.h/cpp` (1700 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
+- `OmnisEditor.h/cpp` (2797 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (32 l.) — Identifiants de classes VST3.
-- `OmnisProcessor.h/cpp` (825 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, switchRole, startLink, processListening, passThrough, feedBlock
+- `OmnisProcessor.h/cpp` (826 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, switchRole, startLink, processListening, passThrough, feedBlock
 - `OmnisState.h/cpp` (126 l.) — Format binaire de l'état du processeur. · fonctions : writeState, readState, writeExtras, readExtras
 - `OmnisVersion.h` (27 l.) — Identité et version du plug-in.
 - `UiFeed.h/cpp` (110 l.) — Ce que le processeur montre à l'interface, sans passer par les paramètres de sortie (trop lents et trop maigres pour un spectre ou un goniomètre). · types : UiMeters, UiFeed · fonctions : registerFeed, unregisterFeed, findFeed
@@ -125,8 +125,8 @@
 
 ## source/stems/
 
-- `BusListener.h/cpp` (512 l.) — Ce qu'il y a dans un bus, à l'écoute. · types : HeardItem, BusContent, BusListener, Frame · fonctions : describeItem, prepare, reset, push, analyse
-- `Composition.h/cpp` (91 l.) — Tes bus et ce qu'il y a dedans : la page COMPOSITION. · types : BusView, Composition · fonctions : buildComposition, describeComposition
+- `BusListener.h/cpp` (515 l.) — Ce qu'il y a dans un bus, à l'écoute. · types : HeardItem, BusContent, BusListener, Frame · fonctions : describeItem, prepare, reset, push, analyse
+- `Composition.h/cpp` (110 l.) — Tes bus et ce qu'il y a dedans : la page COMPOSITION. · types : BusView, Composition · fonctions : buildComposition, describeListened, describeComposition
 - `DrumBus.h/cpp` (234 l.) — Ce qu'il y a dans un bus de drums : kick, snare / clap, hi-hat, open hat, reconnus à leurs coups (thread du lien, jamais l'audio). · types : DrumContent, Item, DrumBusAnalyzer, Biquad · fonctions : describeDrumBus, prepare, reset, push, run, endFrame
 - `Element.h/cpp` (324 l.) — Les éléments d'une prod et leurs groupes. · types : NameHint · enums : Element, Family · fonctions : familyOf, familyLabel, familyFromName, elementLabel, elementKey, elementFromKey, elementChoiceLabels, elementMeterLabels, nameWords, elementFromName
 
@@ -134,7 +134,7 @@
 
 - `TestAvatarStylizer.cpp` (255 l.) — L'illustration d'une pochette : macaron du coin retiré, grain effacé, teinte gardée, trait sur les contours, détourage. · 9 tests : avatar HD: 256 px, macaron du coin retiré, couleurs d'origine, fondu s ; avatar peint (option): macaron retiré, teinte gardée, détourage radial ; avatar emblème: des formes posées d'après l'image (pas de filtre), ron ; emblème: chaque forme rapproche du modèle (un disque est retrouvé) ; avatar: un bloc de texte noir et blanc est repéré dans un coin, jamais ; avatar: les deux couleurs dominantes (monogramme du mode promo) ; …
 - `TestBusListener.cpp` (174 l.) — Ce qu'OMNIS entend dans un bus (sans rien sur les pistes). · 6 tests : bus: un bus DRUMS -> kick, snare / clap, hi-hat, open hat, et rien d'a ; bus: 808 (propre ou saturée) entendue comme 808, pas comme du mélo ; a ; bus: MÉLO -> nappe (tenue) et lead / synthé (attaques), sans drums ni  ; bus: EFX -> reverse cymbal, riser, impact reconnus ; les hats n'en fon ; bus: toute la prod dans un bus -> tous les groupes entendus ; bus: silence, bruit de fond, trop peu d'écoute -> rien d'inventé
-- `TestComposition.cpp` (170 l.) — Les bus du projet se voient (région partagée, page COMPOSITION, thread du lien). · 3 tests : composition: chaque bus, son groupe (nom, sinon contenu) et ce qu'il c ; composition: la région partagée (bus, noms, contenu) se lit d'une autr ; lien: thread audio, thread du lien et lecture d'une autre instance en 
+- `TestComposition.cpp` (238 l.) — Les bus du projet se voient (région partagée, page COMPOSITION, thread du lien). · 4 tests : composition: chaque bus, son groupe (nom, sinon contenu) et ce qu'il c ; composition: la région partagée (bus, noms, contenu) se lit d'une autr ; lien: thread audio, thread du lien et lecture d'une autre instance en  ; lien: le morceau écouté une seule fois par seconde (une boucle rejouée
 - `TestCompressor.cpp` (204 l.) — Compresseur de bus (stages/CompressorStage) : courbe à genou continue, réduction statique exacte, rien sous le seuil (au bit près), stéréo liée, passe-haut du détecteur (la 808 ne pompe pas), · 7 tests : compresseur: courbe à genou doux continue (0 sous le seuil, pente 1/R  ; compresseur: réduction statique exacte (sinus -6 dBFS, seuil -18, 4:1  ; compresseur: stéréo liée (même gain à gauche et à droite) ; Mix 0 % =  ; compresseur: le passe-haut du détecteur empêche la 808 (40 Hz) de fair ; compresseur: attaque et relâchement (FET 1 ms rapide ; relâchement sui ; compresseur Opto: relâche vite après un coup bref, lentement après une ; …
 - `TestConvolution.cpp` (133 l.) — FFT, convolution UPOLS, noyaux à phase linéaire. · 3 tests : fft: identique à la DFT directe, aller-retour exact (N = 8 … 4096) ; upols: deux canaux = convolutions directes, latence exacte B, changeme ; noyaux sub: réponse conforme à la cible, phase linéaire (symétrie), Mi
 - `TestCore.cpp` (191 l.) — Primitives temps réel. · 9 tests : smoother: 99 % atteint au temps de lissage, sans dépassement ; smoother: colle exactement à la cible et s'arrête ; smoother: temps nul = saut immédiat ; spsc: sémantique FIFO, bouclage et file pleine ; spsc: concurrence producteur/consommateur, 2 millions d'éléments ordon ; triple buffer: le lecteur ne voit jamais d'état déchiré, versions croi ; …
@@ -216,7 +216,7 @@
 
 ## tools/guishot/
 
-- `main.cpp` (255 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
+- `main.cpp` (256 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
 
 ## tools/learn/
 

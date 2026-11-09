@@ -30,7 +30,7 @@
 
 namespace omnis::link {
 
-inline constexpr std::uint32_t kLayoutVersion = 4; ///< 4 : bus seulement, ce qu'ils contiennent (plus de pistes ni d'empreintes)
+inline constexpr std::uint32_t kLayoutVersion = 5; ///< 5 : + ce qui a été écouté du morceau, demande de réécoute
 inline constexpr int kSlots = 64;
 inline constexpr int kNameLength = 48;
 inline constexpr int kMaxItems = 16;
@@ -57,7 +57,7 @@ struct alignas(kCacheLineSize) Slot {
     std::atomic<std::uint32_t> role;
     std::atomic<std::uint32_t> infoSeq; ///< impair : écriture en cours
     std::atomic<char> name[kNameLength];
-    std::atomic<float> secondsHeard;
+    std::atomic<float> secondsHeard, songSeconds, songEnd;
     std::atomic<std::uint32_t> itemCount;
     struct Item {
         std::atomic<std::uint32_t> element, count;
@@ -68,6 +68,7 @@ struct alignas(kCacheLineSize) Slot {
 struct Header {
     std::atomic<std::uint32_t> magic;
     std::atomic<std::uint32_t> version;
+    std::atomic<std::uint32_t> relisten; ///< incrémenté pour que tous les bus réécoutent de zéro
     Slot slots[kSlots];
 };
 
@@ -92,6 +93,8 @@ public:
     [[nodiscard]] int slotIndex() const noexcept { return slotIndex_; }
     /// Au moins toutes les secondes.
     void heartbeat() noexcept;
+    /// Compteur de réécoute de la région (un changement : tout réécouter).
+    [[nodiscard]] std::uint32_t relistenCount() const noexcept;
     void publish(std::string_view name, const stems::BusContent& content) noexcept;
 
 private:
@@ -111,10 +114,12 @@ public:
     [[nodiscard]] bool isOpen() const noexcept { return header_ != nullptr; }
     void close() noexcept;
     [[nodiscard]] std::vector<InstanceView> instances() const;
+    /// Tous les bus oublient ce qu'ils ont entendu et réécoutent le morceau (après un changement du mix).
+    void requestRelisten() noexcept;
 
 private:
     SharedRegion region_;
-    const Header* header_ = nullptr;
+    Header* header_ = nullptr;
 };
 
 } // namespace omnis::link
