@@ -90,12 +90,14 @@ public:
     void setAccentText(bool accent) { accentText_ = accent; }
     /// Plein, couleur de la marque (le bouton principal : AUTO).
     void setFilled(bool filled) { filled_ = filled; }
+    /// Plein blanc, coins coupés (`.btn` de la maquette : APPLIQUER).
+    void setWhite(bool white) { white_ = white; }
 
 private:
     std::string label_;
     std::function<bool()> isOn_;
     std::function<void()> onClick_;
-    bool withLed_, blink_ = false, accentText_ = false, filled_ = false;
+    bool withLed_, blink_ = false, accentText_ = false, filled_ = false, white_ = false;
     int shownState_ = -1, phase_ = 0;
 };
 
@@ -105,8 +107,12 @@ public:
     void draw(CDrawContext* c) override;
     void onMouseDownEvent(VSTGUI::MouseDownEvent& e) override;
     void tick() override;
+    /// Des puces séparées (`.chip` : les caractères au réglage) plutôt qu'un segment.
+    void setChips(bool chips) { chips_ = chips; }
 
 private:
+    bool chips_ = false;
+    std::vector<double> bounds_; ///< bord droit de chaque bouton (dessinés à la largeur de leur mot)
     std::vector<std::string> labels_;
     std::function<int()> get_;
     std::function<void(int)> set_;
@@ -147,7 +153,12 @@ public:
         std::function<void(CCoord frameX)> dragMove;
         std::function<void(CCoord frameX)> drop;
         std::function<std::string()> character; ///< son caractère (« VCA »), vide s'il n'en a pas
+        std::function<void()> nextCharacter;    ///< un clic sur l'étiquette : le caractère suivant
+        std::function<void()> remove;           ///< la croix : hors de la chaîne (dans la bibliothèque)
+        std::string code;                       ///< « SUB », « EQ », « COMP »… (`.ctrk` : « 01 · OBJ · SUB »)
     };
+    /// Marges autour de la carte : l'étiquette au-dessus, les crochets de la carte choisie.
+    static constexpr CCoord kMarginX = 12.0, kMarginTop = 18.0, kMarginBottom = 12.0, kCardH = 194.0;
     RackSlot(const CRect& r, std::string number, std::string title, Callbacks cb);
     void drawBackgroundRect(CDrawContext* c, const CRect& updateRect) override;
     void onMouseDownEvent(VSTGUI::MouseDownEvent& e) override;
@@ -171,11 +182,16 @@ public:
         }
     }
     [[nodiscard]] CRect ledRect() const;
+    [[nodiscard]] CRect removeRect() const;
+    [[nodiscard]] CRect charRect() const;
+    [[nodiscard]] CRect cardRect() const; ///< la carte dans la vue (hors marges)
+    void setHover(bool h);
 
 private:
     std::string number_, title_;
     Callbacks cb_;
-    bool dragging_ = false, pressed_ = false, dimmed_ = false;
+    bool dragging_ = false, pressed_ = false, dimmed_ = false, hover_ = false;
+    std::string shownCharacter_;
     int dropMark_ = 0; ///< −1 : marque à gauche, +1 : à droite
     CCoord pressX_ = 0.0;
     std::string shownStatus_;

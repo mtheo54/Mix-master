@@ -60,6 +60,17 @@
 
 ## Fait récemment
 
+- **10/11 (soir) — Interface refaite à l'exact de la maquette** (l'utilisateur n'aimait pas la première
+  adaptation). Dessinée aux mesures de la maquette (1200 × 1040), affichée à 83 % (`kZoom`, CFrame::setZoom) ;
+  polices Space Mono / Space Grotesk livrées dans `Resources/Fonts` (OFL, `resources/Fonts/`) ; fond noir,
+  grille de 48 px, halo ambre ; logo en verre ; segments blancs ; puces ; potards à arc (le SVG de la
+  maquette) ; cartes de 148 px (« 01 · OBJ · SUB », voyant = allumer / éteindre, × = retirer, étiquette =
+  caractère suivant), bande qui défile, flux pointillé animé, « ENTRÉE » vertical, HUD (latence cliquable) ;
+  bibliothèque ; 03 / RÉGLAGE en cadre à crochets, « COMP · VCA » et la phrase du caractère, ALLUMÉ ;
+  colonne : NIVEAU, barres rayées L / R / GR, mesures à points de suite, puis les fonctions de base
+  (écoute M/S, MATCH, DELTA, écoute simulée, gain, diagnostic, export). Noms et macros de la maquette
+  (EQ / TON, Saturation / CHALEUR, Multibande / TENUE, Limiteur / VOLUME, Comp / COLLE).
+
 - **10/11 — Interface : la maquette « OMNIS Rack » dans le plug-in** (étape 7 de la refonte, demande de
   l'utilisateur). Fenêtre 1200 × 800 : barre du haut (marque, MASTER / COMPOSITION, A / B, AVANT / APRÈS,
   MATCH, DELTA, écoute M/S, ?, LAT) ; 01 / STYLE (styles mesurés en puces, TOUS LES GENRES, RÉF, AUTO

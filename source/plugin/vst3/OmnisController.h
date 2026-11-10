@@ -192,6 +192,11 @@ public:
     [[nodiscard]] const std::string& referenceName() const noexcept { return refName_; }
 
     /// Mémoires A / B : deux réglages complets, gardés avec la session.
+    /// Les modules retirés de la chaîne (la croix d'une carte) : un bit par module (params::Module).
+    /// Différent d'éteint : une carte éteinte reste dans la chaîne, grisée. -1 : pas encore décidé
+    /// (l'interface y met les modules éteints à sa première ouverture).
+    [[nodiscard]] int chainHidden() const noexcept { return chainHidden_; }
+    void setChainHidden(int mask) noexcept { chainHidden_ = mask; }
     [[nodiscard]] int abSlot() const noexcept { return abSlot_; }
     void selectAB(int slot);
     void copyABToOther();
@@ -247,6 +252,7 @@ private:
     mutable int promo_ = -1; ///< -1 : pas encore lu
     RefKind refKind_ = RefKind::None;
     std::string refName_;
+    int chainHidden_ = -1;
     bool pendingRef_ = false;
     std::string runReference();
     bool autoRunning_ = false;

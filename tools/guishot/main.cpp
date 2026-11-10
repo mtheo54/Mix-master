@@ -24,6 +24,7 @@
 #include "vstgui/lib/cframe.h"
 #include "vstgui/lib/coffscreencontext.h"
 #include "vstgui/lib/platform/platformfactory.h"
+#include "vstgui/lib/platform/linux/linuxfactory.h"
 #include "vstgui/lib/vstguiinit.h"
 
 #include <dlfcn.h>
@@ -142,6 +143,8 @@ int main(int argc, char** argv) {
     const std::string dir = argc > 1 ? argv[1] : ".";
     const std::string mode = argc > 2 ? argv[2] : "master";
     VSTGUI::init(dlopen(nullptr, RTLD_LAZY));
+    // Les polices du plug-in (resources/Fonts), comme dans le paquet VST3.
+    if (auto* lf = VSTGUI::getPlatformFactory().asLinuxFactory()) lf->setResourcePath(OMNIS_RESOURCES_DIR);
     {
         Rig rig;
         rig.proc->initialize(&rig.host);

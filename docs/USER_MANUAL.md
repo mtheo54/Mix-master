@@ -84,20 +84,23 @@ clipper before OMNIS): it needs that room to work well.
 ## 5. The console
 
 ```
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│ abrasion LABS OMNIS · MASTER/COMPOSITION · A B A>B · BEFORE/AFTER · MATCH · DELTA · │
-│ STEREO/MID/SIDE · ? · LAT                                                         │
-├────────────────────────────────────────────────────────────────┬──────────────────┤
-│ 01 / STYLE: RAP FR · RAP US · TRAP · RAGE… · ALL GENRES · REF    [ AUTO ] │ LEVEL            │
-├────────────────────────────────────────────────────────────────┤ Streaming −14    │
-│ AI [ your request……………… ] APPLY · OMNIS: its answer             │ Balanced −11 …   │
-├────────────────────────────────────────────────────────────────┤ L · R · LUFS · GR│
-│ 02 / THE CHAIN: one card per module in use (× removes it)       │ LUFS, true peak, │
-│      library: + the modules out of the chain                    │ PLR, LRA…        │
-├────────────────────────────────────────────────────────────────┤ INPUT · OUTPUT   │
-│ 03 / SETTINGS: settings of the open module  │  its screen       │ LISTEN · EXPORT  │
-└────────────────────────────────────────────────────────────────┴──────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│ abrasion LABS OMNIS   MASTER/COMPOSITION · A B A>B · BEFORE/AFTER · READY TO EXPORT · ? │
+├───────────────────────────────────────────────────────────────┬──────────────────┤
+│ ▫ 01 / STYLE  RAP FR · RAP US · TRAP · RAGE… · ALL GENRES · REF     [■ AUTO] │ ▫ LEVEL           │
+│ AI  your request……………………………………………………………… [APPLY]                │ Streaming −14 …   │
+│ OMNIS  its answer                                                │ bars L · R · GR   │
+│ 02 / THE CHAIN                                   LATENCY (click) │ LUFS, true peak,  │
+│  01 · OBJ · SUB   02 · OBJ · EQ   03 · OBJ · COMP …  (scrolls)   │ range, PLR…       │
+│  + SUB · + EQ · + COMP · + SATURATION … (library)               │ ▫ LISTEN: stereo  │
+│ 03 / SETTINGS   COMP · VCA  "the clean bus glue"  ON            │ MID SIDE · MATCH  │
+│  every setting of the module          │  its screen             │ DELTA · simulated │
+│                                                                  │ ▫ GAIN · export   │
+└───────────────────────────────────────────────────────────────┴──────────────────┘
 ```
+
+The interface follows the "OMNIS Rack" mock-up: Space Mono and Space Grotesk fonts (shipped with the
+plug-in), black, amber, corner brackets around what is selected.
 
 - **01 / STYLE**: measured styles in one click (AUTO aims at them next); **ALL GENRES…** or **REF**
   opens the window with every genre; **AUTO** on the right.

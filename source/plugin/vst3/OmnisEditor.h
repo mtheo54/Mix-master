@@ -67,7 +67,8 @@ public:
     bool PLUGIN_API open(void* parent, const VSTGUI::PlatformType& platformType) override;
     void PLUGIN_API close() override;
 
-    static constexpr int kWidth = 1200, kHeight = 800;
+    static constexpr int kWidth = 1200, kHeight = 1040; ///< la maquette, à ses mesures
+    static constexpr double kZoom = 0.83;               ///< à l'écran : 996 × 863
 
     /// Construit la console dans `root` (kWidth × kHeight).
     void buildInto(VSTGUI::CViewContainer* root);
@@ -107,6 +108,9 @@ private:
     VSTGUI::CViewContainer* page(VSTGUI::CViewContainer* drawer, int index, const char* number, const char* title, const char* help);
     void knobs(VSTGUI::CViewContainer* parent, const VSTGUI::CRect& area, const char* title, const std::vector<std::uint32_t>& ids, int size = 1);
     void layoutRack();
+    void scrollChainTo(int module);
+    [[nodiscard]] std::string moduleCharacter(int module) const; ///< « VCA », « Lampe »… (vide : aucun)
+    void nextCharacter(int module);
     /// `later` (un module) est allumé et placé après `first` dans le rack.
     [[nodiscard]] bool onAfter(int first, int later) const;
     [[nodiscard]] std::array<int, 8> order() const; ///< modules dans l'ordre du rack (params::kModules)
@@ -153,7 +157,10 @@ private:
     std::vector<int> shownModules_;              ///< les modules de la chaîne (allumés), dans l'ordre
     double slotW_ = 150.0;
     int lastMask_ = -1;                          ///< modules allumés au dernier rangement
-    int lastModule_ = 6;                         ///< le module ouvert avant COMPOSITION
+    int lastModule_ = 6;
+    double refChipLeft_ = 0.0;                   ///< où finissent les puces de style (la référence vient après)
+    VSTGUI::CViewContainer* chain_ = nullptr;   ///< la bande des cartes (défile à la molette)
+    double chainScroll_ = 0.0, chainContentW_ = 0.0;                         ///< le module ouvert avant COMPOSITION
     VSTGUI::CView* library_ = nullptr;           ///< les modules hors de la chaîne
     VSTGUI::CViewContainer* rack_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 10> pages_{};

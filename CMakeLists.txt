@@ -276,6 +276,13 @@ if(OMNIS_BUILD_VST3)
         target_compile_definitions(OMNIS PRIVATE OMNIS_HAS_GUI=1)
         # Textes accentués de l'interface : sources en UTF-8.
         target_compile_options(OMNIS PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+        # Les polices de la maquette (Space Mono, Space Grotesk ; licence OFL) dans le paquet :
+        # VSTGUI les charge tout seul depuis Resources/Fonts (Windows, macOS, Linux).
+        smtg_target_add_plugin_resources(OMNIS
+            RESOURCES
+                resources/Fonts/SpaceMono-Regular.ttf resources/Fonts/SpaceMono-Bold.ttf resources/Fonts/SpaceGrotesk.ttf
+                resources/Fonts/OFL-SpaceMono.txt resources/Fonts/OFL-SpaceGrotesk.txt
+            OUTPUT_SUBDIRECTORY Fonts)
     endif()
 
     # Rendu de la console hors écran (PNG), pour la vérifier sans DAW (Linux).
@@ -288,7 +295,7 @@ if(OMNIS_BUILD_VST3)
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/hostclasses.cpp
             ${vst3sdk_SOURCE_DIR}/public.sdk/source/vst/hosting/pluginterfacesupport.cpp)
         target_include_directories(omnis_guishot PRIVATE source)
-        target_compile_definitions(omnis_guishot PRIVATE OMNIS_HAS_GUI=1)
+        target_compile_definitions(omnis_guishot PRIVATE OMNIS_HAS_GUI=1 OMNIS_RESOURCES_DIR="${CMAKE_SOURCE_DIR}/resources/")
         target_link_libraries(omnis_guishot PRIVATE omnis_tools_common omnis_core vstgui_support sdk ${CMAKE_DL_LIBS})
     endif()
 

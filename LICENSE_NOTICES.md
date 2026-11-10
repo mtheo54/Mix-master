@@ -189,3 +189,11 @@ fichier (`third_party/stb/stb_image.h`, `stb_image_write.h`, `third_party/dr_lib
 - La page ne charge rien de l'extérieur (pas de police, de script ni de requête : règle de
   sécurité `connect-src 'none'`).
 
+## Polices de l'interface (resources/Fonts, livrées dans OMNIS.vst3/Contents/Resources/Fonts)
+
+- **Space Mono** — Copyright 2016 The Space Mono Project Authors (https://github.com/googlefonts/spacemono),
+  licence **SIL Open Font License 1.1** (texte : `OFL-SpaceMono.txt`).
+- **Space Grotesk** — Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk),
+  licence **SIL Open Font License 1.1** (texte : `OFL-SpaceGrotesk.txt`).
+Les polices sont livrées telles quelles (non modifiées), avec leur licence ; elles ne sont pas vendues seules.
+

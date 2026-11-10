@@ -84,33 +84,42 @@ sans limiteur ni clipper avant OMNIS) : il a besoin de cette place pour bien tra
 ## 5. La console
 
 ```
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│ abrasion LABS OMNIS · MASTER/COMPOSITION · A B A>B · AVANT/APRÈS · MATCH · DELTA ·  │
-│ STÉRÉO/MID/SIDE · ? · LAT                                                         │
-├────────────────────────────────────────────────────────────────┬──────────────────┤
-│ 01 / STYLE : RAP FR · RAP US · TRAP · RAGE… · TOUS LES GENRES · RÉF   [ AUTO ] │ NIVEAU           │
-├────────────────────────────────────────────────────────────────┤ Streaming −14    │
-│ IA [ ta demande……………… ] APPLIQUER · OMNIS : sa réponse          │ Équilibré −11 …  │
-├────────────────────────────────────────────────────────────────┤ L · R · LUFS · GR│
-│ 02 / LA CHAÎNE : une carte par module allumé (× la retire)      │ LUFS, true peak, │
-│      bibliothèque : + les modules hors de la chaîne             │ PLR, LRA…        │
-├────────────────────────────────────────────────────────────────┤ ENTRÉE · SORTIE  │
-│ 03 / RÉGLAGE : réglages du module ouvert  │  son écran          │ ÉCOUTE · EXPORT  │
-└────────────────────────────────────────────────────────────────┴──────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│ abrasion LABS OMNIS   MASTER/COMPOSITION · A B A>B · AVANT/APRÈS · PRÊT À EXPORTER · ? │
+├───────────────────────────────────────────────────────────────┬──────────────────┤
+│ ▫ 01 / STYLE  RAP FR · RAP US · TRAP · RAGE… · TOUS LES GENRES · RÉF   [■ AUTO] │ ▫ NIVEAU          │
+│ IA  ta demande……………………………………………………………… [APPLIQUER]            │ Streaming −14 …   │
+│ OMNIS  sa réponse                                                │ barres L · R · GR │
+│ 02 / LA CHAÎNE                                    LATENCE (clic) │ LUFS, true peak,  │
+│  01 · OBJ · SUB   02 · OBJ · EQ   03 · OBJ · COMP …  (défile)    │ relief, PLR…      │
+│  + SUB · + EQ · + COMP · + SATURATION … (bibliothèque)          │ ▫ ÉCOUTE : stéréo │
+│ 03 / RÉGLAGE   COMP · VCA  « la colle propre du bus »  ALLUMÉ    │ MID SIDE · MATCH  │
+│  tous les réglages du module          │  son écran              │ DELTA · simulée   │
+│                                                                  │ ▫ GAIN · export   │
+└───────────────────────────────────────────────────────────────┴──────────────────┘
 ```
+
+L'interface reprend la maquette « OMNIS Rack » : polices Space Mono et Space Grotesk (livrées avec
+le plug-in), noir, ambre, crochets autour de ce qui est choisi.
 
 - **01 / STYLE** : les styles mesurés en un clic (AUTO les vise ensuite) ; **TOUS LES GENRES…** ou
   **RÉF** ouvre la fenêtre de tous les genres ; **AUTO** à droite.
-- **02 / LA CHAÎNE** : une carte par module de la chaîne : son gros bouton (le réglage principal),
-  son caractère (VCA, Lampe, Soft Knee…) et ce qu'il fait en ce moment (« GR −2.1 dB »…).
-  - **Clique** une carte pour ouvrir tous ses réglages en dessous.
-  - **Glisse une carte** pour changer l'ordre de la chaîne ; **×** la retire.
-  - La **bibliothèque** (sous les cartes) : « + IMAGER », « + COMP 4 caractères »… remet un module.
+- **02 / LA CHAÎNE** : une carte par module : son gros bouton (le réglage principal), son
+  caractère (VCA, Lampe, Doux…) et une barre de ce qu'il fait en ce moment.
+  - **Clique** une carte pour ouvrir tous ses réglages en dessous ; **clique l'étiquette** du
+    caractère pour passer au suivant.
+  - Le **voyant** allume ou éteint le module (éteint : la carte reste, grisée) ; **×** le retire de
+    la chaîne.
+  - **Glisse une carte** pour changer l'ordre ; la **molette** fait défiler la chaîne.
+  - La **bibliothèque** (sous les cartes) : « + COMP 4 caractères »… remet un module retiré.
+  - En haut à droite de la chaîne, **LATENCE** : un clic passe en mode travail (latence basse).
 - **03 / RÉGLAGE** : à gauche, tous les réglages du module ouvert ; à droite, son écran (courbe,
   réduction, nœuds à glisser).
 - **AVANT / APRÈS** : le son d'origine (OMNIS contourné) ou celui d'OMNIS. **MASTER /
-  COMPOSITION** : la console ou la page de tes bus.
-- **NIVEAU** (à droite) : la sonie visée en un clic, puis les mesures.
+  COMPOSITION** : la console ou la page de tes bus. **PRÊT À EXPORTER** : un clic dit ce qui reste.
+- À droite : **NIVEAU** (la sonie visée en un clic), les barres et les mesures, puis **ÉCOUTE**
+  (stéréo / mid / side, MATCH, DELTA, écoute simulée), **GAIN** (entrée, sortie), le diagnostic
+  du mix et la vérification de l'export.
 - **Les boutons rotatifs** : glisse vers le haut ou le bas. **Maj** : réglage fin.
   **Double-clic** : valeur par défaut.
 - **A / B** : deux réglages complets de toute la console. **A>B** (ou **B>A**) copie celui que tu

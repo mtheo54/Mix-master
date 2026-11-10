@@ -765,3 +765,60 @@ Streaming	Streaming
 Équilibré	Balanced
 Fort	Loud
 Très fort	Very loud
+chaîne	chain
+entrée	input
+sortie	output
+mode travail	work mode
+latence	latency
+ retiré de la chaîne.	 removed from the chain.
+ : caractère 	: character 
+ caractère	 character
+niveau	level
+écoute	listen
+gain	gain
+Diagnostic du mix	Mix diagnosis
+Vérifier l'export	Check the export
+Écoute simulée : écouteurs, téléphone, TikTok, voiture…	Simulated listening: earbuds, phone, TikTok, car…
+lufs court	lufs short
+lufs intégré	lufs integrated
+true peak	true peak
+relief (lra)	range (lra)
+plr	plr
+corrélation	correlation
+crête max	max peak
+Réglage	Settings
+La chaîne	The chain
+01 / style	01 / style
+Saturation	Saturation
+Multibande	Multiband
+Limiteur	Limiter
+CHALEUR	WARMTH
+TON	TONE
+TENUE	HOLD
+VOLUME	VOLUME
+COLLE	GLUE
+Doux	Soft
+Dur	Hard
+Synth	Synth
+Transparent	Transparent
+Punch	Punch
+Phase linéaire : précis, rien ne bouge dans le temps.	Linear phase: precise, nothing moves in time.
+Cloches larges, aucun pré-écho devant le kick et la 808.	Wide bells, no pre-echo before the kick and the 808.
+Doux : relâche vite après un coup, lentement quand ça compresse longtemps.	Gentle: releases fast after a hit, slowly when it compresses for long.
+Rapide et mordant : fait claquer les drums.	Fast and biting: makes the drums snap.
+La colle propre du bus, la plus neutre.	The clean bus glue, the most neutral.
+Très arrondi, la compression monte peu à peu.	Very round, compression builds up gradually.
+Densité : plus plein, la crête reste à sa place.	Density: fuller, the peak stays where it is.
+Tasse les crêtes en douceur, colle.	Gently packs the peaks, glues.
+Harmoniques paires : rond et chaud.	Even harmonics: round and warm.
+Propre puis mordant quand on pousse.	Clean, then biting when pushed.
+Arrondit les crêtes, le plus discret.	Rounds the peaks, the most discreet.
+Coupe net : plus fort, plus agressif.	Cuts sharp: louder, more aggressive.
+Asymétrique : un grain analogique.	Asymmetric: an analog grain.
+Ne prend que les crêtes qui dépassent : la vibe reste.	Only takes the peaks that stick out: the vibe stays.
+Laisse passer les attaques, tient le reste.	Lets the attacks through, holds the rest.
+Ajoute une octave en dessous, pour une 808 trop maigre.	Adds an octave below, for a thin 808.
+choisis un style ou clique AUTO. Tu peux aussi glisser des modules dans la chaîne.	pick a style or click AUTO. You can also drag modules in the chain.
+aucune	none
+ALLUMÉ	ON
+ÉTEINT	OFF
