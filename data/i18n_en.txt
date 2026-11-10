@@ -634,6 +634,57 @@ COMPOSITION : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dans chacun.	COMP
 morceau écouté : 	song heard: 
  sur 	 of 
  (des passages manquent)	 (some passages missing)
-RÉÉCOUTER	RELISTEN
 Aucun bus OMNIS dans le projet : rien à réécouter.	No OMNIS bus in the project: nothing to relisten.
 Les bus repartent de zéro : lance la lecture du début à la fin, ils réécoutent tout le morceau.	The buses start over: play from start to end, they listen to the whole song again.
+Plus d'aigu (pente)	More top end (tilt)
+Plus de grave (pente)	More low end (tilt)
+Plus de sub	More sub
+Moins de sub	Less sub
+Plus de densité (Inflator)	More density (Inflator)
+Moins de densité (Inflator)	Less density (Inflator)
+Plus fort	Louder
+Moins fort	Quieter
+Plus large	Wider
+Plus étroit	Narrower
+Moins de colle (Comp)	Less glue (Comp)
+Plus de colle (Comp)	More glue (Comp)
+Hésite sur la pente	Hesitates on the tilt
+Hésite sur le sub	Hesitates on the sub
+Hésite sur l'Inflator	Hesitates on the Inflator
+Hésite sur le volume	Hesitates on the level
+Hésite sur la largeur	Hesitates on the width
+Hésite sur le Comp	Hesitates on the Comp
+Grave élargi	Low end widened
+Sur %d séance(s) après AUTO ou un preset	Over %d session(s) after AUTO or a preset
+ : pas encore d'habitude nette (un geste doit revenir 3 fois et être utile).	: no clear habit yet (a move must come back 3 times and be useful).
+, ce que tu fais le plus : 	, what you do most: 
+%s (%d fois)	%s (%d times)
+ Je ne l'apprends pas : 	 I don't learn: 
+ : inaudible, hésitant ou contre les règles du mastering.	: inaudible, hesitant or against mastering rules.
+Rien encore : lance AUTO ou choisis un preset (menu RÉF), puis règle à ton goût ; je note ce qui revient et qui sert.	Nothing yet: run AUTO or pick a preset (REF menu), then adjust to taste; I note what comes back and helps.
+Sub allumé	Sub on
+Sub éteint	Sub off
+Match EQ allumé	Match EQ on
+Match EQ éteint	Match EQ off
+Inflator allumé	Inflator on
+Inflator éteint	Inflator off
+Imager allumé	Imager on
+Imager éteint	Imager off
+Multibande allumé	Multiband on
+Multibande éteint	Multiband off
+Clipper allumé	Clipper on
+Clipper éteint	Clipper off
+Limiteur allumé	Limiter on
+Limiteur éteint	Limiter off
+Comp allumé	Comp on
+Comp éteint	Comp off
+Inflator → Inflate	Inflator → Inflate
+Inflator → Bande	Inflator → Tape
+Inflator → Lampe	Inflator → Tube
+Inflator → Transistor	Inflator → Transistor
+Comp → Opto	Comp → Opto
+Comp → FET	Comp → FET
+Comp → VCA	Comp → VCA
+Comp → Vari-mu	Comp → Vari-mu
+Match EQ → Propre	Match EQ → Clean
+Match EQ → Analogique	Match EQ → Analog

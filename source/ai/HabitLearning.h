@@ -41,7 +41,8 @@ const char* habitKey(Habit h) noexcept;
 const char* habitLabel(Habit h) noexcept; ///< « pente (tilt) », pour la barre IA
 double habitBound(Habit h) noexcept;
 
-enum class JournalKind : int { Auto = 0, Retouch = 1, Undo = 2, Export = 3 };
+/// PRESET : comme AUTO, mais la proposition vient d'un preset (référence ou style choisi au menu RÉF).
+enum class JournalKind : int { Auto = 0, Retouch = 1, Undo = 2, Export = 3, Preset = 4 };
 
 struct JournalEvent {
     static constexpr int kVersion = 1;

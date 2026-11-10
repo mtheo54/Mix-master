@@ -155,6 +155,22 @@ largeur ±20 %, Comp ±6 dB). Un « annule » juste après AUTO compte comme « 
 **« oublie mes habitudes »** pour tout effacer, **« exporte mon apprentissage »** pour écrire un
 fichier anonyme (des nombres seulement) que tu pourras partager si tu le veux : rien n'est envoyé.
 
+**Ce que tu fais le plus, et si ça sert.** L'apprentissage ne tourne qu'après **AUTO** ou un
+**preset** (une référence ou un style choisi au menu RÉF). Chaque fois, OMNIS compare ce qu'il a
+proposé à ce que tu as gardé, et juge chaque geste avec ses règles de mastering avant de
+l'apprendre :
+- **inaudible** (trop petit pour s'entendre : moins de 0,5 dB de sub…) : ignoré ;
+- **hésitation** (beaucoup bougé pour revenir presque au départ) : ignoré ;
+- **à risque** (sub au-delà de +6 dB, volume écrasé, grave élargi, limiteur éteint…) : jamais
+  appris, et OMNIS te le dit ;
+- **utile** : appris ; gardé jusqu'à l'export, il compte double.
+
+Un geste devient une **habitude** quand il revient (3 fois au moins) et qu'il est utile la plupart
+du temps. Ce qui n'est arrivé qu'une fois est oublié avec le temps. Écris **« mes habitudes »** :
+« Sur 12 séances, ce que tu fais le plus : plus de sub (7 fois), Comp allumé (4 fois). Je ne
+l'apprends pas : plus fort (3) : inaudible, hésitant ou contre les règles du mastering. » Le
+volume qu'OMNIS mène lui-même après AUTO n'est pas compté comme une retouche.
+
 **Le garde-fou** : OMNIS ne compresse jamais plus que ce que le niveau permet. Si ta prod est très
 dynamique, il s'arrête avant de l'écraser et te le dit (« Volume arrêté à … »). Pour aller plus
 fort, rends-la plus dense dans ton projet (808 et kick compressés ou saturés), puis relance AUTO.
@@ -568,8 +584,10 @@ actifs.
   fournies, tes préférences et ce qu'OMNIS a appris de tes retours. Supprime-le pour tout remettre
   à neuf.
 - `apprentissage/` : le journal de tes séances (`journal.tsv` : mesures de la prod, réglages
-  proposés et tes retouches — jamais de son, jamais de nom de fichier) et le réseau appris
-  (`reseau.txt`). « oublie mes habitudes » les supprime.
+  proposés et tes retouches — jamais de son, jamais de nom de fichier), le réseau appris
+  (`reseau.txt`) et le graphe de ce que tu fais le plus (`graphe.tsv` : des noms de réglages et
+  des nombres ; « exporte mon apprentissage » en écrit une copie `graphe_usages.json`, lisible
+  dans la page de données d'OMNIS). « oublie mes habitudes » les supprime.
 - Le projet du DAW garde tes réglages et la référence choisie.
 
 ---

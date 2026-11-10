@@ -61,6 +61,7 @@ std::filesystem::path styleMemoryPath() { return userDataDir() / "styles_appris.
 std::filesystem::path learningDir() { return userDataDir() / "apprentissage"; }
 std::filesystem::path journalPath() { return learningDir() / "journal.tsv"; }
 std::filesystem::path habitNetPath() { return learningDir() / "reseau.txt"; }
+std::filesystem::path usageGraphPath() { return learningDir() / "graphe.tsv"; }
 std::string pathText(const std::filesystem::path& p) {
     const auto u = p.u8string();
     return std::string(u.begin(), u.end());
@@ -160,6 +161,23 @@ tresult PLUGIN_API OmnisController::setParamNormalized(ParamID tag, ParamValue v
     // pas de message ni de redémarrage demandé à l'hôte au milieu de son appel.
     // NIVEAU changé à la main : le volume y sera mené une fois (pollAutomation).
     if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LoudnessLevel) && before != value) levelChanged_ = true;
+    // Pendant une séance (après AUTO ou un preset) : le chemin parcouru par chaque réglage clé (les
+    // allers-retours disent une hésitation). Ce qu'OMNIS règle lui-même fait partie de sa proposition.
+    if (result == kResultOk && !loadingState_ && autoPending_ && before != value) {
+        using P = params::ParamId;
+        static constexpr P kTracked[] = {P::MatchTilt, P::SubGain, P::InflHighEffect, P::ClipDrive, P::LimGain, P::CompOn, P::CompThreshold,
+                                         static_cast<P>(static_cast<int>(P::ImgWidthFirst) + 2), static_cast<P>(static_cast<int>(P::ImgWidthFirst) + 3)};
+        if (std::find(std::begin(kTracked), std::end(kTracked), static_cast<P>(tag)) != std::end(kTracked)) {
+            const auto now = habitValues();
+            for (int i = 0; i < ai::kHabits; ++i) {
+                const auto k = static_cast<std::size_t>(i);
+                const double d = now[k] - lastHabits_[k];
+                if (omnisEditing_) session_.proposed.habits[k] += d;
+                else session_.movement[k] += std::fabs(d);
+            }
+            lastHabits_ = now;
+        }
+    }
     // Mode de latence : la latence annoncée change, l'hôte doit réactiver le plug-in.
     if (result == kResultOk && !loadingState_ && tag == static_cast<ParamID>(params::ParamId::LowLatency) && before != value && componentHandler)
         componentHandler->restartComponent(kLatencyChanged);
@@ -307,8 +325,13 @@ std::string OmnisController::undoLast() {
     UndoStep step = std::move(undo_.back());
     undo_.pop_back();
     pursuing_ = false; // la course au volume de l'action annulée s'arrête
-    if (step.label == "AUTO" && autoPending_) {
-        // AUTO défait aussitôt : noté comme un mauvais choix (sans direction à apprendre).
+    if ((step.label == "AUTO" || step.label.rfind("référence ", 0) == 0) && autoPending_) {
+        // AUTO (ou un preset) défait aussitôt : noté comme un mauvais choix (sans direction à apprendre).
+        session_.undone = true;
+        session_.kept = usageState();
+        auto graph = ai::loadUsageGraph(pathText(usageGraphPath()));
+        graph.record(session_, ai::judgeSession(session_));
+        ai::saveUsageGraph(pathText(usageGraphPath()), graph);
         ai::JournalEvent e;
         e.kind = ai::JournalKind::Undo;
         e.time = static_cast<std::int64_t>(std::time(nullptr));
@@ -475,11 +498,22 @@ std::string OmnisController::ask(const std::string& request) {
                 std::error_code ec;
                 std::filesystem::create_directories(learningDir(), ec);
                 std::ofstream(file, std::ios::binary) << ai::exportAnonymous(journal);
+                // Le graphe des usages, pour la page de données (des noms de réglages et des nombres).
+                std::ofstream(learningDir() / "graphe_usages.json", std::ios::binary) << ai::loadUsageGraph(pathText(usageGraphPath())).exportJson();
                 const auto samples = ai::samplesFromJournal(journal).size();
                 char b[400];
                 std::snprintf(b, sizeof b, i18n::tr("Export anonyme écrit (%d séance(s), des nombres seulement, rien n'est envoyé) : %s").c_str(),
                               static_cast<int>(samples), pathText(file).c_str());
                 return b;
+            }
+        // « mes habitudes », « qu'est-ce que je fais le plus » : le graphe des usages en clair.
+        static constexpr std::string_view kHabits[] = {"mes habitudes", "ce que je fais le plus", "qu est ce que je fais", "mon graphe", "my habits",
+                                                       "what do i do most"};
+        for (const auto phrase : kHabits)
+            if (plain.find(phrase) != std::string::npos && plain.find("oublie") == std::string::npos) {
+                const std::string d = ai::loadUsageGraph(pathText(usageGraphPath())).describe();
+                return d.empty() ? "Rien encore : lance AUTO ou choisis un preset (menu RÉF), puis règle à ton goût ; je note ce qui revient et qui sert."
+                                 : d;
             }
         static constexpr std::string_view kForget[] = {"oublie mes habitudes", "oublie tout ce que tu as appris", "efface l apprentissage",
                                                        "reset apprentissage", "forget my habits"};
@@ -489,13 +523,15 @@ std::string OmnisController::ask(const std::string& request) {
                 std::filesystem::remove(journalPath(), ec);
                 std::filesystem::remove(habitNetPath(), ec);
                 std::filesystem::remove(styleMemoryPath(), ec);
+                std::filesystem::remove(usageGraphPath(), ec);
+                std::filesystem::remove(learningDir() / "graphe_usages.json", ec);
                 autoPending_ = false;
                 return "Oublié : tes habitudes, tes styles nommés et le journal sont effacés de ce poste.";
             }
         static constexpr std::string_view kExport[] = {"export", "exporter", "pret a exporter", "je peux exporter", "check export", "ready to export"};
         for (const auto phrase : kExport)
             if (plain == phrase || plain.find(std::string(phrase) + " ") == 0 || plain.find(" " + std::string(phrase)) != std::string::npos) {
-                noteRetouch(); // les réglages au moment d'exporter : ce que la personne a gardé
+                noteRetouch(true); // les réglages au moment d'exporter : ce que la personne a gardé (compte double)
                 const auto problems = exportProblems();
                 if (problems.empty()) return "PRÊT À EXPORTER : rien ne fausse le fichier (écoute normale, qualité max, true peak sous -1 dBTP).";
                 std::string s = "PAS ENCORE PRÊT À EXPORTER : ";
@@ -831,8 +867,12 @@ std::string OmnisController::runReference() {
                                         [this](params::ParamId pid) { return plainOf(static_cast<std::uint32_t>(pid)); });
     std::vector<std::pair<std::uint32_t, double>> settings;
     for (const auto& [pid, v] : plan.settings) settings.emplace_back(static_cast<std::uint32_t>(pid), v);
+    noteRetouch(); // la séance précédente : ce que la personne en a gardé
     if (!settings.empty()) rememberForUndo("référence " + refName_);
     applyPlan(settings);
+    // Un preset choisi : une séance d'apprentissage commence (comme après AUTO).
+    autoFeatures_ = ai::styleFeatures(feed_->prod.snapshot().signature);
+    noteAuto(ai::SessionStart::Preset, (refKind_ == RefKind::Style ? "style " : "") + refName_);
     if (plan.targetLufs) {
         loudTarget_ = *plan.targetLufs;
         pursuing_ = true;
@@ -961,6 +1001,7 @@ std::string OmnisController::finishAutoSearch() {
     if (job->trials == 1 && job->limGain <= 1e-9 && job->clipDrive <= 1e-9 && job->reachedLufs > job->targetLufs + 0.5) {
         // Déjà plus forte que le NIVEAU : OMNIS ne baisse jamais le volume d'une prod.
         pursuing_ = false;
+        OmnisEdit omnis(*this);
         for (const auto pid : {params::ParamId::ClipDrive, params::ParamId::LimGain})
             if (const auto* spec = params::findParameter(pid)) editParameter(static_cast<std::uint32_t>(pid), params::toNormalized(*spec, 0.0));
         char b[320];
@@ -971,9 +1012,12 @@ std::string OmnisController::finishAutoSearch() {
                       job->reachedLufs, job->targetLufs);
         return b;
     }
-    for (const auto& [pid, v] : {std::pair{params::ParamId::ClipDrive, job->clipDrive}, std::pair{params::ParamId::LimGain, job->limGain}})
-        if (const auto* spec = params::findParameter(pid))
-            editParameter(static_cast<std::uint32_t>(pid), params::toNormalized(*spec, params::clampPlain(*spec, v)));
+    {
+        OmnisEdit omnis(*this);
+        for (const auto& [pid, v] : {std::pair{params::ParamId::ClipDrive, job->clipDrive}, std::pair{params::ParamId::LimGain, job->limGain}})
+            if (const auto* spec = params::findParameter(pid))
+                editParameter(static_cast<std::uint32_t>(pid), params::toNormalized(*spec, params::clampPlain(*spec, v)));
+    }
     char b[320];
     std::snprintf(b, sizeof b,
                   i18n::tr("AUTO affiné : %d essais sur le passage le plus fort, retenu « %s » (clip +%.1f dB, limiteur +%.1f dB, "
@@ -1004,7 +1048,7 @@ std::string OmnisController::applyAuto(const analysis::SpectralSignature& loud, 
     rememberForUndo("AUTO");
     applyPlan(settings);
     autoFeatures_ = ai::styleFeatures(loud);
-    noteAuto();
+    noteAuto(ai::SessionStart::Auto, recognizedGroup_.empty() ? autoStyle_ : recognizedGroup_);
     // AUTO précis : assez de son gardé (4 s au moins) -> essais clip / limiteur ; sinon le
     // volume est mené à l'écoute.
     const bool search = target && sr > 0.0 && static_cast<double>(excerpt.size()) >= 2.0 * 4.0 * sr;
@@ -1074,11 +1118,30 @@ std::string OmnisController::applyHabits(const analysis::SpectralSignature& hear
     return ai::describeHabits(d, net->samples());
 }
 
-void OmnisController::noteAuto() {
+ai::UsageState OmnisController::usageState() {
+    using P = params::ParamId;
+    const auto v = [this](P id) { return plainOf(static_cast<std::uint32_t>(id)); };
+    ai::UsageState s;
+    s.habits = habitValues();
+    static constexpr P kOn[8] = {P::SubOn, P::MatchOn, P::InflOn, P::ImgOn, P::MbOn, P::ClipOn, P::LimOn, P::CompOn};
+    for (int m = 0; m < 8; ++m) s.modules[static_cast<std::size_t>(m)] = v(kOn[m]) >= 0.5;
+    s.inflCharacter = static_cast<int>(std::lround(v(P::InflCharacter)));
+    s.compCharacter = static_cast<int>(std::lround(v(P::CompCharacter)));
+    s.matchCharacter = static_cast<int>(std::lround(v(P::MatchCharacter)));
+    s.lowWidth = 0.5 * (plainOf(static_cast<std::uint32_t>(P::ImgWidthFirst)) + plainOf(static_cast<std::uint32_t>(P::ImgWidthFirst) + 1));
+    return s;
+}
+
+void OmnisController::noteAuto(ai::SessionStart start, const std::string& context) {
     autoProposal_ = habitValues();
     autoPending_ = true;
+    session_ = {};
+    session_.start = start;
+    session_.context = context;
+    session_.proposed = usageState();
+    lastHabits_ = session_.proposed.habits;
     ai::JournalEvent e;
-    e.kind = ai::JournalKind::Auto;
+    e.kind = start == ai::SessionStart::Preset ? ai::JournalKind::Preset : ai::JournalKind::Auto;
     e.time = static_cast<std::int64_t>(std::time(nullptr));
     e.group = recognizedGroup_;
     e.features = autoFeatures_;
@@ -1088,21 +1151,26 @@ void OmnisController::noteAuto() {
     ai::appendJournal(pathText(journalPath()), e);
 }
 
-void OmnisController::noteRetouch() {
+void OmnisController::noteRetouch(bool exported) {
     if (!autoPending_) return;
     autoPending_ = false;
-    const auto now = habitValues();
+    session_.kept = usageState();
+    session_.exported = exported;
+    // Le juge : chaque geste (ce qui a changé depuis la proposition) est-il utile ? Le graphe des
+    // usages le garde ; le réseau n'apprend que les gestes utiles (rien retouché : écart nul, la
+    // proposition convenait, c'est aussi une leçon).
+    const auto gestures = ai::judgeSession(session_);
+    std::error_code ec;
+    std::filesystem::create_directories(learningDir(), ec);
+    auto graph = ai::loadUsageGraph(pathText(usageGraphPath()));
+    graph.record(session_, gestures);
+    ai::saveUsageGraph(pathText(usageGraphPath()), graph);
     ai::JournalEvent e;
     e.kind = ai::JournalKind::Retouch;
     e.time = static_cast<std::int64_t>(std::time(nullptr));
     e.group = recognizedGroup_;
     e.features = autoFeatures_;
-    for (int i = 0; i < ai::kHabits; ++i) {
-        const auto k = static_cast<std::size_t>(i);
-        e.values[k] = now[k] - autoProposal_[k]; // rien retouché : écart nul, AUTO convenait (c'est aussi une leçon)
-    }
-    std::error_code ec;
-    std::filesystem::create_directories(learningDir(), ec);
+    e.values = ai::usefulDeltas(session_, gestures);
     ai::appendJournal(pathText(journalPath()), e);
     // Le réseau réapprend de tout le journal (quelques millisecondes).
     ai::HabitNet net;
@@ -1250,7 +1318,10 @@ std::string OmnisController::pollAutomation() {
                 const double allowed = std::max(0.0, headroom + params::masteringGainCapDb(level) - clip);
                 const double wanted = std::clamp(plainOf(lim) + std::clamp(0.6 * err, -1.5, 1.5), 0.0, 24.0);
                 const double gain = std::min(wanted, std::max(allowed, std::min(plainOf(lim), wanted)));
-                if (const auto* spec = params::findParameter(lim)) editParameter(lim, params::toNormalized(*spec, gain));
+                if (const auto* spec = params::findParameter(lim)) {
+                    OmnisEdit omnis(*this);
+                    editParameter(lim, params::toNormalized(*spec, gain));
+                }
                 if (err < 0.0 && gain <= 1e-6 && clip <= 1e-6) {
                     // Plus forte que la cible sans rien pousser : OMNIS ne baisse pas une prod.
                     pursuing_ = false;

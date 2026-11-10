@@ -372,11 +372,23 @@ OMNIS_TEST("plug-in apprentissage: 3 AUTO suivis de « sub +2 dB » à la main -
         std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
         OMNIS_CHECK(text.find("prod.wav") == std::string::npos);
     }
+    // Le graphe des usages : « plus de sub » revient à chaque séance et sert (gardé jusqu'à l'export).
+    const std::string habits = h.ctrl->ask("mes habitudes");
+    std::printf("      %s\n", habits.c_str());
+    OMNIS_CHECK(habits.find("Plus de sub (3 fois)") != std::string::npos);
+    // Le volume que mène OMNIS lui-même après AUTO n'est pas une retouche de la personne.
+    OMNIS_CHECK(habits.find("Plus fort") == std::string::npos && habits.find("Moins fort") == std::string::npos);
     const std::string exported = h.ctrl->ask("exporte mon apprentissage");
     std::printf("      %s\n", exported.c_str());
     OMNIS_CHECK(std::filesystem::exists(dir / "apprentissage" / "export_anonyme.tsv"));
+    {
+        std::ifstream in(dir / "apprentissage" / "graphe_usages.json");
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        OMNIS_CHECK(text.find("\"id\":\"sub+\"") != std::string::npos && text.find("prod.wav") == std::string::npos);
+    }
     (void)h.ctrl->ask("oublie mes habitudes");
     OMNIS_CHECK(!std::filesystem::exists(dir / "apprentissage" / "reseau.txt"));
+    OMNIS_CHECK(!std::filesystem::exists(dir / "apprentissage" / "graphe.tsv"));
     omnis::test::restoreUserDataDir();
 }
 

@@ -21,6 +21,7 @@
 #include "analysis/SpectralSignature.h"
 #include "link/LinkBus.h"
 #include "params/Parameters.h"
+#include "ai/UsageGraph.h"
 #include "stems/Composition.h"
 
 #include "pluginterfaces/vst/ivstchannelcontextinfo.h"
@@ -253,8 +254,20 @@ private:
     [[nodiscard]] std::array<double, 6> habitValues();
     std::string applyHabits(const analysis::SpectralSignature& heard, std::vector<std::pair<std::uint32_t, double>>& settings,
                             std::optional<double>& targetLufs);
-    void noteAuto();
-    void noteRetouch();
+    /// Une séance d'apprentissage commence : AUTO, ou un preset (référence / style du menu RÉF).
+    void noteAuto(ai::SessionStart start = ai::SessionStart::Auto, const std::string& context = {});
+    /// Elle finit (proposition suivante, export, fermeture) : ce que la personne a gardé, jugé
+    /// (ai/UsageGraph), noté dans le graphe ; seuls les gestes utiles nourrissent le réseau.
+    void noteRetouch(bool exported = false);
+    [[nodiscard]] ai::UsageState usageState();
+    ai::UsageSession session_;
+    ai::HabitVector lastHabits_{};
+    bool omnisEditing_ = false; ///< OMNIS règle lui-même (volume mené, essais) : pas une retouche de la personne
+    struct OmnisEdit {
+        explicit OmnisEdit(OmnisController& c) : c_(c) { c_.omnisEditing_ = true; }
+        ~OmnisEdit() { c_.omnisEditing_ = false; }
+        OmnisController& c_;
+    };
     int pursuitTicks_ = 0, pursuitStable_ = 0, pursuitSteps_ = 0;
     static constexpr int kPursuitSettleTicks = 130; ///< ~4 s de minuterie (30 Hz) : la mesure suit le réglage
     std::string runRequest(const std::string& text);

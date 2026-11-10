@@ -18,7 +18,7 @@ namespace omnis::ai {
 
 namespace {
 
-constexpr const char* kKindNames[] = {"AUTO", "RETOUCHE", "ANNULE", "EXPORT"};
+constexpr const char* kKindNames[] = {"AUTO", "RETOUCHE", "ANNULE", "EXPORT", "PRESET"};
 
 std::vector<std::string> splitTabs(std::string_view line) {
     std::vector<std::string> out;
@@ -83,7 +83,7 @@ std::optional<JournalEvent> parseJournalEvent(std::string_view line) {
     if (f.size() != 6 || f[0] != "v1") return std::nullopt;
     JournalEvent e;
     int kind = -1;
-    for (int k = 0; k < 4; ++k)
+    for (int k = 0; k < 5; ++k)
         if (f[1] == kKindNames[k]) kind = k;
     if (kind < 0) return std::nullopt;
     e.kind = static_cast<JournalKind>(kind);

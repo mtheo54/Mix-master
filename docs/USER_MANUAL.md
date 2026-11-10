@@ -151,6 +151,20 @@ gently (its share grows with the number of sessions) and stays within tight boun
 "wrong choice". Type **"forget my habits"** to erase everything, **"export my learning"** to write
 an anonymous file (numbers only) you can share if you want: nothing is sent.
 
+**What you do most, and whether it helps.** Learning only runs after **AUTO** or a **preset** (a
+reference or style picked in the REF menu). Each time, OMNIS compares what it proposed with what
+you kept, and judges each move with its mastering rules before learning it:
+- **inaudible** (too small to hear: less than 0.5 dB of sub…): ignored;
+- **hesitation** (moved a lot to end up near the start): ignored;
+- **risky** (sub beyond +6 dB, crushed level, widened low end, limiter off…): never learned, and
+  OMNIS tells you;
+- **useful**: learned; kept until export, it counts double.
+
+A move becomes a **habit** when it comes back (3 times at least) and is useful most of the time.
+What happened only once is forgotten over time. Type **"my habits"**: "Over 12 sessions, what you
+do most: more sub (7 times), Comp on (4 times). I don't learn: louder (3): inaudible, hesitant or
+against mastering rules." The level OMNIS drives itself after AUTO does not count as a tweak.
+
 **The safety net**: OMNIS never compresses more than the level allows. If your beat is very
 dynamic, it stops before crushing it and tells you ("Level stopped at …"). To go louder, make it
 denser in your project (808 and kick compressed or saturated), then run AUTO again. Changing the
@@ -559,8 +573,9 @@ listening is **Off**. A neutral module (default settings) lets the sound through
 - It holds the references you added (measurements, never audio), the artwork you supplied, your
   preferences and what OMNIS learned from your feedback. Delete it to start fresh.
 - `apprentissage/`: the log of your sessions (`journal.tsv`: beat measurements, proposed settings
-  and your tweaks — never audio, never a file name) and the learned network (`reseau.txt`).
-  "forget my habits" deletes them.
+  and your tweaks — never audio, never a file name), the learned network (`reseau.txt`) and the
+  graph of what you do most (`graphe.tsv`: setting names and numbers; "export my learning" writes
+  a copy, `graphe_usages.json`, readable in OMNIS's data page). "forget my habits" deletes them.
 - The DAW project keeps your settings and the chosen reference.
 
 ---

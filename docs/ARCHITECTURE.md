@@ -224,6 +224,30 @@ La liste des bus vivants, chacun avec son nom dans le DAW, son groupe (d'après 
 DRUMS, MELO, EFX, 808… ; sinon d'après ce qu'il contient) et ce qu'il contient ; rangés par
 groupe. Texte en clair pour la barre IA (`describeComposition`).
 
+## 13 bis. Ce que la personne fait le plus (`ai/UsageGraph`)
+
+Une **séance** commence à une proposition d'OMNIS : AUTO ou un preset (référence / style du menu
+RÉF, journal `PRESET`) ; elle finit à la proposition suivante, à l'export, à « annule » ou à la
+fermeture. Le contrôleur garde l'état proposé (`UsageState` : les 6 réglages clés, les 8 modules,
+les caractères, la largeur du grave) et le **chemin parcouru** par chaque réglage (allers-retours,
+mesurés dans `setParamNormalized`) ; ce qu'OMNIS règle lui-même (volume mené, essais clip /
+limiteur, garde `OmnisEdit`) fait partie de sa proposition, pas des retouches.
+
+À la fin, `judgeSession` découpe la différence en **gestes** et les juge avec des règles de base du
+métier : inaudible (sous 0,3 dB de pente, 0,5 dB de sub, 4 % d'Inflator, 0,5 dB de volume, 5 % de
+largeur, 1 dB de seuil), hésitation (chemin ≥ 4 × l'écart pour un petit écart, ou beaucoup bougé
+pour revenir au départ), à risque (sub > +6 dB, pente > 4 dB, Inflator > 85 %, gain clip +
+limiteur > 14 dB, médium > 170 %, seuil du Comp < −30 dB, grave élargi au-delà de 100 %,
+limiteur éteint), annulé, sinon utile. Seuls les écarts **utiles** vont au réseau
+(`usefulDeltas` → journal `RETOUCHE`).
+
+Le **graphe** (`apprentissage/graphe.tsv`, versionné) : nœuds contexte (« AUTO · trap »,
+« Preset · style drill fr ») et geste (vus, utiles, gardés jusqu'à l'export, à risque, écart
+moyen), liens contexte → geste et geste ↔ geste (utiles dans la même séance). Habitude : utile
+≥ 3 fois et ≥ 60 % du temps (l'export compte double pour le rang) ; douteux : vu ≥ 3 fois, utile
+< 40 %. Un nœud vu une seule fois et pas revu depuis 30 séances est oublié ; 300 nœuds au plus.
+Export JSON anonyme (`graphe_usages.json`) pour la page de données ; barre IA « mes habitudes ».
+
 ## 14. (retiré le 08/11) Le chef d'orchestre et les chaînes de stems
 
 Le master qui écoutait les stems et leur envoyait des ordres (gain, retouches), et la chaîne propre

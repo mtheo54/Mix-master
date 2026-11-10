@@ -56,6 +56,15 @@
 
 ## Fait récemment
 
+- **10/11 — Graphe de ce que les personnes font le plus, et juge d'utilité** (demande de
+  l'utilisateur : « répertorier ce que les utilisateurs font le plus, seulement après AUTO ou un
+  preset ; les modifications les plus répétées enregistrées, les inutiles ignorées ; l'IA doit avoir
+  une idée de base de ce qui est utile »). `ai/UsageGraph` : séances (AUTO / preset), gestes jugés
+  (utile, inaudible, hésitation, à risque, annulé) par des règles de mastering, graphe local
+  (contextes, gestes, liens), habitudes (3 fois, 60 % utile), oubli de ce qui ne revient pas ; seuls
+  les gestes utiles nourrissent le réseau ; le volume mené par OMNIS n'est plus pris pour une
+  retouche. Barre IA « mes habitudes », export `graphe_usages.json`. Tests : 2 unitaires, plug-in
+  (3 AUTO + sub à la main → « Plus de sub (3 fois) », rien sur le volume).
 - **09/11 — Écouter toute la prod** (demande de l'utilisateur, « pour que ce soit hyper précis ») :
   chaque bus écoute le morceau entier (plus de limite à 3 min : ~23 min gardées, trames en float),
   sans perte (file de ~11 s, vidée 4 s par tour), et chaque seconde du projet une seule fois (une
