@@ -231,6 +231,20 @@ int main(int argc, char** argv) {
             const std::string path = dir + "/omnis-" + mode + "-" + name + ".png";
             std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
         }
+        // La chaîne sans l'Imager ni le Comp : leurs cartes partent dans la bibliothèque (+).
+        if (mode == "master") {
+            rig.set(omnis::params::ParamId::ImgOn, 0.0);
+            rig.set(omnis::params::ParamId::CompOn, 0.0);
+            editor->selectPage(6);
+            for (int t = 0; t < 10; ++t) {
+                rig.run(1.0 / 30.0);
+                editor->tick();
+            }
+            const std::string path = dir + "/omnis-master-chaine-bibliotheque.png";
+            std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
+            rig.set(omnis::params::ParamId::ImgOn, 1.0);
+            rig.set(omnis::params::ParamId::CompOn, 1.0);
+        }
         // Match EQ, vue DYN : deux bandes allumées (808 et sifflantes).
         {
             using omnis::params::DynControl;
