@@ -56,6 +56,17 @@
 
 ## Fait récemment
 
+- **10/11 — Sous-genres des artistes vérifiés avec MusicBrainz** (demande de l'utilisateur). Genres votés
+  des 440 artistes de `data/styles_artistes.txt` comparés aux sous-genres d'OMNIS : 244 sous-genres ajoutés
+  (au moins 2 votes, 4 sous-genres au plus par artiste, version « fr » pour les artistes français), rien de
+  retiré (MusicBrainz est muet sur la new wave fr, l'underground…, et son silence ne contredit pas un style).
+  Familles : celle de l'utilisateur prime ; déplacés seulement là où ses données ET MusicBrainz s'accordent
+  (Travis Scott, Drake → rap US ; The Weeknd, Pharrell → pop / R&B ; SOPHIE → hyperpop ; Soundgarden →
+  rock). 21 Savage, Chief Keef, Pop Smoke, Post Malone restent en rap fr (ses playlists). Doublons fusionnés
+  (JAŸ-Z = JAY-Z, JPEGMAFIA). Homonymes sur MusicBrainz : GRY, Luther, MISCHA. Profils régénérés (40) ;
+  « drill fr » et « rap hardcore » (fr) passent sous 3 titres, d'autres apparaissent (gangsta rap, pop rap,
+  rap mélodique US, rap abstrait). Carnet : genres MusicBrainz sur chaque fiche, 393 identités confirmées.
+
 - **10/11 — Graphe de ce que les personnes font le plus, et juge d'utilité** (demande de
   l'utilisateur : « répertorier ce que les utilisateurs font le plus, seulement après AUTO ou un
   preset ; les modifications les plus répétées enregistrées, les inutiles ignorées ; l'IA doit avoir
