@@ -234,16 +234,20 @@ nuances comptent : « un poil plus fort », « beaucoup plus large ».
 
 ## 8. Les références
 
-### Le menu RÉF
+### La fenêtre RÉF
 
-À côté de la barre IA. Il te permet de viser un **style**, un **artiste** ou un **titre** :
+À côté de la barre IA. Un clic ouvre **tous les genres** : les familles en onglets (Rap FR,
+Rap US / UK, Électro, Rock / Metal, Hyperpop, Pop / R&B, B.O. / Anime), puis une tuile par
+sous-genre, chacune avec son illustration (dessinée par OMNIS d'après le caractère du genre et
+la courbe de son profil ; aucune image n'est livrée) :
 
-- **Styles** : les profils de genre livrés avec OMNIS (par exemple *Rap Français & New Wave ›
-  plugg fr*). Chaque profil est la moyenne d'au moins 3 titres mesurés. Aucun son n'est livré,
-  seulement des mesures.
-- **Tes titres** : ceux que tu as ajoutés (voir plus bas).
-- **L'entonnoir** (à gauche de RÉF) filtre le menu : une famille, puis un sous-genre.
-- **« Aucune »** rend la main aux mots.
+- **« profil · 26 titres »** : le genre a un profil mesuré (la moyenne d'au moins 3 titres ;
+  aucun son livré, seulement des mesures). **« repère : la famille »** : pas encore de profil,
+  OMNIS vise alors la famille.
+- Clique une tuile : sa fiche s'ouvre à droite (artistes du style, tes références de ce style).
+  **UTILISER CE GENRE** le vise ; une de tes références se choisit d'un clic dans la fiche.
+- En haut : **AUCUNE** (rend la main aux mots), **+ AJOUTER UN FICHIER**, **MUSICBRAINZ**
+  (oui / non). La molette fait défiler ; un clic hors de la fenêtre la ferme.
 
 Choisir une référence règle tout de suite la chaîne : courbe du Match EQ, punch, grave mono,
 écart couplet / refrain, écrêtage, volume. AUTO la vise ensuite. Le choix est gardé avec le

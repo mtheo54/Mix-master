@@ -7,6 +7,9 @@
 #include "OmnisController.h"
 #include "UiFeed.h"
 #include "gui/Look.h"
+#include "ai/ReferenceLibrary.h"
+#include "ai/TextMatch.h"
+#include "core/I18n.h"
 #include "gfx/AvatarCache.h"
 #include "gui/OpenUrl.h"
 #include "gui/Widgets.h"
@@ -163,6 +166,15 @@ public:
     using Thumb = std::function<void(CDrawContext*, const CRect&)>;
     RefMenu(const CRect& r, IControlListener* l, std::function<std::string()> label, Thumb thumb)
         : COptionMenu(r, l, -1), label_(std::move(label)), thumb_(std::move(thumb)) {}
+    /// Un clic ouvre la fenêtre RÉF (tous les genres) plutôt que le menu déroulant.
+    void setOpener(std::function<void()> open) { open_ = std::move(open); }
+    CMouseEventResult onMouseDown(CPoint& where, const CButtonState& buttons) override {
+        if (open_ && buttons.isLeftButton()) {
+            open_();
+            return kMouseEventHandled;
+        }
+        return COptionMenu::onMouseDown(where, buttons);
+    }
     void draw(CDrawContext* c) override {
         const CRect r = getViewSize();
         c->setFillColor(color::kScreen);
@@ -204,6 +216,7 @@ public:
     }
 
 private:
+    std::function<void()> open_;
     std::function<std::string()> label_;
     Thumb thumb_;
 };
@@ -327,9 +340,9 @@ const std::array<TutorialStep, 12> kTutorial{{
     {CRect(10, 58, 932, 98), "LA BARRE IA",
      {"Écris ce que tu veux, en français, en anglais ou en argot :", "« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…",
       "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "RÉF : choisis un style, un artiste ou un titre de ta base ; AUTO le vise."}},
-    {CRect(344, 62, 552, 94), "TES RÉFÉRENCES",
-     {"L'entonnoir filtre le menu RÉF : une famille, puis un sous-genre.", "RÉF > « Ajouter un fichier de référence… » : nomme-le « Artiste - Titre ».",
-      "OMNIS le mesure (le son n'est jamais gardé) et peut le confirmer sur", "MusicBrainz, sa seule connexion (désactivable dans ce menu)."}, 2},
+    {CRect(336, 62, 552, 94), "TES RÉFÉRENCES",
+     {"RÉF ouvre tous les genres, chacun avec son illustration et son profil.", "Clique un genre, puis UTILISER CE GENRE : AUTO le vise ensuite.",
+      "+ AJOUTER UN FICHIER (« Artiste - Titre ») : OMNIS le mesure, sans garder", "le son ; MusicBrainz, sa seule connexion, peut le confirmer."}, 2},
     {CRect(196, 10, 272, 50), "AUTO",
      {"Clique AUTO, puis joue le morceau du début à la fin.", "OMNIS l'écoute en entier, règle la chaîne vers ton style,",
       "essaie plusieurs réglages de volume et garde le plus propre.", "La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »)."}},
@@ -443,6 +456,16 @@ private:
     OmnisEditor& editor_;
     CRect card_, next_, skip_, back_;
 };
+
+#include "RefBrowser.inc"
+
+void OmnisEditor::openReferenceBrowser(const std::string& family, const std::string& style) {
+    if (auto* b = dynamic_cast<RefBrowser*>(refBrowser_)) b->open(family, style);
+}
+
+void OmnisEditor::closeReferenceBrowser() {
+    if (auto* b = dynamic_cast<RefBrowser*>(refBrowser_)) b->close();
+}
 
 int OmnisEditor::tutorialSteps() noexcept { return static_cast<int>(kTutorial.size()); }
 
@@ -634,6 +657,8 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     if (omnis()->instanceRole() != params::InstanceRole::Master) page_ = kCompPage;
     selectPage(page_);
     // Le guide, par-dessus tout ; montré tout seul à la toute première ouverture.
+    refBrowser_ = new RefBrowser(CRect(0, 0, kWidth, kHeight), *this);
+    root->addView(refBrowser_);
     tutorial_ = new TutorialOverlay(CRect(0, 0, kWidth, kHeight), *this);
     root->addView(tutorial_);
     startTutorial(tutorialStartStep());
@@ -740,69 +765,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     askField_->setPlaceholderString(i18n::tr("ex. plus de punch, garde ma 808").c_str());
     askField_->setTooltipText(i18n::tr("Glisse un son ici : AUTO l'écoute en entier (Maj : l'ajouter aux références)").c_str());
     r2->addView(askField_);
-    // Filtre par famille (entonnoir) : le menu RÉF ne montre que ce style.
-    {
-        // Famille puis sous-genre (menu à deux niveaux) ; l'entrée choisie dit ce qu'elle filtre.
-        auto choices = std::make_shared<std::map<COptionMenu*, std::map<int32_t, std::pair<std::string, std::string>>>>();
-        auto* filter = new COptionMenu(CRect(336, 7, 372, 33), listen([this, choices](CControl* ctl) {
-            auto* m = dynamic_cast<COptionMenu*>(ctl);
-            if (!m) return;
-            int32_t idx = -1;
-            COptionMenu* from = m->getLastItemMenu(idx);
-            const auto list = choices->find(from);
-            if (list == choices->end()) return;
-            const auto pick = list->second.find(idx);
-            if (pick == list->second.end()) return;
-            refFamily_ = pick->second.first;
-            refStyle_ = pick->second.second;
-            if (refFill_) refFill_();
-            answer_ = refFamily_.empty() ? i18n::tr("RÉF : tous les styles.")
-                                         : i18n::tr("RÉF filtré : ") + (refStyle_.empty() ? i18n::tr(refFamily_) : refStyle_) + ".";
-        }), -1);
-        filter->setFont(mono(10.5));
-        filter->setFontColor(color::kAccent);
-        filter->setBackColor(color::kScreen);
-        filter->setFrameColor(CColor(60, 62, 66));
-        filter->setTooltipText(i18n::tr("Filtrer le menu RÉF par style").c_str());
-        filter->addEntry(UTF8String(i18n::tr("Tous les styles")));
-        (*choices)[filter][0] = {std::string(), std::string()};
-        const auto filters = omnis() ? omnis()->referenceFilters() : std::vector<OmnisController::FamilyFilter>{};
-        for (const auto& f : filters) {
-            auto* sub = new COptionMenu();
-            sub->setNbItemsPerColumn(30);
-            sub->addEntry(UTF8String(i18n::tr("Toute la famille") + "  (" + std::to_string(f.titles) + ")"));
-            (*choices)[sub][0] = {f.name, std::string()};
-            if (!f.styles.empty()) sub->addSeparator();
-            for (const auto& [style, n] : f.styles) {
-                sub->addEntry(UTF8String(i18n::tr(style) + "  (" + std::to_string(n) + ")"));
-                (*choices)[sub][sub->getNbEntries() - 1] = {f.name, style};
-            }
-            filter->addEntry(sub, UTF8String(i18n::tr(f.name) + "  (" + std::to_string(f.titles) + ")"));
-            sub->forget();
-        }
-        filter->setCurrent(0);
-        r2->addView(filter);
-        // Le texte affiché : un entonnoir, pas le nom (la place est courte).
-        filter->setStyle(filter->getStyle() | COptionMenu::kNoTextStyle);
-        auto* funnel = new Screen(CRect(336, 7, 372, 33), [this](CDrawContext* dc, const CRect& rr) {
-            const CColor col = refFamily_.empty() ? color::kText2 : color::kAccent;
-            dc->setFillColor(col);
-            auto path = VSTGUI::owned(dc->createGraphicsPath());
-            const double cx = rr.getCenter().x, top = rr.top + 8, bot = rr.bottom - 7;
-            path->beginSubpath(CPoint(cx - 8, top));
-            path->addLine(CPoint(cx + 8, top));
-            path->addLine(CPoint(cx + 2, top + 7));
-            path->addLine(CPoint(cx + 2, bot));
-            path->addLine(CPoint(cx - 2, bot - 2));
-            path->addLine(CPoint(cx - 2, top + 7));
-            path->closeSubpath();
-            dc->drawGraphicsPath(path, CDrawContext::kPathFilled);
-        }, true);
-        funnel->setMouseEnabled(false);
-        r2->addView(funnel);
-        live_.push_back(funnel);
-    }
-    buildReferenceMenu(r2, CRect(376, 7, 540, 33));
+    buildReferenceMenu(r2, CRect(336, 7, 540, 33)); // un clic : la fenêtre RÉF (tous les genres)
     auto* applyButton = new HwButton(CRect(546, 7, 640, 33), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false);
     applyButton->setAccentText(true);
     r2->addView(applyButton);
@@ -1101,6 +1064,7 @@ void OmnisEditor::buildReferenceMenu(CViewContainer* parent, const CRect& r) {
     menu->setFont(mono(10.5));
     menu->setFontColor(color::kText);
     menu->setBackColor(color::kScreen);
+    menu->setOpener([this] { openReferenceBrowser(); });
     const auto add = [picks](COptionMenu* to, const std::string& label, Kind kind, const std::string& name) {
         auto* item = to->addEntry(UTF8String(i18n::tr(label)));
         (*picks)[to][to->getNbEntries() - 1] = Pick{kind, name};

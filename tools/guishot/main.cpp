@@ -199,6 +199,18 @@ int main(int argc, char** argv) {
             std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
         }
         editor->startTutorial(-1);
+        // La fenêtre RÉF : tous les genres, puis une famille avec la fiche d'un genre.
+        if (mode == "master") {
+            const std::vector<std::array<std::string, 3>> refShots{
+                {"ref-1-tous", "", ""}, {"ref-2-rap-fr", "Rap Français & New Wave", "rage fr"}, {"ref-3-electro", "Électro, House & Dance", ""}};
+            for (const auto& [name, family, style] : refShots) {
+                editor->openReferenceBrowser(family, style);
+                editor->tick();
+                const std::string path = dir + "/omnis-master-" + name + ".png";
+                std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
+            }
+            editor->closeReferenceBrowser();
+        }
         // Une référence choisie au menu : la face du menu la montre.
         // (OMNIS_SHOT_REF : un autre titre ; par défaut le plus long de la base, coupé « … »).
         const char* shotRef = std::getenv("OMNIS_SHOT_REF");

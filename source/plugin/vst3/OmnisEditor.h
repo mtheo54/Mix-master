@@ -83,6 +83,9 @@ public:
     void startTutorial(int step = 0);
     [[nodiscard]] int tutorialStep() const noexcept { return tutorialStep_; }
     [[nodiscard]] static int tutorialSteps() noexcept;
+    /// La fenêtre RÉF : tous les genres, une illustration chacun (ouverte par un clic sur RÉF).
+    void openReferenceBrowser(const std::string& family = {}, const std::string& style = {});
+    void closeReferenceBrowser();
     /// Match EQ : vue 0 (la courbe) ou 1 (EQ dynamique, bande `band` au tiroir).
     void showMatchView(int view, int band);
 
@@ -144,6 +147,8 @@ private:
     int tutorialStep_ = -1;
     VSTGUI::CView* tutorial_ = nullptr;
     friend class TutorialOverlay;
+    VSTGUI::CView* refBrowser_ = nullptr;
+    friend class RefBrowser;
     std::array<gui::RackSlot*, 8> slots_{};
     VSTGUI::CViewContainer* rack_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 10> pages_{};

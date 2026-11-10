@@ -141,6 +141,19 @@ public:
         std::vector<std::pair<std::string, int>> styles;
     };
     [[nodiscard]] std::vector<FamilyFilter> referenceFilters() const;
+    /// La fenêtre RÉF : chaque famille et TOUS ses sous-genres (data/styles_artistes.txt et les
+    /// genres de la base), avec le profil mesuré quand il existe ; sans profil, la famille sert de
+    /// repère (`target`). Familles dans l'ordre de genres_classement, styles mesurés d'abord.
+    struct GenreCard {
+        std::string family;               ///< « Rap Français & New Wave »
+        std::string style;                ///< « rage fr » ; vide : toute la famille
+        std::string target;               ///< ce que chooseReference(Style, …) reçoit
+        int titles = 0;                   ///< titres derrière son profil (0 : pas encore mesuré)
+        std::vector<std::string> artists; ///< artistes connus de ce style
+        analysis::SpectralSignature signature; ///< son profil (ou celui de la famille)
+        [[nodiscard]] bool measured() const noexcept { return titles > 0; }
+    };
+    [[nodiscard]] std::vector<GenreCard> genreCatalog() const;
     [[nodiscard]] std::vector<std::string> referenceFamilies() const;
     /// La référence choisie, de quoi la montrer (vide : aucune).
     struct ReferenceCard {

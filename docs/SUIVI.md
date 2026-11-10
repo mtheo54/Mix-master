@@ -60,6 +60,14 @@
 
 ## Fait récemment
 
+- **10/11 — Fenêtre RÉF : tous les genres, une illustration chacun** (demande de l'utilisateur, avant
+  d'envoyer le plug-in à des collègues). Le menu déroulant et l'entonnoir sont remplacés par une fenêtre
+  (`plugin/vst3/RefBrowser.inc`, `OmnisController::genreCatalog`) : familles en onglets, une tuile par
+  sous-genre (192 styles de `styles_artistes.txt` + ceux de la base), illustration dessinée par le code
+  (couleur de la famille, motif du caractère du genre, silhouette de la courbe de son profil : aucune
+  image livrée), « profil · N titres » ou « repère : la famille », fiche (artistes, tes références),
+  UTILISER CE GENRE. Captures `guishot` : `omnis-master-ref-*.png`.
+
 - **10/11 — La moyenne des utilisateurs** (`ai/CommunityHabits`, `omnis_refdb usages`,
   `data/usages_communaute.txt` embarqué, vide pour l'instant). « exporte mon apprentissage » écrit
   aussi `contribution_anonyme.tsv` ; AUTO applique la moyenne du style reconnu, de moins en moins à

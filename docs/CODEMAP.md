@@ -97,8 +97,8 @@
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (1811 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
-- `OmnisEditor.h/cpp` (2797 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
+- `OmnisController.h/cpp` (1902 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, GenreCard, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
+- `OmnisEditor.h/cpp` (2766 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, closeReferenceBrowser, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (32 l.) — Identifiants de classes VST3.
 - `OmnisProcessor.h/cpp` (826 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, switchRole, startLink, processListening, passThrough, feedBlock
@@ -224,7 +224,7 @@
 
 ## tools/guishot/
 
-- `main.cpp` (256 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
+- `main.cpp` (268 l.) — Rend la console OMNIS hors écran (PNG), sans DAW : le vrai processeur tourne sur une boucle de test, le vrai contrôleur et la vraie interface lisent ce qu'il mesure. Sert à vérifier l'interface page
 
 ## tools/learn/
 

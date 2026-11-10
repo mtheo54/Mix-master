@@ -46,6 +46,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <set>
 #include <string>
 #include <string_view>
 
@@ -794,6 +795,83 @@ std::vector<OmnisController::FamilyFilter> OmnisController::referenceFilters() c
         for (const auto& [g, n] : counts) f.styles.emplace_back(g, n);
         std::sort(f.styles.begin(), f.styles.end(), [](const auto& a, const auto& b) { return a.second != b.second ? a.second > b.second : a.first < b.first; });
         out.push_back(std::move(f));
+    }
+    return out;
+}
+
+std::vector<OmnisController::GenreCard> OmnisController::genreCatalog() const {
+    const auto lib = libraryWithUser();
+    const auto filters = referenceFilters();
+    // Les artistes de chaque style, section par section de data/styles_artistes.txt.
+    std::map<std::string, std::map<std::string, std::vector<std::string>>> known; // famille normalisée -> style -> artistes
+    {
+        std::istringstream in{std::string(ai::data::styles())};
+        std::string section;
+        for (std::string line; std::getline(in, line);) {
+            if (line.rfind("# ---", 0) == 0) {
+                std::string name = line.substr(5);
+                while (!name.empty() && (name.back() == '-' || name.back() == ' ')) name.pop_back();
+                while (!name.empty() && name.front() == ' ') name.erase(0, 1);
+                section = ai::normalizeText(name);
+                continue;
+            }
+            const auto semi = line.find(';');
+            if (line.empty() || line[0] == '#' || semi == std::string::npos || section.empty()) continue;
+            std::string artist = line.substr(0, semi);
+            while (!artist.empty() && artist.back() == ' ') artist.pop_back();
+            std::istringstream st(line.substr(semi + 1));
+            for (std::string s; std::getline(st, s, ',');) {
+                while (!s.empty() && s.front() == ' ') s.erase(0, 1);
+                while (!s.empty() && (s.back() == ' ' || s.back() == '\r')) s.pop_back();
+                if (!s.empty()) known[section][s].push_back(artist);
+            }
+        }
+    }
+    const auto profileOf = [&](const std::string& title) -> const ai::ReferenceEntry* {
+        for (const auto& e : lib.entries())
+            if (e.isProfile() && e.title == title) return &e;
+        return nullptr;
+    };
+    std::vector<GenreCard> out;
+    for (const auto& [name, words] : families()) {
+        if (words.empty()) continue; // « Autres / Découvertes » : aucun genre
+        const FamilyFilter* f = nullptr;
+        for (const auto& x : filters)
+            if (x.name == name) f = &x;
+        GenreCard fam;
+        fam.family = name;
+        fam.target = name;
+        fam.titles = f ? f->titles : 0;
+        if (const auto* p = profileOf(name)) fam.signature = p->signature;
+        const auto& styles = known[ai::normalizeText(name)];
+        std::vector<GenreCard> cards;
+        std::set<std::string> seen;
+        const auto add = [&](const std::string& style, int titles) {
+            if (!seen.insert(style).second) return;
+            GenreCard g;
+            g.family = name;
+            g.style = style;
+            const auto* p = profileOf(name + " › " + style);
+            g.titles = p || titles > 0 ? std::max(titles, p ? p->profileTitles : 0) : 0;
+            g.target = g.measured() ? style : name;
+            g.signature = p ? p->signature : fam.signature;
+            if (const auto it = styles.find(style); it != styles.end()) g.artists = it->second;
+            cards.push_back(std::move(g));
+        };
+        if (f)
+            for (const auto& [style, n] : f->styles)
+                if (!referenceEntries(lib, RefKind::Style, style).empty()) add(style, n);
+        for (const auto& [style, artists] : styles) add(style, 0);
+        for (const auto& [style, artists] : styles) fam.artists.insert(fam.artists.end(), artists.begin(), artists.end());
+        std::sort(fam.artists.begin(), fam.artists.end(), lessNoCase);
+        fam.artists.erase(std::unique(fam.artists.begin(), fam.artists.end()), fam.artists.end());
+        std::stable_sort(cards.begin(), cards.end(), [](const GenreCard& a, const GenreCard& b) {
+            if (a.measured() != b.measured()) return a.measured();
+            if (a.titles != b.titles) return a.titles > b.titles;
+            return a.artists.size() > b.artists.size();
+        });
+        out.push_back(std::move(fam));
+        for (auto& c : cards) out.push_back(std::move(c));
     }
     return out;
 }

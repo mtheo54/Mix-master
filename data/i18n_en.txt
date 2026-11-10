@@ -461,7 +461,6 @@ Je n'ai pas pu ajouter ce fichier.	I couldn't add this file.
 Fichier trop long pour une référence (15 minutes au plus).	File too long for a reference (15 minutes at most).
 Le guide s'ouvre : SUIVANT pour avancer, PASSER pour le fermer. Le mode d'emploi complet est livré avec le plug-in.	The guide is opening: NEXT to go on, SKIP to close it. The full user manual comes with the plug-in.
 TES RÉFÉRENCES	YOUR REFERENCES
-L'entonnoir filtre le menu RÉF : une famille, puis un sous-genre.	The funnel filters the REF menu: a family, then a sub-genre.
 RÉF > « Ajouter un fichier de référence… » : nomme-le « Artiste - Titre ».	REF > "Add a reference file…": name it "Artist - Title".
 OMNIS le mesure (le son n'est jamais gardé) et peut le confirmer sur	OMNIS measures it (the audio is never kept) and can confirm it on
 MusicBrainz, sa seule connexion (désactivable dans ce menu).	MusicBrainz, its only connection (can be turned off in the same menu).
@@ -690,3 +689,36 @@ Comp → VCA	Comp → VCA
 Comp → Vari-mu	Comp → Vari-mu
 Match EQ → Propre	Match EQ → Clean
 Match EQ → Analogique	Match EQ → Analog
+
+RÉFÉRENCES	REFERENCES
+Choisis un genre : OMNIS règle ta prod vers son profil mesuré. Sans profil, il vise sa famille.	Pick a genre: OMNIS sets your beat toward its measured profile. Without a profile, it aims at its family.
+MUSICBRAINZ : OUI	MUSICBRAINZ: ON
+MUSICBRAINZ : NON	MUSICBRAINZ: OFF
++ AJOUTER UN FICHIER	+ ADD A FILE
+AUCUNE	NONE
+TOUS	ALL
+repère : la famille	guide: the family
+VISÉ	AIMED
+Clique un genre	Click a genre
+pour voir son profil, ses artistes	to see its profile, its artists
+et tes références de ce style.	and your references in this style.
+Pas encore de profil mesuré : OMNIS vise la famille.	No measured profile yet: OMNIS aims at the family.
+UTILISER CE GENRE	USE THIS GENRE
+ARTISTES DE CE STYLE	ARTISTS IN THIS STYLE
+TES RÉFÉRENCES DE CE STYLE	YOUR REFERENCES IN THIS STYLE
+TES RÉFÉRENCES DE LA FAMILLE	YOUR REFERENCES IN THIS FAMILY
+Pas encore de profil pour 	No profile yet for 
+ : je vise sa famille. 	: I aim at its family. 
+%d titres mesurés · %d styles	%d measured tracks · %d styles
+profil · %d titres	profile · %d tracks
+%d artistes	%d artists
+%d artiste	%d artist
+Profil mesuré sur %d titres	Profile measured on %d tracks
+Électro	Electro
+B.O. / Anime	Soundtracks / Anime
+Aucune pour l'instant :	None yet:
+ajoute un fichier « Artiste - Titre ».	add a file "Artist - Title".
+RÉF ouvre tous les genres, chacun avec son illustration et son profil.	REF opens every genre, each with its artwork and profile.
+Clique un genre, puis UTILISER CE GENRE : AUTO le vise ensuite.	Click a genre, then USE THIS GENRE: AUTO aims at it next.
++ AJOUTER UN FICHIER (« Artiste - Titre ») : OMNIS le mesure, sans garder	+ ADD A FILE ("Artist - Title"): OMNIS measures it, without keeping
+le son ; MusicBrainz, sa seule connexion, peut le confirmer.	the sound; MusicBrainz, its only connection, can confirm it.

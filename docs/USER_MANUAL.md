@@ -236,7 +236,10 @@ Next to the AI bar. It lets you aim at a **style**, an **artist** or a **track**
   plugg fr*). Each profile is the average of at least 3 measured tracks. No audio is shipped, only
   measurements.
 - **Your tracks**: the ones you added (see below).
-- **The funnel** (left of REF) filters the menu: a family, then a sub-genre.
+- A click on REF opens **every genre**: families as tabs, then one tile per sub-genre, each with its
+  artwork (drawn by OMNIS from the genre's character and its profile curve; no image is shipped).
+  "profile · 26 tracks": a measured profile; "guide: the family": no profile yet, OMNIS aims at
+  the family. Click a tile for its sheet (artists, your references), then **USE THIS GENRE**.
 - **"None"** hands control back to your words.
 
 Choosing a reference sets the chain right away: Match EQ curve, punch, mono low end, verse /
