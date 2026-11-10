@@ -163,12 +163,19 @@ l'apprendre :
 - **hésitation** (beaucoup bougé pour revenir presque au départ) : ignoré ;
 - **à risque** (sub au-delà de +6 dB, volume écrasé, grave élargi, limiteur éteint…) : jamais
   appris, et OMNIS te le dit ;
+- **choix artistique (DA)** : contre la règle générale, mais voulu par le style que tu vises
+  (écraser le volume en rage ou en hard clipping, un son sombre en lo-fi ou en boom bap, un espace
+  très large en ambient…), ou que tu gardes jusqu'à l'export une deuxième fois dans le même
+  contexte : c'est ta direction artistique. Appris pour ce style seulement. Éteindre le limiteur
+  n'en est jamais un (les crêtes passent le plafond) ;
 - **utile** : appris ; gardé jusqu'à l'export, il compte double.
 
 Un geste devient une **habitude** quand il revient (3 fois au moins) et qu'il est utile la plupart
 du temps. Ce qui n'est arrivé qu'une fois est oublié avec le temps. Écris **« mes habitudes »** :
 « Sur 12 séances, ce que tu fais le plus : plus de sub (7 fois), Comp allumé (4 fois). Je ne
-l'apprends pas : plus fort (3) : inaudible, hésitant ou contre les règles du mastering. » Le
+l'apprends pas : plus fort (3) : inaudible, hésitant ou contre les règles du mastering. » Tes
+choix artistiques y sont aussi : « Tes choix artistiques (DA), appris pour leur style : plus fort
+(4). » Le
 volume qu'OMNIS mène lui-même après AUTO n'est pas compté comme une retouche.
 
 **Le garde-fou** : OMNIS ne compresse jamais plus que ce que le niveau permet. Si ta prod est très

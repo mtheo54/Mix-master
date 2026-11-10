@@ -56,6 +56,13 @@
 
 ## Fait récemment
 
+- **10/11 — Juge : verdict « choix artistique » (DA)** (demande de l'utilisateur : « une partie
+  créative / artistique / DA dans le verdict du juge »). Un geste contre la règle générale est une DA
+  quand le style visé l'assume (table `daRules` : écraser en rage / hard clipping / hyperpop / phonk,
+  sombre en lo-fi / boom bap / plugg, très large en ambient…) ou quand il est gardé jusqu'à l'export une
+  2e fois dans le même contexte (`reviewArtistic`). Appris (le réseau tient compte du style) ; limiteur
+  éteint jamais. Graphe v2 (v1 se relit), « mes habitudes » cite les choix artistiques.
+
 - **10/11 — Sous-genres des artistes vérifiés avec MusicBrainz** (demande de l'utilisateur). Genres votés
   des 440 artistes de `data/styles_artistes.txt` comparés aux sous-genres d'OMNIS : 244 sous-genres ajoutés
   (au moins 2 votes, 4 sous-genres au plus par artiste, version « fr » pour les artistes français), rien de

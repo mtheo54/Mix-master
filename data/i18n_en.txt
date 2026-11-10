@@ -660,6 +660,7 @@ Sur %d séance(s) après AUTO ou un preset	Over %d session(s) after AUTO or a pr
 , ce que tu fais le plus : 	, what you do most: 
 %s (%d fois)	%s (%d times)
  Je ne l'apprends pas : 	 I don't learn: 
+ Tes choix artistiques (DA), appris pour leur style : 	 Your artistic choices (art direction), learned for their style: 
  : inaudible, hésitant ou contre les règles du mastering.	: inaudible, hesitant or against mastering rules.
 Rien encore : lance AUTO ou choisis un preset (menu RÉF), puis règle à ton goût ; je note ce qui revient et qui sert.	Nothing yet: run AUTO or pick a preset (REF menu), then adjust to taste; I note what comes back and helps.
 Sub allumé	Sub on

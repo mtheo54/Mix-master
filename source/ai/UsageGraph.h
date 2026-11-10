@@ -15,8 +15,15 @@
 //    - à risque : va contre les règles du métier (grave élargi, sub trop
 //      poussé, volume écrasé, plus de limiteur…) : jamais appris, signalé ;
 //    - annulé : la proposition a été défaite tout de suite ;
+//    - choix artistique (DA) : contre la règle générale, mais voulu par le style
+//      visé (écraser le volume en rage ou en hard clipping, un son sombre en lo-fi,
+//      un espace très large en ambient…), ou gardé jusqu'à l'export plusieurs fois
+//      dans le même contexte : c'est la direction artistique de la personne. Appris
+//      pour ce contexte (le réseau tient compte du style), jamais comme une règle
+//      générale. Le limiteur éteint n'est jamais une DA (les crêtes passent) ;
 //    - utile : le reste ; gardé jusqu'à l'export, il compte double.
-//  Seuls les gestes utiles nourrissent le réseau des habitudes (HabitLearning).
+//  Seuls les gestes utiles et les choix artistiques nourrissent le réseau des
+//  habitudes (HabitLearning).
 //
 //  Le GRAPHE (sur le poste, apprentissage/graphe.tsv, des nombres et des noms
 //  de réglages seulement) : des nœuds « contexte » (AUTO · trap, preset ·
@@ -51,13 +58,14 @@ enum class SessionStart { Auto, Preset };
 struct UsageSession {
     SessionStart start = SessionStart::Auto;
     std::string context;   ///< groupe sonore reconnu (AUTO) ou nom du preset
+    std::vector<std::string> styles; ///< la DA visée : styles du contexte (style d'AUTO, genres de la référence choisie)
     UsageState proposed, kept;
     HabitVector movement{}; ///< chemin parcouru par chaque réglage pendant la séance (allers-retours compris)
     bool undone = false, exported = false;
 };
 
-enum class Verdict { Useful, Inaudible, Hesitation, Risky, Undone };
-const char* verdictLabel(Verdict v) noexcept; ///< « utile », « inaudible », « hésitation », « à risque », « annulé »
+enum class Verdict { Useful, Inaudible, Hesitation, Risky, Undone, Creative };
+const char* verdictLabel(Verdict v) noexcept; ///< « utile », « inaudible », « hésitation », « à risque », « annulé », « choix artistique »
 
 struct Gesture {
     std::string id;     ///< « sub+ », « comp:on », « infl:2 »
@@ -70,7 +78,9 @@ struct Gesture {
 
 /// Le juge : ce que la séance contient de gestes, et ce qu'OMNIS en pense.
 std::vector<Gesture> judgeSession(const UsageSession& s);
-/// Les écarts à apprendre : seulement ceux des gestes utiles (les autres à zéro).
+/// La DA d'un style : pourquoi ce geste, contre la règle générale, est voulu ici (vide sinon).
+std::string artisticReason(const std::string& gestureId, const UsageSession& s);
+/// Les écarts à apprendre : ceux des gestes utiles et des choix artistiques (les autres à zéro).
 HabitVector usefulDeltas(const UsageSession& s, const std::vector<Gesture>& gestures);
 
 class UsageGraph {
@@ -79,19 +89,25 @@ public:
         std::string id, label;
         bool context = false;
         int seen = 0, useful = 0, exported = 0, risky = 0;
+        int creative = 0;    ///< parmi les utiles : choix artistiques (DA)
         double amount = 0.0; ///< somme des écarts utiles (moyenne = amount / useful)
         int lastSession = 0;
     };
     struct Edge {
         std::string a, b; ///< a < b pour geste ↔ geste ; contexte → geste sinon
         int count = 0, useful = 0;
+        int daExported = 0; ///< contexte → geste : fois où ce geste hors règle a été gardé jusqu'à l'export
     };
-    static constexpr int kVersion = 1;
+    static constexpr int kVersion = 2;         ///< v2 : choix artistiques (v1 se relit)
     static constexpr int kMinRepeats = 3;      ///< séances (utiles) avant qu'un geste soit une habitude
     static constexpr double kMinUsefulShare = 0.6;
     static constexpr int kForgetAfter = 30;    ///< séances sans le revoir : un geste vu une seule fois est oublié
 
     void record(const UsageSession& s, const std::vector<Gesture>& gestures);
+    /// Un geste à risque gardé jusqu'à l'export, alors qu'il l'a déjà été dans le même contexte : c'est
+    /// la DA de la personne (devient un choix artistique). À appeler avant record().
+    void reviewArtistic(const UsageSession& s, std::vector<Gesture>& gestures) const;
+    [[nodiscard]] static std::string contextId(const UsageSession& s);
     /// Les habitudes : gestes répétés et utiles, du plus fréquent au moins fréquent.
     [[nodiscard]] std::vector<const Node*> habits() const;
     /// Ce qui est fait souvent mais jugé inutile ou à risque (le dire à la personne, ne pas l'apprendre).

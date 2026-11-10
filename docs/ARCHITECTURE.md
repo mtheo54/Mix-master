@@ -238,12 +238,21 @@ métier : inaudible (sous 0,3 dB de pente, 0,5 dB de sub, 4 % d'Inflator, 0,5 dB
 largeur, 1 dB de seuil), hésitation (chemin ≥ 4 × l'écart pour un petit écart, ou beaucoup bougé
 pour revenir au départ), à risque (sub > +6 dB, pente > 4 dB, Inflator > 85 %, gain clip +
 limiteur > 14 dB, médium > 170 %, seuil du Comp < −30 dB, grave élargi au-delà de 100 %,
-limiteur éteint), annulé, sinon utile. Seuls les écarts **utiles** vont au réseau
-(`usefulDeltas` → journal `RETOUCHE`).
+limiteur éteint), annulé, sinon utile. **Choix artistique (DA)** : un geste « à risque » que le
+style visé assume (`artisticReason`, table `daRules` : écraser le volume ou saturer en rage, hard
+clipping, hyperpop, phonk… ; un son sombre en lo-fi, boom bap, plugg, cloud ; très large en
+ambient, shoegaze, dream pop ; grave large en ambient ; pompe du Comp en french touch, house…).
+La DA visée = `UsageSession::styles` (style d'AUTO et groupe reconnu ; pour un preset, le style
+choisi ou les genres de la référence et de son artiste). Deuxième voie : `reviewArtistic` — un
+geste à risque gardé jusqu'à l'export alors qu'il l'a déjà été dans le même contexte (lien
+contexte → geste, `daExported` ≥ 1) devient un choix artistique. Le limiteur éteint n'en est
+jamais un. Les écarts **utiles** et **artistiques** vont au réseau (`usefulDeltas` → journal
+`RETOUCHE`) : le réseau tient compte du style, une DA rage n'est donc pas appliquée à une prod
+trap.
 
-Le **graphe** (`apprentissage/graphe.tsv`, versionné) : nœuds contexte (« AUTO · trap »,
-« Preset · style drill fr ») et geste (vus, utiles, gardés jusqu'à l'export, à risque, écart
-moyen), liens contexte → geste et geste ↔ geste (utiles dans la même séance). Habitude : utile
+Le **graphe** (`apprentissage/graphe.tsv`, v2 ; v1 se relit) : nœuds contexte (« AUTO · trap »,
+« Preset · style drill fr ») et geste (vus, utiles, gardés jusqu'à l'export, à risque, choix
+artistiques, écart moyen), liens contexte → geste et geste ↔ geste (utiles dans la même séance). Habitude : utile
 ≥ 3 fois et ≥ 60 % du temps (l'export compte double pour le rang) ; douteux : vu ≥ 3 fois, utile
 < 40 %. Un nœud vu une seule fois et pas revu depuis 30 séances est oublié ; 300 nœuds au plus.
 Export JSON anonyme (`graphe_usages.json`) pour la page de données ; barre IA « mes habitudes ».

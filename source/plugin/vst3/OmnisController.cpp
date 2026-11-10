@@ -872,7 +872,16 @@ std::string OmnisController::runReference() {
     applyPlan(settings);
     // Un preset choisi : une séance d'apprentissage commence (comme après AUTO).
     autoFeatures_ = ai::styleFeatures(feed_->prod.snapshot().signature);
-    noteAuto(ai::SessionStart::Preset, (refKind_ == RefKind::Style ? "style " : "") + refName_);
+    // La DA visée : le style choisi, ou les genres de la référence et de son artiste.
+    std::vector<std::string> daStyles;
+    if (refKind_ == RefKind::Style) daStyles.push_back(refName_);
+    for (const auto* e : refs) {
+        if (!e) continue;
+        for (const auto& g : e->genres) daStyles.push_back(g);
+        for (const auto& g : ai::stylesOfArtist(e->artist)) daStyles.push_back(g);
+        if (daStyles.size() > 24) break;
+    }
+    noteAuto(ai::SessionStart::Preset, (refKind_ == RefKind::Style ? "style " : "") + refName_, std::move(daStyles));
     if (plan.targetLufs) {
         loudTarget_ = *plan.targetLufs;
         pursuing_ = true;
@@ -1048,7 +1057,7 @@ std::string OmnisController::applyAuto(const analysis::SpectralSignature& loud, 
     rememberForUndo("AUTO");
     applyPlan(settings);
     autoFeatures_ = ai::styleFeatures(loud);
-    noteAuto(ai::SessionStart::Auto, recognizedGroup_.empty() ? autoStyle_ : recognizedGroup_);
+    noteAuto(ai::SessionStart::Auto, recognizedGroup_.empty() ? autoStyle_ : recognizedGroup_, {autoStyle_, recognizedGroup_});
     // AUTO précis : assez de son gardé (4 s au moins) -> essais clip / limiteur ; sinon le
     // volume est mené à l'écoute.
     const bool search = target && sr > 0.0 && static_cast<double>(excerpt.size()) >= 2.0 * 4.0 * sr;
@@ -1132,12 +1141,13 @@ ai::UsageState OmnisController::usageState() {
     return s;
 }
 
-void OmnisController::noteAuto(ai::SessionStart start, const std::string& context) {
+void OmnisController::noteAuto(ai::SessionStart start, const std::string& context, std::vector<std::string> styles) {
     autoProposal_ = habitValues();
     autoPending_ = true;
     session_ = {};
     session_.start = start;
     session_.context = context;
+    session_.styles = std::move(styles);
     session_.proposed = usageState();
     lastHabits_ = session_.proposed.habits;
     ai::JournalEvent e;
@@ -1159,10 +1169,11 @@ void OmnisController::noteRetouch(bool exported) {
     // Le juge : chaque geste (ce qui a changé depuis la proposition) est-il utile ? Le graphe des
     // usages le garde ; le réseau n'apprend que les gestes utiles (rien retouché : écart nul, la
     // proposition convenait, c'est aussi une leçon).
-    const auto gestures = ai::judgeSession(session_);
+    auto gestures = ai::judgeSession(session_);
     std::error_code ec;
     std::filesystem::create_directories(learningDir(), ec);
     auto graph = ai::loadUsageGraph(pathText(usageGraphPath()));
+    graph.reviewArtistic(session_, gestures); // déjà gardé ainsi jusqu'à l'export, ici : sa DA
     graph.record(session_, gestures);
     ai::saveUsageGraph(pathText(usageGraphPath()), graph);
     ai::JournalEvent e;

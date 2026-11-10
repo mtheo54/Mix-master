@@ -158,12 +158,18 @@ you kept, and judges each move with its mastering rules before learning it:
 - **hesitation** (moved a lot to end up near the start): ignored;
 - **risky** (sub beyond +6 dB, crushed level, widened low end, limiter off…): never learned, and
   OMNIS tells you;
+- **artistic choice (art direction)**: against the general rule, but wanted by the style you aim
+  for (crushing the level in rage or hard clipping, a dark sound in lo-fi or boom bap, a very wide
+  space in ambient…), or kept until export a second time in the same context: that is your art
+  direction. Learned for that style only. Turning the limiter off never is one (peaks go over the
+  ceiling);
 - **useful**: learned; kept until export, it counts double.
 
 A move becomes a **habit** when it comes back (3 times at least) and is useful most of the time.
 What happened only once is forgotten over time. Type **"my habits"**: "Over 12 sessions, what you
 do most: more sub (7 times), Comp on (4 times). I don't learn: louder (3): inaudible, hesitant or
-against mastering rules." The level OMNIS drives itself after AUTO does not count as a tweak.
+against mastering rules." Your artistic choices are listed too: "Your artistic choices (art
+direction), learned for their style: louder (4)." The level OMNIS drives itself after AUTO does not count as a tweak.
 
 **The safety net**: OMNIS never compresses more than the level allows. If your beat is very
 dynamic, it stops before crushing it and tells you ("Level stopped at …"). To go louder, make it

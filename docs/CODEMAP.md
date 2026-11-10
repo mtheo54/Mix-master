@@ -25,7 +25,7 @@
 - `ReferenceLibrary.h/cpp` (865 l.) — La base de références : artistes, titres, genres. · types : ReferenceEntry, ReferenceMatch, ReferenceLibrary, Neighbours, NameKey, EntryKeys · enums : Kind · fonctions : parse, add, builtin, of, index, averageMusic, aggregateSignature, addToLibraryFile, parseArtistLink, namesMatch
 - `StyleRecognizer.h/cpp` (485 l.) — Reconnaître le style d'une prod à l'écoute. · types : StyleWeights, StyleClassStats, StyleGuess, StyleRecognition, StyleExample · fonctions : buildStyleStats, serializeStyleStats, parseStyleStats, styleFeatures, sonicGroup, serializeStyleExamples, parseStyleExamples, styleForGroup, profilesOf, describeRecognition
 - `TextMatch.h/cpp` (197 l.) — Comprendre une demande écrite vite, avec des fautes. · fonctions : normalizeText, tokenize, phoneticKey, damerauLevenshtein, fuzzyEquals, isWord
-- `UsageGraph.h/cpp` (504 l.) — Ce que la personne fait le plus, et si c'est utile. · types : UsageState, UsageSession, Gesture, UsageGraph, Node, Edge · enums : SessionStart, Verdict · fonctions : verdictLabel, judgeSession, usefulDeltas, record, parse, node, edge, prune, saveUsageGraph, loadUsageGraph
+- `UsageGraph.h/cpp` (611 l.) — Ce que la personne fait le plus, et si c'est utile. · types : UsageState, UsageSession, Gesture, UsageGraph, Node, Edge · enums : SessionStart, Verdict · fonctions : verdictLabel, judgeSession, artisticReason, usefulDeltas, record, parse, node, edge, prune, saveUsageGraph, loadUsageGraph
 
 ## source/analysis/
 
@@ -96,7 +96,7 @@
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (1784 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
+- `OmnisController.h/cpp` (1795 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
 - `OmnisEditor.h/cpp` (2797 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (32 l.) — Identifiants de classes VST3.
@@ -178,7 +178,7 @@
 - `TestStyleRecognizer.cpp` (113 l.) — Reconnaître le style d'une prod (ai/StyleRecognizer) : groupes sonores livrés, probabilités, mémoire personnelle (les styles nommés par la personne l'emportent peu à peu), · 4 tests : style: les groupes sonores livrés se relisent (10 groupes, statistique ; style: chaque sous-genre a son groupe sonore (trap fr = trap, plugg =  ; style: probabilités qui somment à 1, le plus proche en tête ; rien ent ; style: la mémoire personnelle l'emporte peu à peu (5 prods nommées « d
 - `TestSubControl.cpp` (299 l.) — Étage Sub Control & Mono Maker. · 11 tests : mono maker: Side à 40 Hz supprimé (LR4 -37 dB, LR8 -70 dB), Side à 1 k ; mono maker: un signal mono reste mono (|L − R| < 1e-12) ; mono maker: image au-dessus de f_mono intacte (L seul à 2 kHz -> R res ; mono maker: amount 0 % = passe-tout (module plat L et R) ; low cut: Butterworth 24 dB/oct, -3.01 dB à fc, DC supprimé ; sub shelf: +6 dB sous la fréquence, 0 dB au-dessus ; …
 - `TestTruePeak.cpp` (87 l.) — Crête vraie (BS.1770-4 Annexe 2). · 5 tests : true peak: sinus fs/4 à 45° -> sample peak -3.01, true peak 0.00 dBTP ; true peak: sinus 997 Hz 0 dBFS -> 0 dBTP, jamais sous le sample peak ; true peak: phase 0 = identité exacte ; true peak: interpolateur plat (+/-0.01 dB) jusqu'à 0.45 fs ; true peak: crêtes inter-échantillons d'un signal transitoire >= sample
-- `TestUsageGraph.cpp` (141 l.) — Ce que la personne fait le plus, et si c'est utile. · 2 tests : usages: le juge (connaissances de base) dit utile, inaudible, hésitati ; usages: le graphe garde ce qui revient et sert, oublie le reste, se re
+- `TestUsageGraph.cpp` (197 l.) — Ce que la personne fait le plus, et si c'est utile. · 3 tests : usages: le juge (connaissances de base) dit utile, inaudible, hésitati ; usages: le graphe garde ce qui revient et sert, oublie le reste, se re ; usages: choix artistique (DA) — contre la règle, mais voulu par le sty
 - `TestWav.cpp` (118 l.) — Entrées/sorties WAV et signaux de test. · 4 tests : wav: aller-retour f64 exact, f32 / pcm24 / pcm16 à la quantification p ; signaux: tous les générateurs produisent un signal fini et non vide ; signaux: niveaux annoncés vérifiés par l'analyseur ; sweep: sweep ⊗ inverse = réponse plate (0 dB ±0.5) dans la bande
 
 ## tools/analyze/

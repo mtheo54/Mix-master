@@ -138,3 +138,59 @@ OMNIS_TEST("usages: le graphe garde ce qui revient et sert, oublie le reste, se 
     OMNIS_CHECK(g.find("tilt+") == nullptr && g.find("sub+") != nullptr);
     for (const auto& e : g.edges()) OMNIS_CHECK(e.a != "tilt+" && e.b != "tilt+");
 }
+
+OMNIS_TEST("usages: choix artistique (DA) — contre la règle, mais voulu par le style, ou gardé jusqu'à l'export encore et encore") {
+    // Écraser le volume : à risque en trap, choix artistique en rage (le style visé).
+    auto s = session({{Habit::Loudness, 9.0}});
+    OMNIS_CHECK(find(judgeSession(s), "volume+")->verdict == Verdict::Risky);
+    s.styles = {"rage fr", "new wave fr"};
+    auto g = judgeSession(s);
+    const auto* v = find(g, "volume+");
+    OMNIS_CHECK(v && v->verdict == Verdict::Creative && v->why.find("rage") != std::string::npos);
+    if (v) std::printf("      %s : %s\n", verdictLabel(v->verdict), v->why.c_str());
+    OMNIS_CHECK(usefulDeltas(s, g)[static_cast<std::size_t>(Habit::Loudness)] == 9.0); // appris (pour ce style)
+    // Le limiteur éteint n'est jamais une DA, même en rage.
+    s.kept.modules[6] = false;
+    OMNIS_CHECK(find(judgeSession(s), "mod6:off")->verdict == Verdict::Risky);
+    // Un son très sombre en boom bap, un grave large en ambient : voulus. Le grave large en trap : non.
+    s = session({{Habit::Tilt, -4.5}});
+    s.styles = {"boom bap fr"};
+    OMNIS_CHECK(find(judgeSession(s), "tilt-")->verdict == Verdict::Creative);
+    s = session({});
+    s.kept.lowWidth = 130.0;
+    OMNIS_CHECK(find(judgeSession(s), "grave:large")->verdict == Verdict::Risky);
+    s.context = "ambient";
+    OMNIS_CHECK(find(judgeSession(s), "grave:large")->verdict == Verdict::Creative);
+    // Annulé : même un choix artistique ne s'apprend pas.
+    s.undone = true;
+    OMNIS_CHECK(find(judgeSession(s), "grave:large")->verdict == Verdict::Undone);
+
+    // Sans style qui le justifie, mais gardé jusqu'à l'export une 2e fois dans le même contexte : sa DA.
+    UsageGraph graph;
+    const auto run = [&](bool exported, bool limiterOff = false) {
+        auto x = session({{Habit::Loudness, 9.0}}, exported);
+        if (limiterOff) x.kept.modules[6] = false;
+        auto gestures = judgeSession(x);
+        graph.reviewArtistic(x, gestures);
+        graph.record(x, gestures);
+        return gestures;
+    };
+    OMNIS_CHECK(find(run(true, true), "volume+")->verdict == Verdict::Risky);    // 1re fois : à risque
+    OMNIS_CHECK(find(run(false), "volume+")->verdict == Verdict::Risky);         // pas exporté : pas de preuve
+    auto again = run(true, true);
+    OMNIS_CHECK(find(again, "volume+")->verdict == Verdict::Creative);           // 2e export : sa DA
+    OMNIS_CHECK(find(again, "mod6:off")->verdict == Verdict::Risky);             // le limiteur, jamais
+    run(true);
+    const auto* n = graph.find("volume+");
+    OMNIS_CHECK(n && n->creative == 2 && n->useful == 2 && n->risky == 2);
+    const std::string text = graph.describe();
+    std::printf("      %s\n", text.c_str());
+    OMNIS_CHECK(text.find("Tes choix artistiques (DA), appris pour leur style : Plus fort (2)") != std::string::npos);
+    OMNIS_CHECK(graph.exportJson().find("\"creatif\":2") != std::string::npos);
+    // Format v2 relu à l'identique ; un graphe v1 (avant les choix artistiques) se relit encore.
+    const auto back = UsageGraph::parse(graph.serialize());
+    OMNIS_CHECK(back && back->serialize() == graph.serialize() && back->find("volume+")->creative == 2);
+    const auto v1 = UsageGraph::parse("omnis-graphe\tv1\tseances\t1\nN\tsub+\t0\t1\t1\t0\t0\t1.5\t1\tPlus de sub\nE\tctx:auto:trap\tsub+\t1\t1\n");
+    OMNIS_CHECK(v1 && v1->find("sub+") && v1->find("sub+")->useful == 1 && v1->find("sub+")->creative == 0 && v1->edges().size() == 1);
+    OMNIS_CHECK(!UsageGraph::parse("omnis-graphe\tv2\tseances\t1\nN\tx\t0\t2\t1\t0\t0\t2\t0\t1\tX\n")); // créatif > utile
+}

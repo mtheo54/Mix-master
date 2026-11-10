@@ -255,7 +255,7 @@ private:
     std::string applyHabits(const analysis::SpectralSignature& heard, std::vector<std::pair<std::uint32_t, double>>& settings,
                             std::optional<double>& targetLufs);
     /// Une séance d'apprentissage commence : AUTO, ou un preset (référence / style du menu RÉF).
-    void noteAuto(ai::SessionStart start = ai::SessionStart::Auto, const std::string& context = {});
+    void noteAuto(ai::SessionStart start = ai::SessionStart::Auto, const std::string& context = {}, std::vector<std::string> styles = {});
     /// Elle finit (proposition suivante, export, fermeture) : ce que la personne a gardé, jugé
     /// (ai/UsageGraph), noté dans le graphe ; seuls les gestes utiles nourrissent le réseau.
     void noteRetouch(bool exported = false);
