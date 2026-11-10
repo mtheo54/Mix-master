@@ -1,0 +1,4 @@
+# OMNIS — ce que font les utilisateurs (moyenne de contributions anonymes, généré :
+# omnis_refdb usages). Un geste n'apparaît que s'il est une habitude chez au moins 5
+# personnes dans ce contexte. Ne pas modifier à la main.
+omnis-communaute	v1	contributions	0

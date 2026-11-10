@@ -47,6 +47,10 @@
 - (09/11) **Mastering seulement**, pour les beatmakers (pas de voix, pas de mixage piste par piste).
   Un système d'apprentissage (« neuronal ») : base locale propre, petit réseau local, puis mise en
   commun anonyme via le serveur d'un ami (accès SSH géré par l'utilisateur, jamais dans le chat).
+- (10/11) **Usages sur le compte** : le graphe des usages va seulement sur le compte onirique.store
+  de la personne, illisible par le public et même par le fondateur ; les données servent, comme
+  les références son, à une moyenne qui fait évoluer le plug-in. Mise en œuvre :
+  `docs/DONNEES_COMPTE.md` (espace chiffré sur le PC + contribution anonyme séparée, ≥ 5 personnes).
 - Genres : sa propre classification (8 familles de playlists, `data/genres_classement.txt`) ;
   2hollis et SLAYR : rage, hyperpop.
 - (05/11) Licence et signature Mac : gérées par ONIRIQUE. Windows : pas de certificat (SmartScreen
@@ -55,6 +59,12 @@
   Lancement : 89 €, puis 150 € après environ un mois ; mise en ligne d'ici 2 à 4 semaines.
 
 ## Fait récemment
+
+- **10/11 — La moyenne des utilisateurs** (`ai/CommunityHabits`, `omnis_refdb usages`,
+  `data/usages_communaute.txt` embarqué, vide pour l'instant). « exporte mon apprentissage » écrit
+  aussi `contribution_anonyme.tsv` ; AUTO applique la moyenne du style reconnu, de moins en moins à
+  mesure que la personne a ses habitudes. Reste avec ONIRIQUE : l'API du compte (espace chiffré,
+  envoi anonyme) — spécification dans `docs/DONNEES_COMPTE.md`.
 
 - **10/11 — Carnet OMNIS pour tous les utilisateurs** (demande : « disponible à tout utilisateur sur la
   page d'OMNIS, connectés à leur compte, ils pourront surveiller leurs données »). `site/carnet/index.html`

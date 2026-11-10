@@ -60,6 +60,7 @@ omnis_embed_data(${CMAKE_BINARY_DIR}/generated/EmbeddedData.cpp
     classement=${CMAKE_SOURCE_DIR}/data/genres_classement.txt
     styles=${CMAKE_SOURCE_DIR}/data/styles_artistes.txt
     groupes=${CMAKE_SOURCE_DIR}/data/groupes_sonores.txt
+    communaute=${CMAKE_SOURCE_DIR}/data/usages_communaute.txt
 )
 
 add_library(omnis_core STATIC
@@ -98,6 +99,8 @@ add_library(omnis_core STATIC
     source/ai/HabitLearning.h
     source/ai/UsageGraph.cpp
     source/ai/UsageGraph.h
+    source/ai/CommunityHabits.cpp
+    source/ai/CommunityHabits.h
     source/ai/StyleRecognizer.h
     source/ai/GenreProfiles.h
     source/ai/Feedback.h
@@ -351,6 +354,7 @@ if(OMNIS_BUILD_TESTS)
         tests/TestComposition.cpp
         tests/TestBusListener.cpp
         tests/TestUsageGraph.cpp
+        tests/TestCommunityHabits.cpp
         tests/TestMusic.cpp
         tests/TestAvatarStylizer.cpp
         tests/TestLoudness.cpp

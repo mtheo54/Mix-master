@@ -169,7 +169,10 @@ A move becomes a **habit** when it comes back (3 times at least) and is useful m
 What happened only once is forgotten over time. Type **"my habits"**: "Over 12 sessions, what you
 do most: more sub (7 times), Comp on (4 times). I don't learn: louder (3): inaudible, hesitant or
 against mastering rules." Your artistic choices are listed too: "Your artistic choices (art
-direction), learned for their style: louder (4)." The level OMNIS drives itself after AUTO does not count as a tweak.
+direction), learned for their style: louder (4)." While you have few habits, AUTO also leans on
+the average of OMNIS users for your style ("what others do in trap (12 people): sub +0.4 dB");
+its share shrinks as yours grow. That average comes from anonymous contributions (at least 5
+people per move) and arrives with updates. The level OMNIS drives itself after AUTO does not count as a tweak.
 
 **The safety net**: OMNIS never compresses more than the level allows. If your beat is very
 dynamic, it stops before crushing it and tells you ("Level stopped at …"). To go louder, make it

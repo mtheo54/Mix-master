@@ -175,7 +175,10 @@ du temps. Ce qui n'est arrivé qu'une fois est oublié avec le temps. Écris **�
 « Sur 12 séances, ce que tu fais le plus : plus de sub (7 fois), Comp allumé (4 fois). Je ne
 l'apprends pas : plus fort (3) : inaudible, hésitant ou contre les règles du mastering. » Tes
 choix artistiques y sont aussi : « Tes choix artistiques (DA), appris pour leur style : plus fort
-(4). » Le
+(4). » Tant que tu as peu d'habitudes, AUTO s'aide aussi de la moyenne des utilisateurs d'OMNIS
+pour ton style (« ce que font les autres en trap (12 personnes) : sub +0.4 dB ») ; sa part baisse
+à mesure que les tiennes grandissent. Cette moyenne vient de contributions anonymes (au moins 5
+personnes par geste) et arrive avec les mises à jour. Le
 volume qu'OMNIS mène lui-même après AUTO n'est pas compté comme une retouche.
 
 **Le garde-fou** : OMNIS ne compresse jamais plus que ce que le niveau permet. Si ta prod est très

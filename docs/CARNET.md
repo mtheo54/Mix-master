@@ -21,6 +21,9 @@ MusicBrainz ou Cover Art Archive.
 
 ## Compte et confidentialité
 
+Plus tard, la copie des usages sur le compte sera **chiffrée sur le PC** et lue par cette page
+avec la clé de la personne (`docs/DONNEES_COMPTE.md`). En attendant :
+
 Le compte (géré par ONIRIQUE) **ouvre la page** ; il ne reçoit jamais les données : elles restent
 sur le PC et la page les lit localement. Pas de serveur de données, pas de coût, rien à déclarer
 de plus dans la politique de confidentialité que ce qu'OMNIS fait déjà (voir `LICENSE_NOTICES.md`).

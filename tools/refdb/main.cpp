@@ -37,6 +37,7 @@
 //    empilées ; artiste en rond, pochette en carré arrondi) | hd (photo à peine
 //    retouchée) | peint ; --refaire redessine ce que le cache a déjà.
 // =============================================================================
+#include "ai/CommunityHabits.h"
 #include "ai/EmbeddedData.h"
 #include "ai/GenreProfiles.h"
 #include "ai/StyleRecognizer.h"
@@ -291,6 +292,7 @@ int main(int argc, char** argv) {
                   "  omnis_refdb embleme image.jpg [--forme rond|carre] [--formes 120] [--sortie emblème.png] | embleme --db base.txt   (illustrations OMNIS)\n"
                   "  (illustrations : --style embleme|hd|peint, embleme par défaut ; --refaire redessine le cache)\n"
                   "  omnis_refdb profils data/references.txt --sortie data/profils_genres.txt [--min 3] [--rapport classement.csv]\n"
+                  "  omnis_refdb usages dossier_des_contributions --sortie data/usages_communaute.txt\n"
                   "  omnis_refdb groupes data/references.txt --sortie data/groupes_sonores.txt   (groupes sonores livrés)\n"
                   "  omnis_refdb style-eval data/references.txt [--poids forme,largeur,brillance,coups,micro,temperature] [--grille]\n"
                   "     (reconnaissance du style : validation croisée en 5 plis par artiste, les profils refaits sans l'artiste testé)\n"
@@ -504,6 +506,35 @@ int main(int argc, char** argv) {
         }
         const auto sc = evaluate(weights, true);
         print(weights, sc);
+        return 0;
+    }
+
+    if (command == "usages") {
+        // La moyenne de ce que font les utilisateurs : une contribution anonyme par personne
+        // (contribution_anonyme.tsv), rien de publié en dessous de 5 personnes par geste et contexte.
+        std::string out;
+        for (int i = 2; i + 1 < argc; ++i)
+            if (std::string(argv[i]) == "--sortie") out = argv[i + 1];
+        std::error_code ec;
+        if (input.empty() || out.empty() || !std::filesystem::is_directory(input, ec)) {
+            std::fputs("usages : le dossier des contributions et --sortie requis\n", stderr);
+            return 1;
+        }
+        std::vector<std::vector<ai::ContributionRow>> all;
+        int refused = 0;
+        for (const auto& f : std::filesystem::recursive_directory_iterator(input, ec)) {
+            if (!f.is_regular_file()) continue;
+            std::string text;
+            if (!readTextFile(f.path().string(), text)) continue;
+            if (auto c = ai::parseContribution(text)) all.push_back(std::move(*c));
+            else ++refused;
+        }
+        const auto community = ai::CommunityHabits::aggregate(all);
+        if (!writeTextFile(out, community.serialize())) return 1;
+        for (const auto& h : community.habits())
+            std::printf("  %-28s %-12s %3d personne(s), %3.0f %%, moyenne %+.2f\n", h.context.c_str(), h.gesture.c_str(), h.people, 100.0 * h.share, h.mean);
+        std::printf("%zu contribution(s) lue(s), %d refusée(s) ; %zu habitude(s) publiée(s) (au moins %d personnes) -> %s\n", all.size(), refused,
+                    community.habits().size(), ai::CommunityHabits::kMinPeople, out.c_str());
         return 0;
     }
 

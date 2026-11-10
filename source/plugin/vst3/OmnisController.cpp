@@ -9,6 +9,7 @@
 #include "OmnisState.h"
 #include "UiFeed.h"
 
+#include "ai/CommunityHabits.h"
 #include "ai/ConsoleActions.h"
 #include "ai/GenreProfiles.h"
 #include "ai/EmbeddedData.h"
@@ -499,7 +500,10 @@ std::string OmnisController::ask(const std::string& request) {
                 std::filesystem::create_directories(learningDir(), ec);
                 std::ofstream(file, std::ios::binary) << ai::exportAnonymous(journal);
                 // Le graphe des usages, pour la page de données (des noms de réglages et des nombres).
-                std::ofstream(learningDir() / "graphe_usages.json", std::ios::binary) << ai::loadUsageGraph(pathText(usageGraphPath())).exportJson();
+                const auto usage = ai::loadUsageGraph(pathText(usageGraphPath()));
+                std::ofstream(learningDir() / "graphe_usages.json", std::ios::binary) << usage.exportJson();
+                // La contribution à la moyenne des utilisateurs : contextes génériques et nombres seulement.
+                std::ofstream(learningDir() / "contribution_anonyme.tsv", std::ios::binary) << ai::contributionText(usage);
                 const auto samples = ai::samplesFromJournal(journal).size();
                 char b[400];
                 std::snprintf(b, sizeof b, i18n::tr("Export anonyme écrit (%d séance(s), des nombres seulement, rien n'est envoyé) : %s").c_str(),
@@ -525,6 +529,7 @@ std::string OmnisController::ask(const std::string& request) {
                 std::filesystem::remove(styleMemoryPath(), ec);
                 std::filesystem::remove(usageGraphPath(), ec);
                 std::filesystem::remove(learningDir() / "graphe_usages.json", ec);
+                std::filesystem::remove(learningDir() / "contribution_anonyme.tsv", ec);
                 autoPending_ = false;
                 return "Oublié : tes habitudes, tes styles nommés et le journal sont effacés de ce poste.";
             }
@@ -1095,8 +1100,17 @@ std::array<double, 6> OmnisController::habitValues() {
 std::string OmnisController::applyHabits(const analysis::SpectralSignature& heard, std::vector<std::pair<std::uint32_t, double>>& settings,
                                          std::optional<double>& targetLufs) {
     const auto net = loadHabitNet();
-    if (!net || !net->trained()) return {};
-    const auto d = net->predict(ai::styleFeatures(heard));
+    const bool mine = net && net->trained();
+    ai::HabitVector d{};
+    if (mine) d = net->predict(ai::styleFeatures(heard)); // déjà multiplié par la confiance n / (n + 8)
+    const auto personal = d;
+    // La moyenne des utilisateurs d'OMNIS (livrée avec le plug-in) : d'autant moins que la
+    // personne a d'habitudes à elle.
+    const double confidence = mine ? net->samples() / (net->samples() + 8.0) : 0.0;
+    const std::string context = "auto:" + (recognizedGroup_.empty() ? autoStyle_ : recognizedGroup_);
+    const auto& shared = ai::CommunityHabits::shipped();
+    const auto others = shared.delta(context, confidence);
+    for (std::size_t o = 0; o < d.size(); ++o) d[o] += others[o];
     using P = params::ParamId;
     // Valeur après le plan d'AUTO (le plan, sinon la console), plus l'écart appris.
     const auto planned = [&](P id) {
@@ -1124,7 +1138,9 @@ std::string OmnisController::applyHabits(const analysis::SpectralSignature& hear
     if (std::fabs(at(ai::Habit::Comp)) >= 0.5 && planned(P::CompOn) >= 0.5) put(P::CompThreshold, planned(P::CompThreshold) + at(ai::Habit::Comp));
     // Le volume : la cible bouge (le garde-fou du NIVEAU tient toujours).
     if (targetLufs && std::fabs(at(ai::Habit::Loudness)) >= 0.2) *targetLufs += at(ai::Habit::Loudness);
-    return ai::describeHabits(d, net->samples());
+    const std::string own = mine ? ai::describeHabits(personal, net->samples()) : std::string();
+    const std::string theirs = ai::describeCommunity(others, context, shared.peopleIn(context));
+    return own.empty() ? theirs : theirs.empty() ? own : own + " · " + theirs;
 }
 
 ai::UsageState OmnisController::usageState() {

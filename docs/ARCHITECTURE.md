@@ -257,6 +257,18 @@ artistiques, écart moyen), liens contexte → geste et geste ↔ geste (utiles 
 < 40 %. Un nœud vu une seule fois et pas revu depuis 30 séances est oublié ; 300 nœuds au plus.
 Export JSON anonyme (`graphe_usages.json`) pour la page de données ; barre IA « mes habitudes ».
 
+## 13 ter. La moyenne des utilisateurs (`ai/CommunityHabits`)
+
+Comme pour les références son : chaque personne qui l'accepte donne une contribution anonyme
+(`contributionText` : contextes génériques `auto:…` / `style:…`, gestes, nombres ; les presets
+« titre » sont laissés de côté). `CommunityHabits::aggregate` (outil `omnis_refdb usages`) publie
+un geste seulement s'il est une habitude (≥ 2 fois, ≥ 60 % utile dans ce contexte) chez **au moins
+5 personnes** et 30 % de celles du contexte : `data/usages_communaute.txt`, embarqué
+(`data::communaute()`). Après AUTO, `applyHabits` ajoute `delta(contexte, confiance)` : moyenne ×
+part × 0,5 × (1 − confiance de la personne), bornée à la moitié des bornes des habitudes ; la
+barre IA le dit (`describeCommunity`). L'espace personnel chiffré sur le compte et l'envoi :
+`docs/DONNEES_COMPTE.md`.
+
 ## 14. (retiré le 08/11) Le chef d'orchestre et les chaînes de stems
 
 Le master qui écoutait les stems et leur envoyait des ordres (gain, retouches), et la chaîne propre

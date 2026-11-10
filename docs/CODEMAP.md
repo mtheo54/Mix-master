@@ -12,9 +12,10 @@
 
 ## source/ai/
 
+- `CommunityHabits.h/cpp` (317 l.) — La moyenne de ce que font les utilisateurs d'OMNIS. · types : ContributionRow, CommunityHabit, CommunityHabits · fonctions : genericContext, contributionText, parseContribution, aggregate, parse, shipped, describeCommunity
 - `ConsoleActions.h/cpp` (519 l.) — Ce que la barre IA et le bouton AUTO font dans la console : une demande comprise (ai::understandRequest) et ce qu'OMNIS a entendu de la prod deviennent des réglages des modules, et une sonie à · types : ConsolePlan · fonctions : planRequest, planAuto, planReference, glueSettings, glueOf
 - `DynamicsIntent.h/cpp` (176 l.) — Tenir la prod dans le temps comme la référence. · types : BandDynamics, DynamicsIntent · fonctions : planDynamics, dynamicsSettings, mbBandName
-- `EmbeddedData.h` (27 l.) — Données livrées dans le binaire (générées depuis data/). · fonctions : lexicon, slang, references, catalogue, i18n, styles, elements, groupes, classement
+- `EmbeddedData.h` (28 l.) — Données livrées dans le binaire (générées depuis data/). · fonctions : lexicon, slang, references, catalogue, i18n, styles, elements, groupes, communaute, classement
 - `Feedback.h/cpp` (512 l.) — Apprendre de chaque séance, chez soi puis pour tout le monde. · types : FeedbackRecord, LearningReport, CommunityRules · fonctions : serializeFeedback, parseFeedback, appendFeedback, loadFeedback, correctionFromCurves, parseCorrection, learnFromFeedback, exportAggregate, mergeAggregates
 - `GenreProfiles.h/cpp` (399 l.) — Les profils de genre livrés avec le plug-in. · types : ProfileAssignment, GenreProfileSet · fonctions : genreFamilies, inGenreFamily, artistKey, artistStyles, stylesOfArtist, buildGenreProfiles, serializeGenreProfiles
 - `HabitLearning.h/cpp` (441 l.) — Apprendre les habitudes de la personne (étape 5). · types : JournalEvent, HabitSample, HabitNet · enums : Habit, JournalKind · fonctions : habitKey, habitLabel, habitBound, serializeJournalEvent, parseJournalEvent, appendJournal, loadJournal, samplesFromJournal, train, parse, exportAnonymous, describeHabits
@@ -96,7 +97,7 @@
 
 ## source/plugin/vst3/
 
-- `OmnisController.h/cpp` (1795 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
+- `OmnisController.h/cpp` (1811 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
 - `OmnisEditor.h/cpp` (2797 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer, buildScreens
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (32 l.) — Identifiants de classes VST3.
@@ -135,6 +136,7 @@
 
 - `TestAvatarStylizer.cpp` (255 l.) — L'illustration d'une pochette : macaron du coin retiré, grain effacé, teinte gardée, trait sur les contours, détourage. · 9 tests : avatar HD: 256 px, macaron du coin retiré, couleurs d'origine, fondu s ; avatar peint (option): macaron retiré, teinte gardée, détourage radial ; avatar emblème: des formes posées d'après l'image (pas de filtre), ron ; emblème: chaque forme rapproche du modèle (un disque est retrouvé) ; avatar: un bloc de texte noir et blanc est repéré dans un coin, jamais ; avatar: les deux couleurs dominantes (monogramme du mode promo) ; …
 - `TestBusListener.cpp` (174 l.) — Ce qu'OMNIS entend dans un bus (sans rien sur les pistes). · 6 tests : bus: un bus DRUMS -> kick, snare / clap, hi-hat, open hat, et rien d'a ; bus: 808 (propre ou saturée) entendue comme 808, pas comme du mélo ; a ; bus: MÉLO -> nappe (tenue) et lead / synthé (attaques), sans drums ni  ; bus: EFX -> reverse cymbal, riser, impact reconnus ; les hats n'en fon ; bus: toute la prod dans un bus -> tous les groupes entendus ; bus: silence, bruit de fond, trop peu d'écoute -> rien d'inventé
+- `TestCommunityHabits.cpp` (93 l.) — La moyenne de ce que font les utilisateurs : anonyme, publiée seulement à partir de 5 personnes, de moins en moins forte à mesure que la personne a ses propres habitudes. · 2 tests : communauté: la contribution est anonyme (contextes génériques, nombres ; communauté: la moyenne ne publie qu'à partir de 5 personnes, et AUTO s
 - `TestComposition.cpp` (238 l.) — Les bus du projet se voient (région partagée, page COMPOSITION, thread du lien). · 4 tests : composition: chaque bus, son groupe (nom, sinon contenu) et ce qu'il c ; composition: la région partagée (bus, noms, contenu) se lit d'une autr ; lien: thread audio, thread du lien et lecture d'une autre instance en  ; lien: le morceau écouté une seule fois par seconde (une boucle rejouée
 - `TestCompressor.cpp` (204 l.) — Compresseur de bus (stages/CompressorStage) : courbe à genou continue, réduction statique exacte, rien sous le seuil (au bit près), stéréo liée, passe-haut du détecteur (la 808 ne pompe pas), · 7 tests : compresseur: courbe à genou doux continue (0 sous le seuil, pente 1/R  ; compresseur: réduction statique exacte (sinus -6 dBFS, seuil -18, 4:1  ; compresseur: stéréo liée (même gain à gauche et à droite) ; Mix 0 % =  ; compresseur: le passe-haut du détecteur empêche la 808 (40 Hz) de fair ; compresseur: attaque et relâchement (FET 1 ms rapide ; relâchement sui ; compresseur Opto: relâche vite après un coup bref, lentement après une ; …
 - `TestConvolution.cpp` (133 l.) — FFT, convolution UPOLS, noyaux à phase linéaire. · 3 tests : fft: identique à la DFT directe, aller-retour exact (N = 8 … 4096) ; upols: deux canaux = convolutions directes, latence exacte B, changeme ; noyaux sub: réponse conforme à la cible, phase linéaire (symétrie), Mi
@@ -234,7 +236,7 @@
 
 ## tools/refdb/
 
-- `main.cpp` (1138 l.) — tools/refdb — Base de références (signatures, jamais d'audio). · commandes : groupes, profils, image, pochette, embleme, cartoon, reconnaitre, fiche, add, scan, titres, artistes, csv, nom, noms, list, find
+- `main.cpp` (1169 l.) — tools/refdb — Base de références (signatures, jamais d'audio). · commandes : groupes, usages, profils, image, pochette, embleme, cartoon, reconnaitre, fiche, add, scan, titres, artistes, csv, nom, noms, list, find
 
 ## tools/render/
 

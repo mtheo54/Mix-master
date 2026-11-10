@@ -239,9 +239,9 @@ table.rules th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .0
         <h4>Voir tes fichiers</h4>
         <div class="load">
           <label class="gbtn" for="myFiles">Ouvrir mes fichiers</label><input id="myFiles" type="file" multiple accept=".json,.tsv,.txt">
-          <div class="drop" id="myDrop" tabindex="0">ou glisse ici <code>graphe_usages.json</code>, <code>export_anonyme.tsv</code>, <code>references_utilisateur.txt</code></div>
+          <div class="drop" id="myDrop" tabindex="0">ou glisse ici <code>graphe_usages.json</code>, <code>contribution_anonyme.tsv</code>, <code>export_anonyme.tsv</code>, <code>references_utilisateur.txt</code></div>
         </div>
-        <p style="margin-top:8px;font-size:13px;color:var(--muted)">Dossier : <code>%APPDATA%\Abrasion Labs\OMNIS\</code> (Windows) ou <code>~/Library/Application Support/Abrasion Labs/OMNIS/</code> (Mac). Les deux premiers sont écrits quand tu dis « exporte mon apprentissage » à OMNIS.</p>
+        <p style="margin-top:8px;font-size:13px;color:var(--muted)">Dossier : <code>%APPDATA%\Abrasion Labs\OMNIS\</code> (Windows) ou <code>~/Library/Application Support/Abrasion Labs/OMNIS/</code> (Mac). Les trois premiers sont écrits quand tu dis « exporte mon apprentissage » à OMNIS.</p>
         <p class="why" id="myError" hidden></p>
         <div id="myView" style="margin-top:10px"></div>
       </div>
@@ -254,6 +254,7 @@ table.rules th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .0
           <tr><td><code>styles_appris.txt</code></td><td>Les styles que tu as nommés (« cette prod c'est de la drill ») et les grandeurs de ces prods.</td><td>Jamais</td><td>« oublie mes habitudes »</td></tr>
           <tr><td><code>references_utilisateur.txt</code></td><td>Les références que tu as ajoutées : artiste, titre, genres et mesures. Aucun son.</td><td>Jamais</td><td>supprime le fichier</td></tr>
           <tr><td><code>images/</code></td><td>Avatars et pochettes gardés en cache pour l'affichage.</td><td>Jamais</td><td>supprime le dossier</td></tr>
+          <tr><td><code>apprentissage/contribution_anonyme.tsv</code></td><td>Écrit quand tu dis « exporte mon apprentissage » : ta part de la moyenne des utilisateurs d'OMNIS. Des styles génériques (AUTO · trap, preset · style rage fr), des gestes et des nombres ; aucun nom de référence, aucune date, aucun compte.</td><td>Seulement si toi tu l'envoies</td><td>supprime-le</td></tr>
           <tr><td><code>apprentissage/export_anonyme.tsv</code>, <code>graphe_usages.json</code></td><td>Écrits seulement si tu dis « exporte mon apprentissage » : jour (sans l'heure), groupe sonore, nombres. Aucun nom de fichier, aucun son.</td><td>Seulement si toi tu les envoies</td><td>supprime-les</td></tr>
         </tbody></table></div>
       </div>
@@ -708,6 +709,10 @@ function showMine(name, text) {
   if (/\.json$/i.test(name) || text.trim().startsWith("{")) {
     loadUsage(text);
     box.innerHTML = `<h4>${esc(name)}</h4><p style="font-size:13px">Ton graphe des usages est chargé : va voir l'onglet <b>IA · usages</b> (${U.seances || 0} séance(s), ${U.noeuds ? U.noeuds.length : 0} point(s)).</p>`;
+  } else if (text.startsWith("omnis-contribution")) {
+    const rows = text.split(/\r?\n/).filter((l) => l.startsWith("G\t")).map((l) => l.split("\t"));
+    box.innerHTML = `<h4>${esc(name)} · ${rows.length} ligne(s)</h4><div class="tablewrap"><table class="rules"><thead><tr><th>Contexte</th><th>Geste</th><th>Fait</th><th>Utile</th><th>DA</th><th>Écart moyen</th></tr></thead><tbody>${rows.slice(0, 300).map((r) =>
+      `<tr><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td>${esc(r[5])}</td><td>${esc(r[6])}</td></tr>`).join("")}</tbody></table></div><p style="font-size:12.5px;color:var(--muted);margin-top:6px">Ta part de la moyenne des utilisateurs : rien d'autre que ça. Un geste n'entre dans la moyenne publiée que s'il est une habitude chez au moins 5 personnes.</p>`;
   } else if (/omnis — export anonyme/i.test(text) || /\.tsv$/i.test(name)) {
     const rows = text.split(/\r?\n/).filter((l) => l && !l.startsWith("#")).map((l) => l.split("\t"));
     const H = ["pente", "sub", "Inflator", "volume", "largeur", "Comp"];
