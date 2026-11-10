@@ -1,0 +1,303 @@
+{
+"format": "omnis-graphe",
+"version": 2,
+"seances": 15,
+"noeuds": [
+{
+"id": "ctx:auto:trap",
+"label": "AUTO · trap",
+"type": "contexte",
+"vu": 6,
+"utile": 0,
+"exporte": 0,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+},
+{
+"id": "sub+",
+"label": "Plus de sub",
+"type": "geste",
+"vu": 9,
+"utile": 8,
+"exporte": 4,
+"risque": 0,
+"creatif": 0,
+"moyenne": 1.32,
+"habitude": true
+},
+{
+"id": "mod7:on",
+"label": "Comp allumé",
+"type": "geste",
+"vu": 4,
+"utile": 4,
+"exporte": 2,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": true
+},
+{
+"id": "ctx:auto:drill",
+"label": "AUTO · drill",
+"type": "contexte",
+"vu": 3,
+"utile": 0,
+"exporte": 0,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+},
+{
+"id": "tilt+",
+"label": "Plus d'aigu (pente)",
+"type": "geste",
+"vu": 5,
+"utile": 5,
+"exporte": 1,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.92,
+"habitude": true
+},
+{
+"id": "largeur+",
+"label": "Plus large",
+"type": "geste",
+"vu": 1,
+"utile": 1,
+"exporte": 0,
+"risque": 0,
+"creatif": 0,
+"moyenne": 12.0,
+"habitude": false
+},
+{
+"id": "ctx:preset:style rage fr",
+"label": "Preset · style rage fr",
+"type": "contexte",
+"vu": 3,
+"utile": 0,
+"exporte": 0,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+},
+{
+"id": "inflate+",
+"label": "Plus de densité (Inflator)",
+"type": "geste",
+"vu": 3,
+"utile": 3,
+"exporte": 1,
+"risque": 0,
+"creatif": 0,
+"moyenne": 10.0,
+"habitude": true
+},
+{
+"id": "volume+",
+"label": "Plus fort",
+"type": "geste",
+"vu": 3,
+"utile": 3,
+"exporte": 1,
+"risque": 0,
+"creatif": 3,
+"moyenne": 9.0,
+"habitude": true
+},
+{
+"id": "infl:2",
+"label": "Inflator → Lampe",
+"type": "geste",
+"vu": 3,
+"utile": 3,
+"exporte": 1,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": true
+},
+{
+"id": "ctx:auto:plugg / new wave",
+"label": "AUTO · plugg / new wave",
+"type": "contexte",
+"vu": 3,
+"utile": 0,
+"exporte": 0,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+},
+{
+"id": "sub~",
+"label": "Hésite sur le sub",
+"type": "geste",
+"vu": 3,
+"utile": 0,
+"exporte": 0,
+"risque": 0,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+},
+{
+"id": "grave:large",
+"label": "Grave élargi",
+"type": "geste",
+"vu": 1,
+"utile": 0,
+"exporte": 0,
+"risque": 1,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+},
+{
+"id": "mod6:off",
+"label": "Limiteur éteint",
+"type": "geste",
+"vu": 1,
+"utile": 0,
+"exporte": 0,
+"risque": 1,
+"creatif": 0,
+"moyenne": 0.0,
+"habitude": false
+}
+],
+"liens": [
+{
+"a": "ctx:auto:trap",
+"b": "sub+",
+"n": 6,
+"utile": 5,
+"da": 0
+},
+{
+"a": "ctx:auto:trap",
+"b": "mod7:on",
+"n": 4,
+"utile": 4,
+"da": 0
+},
+{
+"a": "mod7:on",
+"b": "sub+",
+"n": 4,
+"utile": 4,
+"da": 0
+},
+{
+"a": "ctx:auto:drill",
+"b": "tilt+",
+"n": 2,
+"utile": 2,
+"da": 0
+},
+{
+"a": "ctx:auto:drill",
+"b": "sub+",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "sub+",
+"b": "tilt+",
+"n": 2,
+"utile": 2,
+"da": 0
+},
+{
+"a": "ctx:auto:drill",
+"b": "largeur+",
+"n": 1,
+"utile": 1,
+"da": 0
+},
+{
+"a": "largeur+",
+"b": "sub+",
+"n": 1,
+"utile": 1,
+"da": 0
+},
+{
+"a": "ctx:preset:style rage fr",
+"b": "inflate+",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "ctx:preset:style rage fr",
+"b": "volume+",
+"n": 3,
+"utile": 3,
+"da": 1
+},
+{
+"a": "ctx:preset:style rage fr",
+"b": "infl:2",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "infl:2",
+"b": "inflate+",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "infl:2",
+"b": "volume+",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "inflate+",
+"b": "volume+",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "ctx:auto:plugg / new wave",
+"b": "tilt+",
+"n": 3,
+"utile": 3,
+"da": 0
+},
+{
+"a": "ctx:auto:plugg / new wave",
+"b": "sub~",
+"n": 3,
+"utile": 0,
+"da": 0
+},
+{
+"a": "ctx:auto:plugg / new wave",
+"b": "grave:large",
+"n": 1,
+"utile": 0,
+"da": 0
+},
+{
+"a": "ctx:auto:plugg / new wave",
+"b": "mod6:off",
+"n": 1,
+"utile": 0,
+"da": 0
+}
+]
+}

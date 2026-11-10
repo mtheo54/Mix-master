@@ -403,6 +403,12 @@ if(OMNIS_BUILD_TESTS)
         add_test(NAME omnis_plugin_state COMMAND omnis_plugin_tests)
     endif()
 
+    # Le carnet de la page d'OMNIS (site/carnet/index.html) suit data/styles_artistes.txt.
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME omnis_carnet_a_jour COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/carnet/build_carnet.py --check)
+    endif()
+
     if(OMNIS_BUILD_VST3 AND TARGET validator)
         get_target_property(OMNIS_PLUGIN_PACKAGE OMNIS SMTG_PLUGIN_PACKAGE_PATH)
         add_test(NAME vst3_validator COMMAND validator "${OMNIS_PLUGIN_PACKAGE}")

@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<!-- Généré par tools/carnet/build_carnet.py : ne pas modifier à la main. -->
+<title>Carnet OMNIS</title>
+<style>
+/* Mise en page : un bac à disques par famille ; les styles sont les intercalaires, les artistes les pochettes qu'on feuillette. */
+:root {
+  --bg: #e8e9ec; --paper: #f6f6f7; --ink: #15171c; --muted: #5b5f69; --line: #c9ccd3;
+  --accent: #d2402b; --accent-ink: #ffffff; --chip: #dfe1e6;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Public Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111317; --paper: #1a1d23; --ink: #ebe9e6; --muted: #9aa0ab; --line: #2d3139;
+  --accent: #ff6a4d; --accent-ink: #111317; --chip: #252931; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111317; --paper: #1a1d23; --ink: #ebe9e6; --muted: #9aa0ab; --line: #2d3139;
+  --accent: #ff6a4d; --accent-ink: #111317; --chip: #252931; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; border-bottom: 3px solid var(--ink); padding-bottom: 14px; }
+h1 { font-family: var(--display); font-weight: 900; font-size: clamp(40px, 7vw, 72px); line-height: .9; margin: 0; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.lede { margin: 8px 0 0; color: var(--muted); max-width: 62ch; }
+.search { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 0 1 320px; }
+.search label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.search input { font: inherit; padding: 10px 12px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 0; width: 100%; box-sizing: border-box; }
+.search input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.fams { display: flex; gap: 6px; overflow-x: auto; padding: 14px 0 6px; scrollbar-width: thin; }
+.fam { font-family: var(--display); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; white-space: nowrap;
+  border: 2px solid var(--ink); background: transparent; color: var(--ink); padding: 4px 12px; cursor: pointer; }
+.fam[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.fam small { font-family: var(--mono); font-size: 11px; margin-left: 6px; opacity: .7; }
+.styles { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 18px; border-bottom: 1px solid var(--line); }
+.st { font: 600 13px var(--body); background: var(--chip); color: var(--ink); border: 1px solid transparent; padding: 4px 10px; border-radius: 3px; cursor: pointer; }
+.st[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.st b { font-family: var(--mono); font-weight: 400; font-size: 11px; opacity: .75; margin-left: 4px; }
+.intro { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 18px 0 8px; }
+.intro h2 { font-family: var(--display); font-weight: 900; font-size: 34px; text-transform: uppercase; margin: 0; line-height: 1; }
+.intro p { margin: 0; max-width: 70ch; color: var(--ink); }
+.intro .count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; padding-top: 10px; }
+.card { background: var(--paper); border: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card h3 { font-family: var(--display); font-weight: 900; font-size: 28px; line-height: 1; margin: 0; text-transform: uppercase; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); color: var(--muted); border-radius: 2px; }
+.flag { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.titles { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13.5px; }
+.titles li::before { content: "▸ "; color: var(--accent); }
+.albums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.alb { display: flex; flex-direction: column; gap: 4px; min-width: 0; text-decoration: none; color: inherit; }
+.cover { aspect-ratio: 1; max-width: 100%; display: grid; place-items: end start; padding: 6px; box-sizing: border-box;
+  font-family: var(--display); font-weight: 900; font-size: 15px; line-height: .95; text-transform: uppercase; color: #fff; overflow: hidden; }
+.alb:hover .cover { outline: 2px solid var(--accent); }
+.alb span { font-size: 12px; line-height: 1.25; overflow-wrap: anywhere; }
+.alb em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; }
+.links a { color: var(--accent); }
+.none { color: var(--muted); font-size: 13px; }
+.empty { padding: 40px 0; color: var(--muted); }
+footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .15s; } .card:hover { border-color: var(--ink); } }
+/* ---- vues : Carnet · Graphe · IA ---- */
+:root { --da: #7a3fc4; --danger: #b3261e; --good: #1d7a4a; --canvas: #f1f2f4; --node-l: 42%; --halo: rgba(21,23,28,.08); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --da: #c8a2ff; --danger: #ff8a7a; --good: #6fd39b; --canvas: #0c0e12; --node-l: 63%; --halo: rgba(235,233,230,.08); } }
+:root[data-theme="dark"] { --da: #c8a2ff; --danger: #ff8a7a; --good: #6fd39b; --canvas: #0c0e12; --node-l: 63%; --halo: rgba(235,233,230,.08); }
+.views { display: flex; gap: 0; margin-top: 16px; border-bottom: 3px solid var(--ink); flex-wrap: wrap; }
+.view { font-family: var(--display); font-weight: 900; font-size: 22px; text-transform: uppercase; letter-spacing: .02em; padding: 6px 16px 4px;
+  background: transparent; color: var(--muted); border: 0; border-bottom: 5px solid transparent; margin-bottom: -3px; cursor: pointer; }
+.view[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.view small { font-family: var(--mono); font-size: 11px; font-weight: 400; margin-left: 6px; color: var(--muted); }
+.gwrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; padding-top: 14px; }
+.gstage { position: relative; min-width: 0; border: 1px solid var(--line); background: var(--canvas); height: min(72vh, 680px); }
+.gstage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.gstage canvas.dragging { cursor: grabbing; }
+.gtools { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
+.gtools > * { pointer-events: auto; }
+.gtools input { font: inherit; font-size: 13px; padding: 6px 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 0; width: 220px; max-width: 100%; }
+.gbtn { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 7px 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; }
+.gbtn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.ghint { position: absolute; left: 10px; bottom: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; }
+.side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel { background: var(--paper); border: 1px solid var(--line); padding: 12px 14px; min-width: 0; }
+.panel h3 { font-family: var(--display); font-weight: 900; font-size: 24px; line-height: 1; margin: 0 0 6px; text-transform: uppercase; overflow-wrap: anywhere; }
+.panel h4 { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 0 4px; font-weight: 400; }
+.panel p { margin: 0; font-size: 13.5px; }
+.legend { display: flex; flex-direction: column; gap: 4px; }
+.lg { display: flex; align-items: center; gap: 8px; font-size: 13px; background: none; border: 0; padding: 2px 0; color: var(--ink); cursor: pointer; text-align: left; font-family: var(--body); }
+.lg i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.lg[aria-pressed="false"] { opacity: .4; }
+.lg b { margin-left: auto; font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chipb { font: 600 12px var(--body); background: var(--chip); color: var(--ink); border: 1px solid transparent; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+.chipb:hover { border-color: var(--ink); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 13px; }
+.kv dt { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+/* ---- IA ---- */
+.ia { display: grid; gap: 16px; padding-top: 14px; }
+.ia-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; }
+.ia-head h2 { font-family: var(--display); font-weight: 900; font-size: 38px; text-transform: uppercase; margin: 0; line-height: .95; text-wrap: balance; }
+.ia-head p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+.badge { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 4px 8px; border: 2px solid var(--accent); color: var(--accent); }
+.badge.mine { border-color: var(--good); color: var(--good); }
+.load { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.load label.gbtn { display: inline-block; }
+.load input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop { border: 2px dashed var(--line); padding: 10px 12px; font-size: 13px; color: var(--muted); }
+.drop.over { border-color: var(--accent); color: var(--ink); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tile { background: var(--paper); border: 1px solid var(--line); padding: 10px 12px; }
+.tile b { display: block; font-family: var(--display); font-weight: 900; font-size: 38px; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile span { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; }
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; font-size: 13.5px; }
+.bar .track { grid-column: 1 / -1; height: 10px; background: var(--chip); position: relative; }
+.bar .track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.bar .track u { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); opacity: .85; }
+.bar .n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.why { color: var(--danger); font-size: 12.5px; }
+table.rules { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.rules th, table.rules td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.rules th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.verdict { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid currentColor; white-space: nowrap; }
+.v-ok { color: var(--good); } .v-da { color: var(--da); } .v-no { color: var(--muted); } .v-risk { color: var(--danger); }
+.tablewrap { overflow-x: auto; }
+.uchart { display: block; width: 100%; height: auto; max-width: 100%; }
+@media (max-width: 860px) { .gwrap { grid-template-columns: minmax(0, 1fr); } .gstage { height: 62vh; } }
+
+.mbg { margin: 0; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Carnet <span>des genres</span></h1>
+      <p class="lede">Les familles, les styles et les artistes que connaît OMNIS, leurs albums, et ce que ton OMNIS a appris de toi. Une pochette s'ouvre d'un clic (Cover Art Archive). Tes données restent sur ton PC : cette page les lit sans rien envoyer.</p>
+    </div>
+    <div class="search">
+      <label for="q">Chercher un artiste, un album, un style</label>
+      <input id="q" type="search" placeholder="ex. GRY, drill, Ninho…" autocomplete="off">
+    </div>
+  </header>
+  <div class="views" role="tablist" aria-label="Vues">
+    <button class="view" role="tab" id="tabCarnet" aria-selected="true" aria-controls="vCarnet">Carnet</button>
+    <button class="view" role="tab" id="tabGraph" aria-selected="false" aria-controls="vGraph">Graphe<small id="gcount"></small></button>
+    <button class="view" role="tab" id="tabIA" aria-selected="false" aria-controls="vIA">IA · usages</button>
+    <button class="view" role="tab" id="tabData" aria-selected="false" aria-controls="vData">Mes données</button>
+  </div>
+
+  <div id="vCarnet" role="tabpanel" aria-labelledby="tabCarnet">
+  <nav class="fams" id="fams" aria-label="Familles"></nav>
+  <div class="styles" id="styles" role="group" aria-label="Styles"></div>
+  <section class="intro" id="intro"></section>
+  <section class="grid" id="grid"></section>
+  </div>
+  <section id="vGraph" role="tabpanel" aria-labelledby="tabGraph" hidden>
+    <div class="gwrap">
+      <div class="gstage" id="gstage">
+        <canvas id="gcanvas" aria-label="Graphe des familles, styles et artistes de ta base"></canvas>
+        <div class="gtools">
+          <input id="gq" type="search" placeholder="Trouver un artiste ou un style…" autocomplete="off" aria-label="Trouver dans le graphe">
+          <button class="gbtn" id="gArtists" aria-pressed="true">Artistes</button>
+          <button class="gbtn" id="gFit">Recentrer</button>
+        </div>
+        <div class="ghint">Molette : zoom · glisser : déplacer · clic sur un point : sa fiche</div>
+      </div>
+      <aside class="side">
+        <div class="panel" id="gsel"><h3>Ta base en réseau</h3><p>Chaque famille, chaque style et chaque artiste est un point ; un trait relie un artiste à ses styles, un style à ses familles. Plus un style a de liens, plus il est gros.</p></div>
+        <div class="panel"><h4>Familles (clic : masquer)</h4><div class="legend" id="glegend"></div></div>
+        <div class="panel"><h4>Pôles : les styles les plus reliés</h4><div class="chips" id="ghubs"></div>
+          <h4>Passerelles : styles présents dans 3 familles ou plus</h4><div class="chips" id="gbridges"></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="vIA" role="tabpanel" aria-labelledby="tabIA" hidden>
+    <div class="ia">
+      <div class="ia-head">
+        <div>
+          <h2>Ce que tu fais le plus avec OMNIS</h2>
+          <p>Après chaque AUTO ou chaque preset (menu RÉF), OMNIS compare ce qu'il a proposé à ce que tu as gardé. Il juge chaque geste avec ses règles de mastering : seuls les gestes utiles et répétés deviennent des habitudes qu'il applique ensuite tout seul.</p>
+        </div>
+        <span class="badge" id="iaSource">exemple</span>
+      </div>
+      <div class="panel">
+        <h4>Tes propres données</h4>
+        <div class="load">
+          <label class="gbtn" for="iaFile">Charger mon graphe</label><input id="iaFile" type="file" accept=".json,application/json">
+          <button class="gbtn" id="iaExample">Revoir l'exemple</button>
+          <div class="drop" id="iaDrop" tabindex="0">ou glisse ici <code>graphe_usages.json</code>, ou colle son contenu (Ctrl+V)</div>
+        </div>
+        <p style="margin-top:8px;font-size:13px;color:var(--muted)">Dans OMNIS, écris « exporte mon apprentissage » : le fichier est écrit dans <code>%APPDATA%\Abrasion Labs\OMNIS\apprentissage\</code> (Windows) ou <code>~/Library/Application Support/Abrasion Labs/OMNIS/apprentissage/</code> (Mac). Il ne contient que des noms de réglages et des nombres ; il reste dans ton navigateur, rien n'est envoyé.</p>
+        <p class="why" id="iaError" hidden></p>
+      </div>
+      <div class="tiles" id="iaTiles"></div>
+      <div class="cols">
+        <div class="panel"><h3>Tes habitudes</h3><p style="font-size:13px;color:var(--muted)">Partie pâle : fois où le geste a été fait ; orange : fois où il était utile ; couleur du texte, au début : gardé jusqu'à l'export (compte double).</p><div class="bars" id="iaHabits" style="margin-top:10px"></div></div>
+        <div class="panel"><h3>Ce qu'OMNIS n'apprend pas</h3><p style="font-size:13px;color:var(--muted)">Fait souvent, mais jugé inaudible, hésitant ou contre les règles du métier : OMNIS te le signale au lieu de le copier.</p><div class="bars" id="iaDoubt" style="margin-top:10px"></div></div>
+        <div class="panel"><h3>Tes choix artistiques</h3><p style="font-size:13px;color:var(--muted)">Contre la règle générale, mais voulus : par le style que tu vises (écraser en rage, un son sombre en boom bap…), ou parce que tu les gardes jusqu'à l'export encore et encore. C'est ta DA : OMNIS l'apprend pour ce style seulement.</p><div class="bars" id="iaDA" style="margin-top:10px"></div></div>
+      </div>
+      <div class="gstage" style="height:min(60vh,520px)">
+        <canvas id="ucanvas" aria-label="Graphe des contextes et des gestes"></canvas>
+        <div class="ghint">● noir : contexte (AUTO · style, preset) · ● orange : habitude · ● vert : utile, pas encore répété · ● violet : choix artistique (DA) · ○ rouge : non appris · trait rouge : jamais utile</div>
+      </div>
+      <div class="cols">
+        <div class="panel"><h3>Ce que ça change pour toi</h3>
+          <p style="font-size:13.5px">Une habitude apprise est appliquée par AUTO, avec une part qui grandit avec le nombre de séances (n / (n + 8)) et dans des bornes étroites : sub et pente ±2 dB, Inflator ±15 %, volume ±2 dB, largeur ±20 %, Comp ±6 dB. AUTO dit ce qu'il a appliqué (« ton habitude : sub +0.8 dB »).</p>
+          <svg class="uchart" id="iaConf" viewBox="0 0 420 170" role="img" aria-label="Part de l'habitude appliquée selon le nombre de séances"></svg>
+        </div>
+        <div class="panel"><h3>L'idée de base : le juge</h3>
+          <div class="tablewrap"><table class="rules"><thead><tr><th>Verdict</th><th>Règle</th><th>Exemple</th></tr></thead><tbody id="iaRules"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="vData" role="tabpanel" aria-labelledby="tabData" hidden>
+    <div class="ia">
+      <div class="ia-head">
+        <div>
+          <h2>Tes données, sous tes yeux</h2>
+          <p>Tout ce qu'OMNIS apprend reste sur ton PC. Cette page ne l'envoie nulle part : elle lit tes fichiers dans ton navigateur, et elle n'a même pas le droit de se connecter à internet (tu peux couper le Wi-Fi pour le vérifier). Ton compte t'ouvre la page ; il ne voit jamais tes données.</p>
+        </div>
+        <span class="badge mine">rien n'est envoyé</span>
+      </div>
+      <div class="panel">
+        <h4>Voir tes fichiers</h4>
+        <div class="load">
+          <label class="gbtn" for="myFiles">Ouvrir mes fichiers</label><input id="myFiles" type="file" multiple accept=".json,.tsv,.txt">
+          <div class="drop" id="myDrop" tabindex="0">ou glisse ici <code>graphe_usages.json</code>, <code>export_anonyme.tsv</code>, <code>references_utilisateur.txt</code></div>
+        </div>
+        <p style="margin-top:8px;font-size:13px;color:var(--muted)">Dossier : <code>%APPDATA%\Abrasion Labs\OMNIS\</code> (Windows) ou <code>~/Library/Application Support/Abrasion Labs/OMNIS/</code> (Mac). Les deux premiers sont écrits quand tu dis « exporte mon apprentissage » à OMNIS.</p>
+        <p class="why" id="myError" hidden></p>
+        <div id="myView" style="margin-top:10px"></div>
+      </div>
+      <div class="panel">
+        <h3>Ce qu'OMNIS garde sur ton PC</h3>
+        <div class="tablewrap"><table class="rules"><thead><tr><th>Fichier</th><th>Ce qu'il contient</th><th>Quitte ton PC ?</th><th>Pour l'effacer</th></tr></thead><tbody>
+          <tr><td><code>apprentissage/journal.tsv</code></td><td>Chaque séance après AUTO ou un preset : le groupe sonore reconnu, des grandeurs mesurées de la prod (des nombres) et les écarts que tu as gardés.</td><td>Jamais</td><td>« oublie mes habitudes »</td></tr>
+          <tr><td><code>apprentissage/reseau.txt</code></td><td>Le petit réseau de tes habitudes : des poids, rien d'autre.</td><td>Jamais</td><td>« oublie mes habitudes »</td></tr>
+          <tr><td><code>apprentissage/graphe.tsv</code></td><td>Le graphe de ce que tu fais : contextes (AUTO · trap, preset…), gestes et verdicts du juge.</td><td>Jamais</td><td>« oublie mes habitudes »</td></tr>
+          <tr><td><code>styles_appris.txt</code></td><td>Les styles que tu as nommés (« cette prod c'est de la drill ») et les grandeurs de ces prods.</td><td>Jamais</td><td>« oublie mes habitudes »</td></tr>
+          <tr><td><code>references_utilisateur.txt</code></td><td>Les références que tu as ajoutées : artiste, titre, genres et mesures. Aucun son.</td><td>Jamais</td><td>supprime le fichier</td></tr>
+          <tr><td><code>images/</code></td><td>Avatars et pochettes gardés en cache pour l'affichage.</td><td>Jamais</td><td>supprime le dossier</td></tr>
+          <tr><td><code>apprentissage/export_anonyme.tsv</code>, <code>graphe_usages.json</code></td><td>Écrits seulement si tu dis « exporte mon apprentissage » : jour (sans l'heure), groupe sonore, nombres. Aucun nom de fichier, aucun son.</td><td>Seulement si toi tu les envoies</td><td>supprime-les</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel">
+        <h3>La seule chose qui sort</h3>
+        <p>Quand tu ajoutes un fichier de référence, OMNIS peut demander à MusicBrainz qui en est l'artiste : il envoie le code ISRC du fichier, ou son titre et son artiste. Jamais le son, jamais tes réglages, jamais tes habitudes. Comme pour tout site, MusicBrainz voit alors ton adresse IP. Tu peux le couper (menu RÉF, « Recherche MusicBrainz : coupée ») : tout marche hors ligne.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>Sources : les styles d'OMNIS (classés par Abrasion Labs, vérifiés avec les genres votés sur MusicBrainz) et MusicBrainz pour les albums et EP (données CC0, sans compilations ni lives, les six plus récents). « À vérifier » : l'artiste trouvé sur MusicBrainz n'est peut-être pas le bon ; ses albums sont alors masqués. « Absent de MusicBrainz » : artiste trop peu référencé. Les fiches de style sont des repères généraux, pas des règles. Cette page ne se connecte à rien : seuls les liens que tu cliques ouvrent MusicBrainz ou Cover Art Archive.</footer>
+</div>
+
+<script>
+const D = /*DATA*/null;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+let fam = D.fams[0], style = "", query = "";
+try { const saved = JSON.parse(localStorage.getItem("carnet") || "{}"); if (D.fams.includes(saved.fam)) fam = saved.fam; style = saved.style || ""; } catch (e) {}
+function save() { try { localStorage.setItem("carnet", JSON.stringify({ fam, style })); } catch (e) {} }
+
+function hue(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; }
+function cover(a) {
+  const h = hue(a.id), h2 = (h + 40) % 360;
+  return `<a class="alb" href="https://coverartarchive.org/release-group/${a.id}/front" target="_blank" rel="noopener" title="Ouvrir la pochette">
+    <div class="cover" style="background:linear-gradient(135deg,hsl(${h} 45% 32%),hsl(${h2} 55% 18%))">${esc(a.t).slice(0, 28)}</div>
+    <span>${esc(a.t)}</span><em>${esc(a.k === "EP" ? "EP" : "Album")}${a.y ? " · " + esc(a.y) : ""}</em></a>`;
+}
+function card(e) {
+  const flag = e.h ? `<span class="flag">Homonyme sur MusicBrainz : albums masqués</span>` : !e.m ? `<span class="flag">Absent de MusicBrainz</span>` : !e.ok ? `<span class="flag">À vérifier</span>` : "";
+  const titles = e.t.length ? `<div class="label">Tes titres mesurés</div><ul class="titles">${e.t.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : "";
+  const albums = !e.ok ? (e.m ? `<p class="none">MusicBrainz a peut-être trouvé un homonyme : albums masqués pour ne pas t'induire en erreur.</p>` : "")
+    : e.al.length ? `<div class="label">Albums et EP</div><div class="albums">${e.al.map(cover).join("")}</div>` : `<p class="none">Aucun album ni EP sur MusicBrainz.</p>`;
+  const links = e.m ? `<div class="links"><a href="https://musicbrainz.org/artist/${e.m}" target="_blank" rel="noopener">${e.ok ? "Discographie complète" : "Vérifier sur MusicBrainz"}</a></div>` : "";
+  return `<article class="card"><div><h3>${esc(e.n)}</h3></div>
+    <div class="tags">${e.s.map((s) => `<span class="tag">${esc(s)}</span>`).join("")}</div>${e.g && e.g.length ? `<p class="mbg">MusicBrainz : ${e.g.map(esc).join(" · ")}</p>` : ""}${flag}${titles}${albums}${links}</article>`;
+}
+function render() {
+  const fams = $("#fams");
+  fams.innerHTML = D.fams.map((f) => `<button class="fam" aria-pressed="${f === fam && !query}" data-f="${esc(f)}">${esc(f)}<small>${D.a.filter((e) => e.f === f).length}</small></button>`).join("");
+  const styles = D.styles[fam] || [];
+  if (style && !styles.includes(style)) style = "";
+  $("#styles").hidden = !!query;
+  $("#styles").innerHTML = `<button class="st" aria-pressed="${!style}" data-s="">Tous</button>` +
+    styles.map((s) => `<button class="st" aria-pressed="${s === style}" data-s="${esc(s)}">${esc(s)}<b>${D.a.filter((e) => e.f === fam && e.s.includes(s)).length}</b></button>`).join("");
+  let list, head;
+  if (query) {
+    const q = norm(query);
+    list = D.a.filter((e) => norm(e.n).includes(q) || e.s.some((s) => norm(s).includes(q)) || e.al.some((a) => norm(a.t).includes(q)) || e.t.some((t) => norm(t).includes(q)));
+    head = `<h2>« ${esc(query)} »</h2><span class="count">${list.length} artiste(s), toutes familles</span>`;
+  } else {
+    list = D.a.filter((e) => e.f === fam && (!style || e.s.includes(style)));
+    const d = style ? D.desc[style] : "";
+    head = `<h2>${esc(style || fam)}</h2>${d ? `<p>${esc(d)}</p>` : ""}<span class="count">${list.length} artiste(s)</span>`;
+  }
+  $("#intro").innerHTML = head;
+  $("#grid").innerHTML = list.length ? list.map(card).join("") : `<p class="empty">Rien ne correspond. Essaie un autre nom ou un style.</p>`;
+}
+$("#fams").addEventListener("click", (ev) => { const b = ev.target.closest(".fam"); if (!b) return; fam = b.dataset.f; style = ""; query = ""; $("#q").value = ""; save(); render(); });
+$("#styles").addEventListener("click", (ev) => { const b = ev.target.closest(".st"); if (!b) return; style = b.dataset.s; save(); render(); });
+$("#q").addEventListener("input", (ev) => { query = ev.target.value.trim(); render(); });
+render();
+</script>
+<script>
+// ---- Vues : Carnet · Graphe · IA (utilise D, $, esc, norm, fam, style, query, render du carnet) ----
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const FAM_HUES = [8, 212, 145, 285, 38, 180, 325];
+const famColor = (i, alpha = 1) => `hsl(${FAM_HUES[i % FAM_HUES.length]} 62% ${css("--node-l") || "50%"} / ${alpha})`;
+
+/* Moteur de graphe à forces : répulsion, ressorts, gravité ; zoom, déplacement, survol, sélection. */
+function forceGraph(canvas, opt) {
+  const ctx = canvas.getContext("2d");
+  const N = opt.nodes, idx = new Map(N.map((n, i) => [n.id, i]));
+  const L = opt.links.map((l) => ({ ...l, s: idx.get(l.s), t: idx.get(l.t), w: l.w || 1 })).filter((l) => l.s != null && l.t != null);
+  const nb = N.map(() => new Set());
+  for (const l of L) { nb[l.s].add(l.t); nb[l.t].add(l.s); }
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  N.forEach((n, i) => { const a = rnd() * Math.PI * 2, r = 40 + rnd() * 260; n.x = Math.cos(a) * r; n.y = Math.sin(a) * r; n.vx = n.vy = 0; n.i = i; });
+  let running = false, alpha = 1, raf = 0, W = 0, H = 0, dpr = 1, k = 1, tx = 0, ty = 0, hover = -1, sel = -1, drag = null, fitted = false;
+  const big = N.filter((n) => n.px > 0).map((n) => n.i);
+  const hidden = () => opt.hidden ? N.map(opt.hidden) : N.map(() => false);
+  let hid = hidden();
+
+  function tick() {
+    const rep = opt.repulse || 900, rest = opt.rest || 40, cut2 = 380 * 380;
+    for (let i = 0; i < N.length; i++) {
+      if (hid[i]) continue;
+      const a = N[i];
+      for (let j = i + 1; j < N.length; j++) {
+        if (hid[j]) continue;
+        const b = N[j]; let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+        if (d2 > cut2) continue;
+        if (d2 < 1) { dx = rnd() - .5; dy = rnd() - .5; d2 = 1; }
+        const f = rep * alpha / d2 * (a.r + b.r) / 8;
+        a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+      }
+    }
+    for (const l of L) {
+      if (hid[l.s] || hid[l.t]) continue;
+      const a = N[l.s], b = N[l.t], dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const want = rest + a.r + b.r, f = (d - want) / d * 0.06 * alpha * l.w;
+      a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+    }
+    for (const n of N) {
+      if (hid[n.i]) continue;
+      n.vx -= n.x * 0.004 * alpha; n.vy -= n.y * 0.004 * alpha;
+      if (drag && drag.node === n.i) { n.vx = n.vy = 0; continue; }
+      n.vx *= 0.55; n.vy *= 0.55; n.x += n.vx; n.y += n.vy;
+    }
+    // Collisions entre gros points, à leur taille affichée : ils ne se recouvrent pas.
+    for (let x = 0; x < big.length; x++) {
+      const a = N[big[x]]; if (hid[a.i]) continue;
+      for (let y = x + 1; y < big.length; y++) {
+        const b = N[big[y]]; if (hid[b.i]) continue;
+        const dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 0.01, want = R(a) + R(b) + 8 / k;
+        if (d >= want) continue;
+        const m = (want - d) / d * 0.5;
+        if (!(drag && drag.node === a.i)) { a.x -= dx * m; a.y -= dy * m; }
+        if (!(drag && drag.node === b.i)) { b.x += dx * m; b.y += dy * m; }
+      }
+    }
+    alpha = Math.max(0, alpha * 0.985 - 0.0005);
+  }
+  function bounds() {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    N.forEach((n, i) => { if (hid[i]) return; x0 = Math.min(x0, n.x - n.r); y0 = Math.min(y0, n.y - n.r); x1 = Math.max(x1, n.x + n.r); y1 = Math.max(y1, n.y + n.r); });
+    return x0 === Infinity ? [-1, -1, 1, 1] : [x0, y0, x1, y1];
+  }
+  function fit() {
+    if (!W || !H) return;
+    const [x0, y0, x1, y1] = bounds(), pad = 52;
+    k = Math.min((W - pad * 2) / Math.max(1, x1 - x0), (H - pad * 2) / Math.max(1, y1 - y0), 2.2);
+    tx = W / 2 - (x0 + x1) / 2 * k; ty = H / 2 - (y0 + y1) / 2 * k + (opt.shiftY ?? 0);
+  }
+  function size() {
+    const r = canvas.getBoundingClientRect(); dpr = window.devicePixelRatio || 1;
+    if (!r.width || !r.height) return false;
+    if (r.width !== W || r.height !== H) { W = r.width; H = r.height; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); if (!fitted) fit(); }
+    return true;
+  }
+  const R = (n) => Math.max(n.r, (n.px || 0) / k);
+  function draw() {
+    if (!size()) return;
+    const ink = css("--ink"), line = css("--line"), muted = css("--muted"), bg = css("--canvas"), mono = css("--mono"), accent = css("--accent");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * tx, dpr * ty);
+    const focus = hover >= 0 ? hover : sel, near = focus >= 0 ? nb[focus] : null;
+    const lit = (i) => !near || i === focus || near.has(i);
+    for (const l of L) {
+      if (hid[l.s] || hid[l.t]) continue;
+      const on = near && (l.s === focus || l.t === focus);
+      ctx.strokeStyle = on ? ink : (opt.linkColor ? opt.linkColor(l) : line);
+      ctx.globalAlpha = on ? 0.9 : near ? 0.12 : (opt.linkAlpha || 0.55);
+      ctx.lineWidth = (on ? 1.6 : 1) * (opt.linkWidth ? opt.linkWidth(l) : 1) / k;
+      ctx.beginPath(); ctx.moveTo(N[l.s].x, N[l.s].y); ctx.lineTo(N[l.t].x, N[l.t].y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    N.forEach((n, i) => {
+      if (hid[i]) return;
+      ctx.globalAlpha = lit(i) ? 1 : 0.18;
+      ctx.beginPath(); ctx.arc(n.x, n.y, R(n), 0, Math.PI * 2);
+      ctx.fillStyle = n.color(); ctx.fill();
+      if (n.ring) { ctx.lineWidth = (n.ringW || 2) / k; ctx.strokeStyle = n.ring(); ctx.stroke(); }
+      if (i === sel) { ctx.lineWidth = 3 / k; ctx.strokeStyle = accent; ctx.beginPath(); ctx.arc(n.x, n.y, R(n) + 4 / k, 0, Math.PI * 2); ctx.stroke(); }
+    });
+    // Étiquettes : les gros points, ou ceux autour du point visé.
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    const placed = [];
+    const order = N.map((n, i) => i).filter((i) => !hid[i]).sort((a, b) => R(N[b]) - R(N[a]));
+    for (const i of order) {
+      const n = N[i], forced = i === sel || i === focus || (near && near.has(i));
+      const show = forced || R(n) * k >= (opt.labelAt ?? 9);
+      if (!show || (near && !lit(i))) continue;
+      const fs = Math.max(10, Math.min(24, 8 + R(n) * k * 0.35));
+      ctx.font = `${n.bold ? 600 : 400} ${fs / k}px ${mono}`;
+      ctx.globalAlpha = 1; ctx.lineWidth = 3 / k; ctx.strokeStyle = bg; ctx.lineJoin = "round";
+      const t = n.label.length > 28 ? n.label.slice(0, 27) + "…" : n.label;
+      // Pas d'étiquette par-dessus une autre (les plus gros points d'abord).
+      const w = ctx.measureText(t).width * k, sx = n.x * k + tx, sy = (n.y + R(n)) * k + ty + 3, box = [sx - w / 2 - 2, sy, sx + w / 2 + 2, sy + fs + 2];
+      if (!forced && placed.some((p) => box[0] < p[2] && box[2] > p[0] && box[1] < p[3] && box[3] > p[1])) continue;
+      placed.push(box);
+      ctx.strokeText(t, n.x, n.y + R(n) + 3 / k); ctx.fillStyle = i === focus || n.bold ? ink : muted; ctx.fillText(t, n.x, n.y + R(n) + 3 / k);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function loop() {
+    raf = 0;
+    if (!size()) return; // onglet caché : ni calcul ni dessin
+    if (running && alpha > 0.002) { tick(); if (!fitted && alpha < 0.25) { fit(); fitted = true; } }
+    draw();
+    if ((running && alpha > 0.002) || drag) raf = requestAnimationFrame(loop);
+  }
+  const kick = (a) => { alpha = Math.max(alpha, a); if (!raf) raf = requestAnimationFrame(loop); };
+  const redraw = () => { if (!raf) raf = requestAnimationFrame(loop); };
+  const world = (ev) => { const r = canvas.getBoundingClientRect(); return [(ev.clientX - r.left - tx) / k, (ev.clientY - r.top - ty) / k]; };
+  function pick(ev) {
+    const [x, y] = world(ev); let best = -1, bd = Infinity;
+    N.forEach((n, i) => { if (hid[i]) return; const d = Math.hypot(n.x - x, n.y - y); if (d < Math.max(R(n), 7 / k) && d < bd) { bd = d; best = i; } });
+    return best;
+  }
+  canvas.addEventListener("pointerdown", (ev) => {
+    canvas.setPointerCapture(ev.pointerId);
+    const p = pick(ev);
+    drag = { node: p, x: ev.clientX, y: ev.clientY, tx, ty, moved: false };
+    canvas.classList.add("dragging");
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    if (!drag) { const p = pick(ev); if (p !== hover) { hover = p; canvas.style.cursor = p >= 0 ? "pointer" : ""; redraw(); } return; }
+    const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    if (drag.node >= 0) { const [x, y] = world(ev); N[drag.node].x = x; N[drag.node].y = y; kick(0.12); }
+    else { tx = drag.tx + dx; ty = drag.ty + dy; fitted = true; redraw(); }
+  });
+  const up = (ev) => {
+    if (!drag) return;
+    const d = drag; drag = null; canvas.classList.remove("dragging");
+    if (!d.moved) { sel = d.node; opt.onSelect && opt.onSelect(sel >= 0 ? N[sel] : null); }
+    redraw();
+  };
+  canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
+  canvas.addEventListener("pointerleave", () => { if (hover >= 0 && !drag) { hover = -1; redraw(); } });
+  canvas.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const r = canvas.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    const f = Math.exp(-ev.deltaY * 0.0015), nk = Math.min(8, Math.max(0.15, k * f));
+    tx = mx - (mx - tx) * nk / k; ty = my - (my - ty) * nk / k; k = nk; fitted = true; redraw();
+  }, { passive: false });
+  new ResizeObserver(() => redraw()).observe(canvas);
+  return {
+    start() { running = true; kick(alpha || 0.6); },
+    redraw,
+    fit() { fit(); fitted = true; redraw(); },
+    refilter() { hid = hidden(); if (sel >= 0 && hid[sel]) { sel = -1; opt.onSelect && opt.onSelect(null); } kick(0.5); },
+    select(id, center = true) {
+      const i = idx.get(id); if (i == null || hid[i]) return false;
+      sel = i; if (center) { k = Math.max(k, 1.4); tx = W / 2 - N[i].x * k; ty = H / 2 - N[i].y * k; fitted = true; }
+      opt.onSelect && opt.onSelect(N[i]); redraw(); return true;
+    },
+    neighbors(id) { const i = idx.get(id); return i == null ? [] : [...nb[i]].map((j) => N[j]); },
+  };
+}
+
+/* ---------- Onglets ---------- */
+const TABS = { tabCarnet: "vCarnet", tabGraph: "vGraph", tabIA: "vIA", tabData: "vData" };
+let started = {};
+function showTab(id) {
+  for (const [t, v] of Object.entries(TABS)) { $("#" + t).setAttribute("aria-selected", t === id); $("#" + v).hidden = t !== id; }
+  try { localStorage.setItem("carnet-vue", id); } catch (e) {}
+  if (id === "tabGraph") { if (!started.g) { started.g = true; carnetGraph.start(); } else carnetGraph.redraw(); }
+  if (id === "tabIA") { if (!started.u) { started.u = true; usage.start(); } else usage.redraw(); }
+}
+for (const t of Object.keys(TABS)) $("#" + t).addEventListener("click", () => showTab(t));
+$("#q").addEventListener("input", () => { if ($("#tabCarnet").getAttribute("aria-selected") !== "true") showTab("tabCarnet"); });
+
+/* ---------- Vue Graphe : familles, styles, artistes ---------- */
+const famIndex = new Map(D.fams.map((f, i) => [f, i]));
+const styleFams = {}, styleCount = {};
+for (const f of D.fams) for (const s of D.styles[f] || []) (styleFams[s] = styleFams[s] || []).push(f);
+for (const a of D.a) for (const s of a.s) { const c = (styleCount[s] = styleCount[s] || {}); c[a.f] = (c[a.f] || 0) + 1; }
+const styleGroup = (s) => { const c = styleCount[s] || {}; let best = (styleFams[s] || [D.fams[0]])[0], n = -1; for (const [f, v] of Object.entries(c)) if (v > n) { n = v; best = f; } return best; };
+const gNodes = [], gLinks = [], hiddenFams = new Set();
+let showArtists = true;
+for (const f of D.fams) { const i = famIndex.get(f); const nf = D.a.filter((a) => a.f === f).length;
+  gNodes.push({ id: "f:" + f, label: f, kind: "fam", fam: f, r: 14 + Math.sqrt(nf) * 2.2, px: 9 + Math.sqrt(nf) * 1.6, bold: true, color: () => famColor(i), ring: () => css("--ink") }); }
+const allStyles = [...new Set([...Object.keys(styleFams), ...Object.keys(styleCount)])];
+for (const s of allStyles) {
+  const deg = Object.values(styleCount[s] || {}).reduce((a, b) => a + b, 0), g = styleGroup(s), i = famIndex.get(g) ?? 0;
+  gNodes.push({ id: "s:" + s, label: s, kind: "style", fam: g, deg, r: 3.5 + Math.pow(deg, 0.8) * 1.15, px: deg >= 6 ? 1.5 + Math.pow(deg, 0.75) * 0.95 : 0, bold: deg >= 10, color: () => famColor(i) });
+  for (const f of styleFams[s] || []) gLinks.push({ s: "s:" + s, t: "f:" + f, w: 0.6 });
+}
+D.a.forEach((a, n) => {
+  const i = famIndex.get(a.f) ?? 0;
+  gNodes.push({ id: "a:" + n, label: a.n, kind: "artist", fam: a.f, a, r: 2.6, color: () => famColor(i, 0.75) });
+  for (const s of a.s) gLinks.push({ s: "a:" + n, t: "s:" + s, w: 1 });
+});
+$("#gcount").textContent = gNodes.length;
+const carnetGraph = forceGraph($("#gcanvas"), {
+  nodes: gNodes, links: gLinks, shiftY: 14, repulse: 700, rest: 26, labelAt: 9.5, linkAlpha: 0.35,
+  hidden: (n) => hiddenFams.has(n.fam) || (n.kind === "artist" && !showArtists),
+  onSelect: (n) => showSelection(n),
+});
+function chip(label, act) { return `<button class="chipb" data-go="${esc(act)}">${esc(label)}</button>`; }
+function openInCarnet(kind, v) {
+  if (kind === "style") { fam = styleGroup(v); style = v; query = ""; $("#q").value = ""; }
+  else { query = v; $("#q").value = v; }
+  save(); render(); showTab("tabCarnet"); window.scrollTo({ top: 0 });
+}
+function showSelection(n) {
+  const el = $("#gsel");
+  if (!n) { el.innerHTML = `<h3>Ta base en réseau</h3><p>Chaque famille, chaque style et chaque artiste est un point ; un trait relie un artiste à ses styles, un style à ses familles. Plus un style a de liens, plus il est gros.</p>`; return; }
+  if (n.kind === "fam") {
+    const arts = D.a.filter((a) => a.f === n.fam).length, st = (D.styles[n.fam] || []).slice().sort((a, b) => ((styleCount[b] || {})[n.fam] || 0) - ((styleCount[a] || {})[n.fam] || 0));
+    el.innerHTML = `<h4>Famille</h4><h3>${esc(n.label)}</h3><dl class="kv"><dt>Artistes</dt><dd>${arts}</dd><dt>Styles</dt><dd>${st.length}</dd></dl>
+      <h4>Ses styles les plus fournis</h4><div class="chips">${st.slice(0, 14).map((s) => chip(s, "s:" + s)).join("")}</div>`;
+  } else if (n.kind === "style") {
+    const s = n.label, arts = D.a.map((a, i) => [a, i]).filter(([a]) => a.s.includes(s)), d = D.desc[s];
+    el.innerHTML = `<h4>Style</h4><h3>${esc(s)}</h3>${d ? `<p>${esc(d)}</p>` : ""}
+      <dl class="kv" style="margin-top:8px"><dt>Artistes</dt><dd>${arts.length}</dd><dt>Familles</dt><dd>${esc((styleFams[s] || []).join(" · ") || n.fam)}</dd></dl>
+      <h4>Artistes</h4><div class="chips">${arts.slice(0, 16).map(([a, i]) => chip(a.n, "a:" + i)).join("")}${arts.length > 16 ? `<span class="n">+${arts.length - 16}</span>` : ""}</div>
+      <p style="margin-top:10px"><button class="gbtn" data-open="style" data-v="${esc(s)}">Ouvrir dans le carnet</button></p>`;
+  } else {
+    const a = n.a;
+    el.innerHTML = `<h4>Artiste · ${esc(a.f)}</h4><h3>${esc(a.n)}</h3>
+      <dl class="kv"><dt>Titres mesurés</dt><dd>${a.t.length}</dd><dt>Albums, EP</dt><dd>${a.ok ? a.al.length : "à vérifier"}</dd></dl>
+      <h4>Ses styles</h4><div class="chips">${a.s.map((s) => chip(s, "s:" + s)).join("")}</div>
+      ${a.g && a.g.length ? `<h4>Genres sur MusicBrainz</h4><p style="font-size:13px">${a.g.map(esc).join(" · ")}</p>` : a.h ? `<h4>MusicBrainz</h4><p style="font-size:13px">Homonyme : la fiche trouvée n'est pas cet artiste.</p>` : ""}
+      <p style="margin-top:10px"><button class="gbtn" data-open="artist" data-v="${esc(a.n)}">Ouvrir dans le carnet</button></p>`;
+  }
+}
+$("#gsel").addEventListener("click", (ev) => {
+  const c = ev.target.closest("[data-go]"); if (c) { if (!carnetGraph.select(c.dataset.go)) { showArtists = true; $("#gArtists").setAttribute("aria-pressed", "true"); carnetGraph.refilter(); carnetGraph.select(c.dataset.go); } return; }
+  const o = ev.target.closest("[data-open]"); if (o) openInCarnet(o.dataset.open, o.dataset.v);
+});
+function legend() {
+  $("#glegend").innerHTML = D.fams.map((f, i) => `<button class="lg" data-f="${esc(f)}" aria-pressed="${!hiddenFams.has(f)}"><i style="background:${famColor(i)}"></i>${esc(f)}<b>${D.a.filter((a) => a.f === f).length}</b></button>`).join("");
+}
+legend();
+$("#glegend").addEventListener("click", (ev) => { const b = ev.target.closest(".lg"); if (!b) return; const f = b.dataset.f; hiddenFams.has(f) ? hiddenFams.delete(f) : hiddenFams.add(f); legend(); carnetGraph.refilter(); });
+const hubs = allStyles.slice().sort((a, b) => gNodes.find((n) => n.id === "s:" + b).deg - gNodes.find((n) => n.id === "s:" + a).deg).slice(0, 8);
+$("#ghubs").innerHTML = hubs.map((s) => chip(s, "s:" + s)).join("");
+const bridges = allStyles.filter((s) => (styleFams[s] || []).length >= 3).sort();
+$("#gbridges").innerHTML = bridges.length ? bridges.map((s) => chip(`${s} · ${styleFams[s].length}`, "s:" + s)).join("") : `<p style="font-size:13px;color:var(--muted)">Aucun style n'est partagé par 3 familles.</p>`;
+for (const id of ["#ghubs", "#gbridges"]) $(id).addEventListener("click", (ev) => { const c = ev.target.closest("[data-go]"); if (c) carnetGraph.select(c.dataset.go); });
+$("#gArtists").addEventListener("click", (ev) => { showArtists = !showArtists; ev.currentTarget.setAttribute("aria-pressed", showArtists); carnetGraph.refilter(); });
+$("#gFit").addEventListener("click", () => carnetGraph.fit());
+$("#gq").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter") return;
+  const q = norm(ev.target.value.trim()); if (!q) return;
+  const hit = gNodes.find((n) => norm(n.label) === q) || gNodes.find((n) => n.kind !== "artist" && norm(n.label).includes(q)) || gNodes.find((n) => norm(n.label).includes(q));
+  if (hit) { if (hiddenFams.has(hit.fam)) { hiddenFams.delete(hit.fam); legend(); } if (hit.kind === "artist" && !showArtists) { showArtists = true; $("#gArtists").setAttribute("aria-pressed", "true"); } carnetGraph.refilter(); carnetGraph.select(hit.id); }
+});
+
+/* ---------- Vue IA · usages ---------- */
+const EXAMPLE = /*EXAMPLE*/null;
+const RISK = {
+  "sub+": "sub poussé au-delà de +6 dB : le grave sature le master",
+  "tilt+": "pente extrême (plus de 4 dB) : le master se déséquilibre", "tilt-": "pente extrême (plus de 4 dB) : le master se déséquilibre",
+  "inflate+": "Inflator presque à fond : il distord",
+  "volume+": "plus de 14 dB de gain clip + limiteur : la prod s'écrase",
+  "largeur+": "médium à plus de 170 % : le mix se creuse en mono",
+  "comp+": "seuil du Comp sous −30 dB : il écrase la dynamique", "comp-": "seuil du Comp sous −30 dB : il écrase la dynamique",
+  "grave:large": "le grave doit rester au centre (mono) : club, téléphone, vinyle",
+  "mod6:off": "sans limiteur, les crêtes passent le plafond",
+};
+const RULES = [
+  ["v-ok", "utile", "Un vrai geste, audible, gardé. Gardé jusqu'à l'export : il compte double.", "sub +1,5 dB après AUTO, gardé"],
+  ["v-no", "inaudible", "Trop petit pour s'entendre : pente 0,3 dB, sub 0,5 dB, Inflator 4 %, volume 0,5 dB, largeur 5 %, Comp 1 dB.", "sub +0,3 dB"],
+  ["v-no", "hésitation", "Beaucoup bougé pour revenir presque au départ (chemin ≥ 4 × l'écart).", "largeur 110 → 170 → 119 %"],
+  ["v-risk", "à risque", "Contre les règles du métier : jamais appris, signalé.", "sub > +6 dB, volume écrasé (> 14 dB), pente > 4 dB, Inflator > 85 %, largeur > 170 %, Comp < −30 dB, grave élargi, limiteur éteint"],
+  ["v-da", "choix artistique", "Contre la règle générale, mais voulu par le style visé, ou gardé jusqu'à l'export une 2e fois dans le même contexte : ta DA. Appris pour ce style seulement ; jamais le limiteur éteint.", "volume écrasé en rage ou hard clipping, son sombre en boom bap ou lo-fi, très large en ambient"],
+  ["v-no", "annulé", "La proposition a été défaite tout de suite : rien ne s'apprend.", "« annule » juste après AUTO"],
+];
+let U = EXAMPLE, usage = null;
+const why = (n) => n.id.endsWith("~") ? ["v-no", "hésitation", "beaucoup d'allers-retours pour revenir presque au départ"]
+  : n.risque > 0 ? ["v-risk", "à risque", RISK[n.id] || "va contre les règles du métier"]
+  : n.vu > n.utile ? ["v-no", "inaudible ou annulé", "trop petit pour s'entendre, ou proposition annulée"] : ["v-ok", "utile", ""];
+function bar(n, max, extra) {
+  const p = (v) => (100 * v / Math.max(1, max)).toFixed(1) + "%";
+  return `<div class="bar"><span>${esc(n.label)}${(n.creatif || 0) > 0 ? ' <span class="verdict v-da">DA</span>' : ""}</span><span class="n">${extra}</span>
+    <div class="track" title="${n.vu} fois, ${n.utile} utile(s), ${n.exporte} exportée(s)"><i style="width:${p(n.vu)};opacity:.3"></i><i style="width:${p(n.utile)}"></i><u style="width:${p(n.exporte)}"></u></div></div>`;
+}
+const unit = (id) => id.startsWith("sub") || id.startsWith("tilt") || id.startsWith("volume") || id.startsWith("comp") ? " dB" : id.startsWith("inflate") || id.startsWith("largeur") ? " %" : "";
+function renderUsage() {
+  const ges = U.noeuds.filter((n) => n.type === "geste"), ctxs = U.noeuds.filter((n) => n.type === "contexte");
+  const habits = ges.filter((n) => n.habitude).sort((a, b) => (b.utile + b.exporte) - (a.utile + a.exporte));
+  const doubt = ges.filter((n) => n.utile < 0.4 * n.vu).sort((a, b) => b.vu - a.vu);
+  const da = ges.filter((n) => (n.creatif || 0) > 0).sort((a, b) => b.creatif - a.creatif);
+  const ctxLabel = Object.fromEntries(ctxs.map((n) => [n.id, n.label]));
+  const useful = ges.reduce((s, n) => s + n.utile, 0), total = ges.reduce((s, n) => s + n.vu, 0);
+  const mine = U !== EXAMPLE;
+  $("#iaSource").textContent = mine ? "tes données" : "exemple";
+  $("#iaSource").classList.toggle("mine", mine);
+  $("#iaTiles").innerHTML = [[U.seances, "séances après AUTO ou preset"], [ctxs.length, "contextes (style, preset)"], [habits.length, "habitudes apprises"], [da.length, "choix artistiques"],
+    [total ? Math.round(100 * useful / total) + " %" : "—", "gestes jugés utiles"], [doubt.length, "gestes non appris"]]
+    .map(([v, l]) => `<div class="tile"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("");
+  const max = Math.max(1, ...ges.map((n) => n.vu));
+  $("#iaHabits").innerHTML = habits.length ? habits.map((n) => bar(n, max, `${n.utile}/${n.vu}${n.moyenne ? ` · moy. ${String(n.moyenne).replace(".", ",")}${unit(n.id)}` : ""}`)).join("")
+    : `<p style="font-size:13px;color:var(--muted)">Pas encore d'habitude nette : un geste doit revenir 3 fois et être utile au moins 60 % du temps.</p>`;
+  $("#iaDoubt").innerHTML = doubt.length ? doubt.map((n) => { const [c, v, w] = why(n); return `<div class="bar"><span>${esc(n.label)}</span><span class="n"><span class="verdict ${c}">${esc(v)}</span> ${n.vu}×</span><span class="why" style="grid-column:1/-1;${c === "v-no" ? "color:var(--muted)" : ""}">${esc(w)}</span></div>`; }).join("")
+    : `<p style="font-size:13px;color:var(--muted)">Rien à signaler : tout ce que tu fais souvent est jugé utile.</p>`;
+  $("#iaDA").innerHTML = da.length ? da.map((n) => {
+    const where = U.liens.filter((e) => e.b === n.id && (e.da || 0) > 0 && ctxLabel[e.a]).map((e) => ctxLabel[e.a]);
+    return `<div class="bar"><span>${esc(n.label)}</span><span class="n"><span class="verdict v-da">DA</span> ${n.creatif}×</span><span class="why" style="grid-column:1/-1;color:var(--muted)">${where.length ? "dans " + esc(where.join(", ")) : "voulu par le style visé"}</span></div>`;
+  }).join("") : `<p style="font-size:13px;color:var(--muted)">Aucun pour l'instant. Un geste hors règle devient ta DA quand le style le veut, ou quand tu le gardes jusqu'à l'export une deuxième fois.</p>`;
+  $("#iaRules").innerHTML = RULES.map(([c, v, r, e]) => `<tr><td><span class="verdict ${c}">${v}</span></td><td>${esc(r)}</td><td>${esc(e)}</td></tr>`).join("");
+  confChart();
+  buildUsageGraph();
+}
+function confChart() {
+  const svg = $("#iaConf"), W = 420, H = 170, l = 34, r = 12, t = 12, b = 26, nMax = 40, n = Math.min(nMax, U.seances);
+  const X = (v) => l + (W - l - r) * v / nMax, Y = (v) => t + (H - t - b) * (1 - v);
+  let d = ""; for (let i = 0; i <= nMax; i++) d += (i ? "L" : "M") + X(i).toFixed(1) + "," + Y(i / (i + 8)).toFixed(1);
+  const grid = [0, .25, .5, .75, 1].map((v) => `<line x1="${l}" x2="${W - r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${l - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--mono)">${v * 100}%</text>`).join("");
+  const xt = [0, 10, 20, 30, 40].map((v) => `<text x="${X(v)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--mono)">${v}</text>`).join("");
+  const c = n / (n + 8);
+  svg.innerHTML = `${grid}${xt}<text x="${W - r}" y="${H - 8}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--mono)" dy="-12">séances</text>
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+    <line x1="${X(n)}" x2="${X(n)}" y1="${t}" y2="${H - b}" stroke="var(--ink)" stroke-dasharray="3 3"/>
+    <circle cx="${X(n)}" cy="${Y(c)}" r="5" fill="var(--accent)" stroke="var(--paper)" stroke-width="2"/>
+    <text x="${X(n) + (n > 30 ? -8 : 8)}" y="${Y(c) - 8}" text-anchor="${n > 30 ? "end" : "start"}" font-size="11" font-weight="600" fill="var(--ink)" font-family="var(--mono)">${U.seances} séances : ${Math.round(c * 100)} %</text>`;
+}
+function buildUsageGraph() {
+  const host = $("#ucanvas"), fresh = host.cloneNode(false); host.replaceWith(fresh);
+  const max = Math.max(1, ...U.noeuds.map((n) => n.vu));
+  const nodes = U.noeuds.map((n) => {
+    const ctx = n.type === "contexte", bad = !ctx && n.utile < 0.4 * n.vu, art = !ctx && (n.creatif || 0) * 2 >= Math.max(1, n.utile);
+    return { id: n.id, label: n.label, kind: n.type, raw: n, r: (ctx ? 9 : 5) + 9 * Math.sqrt(n.vu / max), bold: ctx || n.habitude,
+      color: () => css(ctx ? "--ink" : art ? "--da" : n.habitude ? "--accent" : bad ? "--canvas" : n.utile > 0 ? "--good" : "--muted"),
+      ring: n.habitude ? () => css("--ink") : bad ? () => css("--danger") : null, ringW: bad ? 3 : 2 };
+  });
+  const links = U.liens.map((e) => ({ s: e.a, t: e.b, w: 0.5 + Math.min(1, e.n / 4), n: e.n, ok: e.utile }));
+  usage = forceGraph(fresh, { nodes, links, shiftY: -8, repulse: 380, rest: 70, labelAt: 0, linkAlpha: 0.7,
+    linkColor: (l) => l.ok > 0 ? css("--muted") : css("--danger"), linkWidth: (l) => 1 + Math.min(4, l.n * 0.6) });
+  if (started.u) usage.start();
+}
+function loadUsage(text) {
+  try {
+    const d = JSON.parse(text);
+    if (d.format !== "omnis-graphe" || !Array.isArray(d.noeuds) || !Array.isArray(d.liens)) throw new Error("ce n'est pas un fichier « graphe_usages.json » d'OMNIS");
+    U = d; $("#iaError").hidden = true; renderUsage();
+  } catch (e) { $("#iaError").hidden = false; $("#iaError").textContent = "Fichier refusé : " + (e.message || e); }
+}
+$("#iaFile").addEventListener("change", (ev) => { const f = ev.target.files[0]; if (f) f.text().then(loadUsage); ev.target.value = ""; });
+$("#iaExample").addEventListener("click", () => { U = EXAMPLE; $("#iaError").hidden = true; renderUsage(); });
+const drop = $("#iaDrop");
+drop.addEventListener("dragover", (ev) => { ev.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (ev) => { ev.preventDefault(); drop.classList.remove("over"); const f = ev.dataTransfer.files[0]; if (f) f.text().then(loadUsage); });
+document.addEventListener("paste", (ev) => {
+  if ($("#vIA").hidden || ev.target.closest("input,textarea")) return;
+  const t = ev.clipboardData.getData("text"); if (t && t.trim().startsWith("{")) loadUsage(t);
+});
+renderUsage();
+
+/* ---------- Mes données : lues dans le navigateur, jamais envoyées ---------- */
+function parseRefs(text) {
+  const out = []; let cur = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const l = raw.trim();
+    if (l.startsWith("[") && l.endsWith("]")) { cur = { nom: l.slice(1, -1) }; out.push(cur); continue; }
+    if (!cur || l.startsWith("#")) continue;
+    const i = l.indexOf("="); if (i < 0) continue;
+    cur[l.slice(0, i).trim()] = l.slice(i + 1).trim();
+  }
+  return out.filter((r) => r.artiste || r.titre);
+}
+function showMine(name, text) {
+  const box = document.createElement("div"); box.style.marginTop = "12px";
+  if (/\.json$/i.test(name) || text.trim().startsWith("{")) {
+    loadUsage(text);
+    box.innerHTML = `<h4>${esc(name)}</h4><p style="font-size:13px">Ton graphe des usages est chargé : va voir l'onglet <b>IA · usages</b> (${U.seances || 0} séance(s), ${U.noeuds ? U.noeuds.length : 0} point(s)).</p>`;
+  } else if (/omnis — export anonyme/i.test(text) || /\.tsv$/i.test(name)) {
+    const rows = text.split(/\r?\n/).filter((l) => l && !l.startsWith("#")).map((l) => l.split("\t"));
+    const H = ["pente", "sub", "Inflator", "volume", "largeur", "Comp"];
+    box.innerHTML = `<h4>${esc(name)} · ${rows.length} séance(s)</h4><div class="tablewrap"><table class="rules"><thead><tr><th>Jour</th><th>Groupe</th><th>Écarts gardés</th><th>Grandeurs</th></tr></thead><tbody>${rows.slice(0, 200).map((r) => {
+      const day = Number(r[0]) ? new Date(Number(r[0]) * 1000).toLocaleDateString("fr-FR") : esc(r[0]);
+      const ecarts = (r[3] || "").split(",").map((v, k) => Math.abs(Number(v)) > 0.05 ? `${H[k] || k} ${Number(v) > 0 ? "+" : ""}${Number(v).toFixed(1)}` : "").filter(Boolean).join(", ") || "aucun";
+      return `<tr><td>${day}</td><td>${esc(r[1] || "")}</td><td>${esc(ecarts)}</td><td>${(r[2] || "").split(",").length} nombres</td></tr>`;
+    }).join("")}</tbody></table></div><p style="font-size:12.5px;color:var(--muted);margin-top:6px">C'est exactement ce que contiendrait ton export si tu choisissais de l'envoyer : aucun nom, aucun son.</p>`;
+  } else {
+    const refs = parseRefs(text);
+    box.innerHTML = `<h4>${esc(name)} · ${refs.length} référence(s)</h4><div class="tablewrap"><table class="rules"><thead><tr><th>Artiste</th><th>Titre</th><th>Genres</th><th>Sonie</th></tr></thead><tbody>${refs.slice(0, 300).map((r) =>
+      `<tr><td>${esc(r.artiste || "")}</td><td>${esc(r.titre || "")}</td><td>${esc((r.genres || "").split("|").map((g) => g.trim()).filter(Boolean).join(", "))}</td><td>${r.lufs ? esc(r.lufs) + " LUFS" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+  $("#myView").prepend(box);
+}
+function readMine(files) {
+  $("#myError").hidden = true;
+  for (const f of files) {
+    if (f.size > 20 * 1024 * 1024) { $("#myError").hidden = false; $("#myError").textContent = f.name + " : trop gros pour un fichier d'OMNIS."; continue; }
+    f.text().then((t) => showMine(f.name, t)).catch(() => { $("#myError").hidden = false; $("#myError").textContent = "Impossible de lire " + f.name; });
+  }
+}
+$("#myFiles").addEventListener("change", (ev) => { readMine([...ev.target.files]); ev.target.value = ""; });
+const myDrop = $("#myDrop");
+myDrop.addEventListener("dragover", (ev) => { ev.preventDefault(); myDrop.classList.add("over"); });
+myDrop.addEventListener("dragleave", () => myDrop.classList.remove("over"));
+myDrop.addEventListener("drop", (ev) => { ev.preventDefault(); myDrop.classList.remove("over"); readMine([...ev.dataTransfer.files]); });
+
+/* Thème : les couleurs sont relues à chaque dessin ; redessiner quand il change. */
+const reTheme = () => { legend(); carnetGraph.redraw(); usage && usage.redraw(); confChart(); };
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", reTheme);
+new MutationObserver(reTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+let firstTab = "tabCarnet";
+try { const v = localStorage.getItem("carnet-vue"); if (TABS[v]) firstTab = v; } catch (e) {}
+showTab(firstTab);
+</script>
+</body>
+</html>

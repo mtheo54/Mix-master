@@ -56,6 +56,12 @@
 
 ## Fait récemment
 
+- **10/11 — Carnet OMNIS pour tous les utilisateurs** (demande : « disponible à tout utilisateur sur la
+  page d'OMNIS, connectés à leur compte, ils pourront surveiller leurs données »). `site/carnet/index.html`
+  (généré par `tools/carnet/build_carnet.py`, ctest `omnis_carnet_a_jour`) : carnet, graphe, IA · usages,
+  Mes données. Autonome, aucune requête (CSP). Le compte ouvre la page ; les données restent sur le PC
+  et sont lues dans le navigateur (`docs/CARNET.md`). À faire côté ONIRIQUE : la mettre en ligne.
+
 - **10/11 — Juge : verdict « choix artistique » (DA)** (demande de l'utilisateur : « une partie
   créative / artistique / DA dans le verdict du juge »). Un geste contre la règle générale est une DA
   quand le style visé l'assume (table `daRules` : écraser en rage / hard clipping / hyperpop / phonk,

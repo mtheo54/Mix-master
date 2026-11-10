@@ -48,6 +48,8 @@ Outils (`build/bin/Release/`) : `omnis_render in.wav out.wav --set cle=valeur --
 (clés : `omnis_render --params`), `omnis_testgen kit dossier --sr 48000` (signaux de test),
 `omnis_analyze`, `omnis_compare`, `omnis_ask "phrase"` (barre IA hors plug-in),
 `omnis_refdb` (base de références, profils de genre, emblèmes ; plus de Deezer).
+Carnet de la page d'OMNIS (`site/carnet/index.html`, autonome, aucune requête) : `python3
+tools/carnet/build_carnet.py` après avoir modifié `data/styles_artistes.txt` (`docs/CARNET.md`).
 
 ## Architecture en bref (détails : `docs/ARCHITECTURE.md`)
 

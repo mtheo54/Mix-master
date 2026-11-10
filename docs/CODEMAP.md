@@ -197,6 +197,10 @@
 
 - `main.cpp` (44 l.) — Ce qu'OMNIS entend dans un bus (stems/BusListener), sur un fichier : comme OMNIS posé sur ce bus en RÔLE Bus, pendant la lecture.
 
+## tools/carnet/
+
+- `build_carnet.py` (89 l.) — Le carnet OMNIS pour la page du plug-in.
+
 ## tools/codemap/
 
 - `codemap.py` (96 l.) — classes, fonctions publiques), pour qu'un agent trouve où agir sans relire

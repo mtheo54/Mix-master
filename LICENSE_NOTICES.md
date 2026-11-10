@@ -177,3 +177,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 Domaine public (Unlicense) ou MIT / MIT-0, au choix : le texte complet est à la fin de chaque
 fichier (`third_party/stb/stb_image.h`, `stb_image_write.h`, `third_party/dr_libs/dr_flac.h`,
 `dr_mp3.h`).
+
+## Carnet OMNIS (site/carnet/index.html, page web, hors plug-in)
+
+- Albums et EP, identifiants d'artistes : **MusicBrainz**, données de base sous licence **CC0**
+  (https://musicbrainz.org/doc/About/Data_License). Les genres votés sur MusicBrainz (données
+  complémentaires, licence CC BY-NC-SA) ont seulement servi à vérifier les sous-genres d'OMNIS ;
+  ils ne sont pas recopiés dans la page.
+- Pochettes : simples liens vers **Cover Art Archive** (ouverts au clic) ; aucune image dans la
+  page ni dans le dépôt.
+- La page ne charge rien de l'extérieur (pas de police, de script ni de requête : règle de
+  sécurité `connect-src 'none'`).
+
