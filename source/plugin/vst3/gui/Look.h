@@ -82,6 +82,20 @@ inline VSTGUI::SharedPointer<VSTGUI::CFontDesc> mono(CCoord size, bool bold = fa
     return VSTGUI::makeOwned<VSTGUI::CFontDesc>(kMonoFace, size, bold ? VSTGUI::kBoldFace : VSTGUI::kNormalFace);
 }
 
+/// En capitales, accents compris (UTF-8 : « é » -> « É », « ç » -> « Ç »).
+inline std::string upperText(std::string s) {
+    for (std::size_t i = 0; i < s.size(); ++i) {
+        const auto ch = static_cast<unsigned char>(s[i]);
+        if (ch >= 'a' && ch <= 'z') s[i] = static_cast<char>(ch - 32);
+        else if (ch == 0xC3 && i + 1 < s.size()) {
+            const auto nx = static_cast<unsigned char>(s[i + 1]);
+            if (nx >= 0xA0 && nx <= 0xBE && nx != 0xB7) s[i + 1] = static_cast<char>(nx - 0x20);
+            ++i;
+        }
+    }
+    return s;
+}
+
 inline void text(CDrawContext* c, const std::string& s, const CRect& r, const CColor& col,
                  const VSTGUI::SharedPointer<VSTGUI::CFontDesc>& font, VSTGUI::CHoriTxtAlign align = VSTGUI::kLeftText) {
     c->setFont(font);

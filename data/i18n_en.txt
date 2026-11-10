@@ -722,3 +722,46 @@ RÉF ouvre tous les genres, chacun avec son illustration et son profil.	REF open
 Clique un genre, puis UTILISER CE GENRE : AUTO le vise ensuite.	Click a genre, then USE THIS GENRE: AUTO aims at it next.
 + AJOUTER UN FICHIER (« Artiste - Titre ») : OMNIS le mesure, sans garder	+ ADD A FILE ("Artist - Title"): OMNIS measures it, without keeping
 le son ; MusicBrainz, sa seule connexion, peut le confirmer.	the sound; MusicBrainz, its only connection, can confirm it.
+LA CHAÎNE : TES MODULES	THE CHAIN: YOUR MODULES
+Chaque carte : un module, son gros bouton et son caractère.	Each card: a module, its big knob and its character.
+Clique une carte pour tout régler en dessous ; × la retire de la chaîne.	Click a card to set everything below; × removes it from the chain.
+Glisse une carte pour changer l'ordre ; la bibliothèque (+) la remet.	Drag a card to reorder; the library (+) puts it back.
+La barre du bas montre ce qu'il fait en ce moment.	The bottom bar shows what it is doing right now.
+LE RÉGLAGE : TOUT RÉGLER	SETTINGS: TWEAK EVERYTHING
+En bas, tous les réglages du module ouvert ; à droite, son écran.	Below, every setting of the open module; on the right, its screen.
+TON STYLE ET TES RÉFÉRENCES	YOUR STYLE AND REFERENCES
+01 / STYLE : clique un style mesuré, AUTO le vise ensuite.	01 / STYLE: click a measured style, AUTO aims at it next.
+TOUS LES GENRES… (ou RÉF) ouvre tous les genres, chacun illustré.	ALL GENRES… (or REF) opens every genre, each illustrated.
+AVANT / APRÈS : le son d'origine ou celui d'OMNIS ; A / B : deux réglages.	BEFORE / AFTER: the original sound or OMNIS's; A / B: two settings.
+LE NIVEAU ET LES MESURES	LEVEL AND METERS
+NIVEAU : la sonie visée, de Streaming -14 à Très fort -7, ou selon le style.	LEVEL: the target loudness, from Streaming -14 to Very loud -7, or by style.
+Puis L / R / LUFS / GR, et chaque mesure avec son verdict en mots.	Then L / R / LUFS / GR, and every reading with its verdict in words.
+COMPOSITION (en haut) : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dedans.	COMPOSITION (top): with OMNIS on your buses (ROLE Bus), what is in them.
+MASTERING	MASTERING
+AVANT	BEFORE
+APRÈS	AFTER
+01 / STYLE	01 / STYLE
+TOUS LES GENRES…	ALL GENRES…
+RAP FR	RAP FR
+RAP US	RAP US
+NEW WAVE	NEW WAVE
+TRAP	TRAP
+RAGE	RAGE
+PLUGG	PLUGG
+MÉLODIQUE	MELODIC
+BOOM BAP	BOOM BAP
+ÉLECTRO	ELECTRO
+plus de colle · 808 plus chaude · plus large · moins fort	more glue · warmer 808 · wider · quieter
+choisis un style ou clique AUTO. Tu peux aussi glisser les modules dans la chaîne.	pick a style or click AUTO. You can also drag the modules in the chain.
+LA CHAÎNE	THE CHAIN
+Glisse pour réordonner · clic pour régler · × pour retirer	Drag to reorder · click to set · × to remove
+ MODULES	 MODULES
+ MODULE	 MODULE
+ caractères	 characters
+ remis dans la chaîne.	 put back in the chain.
+Tous les modules sont dans la chaîne. × sur une carte la retire.	Every module is in the chain. × on a card removes it.
+Selon le style	By style
+Streaming	Streaming
+Équilibré	Balanced
+Fort	Loud
+Très fort	Very loud

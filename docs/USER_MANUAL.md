@@ -84,27 +84,33 @@ clipper before OMNIS): it needs that room to work well.
 ## 5. The console
 
 ```
-┌──────────────────────────────────────────────────────────────┬──────────────┐
-│ AUTO · A · B · A>B · BYPASS · MATCH · DELTA · STEREO/MID/SIDE │   MASTER     │
-│ ? · LAT                                                       │ input/output │
-├──────────────────────────────────────────────────────────────┤ peaks, LUFS  │
-│ AI [ your request……………… ] ▼ REF [ reference ] APPLY   answer  │ true peak,   │
-├──────────────────────────────────────────────────────────────┤ PLR, LRA…    │
-│ RACK: Sub · Match EQ · Inflator · Imager · Multiband ·        │              │
-│       Clipper · Limiter                                       │ LISTEN       │
-├──────────────────────────────────────────────────────────────┤ DIAGNOSIS    │
-│ DRAWER: settings of the open module  │  its screen            │ EXPORT       │
-├──────────────────────────────────────────────────────────────┤ MIX DIAGNOSIS│
-│ ANALYSER (output spectrum, export banner) · GONIOMETER        │              │
-└──────────────────────────────────────────────────────────────┴──────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│ abrasion LABS OMNIS · MASTER/COMPOSITION · A B A>B · BEFORE/AFTER · MATCH · DELTA · │
+│ STEREO/MID/SIDE · ? · LAT                                                         │
+├────────────────────────────────────────────────────────────────┬──────────────────┤
+│ 01 / STYLE: RAP FR · RAP US · TRAP · RAGE… · ALL GENRES · REF    [ AUTO ] │ LEVEL            │
+├────────────────────────────────────────────────────────────────┤ Streaming −14    │
+│ AI [ your request……………… ] APPLY · OMNIS: its answer             │ Balanced −11 …   │
+├────────────────────────────────────────────────────────────────┤ L · R · LUFS · GR│
+│ 02 / THE CHAIN: one card per module in use (× removes it)       │ LUFS, true peak, │
+│      library: + the modules out of the chain                    │ PLR, LRA…        │
+├────────────────────────────────────────────────────────────────┤ INPUT · OUTPUT   │
+│ 03 / SETTINGS: settings of the open module  │  its screen       │ LISTEN · EXPORT  │
+└────────────────────────────────────────────────────────────────┴──────────────────┘
 ```
 
-- **The rack**: each module has a big knob (its main control), an **ON** light and a small screen
-  that says what it is doing right now ("GR −2.1 dB", "CLIP −0.4 dB"…).
-  - **Click** a module to open all its settings in the drawer.
-  - **Drag a module by its name** to change the order of the chain.
-- **The drawer**: on the left, every setting of the open module; on the right, its screen (curve,
-  gain reduction, nodes to drag).
+- **01 / STYLE**: measured styles in one click (AUTO aims at them next); **ALL GENRES…** or **REF**
+  opens the window with every genre; **AUTO** on the right.
+- **02 / THE CHAIN**: one card per module in the chain: its big knob (main control), its character
+  (VCA, Tube, Soft Knee…) and what it is doing right now ("GR −2.1 dB"…).
+  - **Click** a card to open all its settings below.
+  - **Drag a card** to reorder the chain; **×** removes it.
+  - The **library** (under the cards): "+ IMAGER", "+ COMP 4 characters"… puts a module back.
+- **03 / SETTINGS**: on the left, every setting of the open module; on the right, its screen
+  (curve, gain reduction, nodes to drag).
+- **BEFORE / AFTER**: the original sound (OMNIS bypassed) or OMNIS's. **MASTER / COMPOSITION**: the
+  console or your buses page.
+- **LEVEL** (right): the target loudness in one click, then the meters.
 - **Knobs**: drag up or down. **Shift**: fine adjustment. **Double-click**: default value.
 - **A / B**: two complete settings of the whole console. **A>B** (or **B>A**) copies the one you
   are hearing into the other.

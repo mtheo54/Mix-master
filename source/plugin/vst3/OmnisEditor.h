@@ -67,7 +67,7 @@ public:
     bool PLUGIN_API open(void* parent, const VSTGUI::PlatformType& platformType) override;
     void PLUGIN_API close() override;
 
-    static constexpr int kWidth = 1200, kHeight = 750;
+    static constexpr int kWidth = 1200, kHeight = 800;
 
     /// Construit la console dans `root` (kWidth × kHeight).
     void buildInto(VSTGUI::CViewContainer* root);
@@ -103,7 +103,6 @@ private:
     void buildRibbons(VSTGUI::CViewContainer* root);
     void buildRack(VSTGUI::CViewContainer* root);
     void buildDrawer(VSTGUI::CViewContainer* root);
-    void buildScreens(VSTGUI::CViewContainer* root);
     void buildMaster(VSTGUI::CViewContainer* root);
     VSTGUI::CViewContainer* page(VSTGUI::CViewContainer* drawer, int index, const char* number, const char* title, const char* help);
     void knobs(VSTGUI::CViewContainer* parent, const VSTGUI::CRect& area, const char* title, const std::vector<std::uint32_t>& ids, int size = 1);
@@ -150,6 +149,12 @@ private:
     VSTGUI::CView* refBrowser_ = nullptr;
     friend class RefBrowser;
     std::array<gui::RackSlot*, 8> slots_{};
+    std::array<VSTGUI::CView*, 8> slotKnobs_{}; ///< le gros bouton de chaque carte (suit la largeur de la carte)
+    std::vector<int> shownModules_;              ///< les modules de la chaîne (allumés), dans l'ordre
+    double slotW_ = 150.0;
+    int lastMask_ = -1;                          ///< modules allumés au dernier rangement
+    int lastModule_ = 6;                         ///< le module ouvert avant COMPOSITION
+    VSTGUI::CView* library_ = nullptr;           ///< les modules hors de la chaîne
     VSTGUI::CViewContainer* rack_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 10> pages_{};
     std::string diagnosis_; ///< texte du diagnostic du mix (page D)

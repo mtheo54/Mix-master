@@ -60,6 +60,15 @@
 
 ## Fait récemment
 
+- **10/11 — Interface : la maquette « OMNIS Rack » dans le plug-in** (étape 7 de la refonte, demande de
+  l'utilisateur). Fenêtre 1200 × 800 : barre du haut (marque, MASTER / COMPOSITION, A / B, AVANT / APRÈS,
+  MATCH, DELTA, écoute M/S, ?, LAT) ; 01 / STYLE (styles mesurés en puces, TOUS LES GENRES, RÉF, AUTO
+  plein) ; barre IA ; 02 / LA CHAÎNE (une carte par module allumé, caractère en étiquette, × retire,
+  bibliothèque « + » des modules éteints, glisser pour réordonner) ; 03 / RÉGLAGE (les pages de
+  réglages) ; colonne NIVEAU (liste des niveaux, barres, mesures, entrée / sortie, écoute, export).
+  Look plat de la maquette (segments blancs, liserés fins). Spectre et goniomètre du bas retirés.
+  Modules en plusieurs exemplaires : pas encore (le moteur a 8 étages fixes).
+
 - **10/11 — Fenêtre RÉF : tous les genres, une illustration chacun** (demande de l'utilisateur, avant
   d'envoyer le plug-in à des collègues). Le menu déroulant et l'entonnoir sont remplacés par une fenêtre
   (`plugin/vst3/RefBrowser.inc`, `OmnisController::genreCatalog`) : familles en onglets, une tuile par

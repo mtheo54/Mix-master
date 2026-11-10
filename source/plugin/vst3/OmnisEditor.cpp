@@ -67,9 +67,12 @@ const std::string kOnlineAction = "\x01musicbrainz";
 
 constexpr double kPad = 10.0;
 // Colonne de travail | colonne Master.
-constexpr double kWorkL = 10.0, kWorkR = 932.0, kMasterL = 942.0, kMasterR = 1190.0;
-constexpr double kRibbon1 = 10.0, kRibbon2 = 58.0, kRackT = 106.0, kRackB = 306.0, kDrawerT = 314.0, kDrawerB = 604.0;
-constexpr double kScreensT = 612.0, kScreensB = 740.0;
+// La mise en page de la maquette « OMNIS Rack » : barre du haut ; à gauche, 01 STYLE + AUTO,
+// la barre IA, 02 LA CHAÎNE (cartes + bibliothèque), 03 RÉGLAGE ; à droite, le NIVEAU et les mesures.
+constexpr double kWorkL = 8.0, kWorkR = 904.0, kMasterL = 914.0, kMasterR = 1192.0;
+constexpr double kTopT = 8.0, kTopB = 56.0, kStyleT = 64.0, kStyleB = 112.0, kIaT = 118.0, kIaB = 188.0;
+constexpr double kRackT = 194.0, kRackB = 476.0, kDrawerT = 482.0, kDrawerB = 792.0;
+constexpr double kSlotT = 26.0, kSlotH = 200.0, kLibT = 236.0; // dans la chaîne : cartes, bibliothèque
 constexpr double kDrawerSplit = 557.0; // réglages (60 %) | gorge | écran (40 %)
 
 const std::array<const char*, 8> kModuleTitles{"Sub", "Match EQ", "Inflator", "Imager", "Multiband", "Clipper", "Limiter", "Comp"};
@@ -81,11 +84,12 @@ public:
     void drawBackgroundRect(CDrawContext* c, const CRect&) override {
         c->setDrawMode(kAntiAliasing | kNonIntegralMode);
         const CRect r(0, 0, getViewSize().getWidth(), getViewSize().getHeight());
-        if (insetLook_) inset(c, r);
-        else {
-            c->setFillColor(color::kMetal);
-            c->drawRect(r, kDrawFilled);
-        }
+        // Une section de la maquette : fond presque noir, liseré fin.
+        c->setFillColor(insetLook_ ? CColor(11, 11, 12) : CColor(13, 13, 15));
+        c->drawRect(r, kDrawFilled);
+        c->setLineWidth(1.0);
+        c->setFrameColor(CColor(38, 38, 42));
+        c->drawRect(CRect(r).inset(0.5, 0.5), kDrawStroked);
     }
 
 private:
@@ -98,21 +102,53 @@ public:
     explicit Face(const CRect& r) : CViewContainer(r) { setTransparency(false); }
     void drawBackgroundRect(CDrawContext* c, const CRect&) override {
         const CRect r(0, 0, getViewSize().getWidth(), getViewSize().getHeight());
-        c->setFillColor(color::kVoid);
+        // Le fond du site : noir, une grille de points très discrète.
+        c->setFillColor(CColor(6, 6, 7));
         c->drawRect(r, kDrawFilled);
-        c->setFillColor(CColor(24, 25, 29));
-        c->drawRect(CRect(r).inset(2, 2), kDrawFilled);
-        c->setFillColor(color::kMetal);
-        c->drawRect(CRect(r.left + 2, r.top + 80, r.right - 2, r.bottom - 2), kDrawFilled);
-        c->setFillColor(CColor(19, 20, 23));
-        c->drawRect(CRect(r.left + 2, r.bottom - 200, r.right - 2, r.bottom - 2), kDrawFilled);
+        c->setFillColor(CColor(255, 255, 255, 9));
+        for (CCoord y = 12; y < r.bottom; y += 24)
+            for (CCoord x = 12; x < r.right; x += 24) c->drawRect(CRect(x, y, x + 1, y + 1), kDrawFilled);
         c->setLineWidth(1.0);
-        c->setFrameColor(CColor(255, 255, 255, 3));
-        for (CCoord x = 3; x < r.right - 2; x += 3) c->drawLine(CPoint(x, 3), CPoint(x, r.bottom - 3));
-        c->setFrameColor(CColor(255, 255, 255, 15));
-        c->drawLine(CPoint(3, 2.5), CPoint(r.right - 3, 2.5));
+        c->setFrameColor(CColor(40, 40, 44));
+        c->drawRect(CRect(r).inset(0.5, 0.5), kDrawStroked);
     }
 };
+
+/// Une zone dessinée sans fond (en-têtes, puces de style, bibliothèque, niveaux) ; la souris
+/// arrive dans les mêmes coordonnées que le dessin.
+class Painted : public CView, public Live {
+public:
+    using Painter = std::function<void(CDrawContext*, const CRect&)>;
+    using Click = std::function<void(const CPoint&)>;
+    Painted(const CRect& r, Painter p, Click click = {}) : CView(r), painter_(std::move(p)), click_(std::move(click)) {
+        if (!click_) setMouseEnabled(false);
+    }
+    void draw(CDrawContext* c) override {
+        c->setDrawMode(kAntiAliasing | kNonIntegralMode);
+        if (painter_) painter_(c, getViewSize());
+        setDirty(false);
+    }
+    void onMouseDownEvent(MouseDownEvent& e) override {
+        if (!click_ || !e.buttonState.isLeft()) return;
+        e.consumed = true;
+        e.ignoreFollowUpMoveAndUpEvents(true);
+        click_(e.mousePosition);
+        invalid();
+    }
+    void tick() override { invalid(); }
+
+private:
+    Painter painter_;
+    Click click_;
+};
+
+/// Le petit carré de la marque devant un titre de section (« ▫ 01 / STYLE »).
+void eyebrow(CDrawContext* c, const std::string& s, double x, double y) {
+    c->setLineWidth(1.0);
+    c->setFrameColor(color::kAccent);
+    c->drawRect(CRect(x + 0.5, y + 3.5, x + 6.5, y + 9.5), kDrawStroked);
+    text(c, s, CRect(x + 14, y, x + 400, y + 13), color::kText2, mono(9.5));
+}
 
 /// Gorge usinée entre les réglages et l'écran du tiroir.
 class Groove : public CView {
@@ -328,38 +364,38 @@ const std::array<TutorialStep, 12> kTutorial{{
     {CRect(0, 0, 0, 0), "BIENVENUE DANS OMNIS",
      {"OMNIS masterise ta prod : mets-le en dernier sur le master.", "Clique AUTO, joue le morceau en entier, puis ajuste",
       "avec les boutons ou en mots dans la barre IA.", "Suis le guide (2 minutes)."}},
-    {CRect(10, 106, 932, 306), "LE RACK : 8 MODULES",
-     {"Chaque module a un gros bouton (le réglage principal) et un voyant ON.", "Clique un module pour ouvrir TOUS ses réglages en dessous.",
-      "Glisse un module par son nom pour changer l'ordre de la chaîne.", "La barre d'état montre ce qu'il fait en ce moment."}},
-    {CRect(10, 314, 932, 604), "LE TIROIR : TOUT RÉGLER",
-     {"À gauche, tous les réglages du module ouvert ; à droite, son écran.", "Glisser vers le haut / le bas · Maj : réglage fin · double-clic : défaut.",
+    {CRect(8, 194, 904, 476), "LA CHAÎNE : TES MODULES",
+     {"Chaque carte : un module, son gros bouton et son caractère.", "Clique une carte pour tout régler en dessous ; × la retire de la chaîne.",
+      "Glisse une carte pour changer l'ordre ; la bibliothèque (+) la remet.", "La barre du bas montre ce qu'il fait en ce moment."}},
+    {CRect(8, 482, 904, 792), "LE RÉGLAGE : TOUT RÉGLER",
+     {"En bas, tous les réglages du module ouvert ; à droite, son écran.", "Glisser vers le haut / le bas · Maj : réglage fin · double-clic : défaut.",
       "Match EQ : glisse les nœuds sur l'écran. Multiband : glisse les traits.", "Rien n'est caché : tu choisis précisément ce que tu changes."}},
-    {CRect(140, 106, 272, 306), "EQ DYNAMIQUE",
+    {CRect(8, 482, 904, 792), "EQ DYNAMIQUE",
      {"Match EQ > DYN : 4 bandes qui n'agissent que quand un son sort du lot", "(sifflante, note de 808 qui gonfle, hi-hat qui pique) ; le reste du temps, rien.",
       "Plage < 0 : retient · > 0 : fait ressortir · seuil : dB au-dessus de l'habitude.", "Écris « ça siffle » dans la barre IA : OMNIS en allume une."}, 2},
-    {CRect(10, 58, 932, 98), "LA BARRE IA",
+    {CRect(8, 118, 904, 188), "LA BARRE IA",
      {"Écris ce que tu veux, en français, en anglais ou en argot :", "« plus de punch », « garde ma 808 », « genre rage », « moins boueux »…",
       "OMNIS écoute ta prod, comprend, règle les modules et te dit ce qu'il a fait.", "RÉF : choisis un style, un artiste ou un titre de ta base ; AUTO le vise."}},
-    {CRect(336, 62, 552, 94), "TES RÉFÉRENCES",
-     {"RÉF ouvre tous les genres, chacun avec son illustration et son profil.", "Clique un genre, puis UTILISER CE GENRE : AUTO le vise ensuite.",
+    {CRect(8, 64, 780, 112), "TON STYLE ET TES RÉFÉRENCES",
+     {"01 / STYLE : clique un style mesuré, AUTO le vise ensuite.", "TOUS LES GENRES… (ou RÉF) ouvre tous les genres, chacun illustré.",
       "+ AJOUTER UN FICHIER (« Artiste - Titre ») : OMNIS le mesure, sans garder", "le son ; MusicBrainz, sa seule connexion, peut le confirmer."}, 2},
-    {CRect(196, 10, 272, 50), "AUTO",
+    {CRect(788, 70, 896, 106), "AUTO",
      {"Clique AUTO, puis joue le morceau du début à la fin.", "OMNIS l'écoute en entier, règle la chaîne vers ton style,",
       "essaie plusieurs réglages de volume et garde le plus propre.", "La cible : la RÉF choisie, sinon le style écrit (« rap us », « rage »)."}},
-    {CRect(270, 10, 830, 50), "ÉCOUTER HONNÊTEMENT",
-     {"A / B : deux réglages complets ; A>B copie l'un dans l'autre.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
+    {CRect(506, 8, 1030, 56), "ÉCOUTER HONNÊTEMENT",
+     {"AVANT / APRÈS : le son d'origine ou celui d'OMNIS ; A / B : deux réglages.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
       "DELTA : n'entends que ce que le module ouvert change.", "STÉRÉO / MID / SIDE : vérifie le centre et les côtés."}},
-    {CRect(840, 16, 926, 44), "LATENCE",
+    {CRect(1068, 12, 1182, 52), "LATENCE",
      {"Qualité max : ~710 ms de latence, normale en mastering (le DAW la compense).", "Un clic : mode TRAVAIL (~90 ms) pour jouer en direct, qualité réduite.",
       "Il clignote en rouge tant qu'il est actif :", "remets la qualité max avant d'exporter."}, 2},
-    {CRect(942, 10, 1190, 552), "LES MESURES",
-     {"Entrée / sortie, crêtes gauche / droite, sonie, réduction du limiteur.", "Chaque mesure a son verdict en mots : BON, FORT, DENSE, PUNCHY…",
+    {CRect(914, 64, 1192, 552), "LE NIVEAU ET LES MESURES",
+     {"NIVEAU : la sonie visée, de Streaming -14 à Très fort -7, ou selon le style.", "Puis L / R / LUFS / GR, et chaque mesure avec son verdict en mots.",
       "TRUE PEAK doit rester OK (sous -1 dBTP) pour le streaming.", "PLR = écart crête / sonie : plus il est grand, plus ça respire."}},
-    {CRect(942, 556, 1190, 726), "ÉCOUTES ET EXPORT",
+    {CRect(914, 576, 1192, 792), "ÉCOUTES ET EXPORT",
      {"ÉCOUTE : entends ton master sur écouteurs, téléphone, TikTok, en voiture…", "Elle reste en rouge : remets-la sur Off avant d'exporter.",
       "DIAGNOSTIC DU MIX : ce que le master ne rattrape pas, à corriger dans ton projet.",
-      "COMPOSITION : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dans chacun."}, 2},
-    {CRect(796, 10, 830, 50), "C'EST PARTI",
+      "COMPOSITION (en haut) : avec OMNIS sur tes bus (RÔLE Bus), ce qu'il y a dedans."}, 2},
+    {CRect(1036, 8, 1062, 56), "C'EST PARTI",
      {"Le bouton ? (ou « tuto » dans la barre IA) relance ce guide.", "Astuce : en mastering, plusieurs petites touches valent mieux", "qu'un gros réglage.", "Bon son !"}},
 }};
 
@@ -446,11 +482,11 @@ private:
         const CRect all = getViewSize();
         if (focus.getWidth() <= 0) return CRect((all.getWidth() - w) / 2, (all.getHeight() - h) / 2, (all.getWidth() + w) / 2, (all.getHeight() + h) / 2);
         // Sous la zone si la place le permet, sinon au-dessus ; à gauche de la colonne Master.
-        double x = std::clamp(focus.left, 20.0, 930.0 - w);
-        if (focus.left >= 940.0) x = 930.0 - w;
+        double x = std::clamp(focus.left, 20.0, 900.0 - w);
+        if (focus.left >= 910.0) x = 900.0 - w;
         double y = focus.bottom + 16;
         if (y + h > all.bottom - 10) y = std::max(10.0, focus.top - h - 16);
-        if (focus.left >= 940.0) y = std::clamp(focus.top, 20.0, all.bottom - h - 20);
+        if (focus.left >= 910.0) y = std::clamp(focus.top, 20.0, all.bottom - h - 20);
         return CRect(x, y, x + w, y + h);
     }
     OmnisEditor& editor_;
@@ -650,7 +686,6 @@ void OmnisEditor::buildInto(CViewContainer* root) {
     buildRibbons(face);
     buildRack(face);
     buildDrawer(face);
-    buildScreens(face);
     buildMaster(face);
     omnis()->requestFeed();
     // Sur un bus, la console de mastering ne sert pas : la page COMPOSITION d'abord.
@@ -668,57 +703,68 @@ void OmnisEditor::buildInto(CViewContainer* root) {
 //  Rubans : transport et demande à l'IA
 // -----------------------------------------------------------------------------
 void OmnisEditor::buildRibbons(CViewContainer* root) {
-    auto* r1 = new Panel(CRect(kWorkL, kRibbon1, kWorkR, kRibbon1 + 40));
-    root->addView(r1);
-    // Un son glissé sur AUTO ou sur la barre IA : AUTO l'écoute en entier (Maj : référence).
+    // Un son glissé sur la barre du haut, le style ou la barre IA : AUTO l'écoute en entier (Maj : référence).
     const auto onAudioFile = [this](const std::string& path, bool shift) {
         if (!omnis()) return;
         answer_ = shift ? omnis()->importReferenceFile(path) : omnis()->autoFromFile(path);
         if (frame) frame->invalid();
     };
+    OmnisController* c = omnis();
+    const auto add = [this](CViewContainer* p, HwButton* b) {
+        p->addView(b);
+        live_.push_back(b);
+        return b;
+    };
+    const auto addSeg = [this](CViewContainer* p, SegControl* sc) {
+        p->addView(sc);
+        live_.push_back(sc);
+        return sc;
+    };
+
+    // ---- La barre du haut : la marque, les vues, les mémoires, l'écoute honnête.
+    auto* r1 = new Panel(CRect(kWorkL, kTopT, kMasterR, kTopB));
+    root->addView(r1);
     r1->setDropTarget(makeOwned<AudioFileDrop>(onAudioFile));
-    r1->addView(new Caption(CRect(10, 8, 110, 32), "OMNIS", color::kText, sans(18, true)));
-    r1->addView(new Caption(CRect(96, 13, 190, 29), "ABRASION LABS", color::kText3, mono(8.5)));
-    r1->addView(new LogoSecret(CRect(10, 6, 190, 34), [this] {
+    r1->addView(new Painted(CRect(12, 6, 312, 42), [](CDrawContext* dc, const CRect& r) {
+        text(dc, "abrasion", CRect(r.left, r.top, r.left + 96, r.bottom), color::kText2, sans(19));
+        text(dc, "LABS", CRect(r.left + 92, r.top + 3, r.left + 130, r.bottom), color::kText3, mono(8.5));
+        text(dc, "OMNIS", CRect(r.left + 132, r.top, r.left + 210, r.bottom), color::kText, sans(19, true));
+        const CRect tag(r.left + 212, r.top + 9, r.left + 296, r.bottom - 9);
+        dc->setLineWidth(1.0);
+        dc->setFrameColor(color::kAccent);
+        dc->drawRect(CRect(tag).inset(0.5, 0.5), kDrawStroked);
+        text(dc, "MASTERING", tag, color::kAccent, mono(8.5, true), kCenterText);
+    }));
+    r1->addView(new LogoSecret(CRect(12, 6, 312, 42), [this] {
         if (!omnis()) return;
         omnis()->setPromoMode(!omnis()->promoMode());
         answer_ = omnis()->promoMode() ? "Mode promo : monogrammes à la place des avatars." : "Mode promo désactivé : les avatars reviennent.";
         refreshPromo();
     }));
-    OmnisController* c = omnis();
-    const auto add = [&](HwButton* b) {
-        r1->addView(b);
-        live_.push_back(b);
-        return b;
-    };
-    auto* autoButton = add(new HwButton(CRect(196, 7, 262, 33), "AUTO", [] { return false; }, [this] {
-        answer_ = omnis()->startAuto();
-    }));
-    autoButton->setAccentText(true);
-    add(new HwButton(CRect(270, 7, 300, 33), "A", [c] { return c->abSlot() == 0; }, [c] { c->selectAB(0); }, false));
-    add(new HwButton(CRect(302, 7, 332, 33), "B", [c] { return c->abSlot() == 1; }, [c] { c->selectAB(1); }, false));
-    add(new HwButton(CRect(336, 7, 392, 33), c->abSlot() == 0 ? "A>B" : "B>A", [] { return false; }, [this, c] {
+    addSeg(r1, new SegControl(CRect(322, 11, 488, 37), {"MASTER", "COMPOSITION"}, [this] { return page_ == kCompPage ? 1 : 0; },
+                              [this](int i) { selectPage(i == 1 ? static_cast<int>(kCompPage) : lastModule_); }));
+    addSeg(r1, new SegControl(CRect(498, 11, 562, 37), {"A", "B"}, [c] { return c->abSlot(); }, [c](int i) { c->selectAB(i); }));
+    add(r1, new HwButton(CRect(566, 11, 610, 37), c->abSlot() == 0 ? "A>B" : "B>A", [] { return false; }, [this, c] {
         c->copyABToOther();
         answer_ = c->abSlot() == 0 ? "A copié dans B." : "B copié dans A.";
     }, false));
-    add(new HwButton(CRect(400, 7, 478, 33), "BYPASS", [this] { return plain(id(ParamId::Bypass)) >= 0.5; },
-                     [this] { setPlain(id(ParamId::Bypass), plain(id(ParamId::Bypass)) >= 0.5 ? 0.0 : 1.0); }));
-    matchButton_ = add(new HwButton(CRect(484, 7, 556, 33), "MATCH", [this] { return plain(id(ParamId::GainMatch)) >= 0.5; },
-                                    [this] { setPlain(id(ParamId::GainMatch), plain(id(ParamId::GainMatch)) >= 0.5 ? 0.0 : 1.0); }));
+    // AVANT / APRÈS : le son d'origine ou celui d'OMNIS (le contournement).
+    addSeg(r1, new SegControl(CRect(620, 11, 752, 37), {"AVANT", "APRÈS"}, [this] { return plain(id(ParamId::Bypass)) >= 0.5 ? 0 : 1; },
+                              [this](int i) { setPlain(id(ParamId::Bypass), i == 0 ? 1.0 : 0.0); }));
+    matchButton_ = add(r1, new HwButton(CRect(762, 11, 822, 37), "MATCH", [this] { return plain(id(ParamId::GainMatch)) >= 0.5; },
+                                        [this] { setPlain(id(ParamId::GainMatch), plain(id(ParamId::GainMatch)) >= 0.5 ? 0.0 : 1.0); }, false));
     matchButton_->setBlink(true);
-    add(new HwButton(CRect(562, 7, 636, 33), "DELTA", [this] { return plain(id(ParamId::DeltaListen)) >= 0.5; }, [this] {
+    add(r1, new HwButton(CRect(826, 11, 886, 37), "DELTA", [this] { return plain(id(ParamId::DeltaListen)) >= 0.5; }, [this] {
         const bool on = plain(id(ParamId::DeltaListen)) >= 0.5;
         // On écoute ce que le module ouvert change.
         setPlain(id(ParamId::DeltaListen), on || page_ >= params::kModules ? 0.0 : static_cast<double>(page_ + 1));
-    }));
-    auto* mon = new SegControl(CRect(644, 8, 790, 32), {"STÉRÉO", "MID", "SIDE"}, [this] { return static_cast<int>(std::lround(plain(id(ParamId::Monitor)))); },
-                               [this](int i) { setPlain(id(ParamId::Monitor), i); });
-    r1->addView(mon);
-    live_.push_back(mon);
-    add(new HwButton(CRect(796, 7, 826, 33), "?", [] { return false; }, [this] { startTutorial(0); }, false));
+    }, false));
+    addSeg(r1, new SegControl(CRect(894, 11, 1022, 37), {"STÉRÉO", "MID", "SIDE"}, [this] { return static_cast<int>(std::lround(plain(id(ParamId::Monitor)))); },
+                              [this](int i) { setPlain(id(ParamId::Monitor), i); }));
+    add(r1, new HwButton(CRect(1028, 11, 1054, 37), "?", [] { return false; }, [this] { startTutorial(0); }, false));
     // Latence : un clic bascule le mode travail (latence basse, qualité réduite).
     // Tant qu'il est actif, la case clignote en rouge : à retirer avant l'export.
-    auto* lat = new Screen(CRect(832, 9, 914, 31), [this](CDrawContext* dc, const CRect& r) {
+    auto* lat = new Screen(CRect(1060, 13, 1174, 35), [this](CDrawContext* dc, const CRect& r) {
         const bool low = plain(id(ParamId::LowLatency)) >= 0.5;
         const double ms = an_->meters.latencyMs;
         if (low) {
@@ -749,36 +795,96 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     r1->addView(lat);
     live_.push_back(lat);
 
-    // Ruban 2 : la demande à l'IA.
-    auto* r2 = new Panel(CRect(kWorkL, kRibbon2, kWorkR, kRibbon2 + 40));
+    // ---- 01 / STYLE : les styles mesurés en puces, TOUS LES GENRES (la fenêtre RÉF), la référence
+    // visée, et AUTO.
+    auto* styleRow = new Panel(CRect(kWorkL, kStyleT, kWorkR, kStyleB));
+    root->addView(styleRow);
+    styleRow->setDropTarget(makeOwned<AudioFileDrop>(onAudioFile));
+    struct Chip {
+        std::string label, target; ///< target vide : ouvrir tous les genres
+    };
+    auto chips = std::make_shared<std::vector<Chip>>();
+    {
+        const std::vector<Chip> wanted{{"RAP FR", "Rap Français & New Wave"}, {"RAP US", "Rap & Hip-Hop International (US/UK)"},
+                                       {"NEW WAVE", "new wave fr"},           {"TRAP", "trap fr"},
+                                       {"RAGE", "rage fr"},                   {"PLUGG", "plugg fr"},
+                                       {"MÉLODIQUE", "rap mélodique"},        {"BOOM BAP", "boom bap"},
+                                       {"ÉLECTRO", "Électro, House & Dance"}};
+        const auto catalog = c ? c->genreCatalog() : std::vector<OmnisController::GenreCard>{};
+        for (const auto& w : wanted)
+            for (const auto& g : catalog)
+                if (g.measured() && (g.style.empty() ? g.family : g.style) == w.target) {
+                    chips->push_back(w);
+                    break;
+                }
+        chips->push_back({"TOUS LES GENRES…", {}});
+    }
+    auto chipHits = std::make_shared<std::vector<std::pair<CRect, std::size_t>>>();
+    auto* chipRow = new Painted(CRect(10, 4, 640, 44), [this, chips, chipHits](CDrawContext* dc, const CRect& r) {
+        eyebrow(dc, "01 / STYLE", r.left + 2, r.top + 1);
+        auto* oc = omnis();
+        const std::string aimed = oc && oc->referenceKind() == OmnisController::RefKind::Style ? oc->referenceName() : std::string();
+        chipHits->clear();
+        double x = r.left;
+        for (std::size_t i = 0; i < chips->size(); ++i) {
+            const Chip& ch = (*chips)[i];
+            dc->setFont(mono(9.5, true));
+            const double w = dc->getStringWidth(i18n::tr(ch.label).c_str()) + 22;
+            const CRect b(x, r.top + 17, x + w, r.bottom - 1);
+            if (b.right > r.right) break;
+            const bool on = !ch.target.empty() && ch.target == aimed;
+            dc->setFillColor(on ? CColor(236, 236, 238) : CColor(10, 10, 11));
+            dc->drawRect(b, kDrawFilled);
+            dc->setLineWidth(1.0);
+            dc->setFrameColor(ch.target.empty() ? withAlpha(color::kAccent, 0.7) : CColor(52, 52, 57));
+            dc->drawRect(CRect(b).inset(0.5, 0.5), kDrawStroked);
+            text(dc, ch.label, b, on ? CColor(10, 10, 10) : (ch.target.empty() ? color::kAccent : color::kText), mono(9.5, true), kCenterText);
+            chipHits->push_back({b, i});
+            x = b.right + 6;
+        }
+    }, [this, chips, chipHits](const CPoint& p) {
+        for (const auto& [b, i] : *chipHits)
+            if (b.pointInside(p)) {
+                const Chip& ch = (*chips)[i];
+                if (ch.target.empty()) openReferenceBrowser();
+                else if (omnis()) answer_ = omnis()->chooseReference(OmnisController::RefKind::Style, ch.target);
+                return;
+            }
+    });
+    styleRow->addView(chipRow);
+    live_.push_back(chipRow);
+    buildReferenceMenu(styleRow, CRect(648, 12, 772, 38)); // la référence visée ; un clic : tous les genres
+    auto* autoButton = add(styleRow, new HwButton(CRect(780, 6, 888, 42), "AUTO", [] { return false; }, [this] { answer_ = omnis()->startAuto(); }, false));
+    autoButton->setFilled(true);
+
+    // ---- La barre IA : la demande, puis ce qu'OMNIS a fait.
+    auto* r2 = new Panel(CRect(kWorkL, kIaT, kWorkR, kIaB));
     root->addView(r2);
     r2->setDropTarget(makeOwned<AudioFileDrop>(onAudioFile));
-    r2->addView(new Caption(CRect(10, 8, 34, 32), "IA", color::kAccent, mono(11, true)));
+    r2->addView(new Caption(CRect(14, 8, 38, 34), "IA", color::kAccent, mono(11, true)));
     auto* listener = listen([this](CControl*) { askAi(); });
-    askField_ = new CTextEdit(CRect(36, 7, 330, 33), listener, 1, "");
+    askField_ = new CTextEdit(CRect(40, 8, 766, 34), listener, 1, "");
     askField_->setFont(mono(11));
     askField_->setFontColor(color::kText);
-    askField_->setBackColor(color::kScreen);
-    askField_->setFrameColor(CColor(0, 0, 0, 255));
+    askField_->setBackColor(CColor(8, 8, 9));
+    askField_->setFrameColor(CColor(52, 52, 57));
     askField_->setTextInset(CPoint(8, 0));
     askField_->setHoriAlign(kLeftText);
-    askField_->setPlaceholderString(i18n::tr("ex. plus de punch, garde ma 808").c_str());
+    askField_->setPlaceholderString(i18n::tr("plus de colle · 808 plus chaude · plus large · moins fort").c_str());
     askField_->setTooltipText(i18n::tr("Glisse un son ici : AUTO l'écoute en entier (Maj : l'ajouter aux références)").c_str());
     r2->addView(askField_);
-    buildReferenceMenu(r2, CRect(336, 7, 540, 33)); // un clic : la fenêtre RÉF (tous les genres)
-    auto* applyButton = new HwButton(CRect(546, 7, 640, 33), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false);
+    auto* applyButton = add(r2, new HwButton(CRect(774, 8, 888, 34), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false));
     applyButton->setAccentText(true);
-    r2->addView(applyButton);
-    live_.push_back(applyButton);
-    auto* answer = new Screen(CRect(646, 7, 914, 33), [this](CDrawContext* dc, const CRect& r) {
-        const std::string& s = answer_.empty() ? std::string("Écris ce que tu veux, OMNIS règle.") : answer_;
-        text(dc, s, CRect(r.left + 8, r.top, r.right - 6, r.bottom), answer_.empty() ? color::kText3 : color::kAccent, mono(9.5));
-    }, true);
-    answer->setMouseEnabled(false);
+    auto* answer = new Painted(CRect(14, 40, 888, 64), [this](CDrawContext* dc, const CRect& r) {
+        dc->setLineWidth(1.0);
+        dc->setFrameColor(CColor(38, 38, 42));
+        dc->drawLine(CPoint(r.left - 6, r.top - 2.5), CPoint(r.right, r.top - 2.5));
+        text(dc, "OMNIS", CRect(r.left, r.top, r.left + 48, r.bottom), color::kAccent, mono(10, true));
+        const std::string& said = answer_.empty() ? std::string("choisis un style ou clique AUTO. Tu peux aussi glisser les modules dans la chaîne.") : answer_;
+        text(dc, said, CRect(r.left + 50, r.top, r.right, r.bottom), answer_.empty() ? color::kText2 : color::kText, mono(9.5));
+    });
     r2->addView(answer);
     live_.push_back(answer);
-    // Le bouton AUTO est relié à la même zone de réponse.
-    (void)autoButton;
 }
 
 struct OmnisEditor::Card {
@@ -1188,14 +1294,23 @@ std::array<int, 8> OmnisEditor::order() const {
 
 namespace {
 /// Largeur d'un emplacement du rack : les modules côte à côte, 6 px entre eux.
-double rackSlotWidth(double rackWidth) { return (rackWidth - 16.0 - 6.0 * (params::kModules - 1)) / params::kModules; }
 } // namespace
 
 void OmnisEditor::buildRack(CViewContainer* root) {
     rack_ = new Panel(CRect(kWorkL, kRackT, kWorkR, kRackB));
     root->addView(rack_);
-    const double slotW = rackSlotWidth(rack_->getViewSize().getWidth()), slotH = rack_->getViewSize().getHeight() - 16.0;
+    const double slotW = 150.0, slotH = kSlotH;
     OmnisController* c = omnis();
+    // 02 / LA CHAÎNE : l'en-tête de la section.
+    auto* head = new Painted(CRect(12, 6, rack_->getViewSize().getWidth() - 12, 22), [this](CDrawContext* dc, const CRect& r) {
+        text(dc, "02 /", CRect(r.left, r.top, r.left + 34, r.bottom), color::kText3, mono(9.5));
+        text(dc, "LA CHAÎNE", CRect(r.left + 36, r.top - 1, r.left + 140, r.bottom), color::kText, mono(12, true));
+        text(dc, "Glisse pour réordonner · clic pour régler · × pour retirer", CRect(r.left + 142, r.top, r.right - 150, r.bottom), color::kText3, mono(9));
+        text(dc, fmt("%.0f", static_cast<double>(shownModules_.size())) + i18n::tr(shownModules_.size() > 1 ? " MODULES" : " MODULE"),
+             CRect(r.right - 150, r.top, r.right, r.bottom), color::kText3, mono(9), kRightText);
+    });
+    rack_->addView(head);
+    live_.push_back(head);
     for (int m = 0; m < params::kModules; ++m) {
         const auto module = static_cast<params::Module>(m);
         const std::uint32_t onId = id(params::moduleOnId(module));
@@ -1204,6 +1319,14 @@ void OmnisEditor::buildRack(CViewContainer* root) {
         cb.toggle = [this, onId] { setNorm(onId, norm(onId) >= 0.5 ? 0.0 : 1.0); };
         cb.isSelected = [this, m] { return page_ == m; };
         cb.select = [this, m] { selectPage(m); };
+        // Le caractère du module, en étiquette sur sa carte (vide : il n'en a pas).
+        switch (module) {
+            case params::Module::Match: cb.character = [this] { return i18n::tr(valueText(id(ParamId::MatchCharacter))); }; break;
+            case params::Module::Inflator: cb.character = [this] { return i18n::tr(valueText(id(ParamId::InflCharacter))); }; break;
+            case params::Module::Clipper: cb.character = [this] { return i18n::tr(valueText(id(ParamId::ClipMode))); }; break;
+            case params::Module::Comp: cb.character = [this] { return i18n::tr(valueText(id(ParamId::CompCharacter))); }; break;
+            default: break;
+        }
         cb.dragMove = [this, m](double x) { dragMove(m, x); };
         cb.drop = [this, m](double x) { drop(m, x); };
         Model macro;
@@ -1367,32 +1490,99 @@ void OmnisEditor::buildRack(CViewContainer* root) {
         auto* slot = new RackSlot(CRect(0, 0, slotW, slotH), std::to_string(m + 1), kModuleTitles[static_cast<std::size_t>(m)], cb);
         const double kh = LedKnob::heightFor(LedKnob::Size::Big);
         static const std::array<const char*, 8> kMacroNames{"SUB", "TONE", "INFLATE", "WIDTH", "GLUE", "DRIVE", "LOUD", "SQUEEZE"};
-        auto* knob = new LedKnob(CRect(4, 30, slotW - 4, 30 + kh), kMacroNames[static_cast<std::size_t>(m)], macro, LedKnob::Size::Big);
+        auto* knob = new LedKnob(CRect(4, 46, slotW - 4, 46 + kh), kMacroNames[static_cast<std::size_t>(m)], macro, LedKnob::Size::Big);
         slot->addView(knob);
         live_.push_back(knob);
+        slotKnobs_[static_cast<std::size_t>(m)] = knob;
         rack_->addView(slot);
         live_.push_back(slot);
         slots_[static_cast<std::size_t>(m)] = slot;
     }
+    // La bibliothèque : les modules hors de la chaîne ; un clic en remet un.
+    auto libHits = std::make_shared<std::vector<std::pair<CRect, int>>>();
+    static const std::array<int, 8> kCharacters{0, 2, 4, 0, 0, 3, 0, 4}; // Sub, Match, Inflator, Imager, Multiband, Clipper, Limiter, Comp
+    auto* library = new Painted(CRect(12, kLibT, rack_->getViewSize().getWidth() - 12, rack_->getViewSize().getHeight() - 8),
+                           [this, libHits](CDrawContext* dc, const CRect& r) {
+        dc->setLineWidth(1.0);
+        dc->setFrameColor(CColor(52, 52, 57));
+        for (double x = r.left; x < r.right; x += 6) dc->drawLine(CPoint(x, r.top - 5.5), CPoint(x + 3, r.top - 5.5));
+        libHits->clear();
+        double x = r.left;
+        int off = 0;
+        for (int m = 0; m < params::kModules; ++m) {
+            if (norm(id(params::moduleOnId(static_cast<params::Module>(m)))) >= 0.5) continue;
+            ++off;
+            const std::string name = upperText(i18n::tr(kModuleTitles[static_cast<std::size_t>(m)]));
+            const int nc = kCharacters[static_cast<std::size_t>(m)];
+            const std::string more = nc > 0 ? fmt("%.0f", static_cast<double>(nc)) + i18n::tr(" caractères") : std::string();
+            dc->setFont(mono(9.5, true));
+            const double wName = dc->getStringWidth(i18n::tr(name).c_str());
+            dc->setFont(mono(8.5));
+            const double wMore = more.empty() ? 0.0 : dc->getStringWidth(more.c_str()) + 8;
+            const CRect b(x, r.top + 2, x + 30 + wName + wMore, r.top + 26);
+            if (b.right > r.right) break;
+            dc->setFillColor(CColor(10, 10, 11));
+            dc->drawRect(b, kDrawFilled);
+            dc->setFrameColor(CColor(52, 52, 57));
+            dc->drawRect(CRect(b).inset(0.5, 0.5), kDrawStroked);
+            text(dc, "+", CRect(b.left + 8, b.top, b.left + 20, b.bottom), color::kAccent, mono(10, true));
+            text(dc, name, CRect(b.left + 22, b.top, b.left + 24 + wName, b.bottom), color::kText, mono(9.5, true));
+            if (!more.empty()) text(dc, more, CRect(b.left + 28 + wName, b.top, b.right - 4, b.bottom), color::kText3, mono(8.5));
+            libHits->push_back({b, m});
+            x = b.right + 8;
+        }
+        if (off == 0) text(dc, "Tous les modules sont dans la chaîne. × sur une carte la retire.", CRect(r.left, r.top + 2, r.right, r.top + 26), color::kText3, mono(9));
+    }, [this, libHits](const CPoint& p) {
+        for (const auto& [b, m] : *libHits)
+            if (b.pointInside(p)) {
+                setNorm(id(params::moduleOnId(static_cast<params::Module>(m))), 1.0);
+                answer_ = std::string(kModuleTitles[static_cast<std::size_t>(m)]) + i18n::tr(" remis dans la chaîne.");
+                layoutRack();
+                selectPage(m);
+                return;
+            }
+    });
+    library_ = library;
+    rack_->addView(library);
+    live_.push_back(library);
     layoutRack();
 }
 
 void OmnisEditor::layoutRack() {
     if (!rack_) return;
     const auto o = order();
-    const double slotW = rackSlotWidth(rack_->getViewSize().getWidth()), slotH = rack_->getViewSize().getHeight() - 16.0;
-    for (int pos = 0; pos < params::kModules; ++pos) {
-        RackSlot* s = slots_[static_cast<std::size_t>(o[static_cast<std::size_t>(pos)])];
+    shownModules_.clear();
+    for (int m : o)
+        if (norm(id(params::moduleOnId(static_cast<params::Module>(m)))) >= 0.5) shownModules_.push_back(m);
+    const int n = std::max<int>(1, static_cast<int>(shownModules_.size()));
+    const double avail = rack_->getViewSize().getWidth() - 24.0;
+    slotW_ = std::min(150.0, (avail - 8.0 * (n - 1)) / n);
+    for (auto* s : slots_)
+        if (s) s->setVisible(false);
+    const double kh = LedKnob::heightFor(LedKnob::Size::Big);
+    for (std::size_t pos = 0; pos < shownModules_.size(); ++pos) {
+        const int m = shownModules_[pos];
+        RackSlot* s = slots_[static_cast<std::size_t>(m)];
         if (!s) continue;
-        const double x = 8.0 + pos * (slotW + 6.0);
-        CRect r(x, 8, x + slotW, 8 + slotH);
+        const double x = 12.0 + static_cast<double>(pos) * (slotW_ + 8.0);
+        const CRect r(x, kSlotT, x + slotW_, kSlotT + kSlotH);
         if (s->getViewSize() != r) {
             s->setViewSize(r);
             s->setMouseableArea(r);
         }
+        if (auto* k = slotKnobs_[static_cast<std::size_t>(m)]) {
+            const CRect kr(4, 46, slotW_ - 4, 46 + kh);
+            if (k->getViewSize() != kr) {
+                k->setViewSize(kr);
+                k->setMouseableArea(kr);
+            }
+        }
         s->setNumber(std::to_string(pos + 1));
         s->setDropMark(0);
+        s->setVisible(true);
     }
+    lastMask_ = 0;
+    for (int m : shownModules_) lastMask_ |= 1 << m;
     rack_->invalid();
 }
 
@@ -1401,13 +1591,12 @@ void OmnisEditor::dragMove(int module, double frameX) {
     dragFrom_ = module;
     CPoint origin(0, 0);
     rack_->localToFrame(origin);
-    const double slotW = rackSlotWidth(rack_->getViewSize().getWidth());
-    const double local = frameX - origin.x - 8.0;
-    dropAt_ = std::clamp(static_cast<int>(std::floor((local + 3.0) / (slotW + 6.0) + 0.5)), 0, params::kModules); // une place entre deux modules
-    const auto o = order();
-    for (int pos = 0; pos < params::kModules; ++pos) {
-        RackSlot* s = slots_[static_cast<std::size_t>(o[static_cast<std::size_t>(pos)])];
-        if (s) s->setDropMark(pos == dropAt_ ? -1 : (pos == params::kModules - 1 && dropAt_ == params::kModules ? 1 : 0));
+    const int n = static_cast<int>(shownModules_.size());
+    const double local = frameX - origin.x - 12.0;
+    dropAt_ = std::clamp(static_cast<int>(std::floor((local + 4.0) / (slotW_ + 8.0) + 0.5)), 0, n); // une place entre deux cartes
+    for (int pos = 0; pos < n; ++pos) {
+        RackSlot* s = slots_[static_cast<std::size_t>(shownModules_[static_cast<std::size_t>(pos)])];
+        if (s) s->setDropMark(pos == dropAt_ ? -1 : (pos == n - 1 && dropAt_ == n ? 1 : 0));
     }
 }
 
@@ -1417,13 +1606,17 @@ void OmnisEditor::drop(int module, double frameX) {
         layoutRack();
         return;
     }
-    auto o = order();
-    const int from = static_cast<int>(std::find(o.begin(), o.end(), module) - o.begin());
+    // La place visée parmi les cartes ; les modules hors de la chaîne gardent la leur.
+    const auto o = order();
+    std::vector<int> v(o.begin(), o.end()), shown = shownModules_;
+    const int from = static_cast<int>(std::find(shown.begin(), shown.end(), module) - shown.begin());
     int to = dropAt_;
-    if (to > from) --to; // la place libérée par le module
-    std::vector<int> v(o.begin(), o.end());
-    v.erase(v.begin() + from);
-    v.insert(v.begin() + std::clamp(to, 0, params::kModules - 1), module);
+    if (to > from) --to;
+    shown.erase(std::remove(shown.begin(), shown.end(), module), shown.end());
+    v.erase(std::remove(v.begin(), v.end(), module), v.end());
+    if (to < static_cast<int>(shown.size())) v.insert(std::find(v.begin(), v.end(), shown[static_cast<std::size_t>(std::max(0, to))]), module);
+    else if (!shown.empty()) v.insert(std::find(v.begin(), v.end(), shown.back()) + 1, module);
+    else v.push_back(module);
     std::array<params::Module, params::kModules> next{};
     for (int i = 0; i < params::kModules; ++i) next[static_cast<std::size_t>(i)] = static_cast<params::Module>(v[static_cast<std::size_t>(i)]);
     setPlain(id(ParamId::ChainOrder), params::chainOrderRank(next));
@@ -1926,6 +2119,7 @@ void OmnisEditor::paintComposition(CDrawContext* dc, const CRect& r) {
 
 void OmnisEditor::selectPage(int p) {
     page_ = std::clamp(p, 0, static_cast<int>(kDiagPage));
+    if (page_ < params::kModules) lastModule_ = page_; // MASTER y revient après COMPOSITION
     if (page_ == kDiagPage) diagnosis_ = omnis()->mixDiagnosis(); // écouté maintenant
     for (int i = 0; i <= kDiagPage; ++i) {
         if (pages_[static_cast<std::size_t>(i)]) pages_[static_cast<std::size_t>(i)]->setVisible(i == page_);
@@ -2249,42 +2443,6 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
 // -----------------------------------------------------------------------------
 //  Écrans du bas : analyseur et goniomètre
 // -----------------------------------------------------------------------------
-void OmnisEditor::buildScreens(CViewContainer* root) {
-    auto* panel = new Panel(CRect(kWorkL, kScreensT, kWorkR, kScreensB));
-    root->addView(panel);
-    const double split = (kWorkR - kWorkL) * 2.0 / 3.0;
-    spectrum_ = new Screen(CRect(10, 10, split - 6, panel->getViewSize().getHeight() - 10), [this](CDrawContext* c, const CRect& r) { paintSpectrum(c, r); }, true);
-    spectrum_->setMouseEnabled(false);
-    panel->addView(spectrum_);
-    live_.push_back(spectrum_);
-    scope_ = new Screen(CRect(split + 6, 10, panel->getViewSize().getWidth() - 10, panel->getViewSize().getHeight() - 10),
-                        [this](CDrawContext* c, const CRect& r) { paintScope(c, r); }, true);
-    scope_->setMouseEnabled(false);
-    panel->addView(scope_);
-    live_.push_back(scope_);
-    // Prêt à exporter ? Vert, ou rouge avec la première raison ; un clic les dit toutes.
-    auto* ready = new Screen(CRect(230, 12, split - 14, 28), [this](CDrawContext* c, const CRect& r) {
-        const auto problems = omnis()->exportProblems();
-        const bool ok = problems.empty();
-        const CColor col = ok ? color::kGood : color::kClip;
-        c->setFrameColor(CColor(col.red, col.green, col.blue, 140));
-        c->setLineWidth(1.0);
-        c->drawRect(r, kDrawStroked);
-        // La raison la plus grave, courte (le détail : un clic) ; « +2 » s'il y en a d'autres.
-        std::string why = ok ? std::string() : i18n::tr(problems.front());
-        if (const auto cut = why.find(':'); cut != std::string::npos) why = why.substr(0, cut > 0 && why[cut - 1] == ' ' ? cut - 1 : cut);
-        const std::string s = ok ? i18n::tr("PRÊT À EXPORTER")
-                                 : i18n::tr("AVANT D'EXPORTER : ") + why + (problems.size() > 1 ? "  +" + std::to_string(problems.size() - 1) : "");
-        text(c, s, CRect(r.left + 6, r.top, r.right - 6, r.bottom), col, mono(9, true));
-    }, true);
-    ready->setMouse([this](const CPoint&, int phase, bool) {
-        if (phase == 0) answer_ = omnis()->ask("prêt à exporter");
-        return true;
-    });
-    panel->addView(ready);
-    live_.push_back(ready);
-}
-
 void OmnisEditor::paintSpectrum(CDrawContext* c, const CRect& r) {
     c->setDrawMode(kAntiAliasing | kNonIntegralMode);
     engraved(c, "ANALYSEUR · SORTIE", CRect(r.left + 10, r.top + 4, r.left + 200, r.top + 16));
@@ -2340,84 +2498,127 @@ void OmnisEditor::paintScope(CDrawContext* c, const CRect& r) {
 //  Colonne Master
 // -----------------------------------------------------------------------------
 void OmnisEditor::buildMaster(CViewContainer* root) {
-    auto* col = new Panel(CRect(kMasterL, kRibbon1, kMasterR, kScreensB));
+    auto* col = new Panel(CRect(kMasterL, kStyleT, kMasterR, kDrawerB));
     root->addView(col);
     const double W = col->getViewSize().getWidth();
-    col->addView(new Caption(CRect(12, 8, 120, 22), "MASTER", color::kText2, mono(10, true)));
-    const double kh = LedKnob::heightFor(LedKnob::Size::Mid);
-    auto* in = new LedKnob(CRect(12, 28, W / 2 - 2, 28 + kh), "ENTRÉE", model(id(ParamId::InputGain)), LedKnob::Size::Mid);
-    auto* out = new LedKnob(CRect(W / 2 + 2, 28, W - 12, 28 + kh), "SORTIE", model(id(ParamId::OutputGain)), LedKnob::Size::Mid);
+    // NIVEAU : la sonie visée, en liste (l'index 0, « Style », suit le style ou la référence).
+    auto levelHits = std::make_shared<std::vector<std::pair<CRect, int>>>();
+    auto* level = new Painted(CRect(12, 8, W - 12, 182), [this, levelHits](CDrawContext* dc, const CRect& r) {
+        eyebrow(dc, "NIVEAU", r.left, r.top);
+        const auto* spec = params::findParameter(id(ParamId::LoudnessLevel));
+        const int current = static_cast<int>(std::lround(plain(id(ParamId::LoudnessLevel))));
+        levelHits->clear();
+        static const std::array<int, 5> kRows{1, 2, 3, 4, 0};
+        for (std::size_t k = 0; k < kRows.size(); ++k) {
+            const int i = kRows[k];
+            const CRect row(r.left, r.top + 20 + k * 31.0, r.right, r.top + 20 + k * 31.0 + 27);
+            const bool on = i == current;
+            dc->setFillColor(on ? CColor(22, 18, 8) : CColor(10, 10, 11));
+            dc->drawRect(row, kDrawFilled);
+            dc->setLineWidth(1.0);
+            dc->setFrameColor(on ? color::kAccent : CColor(44, 44, 48));
+            dc->drawRect(CRect(row).inset(0.5, 0.5), kDrawStroked);
+            std::string label = spec ? std::string(spec->choices[static_cast<std::size_t>(i)]) : std::string(), value = "AUTO";
+            if (const auto sp = label.find_last_of(' '); i > 0 && sp != std::string::npos) {
+                value = label.substr(sp + 1) + " LUFS";
+                label = label.substr(0, sp);
+            } else if (i == 0) {
+                label = "Selon le style";
+            }
+            label = upperText(i18n::tr(label));
+            text(dc, label, CRect(row.left + 12, row.top, row.right - 80, row.bottom), on ? color::kAccent : color::kText, mono(10, true));
+            text(dc, value, CRect(row.right - 90, row.top, row.right - 10, row.bottom), on ? color::kAccent : color::kText3, mono(9), kRightText);
+            levelHits->push_back({row, i});
+        }
+    }, [this, levelHits](const CPoint& p) {
+        for (const auto& [row, i] : *levelHits)
+            if (row.pointInside(p)) {
+                setPlain(id(ParamId::LoudnessLevel), i);
+                const auto* spec = params::findParameter(id(ParamId::LoudnessLevel));
+                answer_ = i == 0 ? "NIVEAU : celui du style ou de la référence choisie."
+                                 : "NIVEAU : " + i18n::tr(std::string(spec->choices[static_cast<std::size_t>(i)])) + " LUFS ; le volume y est mené pendant la lecture.";
+                return;
+            }
+    });
+    col->addView(level);
+    live_.push_back(level);
+    meter_ = new Screen(CRect(12, 190, W - 12, 352), [this](CDrawContext* c, const CRect& r) { paintMeter(c, r); }, true);
+    meter_->setMouseEnabled(false);
+    col->addView(meter_);
+    live_.push_back(meter_);
+    readouts_ = new Screen(CRect(12, 358, W - 12, 486), [this](CDrawContext* c, const CRect& r) { paintReadouts(c, r); }, true);
+    readouts_->setMouseEnabled(false);
+    col->addView(readouts_);
+    live_.push_back(readouts_);
+    const double kh = LedKnob::heightFor(LedKnob::Size::Small);
+    auto* in = new LedKnob(CRect(12, 492, W / 2 - 2, 492 + kh), "ENTRÉE", model(id(ParamId::InputGain)), LedKnob::Size::Small);
+    auto* out = new LedKnob(CRect(W / 2 + 2, 492, W - 12, 492 + kh), "SORTIE", model(id(ParamId::OutputGain)), LedKnob::Size::Small);
     col->addView(in);
     col->addView(out);
     live_.push_back(in);
     live_.push_back(out);
-    meter_ = new Screen(CRect(12, 128, W - 12, 368), [this](CDrawContext* c, const CRect& r) { paintMeter(c, r); }, true);
-    meter_->setMouseEnabled(false);
-    col->addView(meter_);
-    live_.push_back(meter_);
-    readouts_ = new Screen(CRect(12, 376, W - 12, 540), [this](CDrawContext* c, const CRect& r) { paintReadouts(c, r); }, true);
-    readouts_->setMouseEnabled(false);
-    col->addView(readouts_);
-    live_.push_back(readouts_);
-
-    const auto menu = [&](const CRect& r, ParamId pid, const char* name, int labelW = 60) {
-        col->addView(new Caption(CRect(r.left, r.top + 4, r.left + labelW, r.bottom), name, color::kText3, mono(9)));
-        auto* m = new COptionMenu(CRect(r.left + labelW + 2, r.top, r.right, r.bottom), listen([this, pid](CControl* ctl) {
-            const auto* spec = params::findParameter(pid);
+    // ÉCOUTE simulée (écouteurs, téléphone, voiture…) : en rouge tant qu'elle est active.
+    {
+        const auto pid = ParamId::ListenSim;
+        const CRect r(12, 584, W - 12, 606);
+        col->addView(new Caption(CRect(r.left, r.top + 4, r.left + 60, r.bottom), "ÉCOUTE", color::kText3, mono(9)));
+        auto* m = new COptionMenu(CRect(r.left + 62, r.top, r.right, r.bottom), listen([this, pid](CControl* ctl) {
+            const auto* spec = params::findParameter(id(pid));
             setPlain(id(pid), spec->minValue + std::lround(ctl->getValue()));
-            if (pid == ParamId::LoudnessLevel) {
-                answer_ = std::lround(ctl->getValue()) == 0 ? "NIVEAU : celui du style ou de la référence choisie."
-                                                            : "NIVEAU : " + i18n::tr(std::string(spec->choices[static_cast<std::size_t>(std::lround(ctl->getValue()))])) +
-                                                                  " LUFS ; le volume y est mené pendant la lecture.";
-                return;
-            }
-            if (pid == ParamId::ListenSim) {
-                const int v = static_cast<int>(std::lround(ctl->getValue()));
-                answer_ = v == 0 ? "Écoute normale."
-                                 : "ÉCOUTE SIMULÉE « " + std::string(spec->choices[static_cast<std::size_t>(v)]) +
-                                       " » : pour juger seulement (approximation d'OMNIS, pas une mesure du modèle). "
-                                       "Rien n'est exporté avec, et elle repart à Off à la réouverture du projet.";
-                return;
-            }
-            layoutRack();
+            const int v = static_cast<int>(std::lround(ctl->getValue()));
+            answer_ = v == 0 ? "Écoute normale."
+                             : "ÉCOUTE SIMULÉE « " + std::string(spec->choices[static_cast<std::size_t>(v)]) +
+                                   " » : pour juger seulement (approximation d'OMNIS, pas une mesure du modèle). "
+                                   "Rien n'est exporté avec, et elle repart à Off à la réouverture du projet.";
         }), static_cast<int32_t>(pid));
         m->setFont(mono(10.5));
         m->setFontColor(color::kText);
-        m->setBackColor(color::kScreen);
-        m->setFrameColor(CColor(60, 62, 66));
-        const auto* spec = params::findParameter(pid);
+        m->setBackColor(CColor(8, 8, 9));
+        m->setFrameColor(CColor(52, 52, 57));
+        const auto* spec = params::findParameter(id(pid));
         for (const auto& l : spec->choices) m->addEntry(UTF8String(i18n::tr(l)));
         m->setCurrent(static_cast<int32_t>(std::lround(plain(id(pid)) - spec->minValue)));
         col->addView(m);
         syncs_.push_back([this, m, pid, spec] {
             const auto v = static_cast<int32_t>(std::lround(plain(id(pid)) - spec->minValue));
             if (m->getCurrentIndex() != v) m->setCurrent(v);
-            // Écoute simulée active : en rouge, on ne l'oublie pas.
-            if (pid == ParamId::ListenSim) {
-                const CColor want = v != 0 ? color::kClip : color::kText;
-                if (m->getFontColor() != want) {
-                    m->setFontColor(want);
-                    m->setFrameColor(v != 0 ? color::kClip : CColor(60, 62, 66));
-                    m->invalid();
-                }
+            const CColor want = v != 0 ? color::kClip : color::kText;
+            if (m->getFontColor() != want) {
+                m->setFontColor(want);
+                m->setFrameColor(v != 0 ? color::kClip : CColor(52, 52, 57));
+                m->invalid();
             }
         });
-    };
-    menu(CRect(12, 550, W - 12, 572), ParamId::ListenSim, "ÉCOUTE");
-    menu(CRect(12, 580, W - 12, 602), ParamId::LoudnessLevel, "NIVEAU");
-    col->addView(new Caption(CRect(12, 614, W - 12, 626), "PROD ET EXPORT", color::kText3, mono(9)));
-    auto* diag = new HwButton(CRect(12, 630, W - 12, 656), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); });
+    }
+    auto* diag = new HwButton(CRect(12, 612, W - 12, 636), "DIAGNOSTIC DU MIX", [this] { return page_ == kDiagPage; }, [this] { selectPage(kDiagPage); }, false);
     diag->setAccentText(true);
     col->addView(diag);
     live_.push_back(diag);
-    // Pistes et bus : la page COMPOSITION.
-    auto* comp = new HwButton(CRect(12, 698, W - 12, 722), "COMPOSITION", [this] { return page_ == kCompPage; }, [this] { selectPage(kCompPage); });
-    col->addView(comp);
-    live_.push_back(comp);
     // Prêt à exporter ? La réponse complète dans la ligne de réponse de la barre IA.
-    auto* exportCheck = new HwButton(CRect(12, 664, W - 12, 690), "VÉRIFIER L'EXPORT", [] { return false; }, [this] { answer_ = omnis()->ask("export"); }, false);
+    auto* exportCheck = new HwButton(CRect(12, 640, W - 12, 664), "VÉRIFIER L'EXPORT", [] { return false; }, [this] { answer_ = omnis()->ask("export"); }, false);
     col->addView(exportCheck);
     live_.push_back(exportCheck);
+    // Prêt à exporter ? Vert, ou rouge avec la première raison ; un clic les dit toutes.
+    auto* ready = new Screen(CRect(12, 670, W - 12, 694), [this](CDrawContext* c, const CRect& r) {
+        const auto problems = omnis()->exportProblems();
+        const bool ok = problems.empty();
+        const CColor col = ok ? color::kGood : color::kClip;
+        c->setFrameColor(CColor(col.red, col.green, col.blue, 140));
+        c->setLineWidth(1.0);
+        c->drawRect(r, kDrawStroked);
+        // La raison la plus grave, courte (le détail : un clic) ; « +2 » s'il y en a d'autres.
+        std::string why = ok ? std::string() : i18n::tr(problems.front());
+        if (const auto cut = why.find(':'); cut != std::string::npos) why = why.substr(0, cut > 0 && why[cut - 1] == ' ' ? cut - 1 : cut);
+        const std::string s = ok ? i18n::tr("PRÊT À EXPORTER")
+                                 : i18n::tr("AVANT D'EXPORTER : ") + why + (problems.size() > 1 ? "  +" + std::to_string(problems.size() - 1) : "");
+        text(c, s, CRect(r.left + 6, r.top, r.right - 6, r.bottom), col, mono(9, true));
+    }, true);
+    ready->setMouse([this](const CPoint&, int phase, bool) {
+        if (phase == 0) answer_ = omnis()->ask("prêt à exporter");
+        return true;
+    });
+    col->addView(ready);
+    live_.push_back(ready);
 }
 
 void OmnisEditor::paintMeter(CDrawContext* c, const CRect& r) {
@@ -2555,7 +2756,10 @@ void OmnisEditor::tick() {
     if (const auto status = omnis()->autoStatus(); !status.empty()) answer_ = status;
     ++ticks_;
     const int o = static_cast<int>(std::lround(plain(id(ParamId::ChainOrder))));
-    if (o != lastOrder_ && dragFrom_ < 0) {
+    int mask = 0;
+    for (int m = 0; m < params::kModules; ++m)
+        if (norm(id(params::moduleOnId(static_cast<params::Module>(m)))) >= 0.5) mask |= 1 << m;
+    if ((o != lastOrder_ || mask != lastMask_) && dragFrom_ < 0) {
         lastOrder_ = o;
         layoutRack();
     }

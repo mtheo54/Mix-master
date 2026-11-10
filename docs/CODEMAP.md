@@ -98,7 +98,7 @@
 ## source/plugin/vst3/
 
 - `OmnisController.h/cpp` (1902 l.) — Contrôleur d'édition VST3 (thread UI). · types : ReferenceTitle, ReferenceArtist, ReferenceStyle, ReferenceTree, FamilyFilter, GenreCard, ReferenceCard, ImportJob, AutoJob, FileJob, OmnisEdit, UndoStep · enums : RefKind · fonctions : createInstance, relistenBuses, requestFeed, editParameter, beginGesture, performGesture, endGesture, ask, mixDiagnosis, startAuto, autoFromFile, restartTutorial, pollAutomation, setPromoMode
-- `OmnisEditor.h/cpp` (2766 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, closeReferenceBrowser, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer
+- `OmnisEditor.h/cpp` (2975 l.) — La console OMNIS (VSTGUI, dessinée en code), d'après la maquette console v11 : · types : OmnisEditor : Steinberg::Vst::VSTGUIEditor · fonctions : buildInto, tick, selectPage, paintComposition, familyColor, pumpFeed, startTutorial, closeReferenceBrowser, showMatchView, setPlain, setNorm, buildRibbons, buildRack, buildDrawer
 - `OmnisFactory.cpp` (38 l.) — Point d'entrée du module VST3.
 - `OmnisIds.h` (32 l.) — Identifiants de classes VST3.
 - `OmnisProcessor.h/cpp` (826 l.) — Composant audio VST3 (thread temps réel). · types : OmnisProcessor : Steinberg::Vst::AudioEffect, ParamEvent, GateHold · fonctions : createInstance, prepareEngine, collectParameterEvents, applyParameter, applyPendingState, handleTransport, publishMeters, processSegments, onCaptureFinished, switchRole, startLink, processListening, passThrough, feedBlock
@@ -108,9 +108,9 @@
 
 ## source/plugin/vst3/gui/
 
-- `Look.h` (149 l.) — L'apparence de la console (maquette v11) : face en aluminium anodisé sombre, découpes usinées, écrans noirs, ambre réservé aux signaux actifs. Polices du système (pas de fichier de police à livrer). · fonctions : kVoid, kMetal, kMetal2, kMetalTop, kInset, kScreen, kEdgeHi, kEdgeLo, kLine, kText, kText2, kText3, kAccent, kAccentHot
+- `Look.h` (163 l.) — L'apparence de la console (maquette v11) : face en aluminium anodisé sombre, découpes usinées, écrans noirs, ambre réservé aux signaux actifs. Polices du système (pas de fichier de police à livrer). · fonctions : kVoid, kMetal, kMetal2, kMetalTop, kInset, kScreen, kEdgeHi, kEdgeLo, kLine, kText, kText2, kText3, kAccent, kAccentHot
 - `OpenUrl.h/cpp` (76 l.) — Ouvrir une page web dans le navigateur (le lien d'une référence). À part : <windows.h> ne touche pas le reste de la console. · fonctions : openUrl
-- `Widgets.h/cpp` (677 l.) — Les pièces de la console, dessinées en code : - LedKnob : bouton rotatif à couronne de LED (allumées du repos à la valeur), valeur affichée dessous ; glisser verticalement (Maj : fin), · types : Live, Model, Callbacks · enums : Size · fonctions : setNorm, setBlink, setLabel, invalid, setAccentText, setMouse, markDirty, setNumber, setDimmed, setDropMark
+- `Widgets.h/cpp` (689 l.) — Les pièces de la console, dessinées en code : - LedKnob : bouton rotatif à couronne de LED (allumées du repos à la valeur), valeur affichée dessous ; glisser verticalement (Maj : fin), · types : Live, Model, Callbacks · enums : Size · fonctions : setNorm, setBlink, setLabel, invalid, setAccentText, setFilled, setMouse, markDirty, setNumber, setDimmed, setDropMark
 
 ## source/stages/
 

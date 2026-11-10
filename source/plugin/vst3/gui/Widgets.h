@@ -88,12 +88,14 @@ public:
         invalid();
     }
     void setAccentText(bool accent) { accentText_ = accent; }
+    /// Plein, couleur de la marque (le bouton principal : AUTO).
+    void setFilled(bool filled) { filled_ = filled; }
 
 private:
     std::string label_;
     std::function<bool()> isOn_;
     std::function<void()> onClick_;
-    bool withLed_, blink_ = false, accentText_ = false;
+    bool withLed_, blink_ = false, accentText_ = false, filled_ = false;
     int shownState_ = -1, phase_ = 0;
 };
 
@@ -144,6 +146,7 @@ public:
         std::function<double()> level; ///< 0 … 1 : remplissage de la barre d'état
         std::function<void(CCoord frameX)> dragMove;
         std::function<void(CCoord frameX)> drop;
+        std::function<std::string()> character; ///< son caractère (« VCA »), vide s'il n'en a pas
     };
     RackSlot(const CRect& r, std::string number, std::string title, Callbacks cb);
     void drawBackgroundRect(CDrawContext* c, const CRect& updateRect) override;

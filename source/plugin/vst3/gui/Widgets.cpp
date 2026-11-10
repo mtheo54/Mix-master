@@ -4,6 +4,9 @@
 // =============================================================================
 #include "Widgets.h"
 
+#include <algorithm>
+#include <cctype>
+
 #include <numbers>
 
 using namespace VSTGUI;
@@ -23,17 +26,13 @@ CPoint localPoint(const CView* v, const CPoint& parentPoint) {
     return CPoint(parentPoint.x - v->getViewSize().left, parentPoint.y - v->getViewSize().top);
 }
 
-/// Fond « métal » d'un bouton matériel.
+/// Fond d'un bouton : plat, liseré fin (l'univers du site abrasion labs).
 void hwFace(CDrawContext* c, const CRect& r, bool pressed) {
-    c->setFillColor(pressed ? CColor(24, 25, 28) : CColor(36, 37, 41));
+    c->setFillColor(pressed ? CColor(8, 8, 9) : CColor(15, 15, 17));
     c->drawRect(r, kDrawFilled);
-    c->setFillColor(pressed ? CColor(22, 23, 26) : CColor(29, 30, 33));
-    c->drawRect(CRect(r.left, r.top + r.getHeight() * 0.5, r.right, r.bottom), kDrawFilled);
     c->setLineWidth(1.0);
-    c->setFrameColor(CColor(0, 0, 0, 255));
+    c->setFrameColor(CColor(52, 52, 57));
     c->drawRect(CRect(r).inset(0.5, 0.5), kDrawStroked);
-    c->setFrameColor(CColor(255, 255, 255, pressed ? 6 : 18));
-    c->drawLine(CPoint(r.left + 1.5, r.top + 1.5), CPoint(r.right - 1.5, r.top + 1.5));
 }
 
 } // namespace
@@ -205,7 +204,21 @@ void HwButton::draw(CDrawContext* c) {
     const CRect r = getViewSize();
     const bool on = isOn_ && isOn_();
     const bool lit = on && (!blink_ || phase_ < 5);
+    if (filled_) { // le bouton principal (AUTO) : plein, couleur de la marque
+        c->setFillColor(lit ? color::kAccentHot : color::kAccent);
+        c->drawRect(r, kDrawFilled);
+        c->setFillColor(CColor(10, 10, 10));
+        c->drawRect(CRect(r.left + 14, r.getCenter().y - 3.5, r.left + 21, r.getCenter().y + 3.5), kDrawFilled);
+        text(c, label_, CRect(r.left + 24, r.top, r.right - 8, r.bottom), CColor(10, 10, 10), mono(12, true), kCenterText);
+        shownState_ = (on ? 1 : 0) | (lit ? 2 : 0);
+        setDirty(false);
+        return;
+    }
     hwFace(c, r, false);
+    if (on && !withLed_) {
+        c->setFrameColor(color::kAccent);
+        c->drawRect(CRect(r).inset(0.5, 0.5), kDrawStroked);
+    }
     CCoord x = r.left + 10;
     if (withLed_) {
         led(c, CPoint(r.left + 11, r.top + r.getHeight() * 0.5), lit);
@@ -240,19 +253,22 @@ SegControl::SegControl(const CRect& r, std::vector<std::string> labels, std::fun
 
 void SegControl::draw(CDrawContext* c) {
     const CRect r = getViewSize();
-    inset(c, r);
+    // Segments : le choix en blanc plein, les autres en gris (comme le site).
+    c->setFillColor(CColor(10, 10, 11));
+    c->drawRect(r, kDrawFilled);
+    c->setLineWidth(1.0);
+    c->setFrameColor(CColor(52, 52, 57));
+    c->drawRect(CRect(r).inset(0.5, 0.5), kDrawStroked);
     const int n = static_cast<int>(labels_.size());
     const int current = get_ ? get_() : 0;
-    const double w = (r.getWidth() - 4.0 - 2.0 * (n - 1)) / std::max(1, n);
+    const double w = (r.getWidth() - 6.0 - 2.0 * (n - 1)) / std::max(1, n);
     for (int i = 0; i < n; ++i) {
-        const CRect s(r.left + 2 + i * (w + 2), r.top + 2, r.left + 2 + i * (w + 2) + w, r.bottom - 2);
+        const CRect s(r.left + 3 + i * (w + 2), r.top + 3, r.left + 3 + i * (w + 2) + w, r.bottom - 3);
         if (i == current) {
-            c->setFillColor(CColor(34, 35, 39));
+            c->setFillColor(CColor(236, 236, 238));
             c->drawRect(s, kDrawFilled);
-            c->setFrameColor(CColor(255, 255, 255, 15));
-            c->drawLine(CPoint(s.left, s.top + 0.5), CPoint(s.right, s.top + 0.5));
         }
-        text(c, labels_[static_cast<std::size_t>(i)], s, i == current ? color::kAccent : color::kText3, mono(9.5), kCenterText);
+        text(c, labels_[static_cast<std::size_t>(i)], s, i == current ? CColor(10, 10, 10) : color::kText2, mono(9.5, i == current), kCenterText);
     }
     shown_ = current;
     setDirty(false);
@@ -392,81 +408,74 @@ RackSlot::RackSlot(const CRect& r, std::string number, std::string title, Callba
 }
 
 CRect RackSlot::ledRect() const {
+    // La croix : retirer le module de la chaîne (il retourne dans la bibliothèque).
     const CRect r = getViewSize();
-    return CRect(r.getWidth() - 34, 10, r.getWidth() - 6, 30);
+    return CRect(r.getWidth() - 22, 6, r.getWidth() - 4, 24);
 }
 
 void RackSlot::drawBackgroundRect(CDrawContext* c, const CRect& /*updateRect*/) {
+    c->setDrawMode(kAntiAliasing | kNonIntegralMode);
     const CRect r(0, 0, getViewSize().getWidth(), getViewSize().getHeight());
     const bool selected = cb_.isSelected && cb_.isSelected();
     const bool on = !cb_.isOn || cb_.isOn();
-    // Face du module : métal brossé, plus clair en haut.
-    c->setFillColor(CColor(32, 33, 37));
+    // Une carte plate, liseré fin ; choisie : liseré et coins de la marque.
+    c->setFillColor(selected ? CColor(17, 16, 13) : CColor(13, 13, 14));
     c->drawRect(r, kDrawFilled);
-    c->setFillColor(color::kMetal2);
-    c->drawRect(CRect(r.left, r.top + r.getHeight() * 0.35, r.right, r.bottom), kDrawFilled);
-    c->setFillColor(CColor(23, 24, 27));
-    c->drawRect(CRect(r.left, r.top + r.getHeight() * 0.75, r.right, r.bottom), kDrawFilled);
     c->setLineWidth(1.0);
-    c->setFrameColor(CColor(255, 255, 255, 4));
-    for (CCoord x = r.left + 2; x < r.right; x += 3) c->drawLine(CPoint(x, r.top + 1), CPoint(x, r.bottom - 1));
-    c->setFrameColor(selected ? color::kAccent35 : CColor(0, 0, 0, 255));
+    c->setFrameColor(selected ? color::kAccent : CColor(44, 44, 48));
     c->drawRect(CRect(r).inset(0.5, 0.5), kDrawStroked);
-    c->setFrameColor(CColor(255, 255, 255, 16));
-    c->drawLine(CPoint(r.left + 1, r.top + 1.5), CPoint(r.right - 1, r.top + 1.5));
     if (selected) {
-        c->setFrameColor(color::kAccent15);
-        c->drawRect(CRect(r).inset(1.5, 1.5), kDrawStroked);
+        c->setLineWidth(2.0);
+        const double k = 9.0;
+        for (const CPoint corner : {CPoint(r.left + 1, r.top + 1), CPoint(r.right - 1, r.top + 1), CPoint(r.left + 1, r.bottom - 1), CPoint(r.right - 1, r.bottom - 1)}) {
+            const double dx = corner.x < r.getCenter().x ? k : -k, dy = corner.y < r.getCenter().y ? k : -k;
+            c->drawLine(corner, CPoint(corner.x + dx, corner.y));
+            c->drawLine(corner, CPoint(corner.x, corner.y + dy));
+        }
+        c->setLineWidth(1.0);
     }
-    // Vis de fixation du format 500.
-    c->setDrawMode(kAntiAliasing | kNonIntegralMode);
-    for (const CCoord y : {r.top + 6.5, r.bottom - 6.5}) {
-        if (selected && y > r.getHeight() / 2) continue;
-        fillCircle(c, CPoint(r.getWidth() / 2, y), 3.5, CColor(58, 60, 65));
-        fillCircle(c, CPoint(r.getWidth() / 2 + 0.4, y + 0.4), 2.8, CColor(30, 31, 34));
-        c->setFrameColor(CColor(90, 92, 98));
-        c->drawLine(CPoint(r.getWidth() / 2 - 2, y - 0.5), CPoint(r.getWidth() / 2 + 2, y + 0.5));
-    }
-    // En-tête : numéro, nom, voyant.
     const double dim = dimmed_ || !on ? 0.38 : 1.0;
-    text(c, number_, CRect(8, 12, 22, 28), selected ? color::kAccent : color::kText3, mono(10));
-    // Huit modules côte à côte : le titre se resserre plutôt que d'être coupé (« Multiband »).
-    auto font = sans(11.5, true);
+    // En-tête : numéro, nom (en capitales), voyant, croix.
+    text(c, number_.size() < 2 ? "0" + number_ : number_, CRect(8, 7, 26, 21), selected ? color::kAccent : color::kText3, mono(9, true));
+    const std::string upper = upperText(i18n::tr(title_));
+    auto font = mono(11, true);
     c->setFont(font);
-    for (double size = 11.0; size >= 9.0 && c->getStringWidth(title_.c_str()) > r.getWidth() - 58; size -= 0.5) {
-        font = sans(size, true);
+    for (double size = 10.5; size >= 8.5 && c->getStringWidth(upper.c_str()) > r.getWidth() - 62; size -= 0.5) {
+        font = mono(size, true);
         c->setFont(font);
     }
-    text(c, title_, CRect(22, 12, r.getWidth() - 36, 28), withAlpha(color::kText, dim), font);
-    const CRect lr = ledRect();
-    hwFace(c, lr, false);
-    led(c, CPoint(lr.left + 8, lr.top + lr.getHeight() / 2), on, 2.6);
-    text(c, on ? "ON" : "OFF", CRect(lr.left + 12, lr.top, lr.right - 2, lr.bottom), on ? color::kAccent : color::kText3, mono(8),
-         kCenterText);
-    // État : texte et barre de LED.
-    const CRect st(8, r.getHeight() - 40, r.getWidth() - 8, r.getHeight() - 12);
-    screen(c, st);
-    if (selected) {
-        c->setFrameColor(color::kAccent);
-        c->drawLine(CPoint(st.left, st.bottom - 0.5), CPoint(st.right, st.bottom - 0.5));
+    text(c, upper, CRect(26, 6, r.getWidth() - 36, 22), withAlpha(color::kText, dim), font);
+    if (on) fillCircle(c, CPoint(r.getWidth() - 30, 15), 5.5, withAlpha(color::kAccent, 0.22));
+    fillCircle(c, CPoint(r.getWidth() - 30, 15), 3.0, on ? color::kAccent : CColor(70, 70, 75));
+    const CRect x = ledRect();
+    text(c, "×", x, color::kText3, mono(12), kCenterText);
+    // Le caractère, en étiquette.
+    if (const std::string ch = cb_.character ? cb_.character() : std::string(); !ch.empty()) {
+        const std::string up = upperText(ch);
+        c->setFont(mono(8.5, true));
+        const double tw = std::min(r.getWidth() - 20, c->getStringWidth(up.c_str()) + 16);
+        const CRect tag(r.getCenter().x - tw / 2, 28, r.getCenter().x + tw / 2, 43);
+        c->setFrameColor(withAlpha(color::kAccent, 0.8 * dim));
+        c->drawRect(CRect(tag).inset(0.5, 0.5), kDrawStroked);
+        text(c, up, tag, withAlpha(color::kAccent, dim), mono(8.5, true), kCenterText);
     }
+    // État et barre d'activité, en bas.
     const std::string status = cb_.status ? cb_.status() : std::string();
-    text(c, status, CRect(st.left + 4, st.top + 2, st.right - 4, st.top + 15), withAlpha(selected ? color::kText : color::kText2, dim),
-         mono(9), kCenterText);
+    text(c, status, CRect(6, r.getHeight() - 32, r.getWidth() - 6, r.getHeight() - 18), withAlpha(selected ? color::kText : color::kText2, dim), mono(9),
+         kCenterText);
     const double level = cb_.level ? std::clamp(cb_.level(), 0.0, 1.0) : 0.0;
-    const int cells = 14;
-    const double cw = (st.getWidth() - 8 - (cells - 1) * 2.0) / cells;
-    for (int i = 0; i < cells; ++i) {
-        const CRect cell(st.left + 4 + i * (cw + 2), st.top + 18, st.left + 4 + i * (cw + 2) + cw, st.top + 22);
-        const bool lit = on && (i + 0.5) / cells <= level && level > 0.001;
-        c->setFillColor(lit ? (i >= cells - 3 ? color::kAccentHot : color::kAccent) : CColor(255, 255, 255, 18));
-        c->drawRect(cell, kDrawFilled);
+    const CRect bar(10, r.getHeight() - 12, r.getWidth() - 10, r.getHeight() - 9);
+    c->setFillColor(CColor(255, 255, 255, 22));
+    c->drawRect(bar, kDrawFilled);
+    if (on && level > 0.001) {
+        c->setFillColor(level > 0.8 ? color::kAccentHot : color::kAccent);
+        c->drawRect(CRect(bar.left, bar.top, bar.left + bar.getWidth() * level, bar.bottom), kDrawFilled);
     }
     if (dropMark_ != 0) {
-        const CCoord x = dropMark_ < 0 ? 1.5 : r.getWidth() - 1.5;
+        const CCoord dx = dropMark_ < 0 ? 1.5 : r.getWidth() - 1.5;
         c->setLineWidth(3.0);
         c->setFrameColor(color::kAccent);
-        c->drawLine(CPoint(x, 4), CPoint(x, r.getHeight() - 4));
+        c->drawLine(CPoint(dx, 4), CPoint(dx, r.getHeight() - 4));
         c->setLineWidth(1.0);
     }
     shownStatus_ = status;
