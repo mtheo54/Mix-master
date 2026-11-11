@@ -236,18 +236,47 @@ void SegControl::draw(CDrawContext* c) {
     const CRect r = getViewSize();
     const int n = static_cast<int>(labels_.size());
     const int current = get_ ? get_() : 0;
-    if (chips_) { // `.chip` : des puces séparées, la choisie en ambre plein
-        const double gap = 7.0, w = (r.getWidth() - gap * (n - 1)) / std::max(1, n);
+    if (chips_) { // `.chip` : des puces séparées à la largeur de leur mot, la choisie en ambre plein
+        // La plus grande taille où toutes les puces tiennent (à la ligne si besoin) dans la zone.
+        const double gap = 6.0, h = std::min<double>(24.0, r.getHeight());
+        // D'abord sur une ligne (en resserrant un peu la taille), sinon à la ligne.
+        double size = 11.5;
+        bool oneLine = true;
+        for (; size >= 9.5; size -= 0.5) {
+            double total = gap * (n - 1);
+            for (int i = 0; i < n; ++i) total += spacedWidth(c, upperText(labels_[static_cast<std::size_t>(i)]), mono(size), 0.1) + 1.2 * size + 4;
+            if (total <= r.getWidth() + 0.5) break;
+        }
+        if (size < 9.5) {
+            oneLine = false;
+            size = 11.5;
+        }
+        std::vector<CRect> rects;
+        for (;; size -= 0.5) {
+            rects.clear();
+            double x = r.left, y = r.top;
+            for (int i = 0; i < n; ++i) {
+                const double w = std::min<double>(r.getWidth(), spacedWidth(c, upperText(labels_[static_cast<std::size_t>(i)]), mono(size), 0.1) + 1.2 * size + 4);
+                if (x > r.left && x + w > r.right + 0.5) {
+                    x = r.left;
+                    y += h + gap;
+                }
+                rects.emplace_back(x, y, x + w, y + h);
+                x += w + gap;
+            }
+            if (oneLine || size <= 8.5 || rects.empty() || rects.back().bottom <= r.bottom + 0.5) break;
+        }
         for (int i = 0; i < n; ++i) {
-            const CRect s(r.left + i * (w + gap), r.top, r.left + i * (w + gap) + w, r.bottom);
+            const CRect& s = rects[static_cast<std::size_t>(i)];
             const bool on = i == current;
-            c->setFillColor(on ? color::kAccent : CColor(0, 0, 0, 0));
+            c->setFillColor(on ? color::kAccent : CColor(0, 0, 0, 90));
             c->drawRect(s, kDrawFilled);
             c->setLineWidth(1.0);
             c->setFrameColor(on ? color::kAccent : color::kLine2);
             c->drawRect(CRect(s).inset(0.5, 0.5), kDrawStroked);
-            spaced(c, upperText(labels_[static_cast<std::size_t>(i)]), s, on ? CColor(0, 0, 0) : color::kChip, mono(11.5), 0.1, kCenterText);
+            spaced(c, upperText(labels_[static_cast<std::size_t>(i)]), s, on ? CColor(0, 0, 0) : color::kChip, mono(size, on), 0.1, kCenterText);
         }
+        chipRects_ = std::move(rects);
         shown_ = current;
         setDirty(false);
         return;
@@ -290,6 +319,13 @@ void SegControl::onMouseDownEvent(MouseDownEvent& e) {
     const CPoint p = localPoint(this, e.mousePosition);
     const int n = static_cast<int>(labels_.size());
     int i = std::clamp(static_cast<int>(p.x / std::max<CCoord>(1.0, getViewSize().getWidth()) * n), 0, n - 1);
+    if (chips_ && !chipRects_.empty()) { // les puces : celle sous la souris, sinon rien
+        const CPoint q(p.x + getViewSize().left, p.y + getViewSize().top);
+        i = -1;
+        for (int k = 0; k < static_cast<int>(chipRects_.size()); ++k)
+            if (chipRects_[static_cast<std::size_t>(k)].pointInside(q)) i = k;
+        if (i < 0) return;
+    }
     if (!chips_ && !bounds_.empty()) // les boutons n'ont pas tous la même largeur
         for (int k = 0; k < n && k < static_cast<int>(bounds_.size()); ++k)
             if (p.x + getViewSize().left < bounds_[static_cast<std::size_t>(k)]) {
@@ -470,8 +506,9 @@ void RackSlot::drawBackgroundRect(CDrawContext* c, const CRect& /*updateRect*/) 
         const auto f = mono(9.0);
         const std::string num = number_.size() < 2 ? "0" + number_ : number_;
         const double nw = spacedWidth(c, num, f, 0.14);
-        spaced(c, num, CRect(k.left, 0, k.left + nw + 2, 12), color::kText, f, 0.14);
-        spaced(c, " · OBJ · " + cb_.code, CRect(k.left + nw, 0, k.right + 20, 12), color::kText3, f, 0.14);
+        const double x0 = k.left + 8; // à droite du crochet de la carte choisie
+        spaced(c, num, CRect(x0, 0, x0 + nw + 2, 12), color::kText, f, 0.14);
+        spaced(c, " · OBJ · " + cb_.code, CRect(x0 + nw, 0, k.right + 20, 12), color::kText3, f, 0.14);
     }
     // La carte : #050505, liseré à 12 % ; survolée : ambre à 55 % ; choisie : ambre à 70 %, fond #0b0906, crochets.
     c->setFillColor(selected ? color::kMetalTop : color::kScreen);
@@ -483,9 +520,10 @@ void RackSlot::drawBackgroundRect(CDrawContext* c, const CRect& /*updateRect*/) 
     const double dim = on ? 1.0 : 0.4; // `.card.off`
     // `.head` : le nom, le voyant, la croix.
     const CRect x = removeRect(), l = ledRect();
-    auto font = mono(13.1, true);
     const std::string title = upperText(title_);
-    for (double size = 13.1; size >= 9.5 && spacedWidth(c, title, font, 0.08) > l.left - k.left - 12; size -= 0.5) font = mono(size, true);
+    double titleSize = 13.1; // un nom long (MULTIBANDE) se resserre avant le voyant
+    while (titleSize > 9.5 && spacedWidth(c, title, mono(titleSize, true), 0.08) > l.left - k.left - 16) titleSize -= 0.4;
+    const auto font = mono(titleSize, true);
     spaced(c, title, CRect(k.left + 10, k.top + 11, l.left - 2, k.top + 29), withAlpha(color::kText, dim), font, 0.08);
     const CPoint lc = l.getCenter();
     if (on) fillCircle(c, lc, 7.0, CColor(255, 170, 0, 70)); // box-shadow 0 0 10px

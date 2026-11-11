@@ -195,6 +195,8 @@ private:
     VSTGUI::CViewContainer* matchStatic_ = nullptr;
     VSTGUI::CViewContainer* matchDynamic_ = nullptr;
     std::array<VSTGUI::CViewContainer*, 4> dynBandViews_{};
+    int mbBand_ = 0; ///< bande du multibande montrée dans le tiroir
+    std::array<VSTGUI::CViewContainer*, 4> mbBandViews_{};
     bool dynMouse(const VSTGUI::CPoint& p, int phase, bool fine, const VSTGUI::CRect& r);
     int ticks_ = 0;
     std::string answer_;

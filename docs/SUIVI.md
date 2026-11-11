@@ -397,3 +397,13 @@ et accès par Remote Control (dossier racine d'un dépôt Git). Au moment d'une 
 de références est recopiée dans `data/` et embarquée dans le plug-in, qui reste 100 % hors
 ligne. Accès : Remote Control sur le VPS (de préférence) ou clé SSH en secret de
 l'environnement — jamais de clé collée dans la conversation.
+
+## 11/11 — Interface rangée (« c'est guez »)
+
+Pages 03 / RÉGLAGE reprises sur une grille commune (`rowAt` dans `buildDrawer`) : deux rangées
+de groupes encadrés d'un bord à l'autre, un potard par colonne, les choix en puces à la taille
+de leur mot (une ligne si possible, sinon à la ligne). Potards nommés en français et court
+(`knobLabel` : « SUB » puis « NIVEAU », plus de « SUB GAIN » anglais). Multibande : on choisit
+la bande (SUB / BAS / MÉDIUM / AIGU), puis ses cinq réglages, au lieu de vingt petits potards.
+Textes trop longs terminés par « … » (`fitText`). Chaîne : fondu et flèche au bord quand elle
+continue ; numéros des cartes décalés du crochet ; menu d'écoute nommé « SIMULER SUR ».

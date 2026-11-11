@@ -103,6 +103,24 @@ inline void text(CDrawContext* c, const std::string& s, const CRect& r, const CC
     c->drawString(VSTGUI::UTF8String(omnis::i18n::tr(s)), r, align, true); // anglais : traduit à l'affichage
 }
 
+/// Le texte, coupé par « … » s'il ne tient pas dans la zone (jamais coupé net au milieu d'un mot).
+inline void fitText(CDrawContext* c, const std::string& s, const CRect& r, const CColor& col,
+                    const VSTGUI::SharedPointer<VSTGUI::CFontDesc>& font, VSTGUI::CHoriTxtAlign align = VSTGUI::kLeftText) {
+    std::string t = omnis::i18n::tr(s);
+    c->setFont(font);
+    c->setFontColor(col);
+    if (c->getStringWidth(VSTGUI::UTF8String(t)) > r.getWidth()) {
+        while (!t.empty() && c->getStringWidth(VSTGUI::UTF8String(t + "…")) > r.getWidth()) {
+            std::size_t k = t.size() - 1;
+            while (k > 0 && (static_cast<unsigned char>(t[k]) & 0xC0) == 0x80) --k; // un caractère UTF-8 entier
+            t.erase(k);
+        }
+        while (!t.empty() && (t.back() == ' ' || t.back() == ',' || t.back() == ':' || t.back() == ';')) t.pop_back();
+        t += "…";
+    }
+    c->drawString(VSTGUI::UTF8String(t), r, align, true);
+}
+
 /// Le texte avec l'interlettrage du CSS de la maquette (`em` : en fraction de la taille).
 inline double spacedWidth(CDrawContext* c, const std::string& s, const VSTGUI::SharedPointer<VSTGUI::CFontDesc>& font, double em) {
     const std::string t = omnis::i18n::tr(s);
@@ -175,7 +193,7 @@ inline void screen(CDrawContext* c, const CRect& r) {
 /// Petit texte gravé (majuscules, gris), comme sur une face avant.
 inline void engraved(CDrawContext* c, const std::string& s, const CRect& r, VSTGUI::CHoriTxtAlign align = VSTGUI::kLeftText,
                      const CColor& col = color::kText3) {
-    text(c, s, r, col, mono(9.0), align);
+    fitText(c, s, r, col, mono(9.0), align);
 }
 
 /// Les crochets d'angle de la maquette (14 px, posés 6 px hors du cadre, `push` : écartés au survol).

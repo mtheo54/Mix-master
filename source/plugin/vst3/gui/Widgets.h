@@ -113,6 +113,7 @@ public:
 private:
     bool chips_ = false;
     std::vector<double> bounds_; ///< bord droit de chaque bouton (dessinés à la largeur de leur mot)
+    std::vector<CRect> chipRects_; ///< les puces telles que dessinées (à la ligne si besoin)
     std::vector<std::string> labels_;
     std::function<int()> get_;
     std::function<void(int)> set_;
