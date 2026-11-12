@@ -249,6 +249,35 @@ OMNIS_TEST("rack Gain Match: on écoute au volume de l'entrée, les mesures gard
     OMNIS_CHECK(std::fabs(matched->meters().shortTermLufs - loud->meters().shortTermLufs) < 0.01);
 }
 
+OMNIS_TEST("rack Gain Match: AVANT passe le sec tel quel, APRÈS revient tout de suite au même volume") {
+    const Stereo in = from(tools::signals::pinkNoise(kFs, 16.0, -24.0, 12));
+    auto e = chain({{ParamId::LimGain, 12.0}, {ParamId::GainMatch, 1.0}});
+    // 0–8 s APRÈS (la compensation s'apprend), 8–11 s AVANT, puis APRÈS.
+    Stereo out = in;
+    const int n = static_cast<int>(in.l.size());
+    for (int pos = 0; pos < n; pos += 512) {
+        if (pos <= static_cast<int>(8.0 * kFs) && pos + 512 > static_cast<int>(8.0 * kFs)) e->setParameter(ParamId::Bypass, 1.0);
+        if (pos <= static_cast<int>(11.0 * kFs) && pos + 512 > static_cast<int>(11.0 * kFs)) e->setParameter(ParamId::Bypass, 0.0);
+        double* ch[2] = {out.l.data() + pos, out.r.data() + pos};
+        e->process(ch, ch, std::min(512, n - pos));
+    }
+    const auto rmsDb = [](const Stereo& s, double from, double to) {
+        double acc = 0.0;
+        const auto a = static_cast<std::size_t>(from * kFs), b = static_cast<std::size_t>(to * kFs);
+        for (std::size_t i = a; i < b; ++i) acc += s.l[i] * s.l[i] + s.r[i] * s.r[i];
+        return 10.0 * std::log10(acc / (2.0 * static_cast<double>(b - a)) + 1e-30);
+    };
+    // Fenêtres en temps de sortie (le changement agit tout de suite sur la sortie) ; l'entrée correspondante
+    // est plus tôt de la latence.
+    const double lat = e->latencySamples() / kFs;
+    const double dry = rmsDb(out, 9.0, 10.8) - rmsDb(in, 9.0 - lat, 10.8 - lat);
+    const double back = rmsDb(out, 11.1, 11.8) - rmsDb(in, 11.1 - lat, 11.8 - lat);
+    const double settled = rmsDb(out, 6.0, 7.9) - rmsDb(in, 6.0 - lat, 7.9 - lat);
+    std::printf("    APRÈS établi %+.2f dB, AVANT %+.2f dB, APRÈS 0,1 s après le retour %+.2f dB (contre l'entrée)\n", settled, dry, back);
+    OMNIS_CHECK(std::fabs(dry) < 0.3);
+    OMNIS_CHECK(std::fabs(back - settled) < 1.0);
+}
+
 OMNIS_TEST("limiteur Punch / upward / lien stéréo: le plafond tient toujours (crête vraie)") {
     const std::vector<tools::AudioFile> sources{tools::signals::drumLoop(kFs, 4), tools::signals::pinkNoise(kFs, 4.0, -16.0, 5),
                                                 tools::signals::stereoImaging(kFs, 1.0, -14.0)};

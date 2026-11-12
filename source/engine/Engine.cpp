@@ -92,6 +92,7 @@ void Engine::prepare(double sampleRate, int maxBlockSize) {
     matchGain_.snapTo(1.0);
     matchMix_.prepare(sampleRate, 50.0);
     matchMix_.snapTo(gainMatch_ ? 1.0 : 0.0);
+    matchHold_ = 0;
 
     const auto prepareSmoother = [&](OnePoleSmoother& s, ParamId id) {
         s.prepare(sampleRate, smoothingMsFor(id));
@@ -359,6 +360,7 @@ void Engine::processChunk(int n) noexcept {
     }
     applyGain(outputGain_, w, n);
 
+    const double wetStart = mix_.current(); // part du traité au début du bloc (Gain Match, plus bas)
     // 3. Mélange bypass : out = sec + mix·(traité − sec). Crossfade à gain
     //    constant en amplitude : les deux signaux sont alignés et corrélés.
     //    Une permutation du rack passe par le même chemin (orderMix_).
@@ -399,16 +401,22 @@ void Engine::processChunk(int n) noexcept {
         }
     }
 
-    // 6. Gain Match : la sortie écoutée ramenée à la sonie de l'entrée.
+    // 6. Gain Match : la sortie écoutée ramenée à la sonie de l'entrée. Elle ne s'apprend que sur
+    //    le son traité : en AVANT (bypass), le sec passe tel quel et la compensation reste prête,
+    //    pour qu'APRÈS revienne tout de suite au même volume (comparaison juste, pas « plus fort »).
+    const double wetEnd = mix_.current();
+    if (wetStart < 0.999 || wetEnd < 0.999) matchHold_ = static_cast<long>(3.0 * spec_.sampleRate);
+    else if (matchHold_ > 0) matchHold_ -= n;
     if (gainMatch_ || matchMix_.isSmoothing() || matchMix_.current() > 0.0) {
         const double inLufs = inputLoudness_.shortTermLufs(), outLufs = loudness_.shortTermLufs();
-        if (std::isfinite(inLufs) && std::isfinite(outLufs) && inLufs > -70.0 && outLufs > -70.0)
+        if (matchHold_ <= 0 && wetStart > 0.999 && wetEnd > 0.999 && std::isfinite(inLufs) && std::isfinite(outLufs) && inLufs > -70.0 && outLufs > -70.0)
             matchGain_.setTarget(dbToGain(std::clamp(inLufs - outLufs, -24.0, 24.0)));
         for (int ch = 0; ch < kNumChannels; ++ch) {
             OnePoleSmoother g = matchGain_, mm = matchMix_;
             for (int i = 0; i < n; ++i) {
                 const double gain = g.next(), m = mm.next();
-                w[ch][i] *= 1.0 + m * (gain - 1.0);
+                const double wet = wetStart + (wetEnd - wetStart) * (i + 1) / n; // le sec n'est pas compensé
+                w[ch][i] *= 1.0 + m * wet * (gain - 1.0);
             }
             if (ch == kNumChannels - 1) {
                 matchGain_ = g;

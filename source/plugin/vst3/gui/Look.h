@@ -45,7 +45,7 @@ inline const CColor kText(242, 242, 242);          ///< --ink
 inline const CColor kInk2(201, 205, 216);          ///< --ink-2
 inline const CColor kChip(230, 230, 230);          ///< texte des puces
 inline const CColor kText2(140, 143, 153);         ///< --dim
-inline const CColor kText3(92, 95, 104);           ///< --mute
+inline const CColor kText3(118, 121, 131);         ///< --mute (plus clair que la maquette : lisible sur un écran pâle)
 inline const CColor kAccent(255, 170, 0);          ///< --acc
 inline const CColor kAccentHot(255, 77, 0);        ///< --hot
 inline const CColor kAccent15(255, 170, 0, 31);    ///< --acc-12

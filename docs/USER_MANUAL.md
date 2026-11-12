@@ -576,7 +576,7 @@ the file.
 **I hear no difference.** Check the modules' **ON** lights, **BYPASS**, and that simulated
 listening is **Off**. A neutral module (default settings) lets the sound through unchanged.
 
-**The level changes when I compare.** Turn on **MATCH**: you compare at the same level.
+**The level changes when I compare.** Clicking **BEFORE** turns **MATCH** on by itself: BEFORE and AFTER at the same level, you judge the sound. Turn MATCH off to hear the real level again.
 
 **I broke everything.** "undo" (step by step), or "reset".
 

@@ -177,6 +177,7 @@ private:
     bool gainMatch_ = false;
     analysis::LoudnessMeter inputLoudness_;
     OnePoleSmoother matchGain_;
+    long matchHold_ = 0; ///< après un AVANT : échantillons à attendre que la sonie courte (3 s) ne mesure plus le sec
     OnePoleSmoother matchMix_;
     ProcessSpec spec_{};
     bool lowLatency_ = false;

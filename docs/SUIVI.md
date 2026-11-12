@@ -407,3 +407,19 @@ de leur mot (une ligne si possible, sinon à la ligne). Potards nommés en fran�
 la bande (SUB / BAS / MÉDIUM / AIGU), puis ses cinq réglages, au lieu de vingt petits potards.
 Textes trop longs terminés par « … » (`fitText`). Chaîne : fondu et flèche au bord quand elle
 continue ; numéros des cartes décalés du crochet ; menu d'écoute nommé « SIMULER SUR ».
+
+## 12/11 — Rapport d'évaluation (audit UI/UX) : ce qui est fait, ce qui reste
+
+Vérifié dans le code avant d'agir. Fait :
+- **AVANT / APRÈS au même volume** : un clic sur AVANT allume MATCH. Défaut corrigé au passage :
+  avec MATCH, AVANT baissait le sec (~-8 dB) et APRÈS revenait plus fort pendant ~1,5 s ; la
+  compensation ne s'apprend plus que sur le traité, gelée 3 s après un AVANT (test TestRack).
+- Contraste des petits textes gris relevé (`kText3`), barre IA : la phrase grise se lit comme un
+  exemple (« Écris ta demande… ex. »), aide au survol de chaque mesure (LUFS, true peak, LRA,
+  PLR, corrélation), mini-carte de toute la chaîne dans le bandeau (clic : ouvre le module),
+  spectre de sortie lisible sous la courbe du Match EQ.
+Déjà là (le rapport ne l'avait pas vu) : suréchantillonnage 1x–16x (Saturation, Clipper), MATCH,
+écoute des bus à latence 0, journal de l'IA (« annule »).
+Reste (gros chantiers) : mode < 5 ms (aujourd'hui « mode travail » ~90 ms : filtres à phase
+minimale / IIR, lookahead court), analyseur avant / après + cible de la référence, fenêtre
+redimensionnable 75–200 %.

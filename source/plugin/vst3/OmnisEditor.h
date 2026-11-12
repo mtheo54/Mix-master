@@ -109,6 +109,8 @@ private:
     void knobs(VSTGUI::CViewContainer* parent, const VSTGUI::CRect& area, const char* title, const std::vector<std::uint32_t>& ids, int size = 1);
     void layoutRack();
     void scrollChainTo(int module);
+    /// La case d'un module (rang i dans le rack) dans la mini-carte du bandeau de la chaîne.
+    [[nodiscard]] VSTGUI::CRect miniMapCell(const VSTGUI::CRect& hud, int i) const;
     [[nodiscard]] std::string moduleCharacter(int module) const; ///< « VCA », « Lampe »… (vide : aucun)
     void nextCharacter(int module);
     /// `later` (un module) est allumé et placé après `first` dans le rack.

@@ -593,7 +593,7 @@ est quand même ajouté avec le nom que tu lui as donné (« Artiste - Titre »)
 l'écoute simulée est sur **Off**. Un module neutre (réglages par défaut) laisse passer le son tel
 quel.
 
-**Le son change de volume quand je compare.** Active **MATCH** : tu compares au même volume.
+**Le son change de volume quand je compare.** Un clic sur **AVANT** allume **MATCH** de lui-même : AVANT et APRÈS au même volume, tu juges le son. Éteins MATCH pour réentendre le vrai niveau.
 
 **J'ai tout cassé.** « annule » (pas à pas), ou « remets tout à zéro ».
 

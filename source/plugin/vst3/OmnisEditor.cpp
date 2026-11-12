@@ -863,7 +863,15 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     }));
     // AVANT / APRÈS : le son d'origine ou celui d'OMNIS.
     addSeg(top, new SegControl(CRect(794, 18, 936, 54), {"AVANT", "APRÈS"}, [this] { return plain(id(ParamId::Bypass)) >= 0.5 ? 0 : 1; },
-                               [this](int i) { setPlain(id(ParamId::Bypass), i == 0 ? 1.0 : 0.0); }));
+                               [this](int i) {
+                                   setPlain(id(ParamId::Bypass), i == 0 ? 1.0 : 0.0);
+                                   // Comparer au même volume : sinon APRÈS gagne parce qu'il est plus fort.
+                                   if (i == 0 && plain(id(ParamId::GainMatch)) < 0.5) {
+                                       setPlain(id(ParamId::GainMatch), 1.0);
+                                       answer_ = "AVANT / APRÈS au même volume : MATCH s'allume (APRÈS ramené au volume d'origine). "
+                                                 "Tu juges le son, pas le volume. Éteins MATCH pour réentendre le vrai niveau.";
+                                   }
+                               }));
     // « prêt à exporter » (.tag) ; sinon la raison, en orange (.tag.hot). Un clic : le détail.
     auto* ready = new Painted(CRect(956, 25, 1132, 47), [this](CDrawContext* dc, const CRect& r) {
         const auto problems = omnis()->exportProblems();
@@ -951,7 +959,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     askField_->setFrameColor(CColor(6, 6, 6));
     askField_->setTextInset(CPoint(0, 0));
     askField_->setHoriAlign(kLeftText);
-    askField_->setPlaceholderString(i18n::tr("plus de colle · 808 plus chaude · plus large · moins fort").c_str());
+    askField_->setPlaceholderString(i18n::tr("Écris ta demande… ex. « plus de colle », « 808 plus chaude »").c_str());
     askField_->setTooltipText(i18n::tr("Glisse un son ici : AUTO l'écoute en entier (Maj : l'ajouter aux références)").c_str());
     r2->addView(askField_);
     auto* applyButton = add(r2, new HwButton(CRect(780, 6, 882, 42), "APPLIQUER", [] { return false; }, [this] { askAi(); }, false));
@@ -1403,8 +1411,46 @@ void OmnisEditor::buildRack(CViewContainer* root) {
         const double st = plain(id(ParamId::MeterShortTerm));
         spaced(dc, upperText(i18n::tr("sortie")) + " " + (st <= -79.0 ? std::string("—") : fmt("%.1f", st)) + " LUFS", CRect(r.left, r.top + 14, r.right, r.top + 28),
                color::kText2, f, 0.14, kRightText);
+        // Mini-carte : toute la chaîne d'un coup d'œil (rien n'est caché par le défilement).
+        const auto o = order();
+        const int hidden = omnis() ? std::max(0, omnis()->chainHidden()) : 0;
+        const double viewW = chain_ ? chain_->getViewSize().getWidth() : 0.0;
+        int pos = 0;
+        for (int i = 0; i < params::kModules; ++i) {
+            const int m = o[static_cast<std::size_t>(i)];
+            const CRect cell = miniMapCell(r, i);
+            const bool gone = ((hidden >> m) & 1) != 0;
+            const bool on = norm(id(params::moduleOnId(static_cast<params::Module>(m)))) >= 0.5;
+            bool seen = false;
+            if (!gone) {
+                const double x = kIoW + 16.0 + pos * (kCardW + kCardGap);
+                seen = x + kCardW > chainScroll_ && x < chainScroll_ + viewW;
+                ++pos;
+            }
+            const bool sel = m == page_;
+            dc->setFillColor(seen ? CColor(255, 255, 255, 18) : CColor(0, 0, 0, 0));
+            dc->drawRect(cell, kDrawFilled);
+            dc->setLineWidth(1.0);
+            dc->setFrameColor(sel ? color::kAccent : (gone ? color::kLine : color::kLine2));
+            dc->drawRect(CRect(cell).inset(0.5, 0.5), kDrawStroked);
+            const CColor ink = gone ? withAlpha(color::kText3, 0.5) : (!on ? color::kText3 : (sel ? color::kAccent : color::kText));
+            spaced(dc, kModuleCodes[static_cast<std::size_t>(m)], cell, ink, mono(8.6, sel), 0.08, kCenterText);
+            if (on && !gone) fillCircle(dc, CPoint(cell.right - 4, cell.top + 4), 1.5, color::kAccent);
+        }
     }, [this](const CPoint& p) {
-        if (p.x < rack_->getViewSize().getWidth() - 220) return; // seule la latence (à droite) se clique
+        const CRect hr(10, 8, rack_->getViewSize().getWidth() - 10, 36);
+        for (int i = 0; i < params::kModules; ++i)
+            if (miniMapCell(hr, i).pointInside(p)) { // un clic : ce module s'ouvre (et revient dans la chaîne)
+                const int m = order()[static_cast<std::size_t>(i)];
+                const int hidden = omnis() ? std::max(0, omnis()->chainHidden()) : 0;
+                if ((hidden >> m) & 1) {
+                    omnis()->setChainHidden(hidden & ~(1 << m));
+                    layoutRack();
+                }
+                selectPage(m);
+                return;
+            }
+        if (p.x < rack_->getViewSize().getWidth() - 220) return; // sinon seule la latence (à droite) se clique
         const bool low = plain(id(ParamId::LowLatency)) >= 0.5;
         setPlain(id(ParamId::LowLatency), low ? 0.0 : 1.0);
         answer_ = low ? "QUALITÉ MAX : filtres complets, la meilleure qualité (latence ~0,7 s). C'est le réglage d'export."
@@ -1724,6 +1770,14 @@ void OmnisEditor::scrollChainTo(int module) {
     if (x - 16 < chainScroll_) chainScroll_ = x - 16;
     else if (x + kCardW + 16 > chainScroll_ + viewW) chainScroll_ = x + kCardW + 16 - viewW;
     layoutRack();
+}
+
+CRect OmnisEditor::miniMapCell(const CRect& hud, int i) const {
+    // Au milieu du bandeau, entre « OBJ · ENTRÉE » à gauche et « LATENCE · SORTIE » à droite.
+    constexpr double w = 40.0, gap = 4.0;
+    const double total = params::kModules * w + (params::kModules - 1) * gap;
+    const double x0 = hud.left + (hud.getWidth() - total) / 2;
+    return CRect(x0 + i * (w + gap), hud.top + 4, x0 + i * (w + gap) + w, hud.top + 24);
 }
 
 std::string OmnisEditor::moduleCharacter(int m) const {
@@ -2597,7 +2651,21 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                     if (b == 0) path->beginSubpath(pt);
                     else path->addLine(pt);
                 }
-                c->setFrameColor(CColor(255, 255, 255, 40));
+                // Rempli jusqu'en bas, puis le trait : le spectre se lit sans gêner la courbe d'EQ.
+                auto area = VSTGUI::owned(c->createGraphicsPath());
+                for (int b = 0; b < Analysis::kBands; ++b) {
+                    const double f = 20.0 * std::pow(1000.0, (b + 0.5) / Analysis::kBands);
+                    const double y = std::clamp(plot.top + (-12.0 - an_->spectrum[static_cast<std::size_t>(b)]) / 60.0 * plot.getHeight(), plot.top, plot.bottom);
+                    const CPoint pt(xOfHz(f, lo, hi, plot), y);
+                    if (b == 0) area->beginSubpath(CPoint(pt.x, plot.bottom));
+                    area->addLine(pt);
+                    if (b == Analysis::kBands - 1) area->addLine(CPoint(pt.x, plot.bottom));
+                }
+                area->closeSubpath();
+                c->setFillColor(CColor(255, 255, 255, 22));
+                c->drawGraphicsPath(area, CDrawContext::kPathFilled);
+                c->setLineWidth(1.0);
+                c->setFrameColor(CColor(255, 255, 255, 110));
                 c->drawGraphicsPath(path, CDrawContext::kPathStroked);
             }
             zeroLine();
@@ -2636,7 +2704,7 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                 }
             }
             hint(matchNode_ >= 0 ? hzText(params::matchBandHz(matchNode_)) + " Hz : " + valueText(id(matchSide_ == 0 ? params::matchMidId(matchNode_) : params::matchSideId(matchNode_)))
-                                 : "AMBRE : ÉDITÉ · BLEU : L'AUTRE CANAL");
+                                 : "GRIS : SORTIE · AMBRE : ÉDITÉ · BLEU : AUTRE CANAL");
             break;
         }
         case 2: { // Inflator : courbe de transfert
@@ -2871,6 +2939,22 @@ void OmnisEditor::buildMaster(CViewContainer* root) {
     readouts_->setMouseEnabled(false);
     col->addView(readouts_);
     live_.push_back(readouts_);
+    // Au survol de chaque mesure : ce qu'elle veut dire (une zone invisible par ligne).
+    {
+        static const std::array<const char*, 7> kHelp{
+            "LUFS court : la sonie des 3 dernières secondes, ce que ton oreille entend maintenant.",
+            "LUFS intégré : la sonie de tout le morceau depuis la lecture. C'est elle que les plateformes comparent.",
+            "True peak : la vraie crête une fois le son converti (entre les échantillons). Au-dessus de -1, risque de saturation à l'encodage.",
+            "Relief (LRA) : l'écart entre les passages calmes et les forts, en LU. Petit = très compressé.",
+            "PLR : l'écart entre la crête et la sonie. Sous 6 dB, le son est écrasé, les attaques n'ont plus d'impact.",
+            "Corrélation : 1 = mono, 0 = très large, sous 0 = des parties s'annulent en mono (téléphone, boîte de nuit).",
+            "Crête max : l'échantillon le plus fort depuis la lecture. À 0, ça écrête."};
+        for (std::size_t i = 0; i < kHelp.size(); ++i) {
+            auto* zone = new CView(CRect(0, 394 + i * 22.0, W, 394 + i * 22.0 + 20));
+            zone->setTooltipText(i18n::tr(kHelp[i]).c_str());
+            col->addView(zone);
+        }
+    }
     // ÉCOUTE : stéréo / mid / side, MATCH (même volume que l'original), DELTA (ce que change le module).
     col->addView(new Painted(CRect(0, 568, W, 584), [](CDrawContext* dc, const CRect& r) { eyebrow(dc, "écoute", r.left, r.top); }));
     {
