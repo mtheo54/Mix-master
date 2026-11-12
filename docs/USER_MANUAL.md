@@ -67,8 +67,10 @@ learned). See [§ 18](#18-your-data) to delete it too.
 ## 3. First launch
 
 - **The guide** opens by itself the first time: 12 steps, about 2 minutes. **NEXT** to go on,
-  **SKIP** to close it. The **?** button at the top opens it again, and so do the words **"tuto"**
-  or **"help"** in the AI bar. After an update, you are only shown the new steps.
+  **SKIP** to close it. The **?** button at the top opens it again (**Guided tour**), and so do
+  the words **"tuto"** or **"help"** in the AI bar. After an update, you are only shown the new steps.
+- **Window size**: drag its corner, or **?** → **Window size**, from **75 to 200%**. Proportions
+  are kept and everything stays sharp (vector drawing). The size is remembered.
 - **Language**: **/en** or **/fr** in the AI bar. Your choice is kept.
 
 ---

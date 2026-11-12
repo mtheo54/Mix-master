@@ -68,7 +68,16 @@ public:
     void PLUGIN_API close() override;
 
     static constexpr int kWidth = 1200, kHeight = 1040; ///< la maquette, à ses mesures
-    static constexpr double kZoom = 0.83;               ///< à l'écran : 996 × 863
+    static constexpr double kZoom = 0.83;               ///< « 100 % » à l'écran : 996 × 863
+    static constexpr double kMinScale = 0.75, kMaxScale = 2.0; ///< tailles permises (de 100 %)
+
+    // Fenêtre redimensionnable (75 … 200 %), proportions gardées ; la taille est retenue.
+    Steinberg::tresult PLUGIN_API canResize() override { return Steinberg::kResultTrue; }
+    Steinberg::tresult PLUGIN_API checkSizeConstraint(Steinberg::ViewRect* rect) override;
+    Steinberg::tresult PLUGIN_API onSize(Steinberg::ViewRect* newSize) override;
+    /// Demande à l'hôte la taille `scale` (1 = 100 %) ; false s'il refuse.
+    bool setScale(double scale);
+    [[nodiscard]] double scale() const noexcept { return scale_; }
 
     /// Construit la console dans `root` (kWidth × kHeight).
     void buildInto(VSTGUI::CViewContainer* root);
@@ -203,6 +212,8 @@ private:
     int ticks_ = 0;
     std::string answer_;
     struct Card;
+    double scale_ = 1.0; ///< taille de la fenêtre (1 = 100 %)
+    void openHelpMenu();
     std::shared_ptr<Card> card_; ///< la référence choisie, relue quand elle change
 
     // Ce que le processeur montre (UiFeed), analysé ici (thread de l'interface).

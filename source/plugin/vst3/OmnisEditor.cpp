@@ -504,6 +504,14 @@ const std::array<TutorialStep, 12> kTutorial{{
 /// Le guide déjà vu : un petit fichier dans le dossier de la personne (jamais dans
 /// le VST3, que le système protège en écriture), avec la version du guide.
 std::filesystem::path tutorialFlag() { return userDataDir() / "tutoriel_vu.txt"; }
+std::filesystem::path scaleFile() { return userDataDir() / "taille_fenetre.txt"; }
+
+double savedScale() {
+    std::ifstream in(scaleFile());
+    double s = 1.0;
+    if (!(in >> s) || !std::isfinite(s)) s = 1.0;
+    return std::clamp(s, OmnisEditor::kMinScale, OmnisEditor::kMaxScale);
+}
 
 /// Étape où ouvrir le guide : 0 la première fois, la première étape nouvelle après
 /// une mise à jour du guide, -1 s'il est à jour.
@@ -712,8 +720,65 @@ struct OmnisEditor::Analysis {
 
 // -----------------------------------------------------------------------------
 OmnisEditor::OmnisEditor(OmnisController* controller) : VSTGUIEditor(controller), an_(std::make_unique<Analysis>()) {
-    ViewRect r(0, 0, static_cast<int32>(std::lround(kWidth * kZoom)), static_cast<int32>(std::lround(kHeight * kZoom)));
+    scale_ = savedScale();
+    ViewRect r(0, 0, static_cast<int32>(std::lround(kWidth * kZoom * scale_)), static_cast<int32>(std::lround(kHeight * kZoom * scale_)));
     setRect(r);
+}
+
+tresult PLUGIN_API OmnisEditor::checkSizeConstraint(ViewRect* rect) {
+    if (!rect) return kInvalidArgument;
+    // Proportions de la maquette, entre 75 et 200 % ; la plus grande des deux demandes l'emporte.
+    const double sw = (rect->right - rect->left) / (kWidth * kZoom), sh = (rect->bottom - rect->top) / (kHeight * kZoom);
+    const double s = std::clamp(std::max(sw, sh), kMinScale, kMaxScale);
+    rect->right = rect->left + static_cast<int32>(std::lround(kWidth * kZoom * s));
+    rect->bottom = rect->top + static_cast<int32>(std::lround(kHeight * kZoom * s));
+    return kResultTrue;
+}
+
+tresult PLUGIN_API OmnisEditor::onSize(ViewRect* newSize) {
+    if (!newSize) return kInvalidArgument;
+    const double w = newSize->right - newSize->left;
+    if (frame && w > 0) {
+        const double z = w / kWidth; // la maquette entière, mise à l'échelle (vectoriel : net à toute taille)
+        frame->setZoom(z);
+        scale_ = std::clamp(z / kZoom, kMinScale, kMaxScale);
+    }
+    return EditorView::onSize(newSize);
+}
+
+bool OmnisEditor::setScale(double s) {
+    s = std::clamp(s, kMinScale, kMaxScale);
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(userDataDir(), ec);
+        std::ofstream(scaleFile()) << s << "\n";
+    }
+    ViewRect vr(0, 0, static_cast<int32>(std::lround(kWidth * kZoom * s)), static_cast<int32>(std::lround(kHeight * kZoom * s)));
+    if (!plugFrame || plugFrame->resizeView(this, &vr) != kResultTrue) {
+        answer_ = "Ce logiciel ne laisse pas OMNIS changer la taille de sa fenêtre : elle sera prise à la prochaine ouverture.";
+        return false;
+    }
+    if (frame && frame->getZoom() != (vr.right - vr.left) / static_cast<double>(kWidth)) onSize(&vr); // hôte qui ne rappelle pas onSize
+    return true;
+}
+
+void OmnisEditor::openHelpMenu() {
+    if (!frame) return;
+    auto* menu = new COptionMenu(CRect(0, 0, 10, 10), nullptr, -1);
+    menu->addEntry(UTF8String(i18n::tr("Visite guidée")));
+    menu->addSeparator();
+    static const std::array<double, 6> kScales{0.75, 1.0, 1.25, 1.5, 1.75, 2.0};
+    for (double s : kScales) {
+        auto* item = menu->addEntry(UTF8String(i18n::tr("Taille de la fenêtre") + " " + fmt("%.0f %%", s * 100.0)));
+        if (std::fabs(s - scale_) < 0.01 && item) item->setChecked(true);
+    }
+    const CPoint at(1142, 56); // sous le « ? » (coordonnées de la maquette, comme les vues)
+    menu->popup(frame, at, [this](COptionMenu* m) {
+        const int32_t i = m->getLastResult();
+        if (i == 0) startTutorial(0);
+        else if (i >= 2 && i < 2 + static_cast<int32_t>(kScales.size())) setScale(kScales[static_cast<std::size_t>(i - 2)]);
+    });
+    menu->forget();
 }
 
 OmnisEditor::~OmnisEditor() = default;
@@ -769,7 +834,7 @@ bool PLUGIN_API OmnisEditor::open(void* parent, const PlatformType& platformType
     if (frame) return false;
     frame = new CFrame(CRect(0, 0, kWidth, kHeight), this);
     buildInto(frame);
-    frame->setZoom(kZoom); // la maquette est dessinée à 1200 × 1000 ; à l'écran, 86 %
+    frame->setZoom(kZoom * scale_); // la maquette est dessinée à 1200 × 1040 ; à l'écran, 83 % × la taille choisie
     frame->open(parent, platformType);
     timer_ = new CVSTGUITimer([this](CVSTGUITimer*) { tick(); }, 33, true);
     return true;
@@ -910,7 +975,7 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
     }, [this](const CPoint&) { answer_ = omnis()->ask("prêt à exporter"); });
     top->addView(ready);
     live_.push_back(ready);
-    addSeg(top, new SegControl(CRect(1142, 18, 1180, 54), {"?"}, [] { return -1; }, [this](int) { startTutorial(0); }));
+    addSeg(top, new SegControl(CRect(1142, 18, 1180, 54), {"?"}, [] { return -1; }, [this](int) { openHelpMenu(); })); // visite guidée, taille
 
     // ---- 01 / STYLE : les styles mesurés (.chip), tous les genres, la référence, AUTO (.btn.acc).
     auto* styleRow = new Panel(CRect(kWorkL, kStyleT, kWorkR, kIaT - 14));
@@ -993,10 +1058,25 @@ void OmnisEditor::buildRibbons(CViewContainer* root) {
         dc->setLineWidth(1.0);
         dc->setFrameColor(color::kLine);
         dc->drawLine(CPoint(r.left + 1, r.top + 0.5), CPoint(r.right - 1, r.top + 0.5));
-        const CRect line(r.left + 16, r.top + 10, r.right - 16, r.top + 30);
+        const bool two = r.getHeight() >= 40; // la place de deux lignes
+        const CRect line(r.left + 16, r.top + (two ? 4 : 10), r.right - 16, r.top + (two ? 22 : 30));
         spaced(dc, "OMNIS", line, color::kAccent, mono(12.8), 0.14);
         const std::string& said = answer_.empty() ? std::string("choisis un style ou clique AUTO. Tu peux aussi glisser des modules dans la chaîne.") : answer_;
-        text(dc, said, CRect(line.left + 66, line.top, line.right, line.bottom), color::kInk2, mono(12.8));
+        // Une réponse longue passe à la ligne (mot entier), puis finit par « … » : jamais coupée net.
+        const CRect textBox(line.left + 66, line.top, line.right, line.bottom);
+        const std::string t = i18n::tr(said);
+        dc->setFont(mono(12.8));
+        std::size_t cut = t.size();
+        if (two && dc->getStringWidth(UTF8String(t)) > textBox.getWidth()) {
+            cut = 0;
+            for (std::size_t sp = t.find(' '); sp != std::string::npos; sp = t.find(' ', sp + 1)) {
+                if (dc->getStringWidth(UTF8String(t.substr(0, sp))) > textBox.getWidth()) break;
+                cut = sp;
+            }
+            if (cut == 0) cut = t.size();
+        }
+        fitText(dc, t.substr(0, cut), textBox, color::kInk2, mono(12.8));
+        if (cut < t.size()) fitText(dc, t.substr(cut + 1), CRect(textBox).offset(0, 18), color::kInk2, mono(12.8));
     });
     r2->addView(answer);
     live_.push_back(answer);

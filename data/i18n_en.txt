@@ -870,3 +870,6 @@ Corrélation : 1 = mono, 0 = très large, sous 0 = des parties s'annulent en mon
 Crête max : l'échantillon le plus fort depuis la lecture. À 0, ça écrête.	Max peak: the loudest sample since playback started. At 0, it clips.
 BLANC : SORTIE · POINTILLÉ : ENTRÉE · ORANGE : RÉFÉRENCE	WHITE: OUTPUT · DOTTED: INPUT · ORANGE: REFERENCE
 BLANC : SORTIE · POINTILLÉ : ENTRÉE · AMBRE : TON EQ	WHITE: OUTPUT · DOTTED: INPUT · AMBER: YOUR EQ
+Visite guidée	Guided tour
+Taille de la fenêtre	Window size
+Ce logiciel ne laisse pas OMNIS changer la taille de sa fenêtre : elle sera prise à la prochaine ouverture.	This host does not let OMNIS resize its window: the size will be used next time it opens.

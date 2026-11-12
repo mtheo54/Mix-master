@@ -423,3 +423,19 @@ Déjà là (le rapport ne l'avait pas vu) : suréchantillonnage 1x–16x (Satura
 Reste (gros chantiers) : mode < 5 ms (aujourd'hui « mode travail » ~90 ms : filtres à phase
 minimale / IIR, lookahead court), analyseur avant / après + cible de la référence, fenêtre
 redimensionnable 75–200 %.
+
+## 12/11 — Les trois gros chantiers du rapport d'évaluation
+
+1. **Mode travail sous 5 ms** (176 éch. à 44,1 kHz, 184 à 48 kHz, 328 à 96 kHz ; avant ~90 ms) :
+   noyaux à phase minimale sans retard (`LinearPhaseDesigner::prepare(…, zeroDelay)`), trames
+   de ~0,17 ms, Sub en filtres analogiques, Match EQ à noyau double, anticipations du limiteur
+   (1 ms), du multibande (0,5 ms) et du clipper (0,5 ms). Même sonie, équilibre tonal à ±0,2 dB
+   par octave de la qualité max ; ~2× plus de calcul. Les essais d'AUTO gardent l'ancien mode
+   rapide (`ProcessSpec::zeroDelay` faux) : même vitesse, mêmes décisions.
+2. **Analyseur avant / après** dans le Match EQ : entrée (`UiFeed::scopeIn`), sortie, et
+   l'équilibre de la référence choisie calé sur la moyenne lente de la sortie.
+3. **Fenêtre redimensionnable 75–200 %** (`canResize`, `checkSizeConstraint`, `onSize` :
+   zoom du cadre, proportions gardées), menu **?** (visite guidée, taille), taille retenue
+   (`taille_fenetre.txt`). La réponse de l'IA passe sur deux lignes au lieu d'être coupée.
+À vérifier chez l'utilisateur : le redimensionnement dans FL Studio (tirer le coin et le menu),
+la charge du mode travail en direct.

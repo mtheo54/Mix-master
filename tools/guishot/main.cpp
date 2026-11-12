@@ -93,7 +93,8 @@ struct Rig {
 };
 
 bool savePng(VSTGUI::CFrame* frame, const std::string& path) {
-    auto ctx = VSTGUI::COffscreenContext::create(VSTGUI::CPoint(omnis::vst3::OmnisEditor::kWidth, omnis::vst3::OmnisEditor::kHeight), 1.0);
+    // À la taille du cadre : la maquette (zoom 1) ou la fenêtre à l'échelle (taille-75, taille-200).
+    auto ctx = VSTGUI::COffscreenContext::create(VSTGUI::CPoint(frame->getWidth(), frame->getHeight()), 1.0);
     if (!ctx) return false;
     ctx->beginDraw();
     frame->drawRect(ctx, frame->getViewSize());
@@ -268,6 +269,22 @@ int main(int argc, char** argv) {
             const std::string path = dir + "/omnis-" + mode + "-2-match-dyn.png";
             std::printf("%s %s\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str());
             editor->showMatchView(0, 0);
+        }
+        // Fenêtre redimensionnable : les bornes et les proportions, puis la console à 75 et 200 %.
+        if (mode == "master") {
+            using Ed = omnis::vst3::OmnisEditor;
+            for (const auto& [w, h] : std::vector<std::pair<int, int>>{{300, 300}, {996, 863}, {1500, 900}, {5000, 5000}}) {
+                Steinberg::ViewRect vr(0, 0, w, h);
+                editor->checkSizeConstraint(&vr);
+                std::printf("taille demandée %dx%d -> %dx%d (%.0f %%)\n", w, h, vr.getWidth(), vr.getHeight(), 100.0 * vr.getWidth() / (Ed::kWidth * Ed::kZoom));
+            }
+            for (double s : {0.75, 2.0}) {
+                frame->setZoom(Ed::kZoom * s);
+                editor->tick();
+                const std::string path = dir + "/omnis-master-taille-" + std::to_string(static_cast<int>(s * 100)) + ".png";
+                std::printf("%s %s (%dx%d)\n", savePng(frame, path) ? "écrit" : "ÉCHEC", path.c_str(), static_cast<int>(frame->getWidth()), static_cast<int>(frame->getHeight()));
+            }
+            frame->setZoom(1.0);
         }
         project.clear();
         omnis::link::SharedRegion::unlink(omnis::link::regionName());

@@ -65,9 +65,12 @@ références, tes réglages appris). Voir [§ 18](#18-tes-données) pour le supp
 ## 3. Premier lancement
 
 - **Le guide** s'ouvre tout seul la première fois : 12 étapes, environ 2 minutes. **SUIVANT**
-  pour avancer, **PASSER** pour le fermer. Le bouton **?** en haut le rouvre, tout comme les mots
-  **« tuto »** ou **« aide »** dans la barre IA. Après une mise à jour, seules les étapes nouvelles
-  te sont montrées.
+  pour avancer, **PASSER** pour le fermer. Le bouton **?** en haut le rouvre (**Visite guidée**),
+  tout comme les mots **« tuto »** ou **« aide »** dans la barre IA. Après une mise à jour, seules
+  les étapes nouvelles te sont montrées.
+- **La taille de la fenêtre** : tire son coin, ou bouton **?** → **Taille de la fenêtre**, de
+  **75 à 200 %**. Les proportions sont gardées, tout reste net (dessin vectoriel). La taille est
+  retenue d'une ouverture à l'autre.
 - **La langue** : écris **/en** dans la barre IA pour passer l'interface en anglais, **/fr** pour
   revenir au français. Le choix est gardé.
 
