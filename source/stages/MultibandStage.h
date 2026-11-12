@@ -63,7 +63,7 @@ struct MbKernelRequest {
 /// Même réponse de bande sur L et R.
 class MbKernelDesigner {
 public:
-    void prepare(double sampleRate, int kernelLength, int blockSize) { designer_.prepare(sampleRate, kernelLength, blockSize); }
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay = false) { designer_.prepare(sampleRate, kernelLength, blockSize, zeroDelay); }
     void design(const MbKernelRequest& r, dsp::StereoConvolver::Kernel& out) noexcept {
         const auto mag = [&](double f) { return r.magnitude(f); };
         designer_.design(mag, mag, out);
@@ -87,6 +87,7 @@ public:
     void setRealtime(bool realtime) noexcept override { realtime_ = realtime; }
 
     static constexpr double kLookaheadMs = 10.0; ///< rampe du gain
+    static constexpr double kLowLatencyLookaheadMs = 0.5; ///< mode travail (latence totale < 5 ms)
     static constexpr double kRmsWindowMs[params::kMbBands] = {50.0, 20.0, 20.0, 20.0}; ///< fenêtre du détecteur
     static constexpr double kKneeDb = 6.0;
     static int kernelLengthFor(double sampleRate) noexcept;

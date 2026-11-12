@@ -109,7 +109,11 @@ public:
     /// Latence totale de la chaîne, constante après prepare().
     [[nodiscard]] int latencySamples() const noexcept { return latency_; }
     /// Mode travail (latence basse) : pris en compte au prochain prepare().
-    void setLowLatency(bool on) noexcept { lowLatency_ = on; }
+    /// `zeroDelay` : le mode travail du plug-in (< 5 ms) ; false : noyaux courts seulement (essais d'AUTO).
+    void setLowLatency(bool on, bool zeroDelay = true) noexcept {
+        lowLatency_ = on;
+        zeroDelay_ = on && zeroDelay;
+    }
     /// Outil (omnis_render) : l'écoute simulée s'applique aussi hors temps réel.
     void forceListenSim(bool on) noexcept { forceListen_ = on; }
     [[nodiscard]] bool lowLatency() const noexcept { return spec_.lowLatency; }
@@ -180,7 +184,7 @@ private:
     long matchHold_ = 0; ///< après un AVANT : échantillons à attendre que la sonie courte (3 s) ne mesure plus le sec
     OnePoleSmoother matchMix_;
     ProcessSpec spec_{};
-    bool lowLatency_ = false;
+    bool lowLatency_ = false, zeroDelay_ = false;
     bool realtime_ = true;      ///< false : rendu hors ligne (export) -> pas d'écoute simulée
     bool forceListen_ = false;  ///< omnis_render : appliquer l'écoute simulée quand même
     ListenSim listen_;

@@ -45,9 +45,9 @@ public:
 
     /// Non temps réel. Calcule le noyau initial (actif immédiatement) et démarre
     /// le thread de calcul si `background`.
-    void prepare(double sampleRate, int kernelLength, int blockSize, bool background, const Request& initial) {
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool background, const Request& initial, bool zeroDelay = false) {
         stop();
-        designer_.prepare(sampleRate, kernelLength, blockSize);
+        designer_.prepare(sampleRate, kernelLength, blockSize, zeroDelay);
         for (auto& slot : slots_) {
             slot.kernel.allocate(kernelLength / blockSize, blockSize);
             slot.state.store(Free, std::memory_order_relaxed);

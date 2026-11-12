@@ -68,7 +68,7 @@ struct SplitKernelRequest {
 /// Même passe-bas sur les deux canaux du convolueur (L et R).
 class SplitKernelDesigner {
 public:
-    void prepare(double sampleRate, int kernelLength, int blockSize) { designer_.prepare(sampleRate, kernelLength, blockSize); }
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay = false) { designer_.prepare(sampleRate, kernelLength, blockSize, zeroDelay); }
     void design(const SplitKernelRequest& r, dsp::StereoConvolver::Kernel& out) noexcept {
         const auto mag = [&](double f) { return r.lowMagnitude(f); };
         designer_.design(mag, mag, out);
@@ -149,6 +149,7 @@ private:
 
     // Partage de marge.
     static constexpr double kRoomLookaheadMs = 5.0;
+    static constexpr double kLowLatencyRoomMs = 0.5; ///< mode travail
     static constexpr double kRoomReleaseMs = 80.0;
     static constexpr double kRoomMaxDepthDb = 6.0; ///< baisse maximale de la 808 à 100 %
     dsp::LookaheadGain room_;

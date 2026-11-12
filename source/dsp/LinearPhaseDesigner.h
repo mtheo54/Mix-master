@@ -20,6 +20,10 @@
 //  analogique : aucun pré-écho avant un transitoire. La réponse est placée à
 //  N/2 (même retard que la phase linéaire : latence et PDC inchangés), sur les
 //  N/2 taps restants, fin adoucie (demi-Hann sur le dernier huitième).
+//  En mode sans retard (prepare(…, zeroDelay = true), mode travail), tous les
+//  noyaux sont à phase minimale et commencent au tap 0 : latence du seul
+//  convolueur (quelques échantillons). Les séparations restent exactes (bande
+//  haute = entrée − bande basse), le grave est moins précis (noyau court).
 // =============================================================================
 #pragma once
 
@@ -38,8 +42,11 @@ class LinearPhaseDesigner {
 public:
     static constexpr double kKaiserBeta = 6.0;
 
-    /// Non temps réel.
-    void prepare(double sampleRate, int kernelLength, int blockSize);
+    /// Non temps réel. `zeroDelay` (mode travail) : tous les noyaux sont à phase minimale et
+    /// commencent au premier tap (retard 0 au lieu de N/2) ; le module est le même.
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay = false);
+    /// Retard du noyau (en taps) : N/2, ou 0 en mode sans retard.
+    [[nodiscard]] int kernelDelay() const noexcept { return zeroDelay_ ? 0 : length_ / 2; }
 
     [[nodiscard]] double sampleRate() const noexcept { return sampleRate_; }
     [[nodiscard]] int kernelLength() const noexcept { return length_; }
@@ -47,6 +54,10 @@ public:
     /// `magA(f)` et `magB(f)` : modules cibles (≥ 0) à la fréquence f (Hz).
     template <typename MagA, typename MagB>
     void design(MagA&& magA, MagB&& magB, StereoConvolver::Kernel& out) noexcept {
+        if (zeroDelay_) { // sans retard : la phase minimale du même module
+            designMinimumPhase(magA, magB, out);
+            return;
+        }
         const int m = 2 * length_;
         for (int k = 0; k <= length_; ++k) {
             const double f = k * sampleRate_ / m;
@@ -67,6 +78,7 @@ public:
     }
 
 private:
+    bool zeroDelay_ = false;
     void finish(StereoConvolver::Kernel& out) noexcept;
     template <typename Mag>
     void logMagnitude(Mag&& mag) noexcept {

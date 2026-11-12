@@ -488,7 +488,7 @@ const std::array<TutorialStep, 12> kTutorial{{
      {"AVANT / APRÈS : le son d'origine ou celui d'OMNIS ; A / B : deux réglages.", "MATCH : écoute au même volume que l'original (ça clignote : pense à l'enlever).",
       "DELTA : n'entends que ce que le module ouvert change.", "STÉRÉO / MID / SIDE : vérifie le centre et les côtés."}},
     {CRect(690, 310, 906, 344), "LATENCE",
-     {"Qualité max : ~710 ms de latence, normale en mastering (le DAW la compense).", "Un clic : mode TRAVAIL (~90 ms) pour jouer en direct, qualité réduite.",
+     {"Qualité max : ~710 ms de latence, normale en mastering (le DAW la compense).", "Un clic : mode TRAVAIL (~4 ms) pour jouer en direct, qualité réduite.",
       "Il clignote en rouge tant qu'il est actif :", "remets la qualité max avant d'exporter."}, 2},
     {CRect(940, 88, 1190, 650), "LE NIVEAU ET LES MESURES",
      {"NIVEAU : la sonie visée, de Streaming -14 à Très fort -7, ou selon le style.", "Puis L / R / LUFS / GR, et chaque mesure avec son verdict en mots.",
@@ -1454,7 +1454,7 @@ void OmnisEditor::buildRack(CViewContainer* root) {
         const bool low = plain(id(ParamId::LowLatency)) >= 0.5;
         setPlain(id(ParamId::LowLatency), low ? 0.0 : 1.0);
         answer_ = low ? "QUALITÉ MAX : filtres complets, la meilleure qualité (latence ~0,7 s). C'est le réglage d'export."
-                      : "MODE TRAVAIL (latence ~90 ms) : qualité RÉDUITE — grave moins précis, multibande et limiteur plus durs. "
+                      : "MODE TRAVAIL (latence ~4 ms) : qualité RÉDUITE — grave moins précis, multibande et limiteur plus durs. "
                         "Pour régler à l'oreille seulement : REPASSE EN QUALITÉ MAX AVANT D'EXPORTER (clic sur la latence). "
                         "Un export hors ligne repasse de lui-même en qualité max quand FL le signale.";
     });

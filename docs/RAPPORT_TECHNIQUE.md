@@ -68,7 +68,7 @@ OMNIS est un plug-in **VST3 stéréo de mastering et de mixage** (C++20, VSTGUI)
 | Étages | 7, ordre libre (5040 permutations, code de Lehmer) |
 | Fréquences d'échantillonnage | toutes ; noyaux FIR proportionnels (résolution en Hz constante) |
 | Latence, mode Qualité max | 33 812 éch. à 44,1 kHz (767 ms) · 34 104 à 48 kHz (710 ms) · 68 168 à 96 kHz (710 ms) |
-| Latence, mode Travail | 4 230 éch. à 44,1 kHz (96 ms) · 4 312 à 48 kHz (90 ms) · 6 408 à 96 kHz (67 ms) |
+| Latence, mode Travail | 176 éch. à 44,1 kHz (4,0 ms) · 184 à 48 kHz (3,8 ms) · 328 à 96 kHz (3,4 ms) |
 | CPU (rendu hors ligne, 48 kHz, 1 cœur, E/S WAV comprises) | 12,6 % au repos · 15,6 % tous étages actifs · 1,3 % tous éteints |
 | Base de références livrée | **39 profils de genre** (7 familles, 32 sous-genres, `data/profils_genres.txt`), moyennes de 426 titres mesurés (`data/references.txt`, non intégré) ; aucune fiche de titre livrée |
 | Catalogue (noms, alias) | 17 324 lignes (`data/catalogue.txt`) |
@@ -406,9 +406,16 @@ torturé. La marge de 0,05 dB couvre les cas musicaux mesurés.
   sortie**, avant le monitoring et avant l'écoute simulée.
 - **Mode Travail** (`low_latency`) :
   - noyaux FIR 16× plus courts (1 024 au minimum) ;
-  - lookahead du limiteur et du multibande réduit à 3 ms ;
-  - fenêtres RMS ≤ 10 ms ;
-  - environ 90 ms au lieu de 710 ms à 48 kHz ;
+  - noyaux à **phase minimale sans retard** (`LinearPhaseDesigner::prepare(…, zeroDelay)`),
+    trames du convolueur de ~0,17 ms : un étage FIR ne coûte plus que sa trame ;
+  - Sub : filtres analogiques (IIR) seulement — un noyau court ne sait pas couper à 16 Hz ;
+  - Match EQ : noyau deux fois plus long (nœuds de 20 à 60 Hz à ±1 dB) ;
+  - anticipation du limiteur 1 ms, du multibande 0,5 ms (fenêtre de mesure vers l'arrière),
+    du clipper 0,5 ms ; fenêtres RMS ≤ 10 ms ;
+  - environ 4 ms au lieu de 710 ms à 48 kHz (équilibre tonal à ±0,2 dB par octave de la
+    qualité max sur batterie et bruit rose ; ~2 fois plus de calcul) ;
+  - les essais d'AUTO gardent l'ancien réglage rapide (noyaux courts à phase linéaire, grandes
+    trames, ~90 ms) : `Engine::setLowLatency(true, false)` ;
   - le grave est moins précis : moins de résolution sous ~50 Hz pour le low cut et la séparation de
     la 808 ;
   - **l'écran LAT clignote en rouge « TRAVAIL »** tant qu'il est actif ;
@@ -1003,7 +1010,7 @@ macOS, hôtes réels (Ableton, Cubase, Reaper…) ; une fuite mémoire du banc d
 ## 16. Limites connues (à dire à un ingé)
 
 1. **Latence de 710 ms** en Qualité max. C'est le prix de la phase linéaire à 2,7 Hz de résolution.
-   - Inaudible pour un master, gênante pour jouer en direct, d'où le mode Travail (~90 ms) avec son
+   - Inaudible pour un master, gênante pour jouer en direct, d'où le mode Travail (~4 ms) avec son
      avertissement rouge.
    - On pourrait regagner ~200 ms en fusionnant les FIR du Sub et du Match EQ en un seul.
 2. **True peak** : la garantie est démontrée pour le limiteur. À réglages extrêmes, on mesure jusqu'à

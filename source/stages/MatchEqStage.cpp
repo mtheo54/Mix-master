@@ -25,16 +25,19 @@ void MatchEqStage::prepare(const ProcessSpec& spec) {
     sampleRate_ = spec.sampleRate;
     // Même résolution que le Sub Control (~2.7 Hz) : une demi-octave à 20 Hz
     // ne fait que 8 Hz de large.
-    const int n = lowLatencyLength(SubControlStage::kernelLengthFor(sampleRate_), spec.lowLatency);
-    const int b = n / 32;
+    // Mode travail : noyau deux fois plus long que les autres étages (les nœuds de 20 à 60 Hz
+    // restent à ±1 dB en phase minimale ; la latence ne dépend pas de la longueur).
+    const int full = SubControlStage::kernelLengthFor(sampleRate_);
+    const int n = spec.zeroDelay ? std::min(full, 2 * lowLatencyLength(full, true)) : lowLatencyLength(full, spec.lowLatency);
+    const int b = convolverBlock(n, sampleRate_, spec.zeroDelay);
     convolver_.prepare(b, n);
-    bank_.prepare(sampleRate_, n, b, realtime_, request_);
+    bank_.prepare(sampleRate_, n, b, realtime_, request_, spec.zeroDelay);
     activeSlot_ = bank_.initialSlot();
     fadingSlot_ = nullptr;
     fadeRamp_.resize(static_cast<std::size_t>(b));
     for (int i = 0; i < b; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / b);
-    latency_ = n / 2 + b;
+    latency_ = (spec.zeroDelay ? 0 : n / 2) + b;
     dynamic_.prepare(sampleRate_);
     reset();
 }

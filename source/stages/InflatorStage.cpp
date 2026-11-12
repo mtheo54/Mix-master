@@ -111,15 +111,15 @@ void InflatorStage::prepare(const ProcessSpec& spec) {
 
     // Séparation de bandes à phase linéaire (même filtre que le clipper).
     const int n = lowLatencyLength(splitKernelLengthFor(sampleRate_), spec.lowLatency);
-    const int b = n / 32;
+    const int b = convolverBlock(n, sampleRate_, spec.zeroDelay);
     splitter_.prepare(b, n);
-    bank_.prepare(sampleRate_, n, b, realtime_, SplitKernelRequest{std::exp(splitLog_.current())});
+    bank_.prepare(sampleRate_, n, b, realtime_, SplitKernelRequest{std::exp(splitLog_.current())}, spec.zeroDelay);
     activeSlot_ = bank_.initialSlot();
     fadingSlot_ = nullptr;
     fadeRamp_.resize(static_cast<std::size_t>(b));
     for (int i = 0; i < b; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / b);
-    splitLatency_ = n / 2 + b;
+    splitLatency_ = (spec.zeroDelay ? 0 : n / 2) + b;
     for (auto& d : inputDelay_) d.assign(static_cast<std::size_t>(splitLatency_), 0.0);
 
     const auto m = static_cast<std::size_t>(spec.maxBlockSize);

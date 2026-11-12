@@ -94,20 +94,20 @@ void MultibandStage::prepare(const ProcessSpec& spec) {
         splitLog_[s].snapTo(splitLog_[s].target());
     }
     const int n = lowLatencyLength(kernelLengthFor(sampleRate_), spec.lowLatency);
-    const int blk = n / 32;
+    const int blk = convolverBlock(n, sampleRate_, spec.zeroDelay);
     for (int k = 0; k < kFiltered; ++k) {
         convolvers_[static_cast<std::size_t>(k)].prepare(blk, n);
-        banks_[static_cast<std::size_t>(k)].prepare(sampleRate_, n, blk, realtime_, requestFor(k));
+        banks_[static_cast<std::size_t>(k)].prepare(sampleRate_, n, blk, realtime_, requestFor(k), spec.zeroDelay);
         active_[static_cast<std::size_t>(k)] = banks_[static_cast<std::size_t>(k)].initialSlot();
         fading_[static_cast<std::size_t>(k)] = nullptr;
     }
     fadeRamp_.resize(static_cast<std::size_t>(blk));
     for (int i = 0; i < blk; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / blk);
-    splitLatency_ = n / 2 + blk;
+    splitLatency_ = (spec.zeroDelay ? 0 : n / 2) + blk;
     // Mode travail : anticipation de 3 ms et fenêtres de mesure de 10 ms au plus
     // (le multibande réagit plus vite et moins finement ; latence ~15 ms au lieu de 70).
-    lookahead_ = static_cast<int>(std::lround((spec.lowLatency ? 3.0 : kLookaheadMs) * 0.001 * sampleRate_));
+    lookahead_ = static_cast<int>(std::lround((spec.zeroDelay ? kLowLatencyLookaheadMs : (spec.lowLatency ? 3.0 : kLookaheadMs)) * 0.001 * sampleRate_));
     // Audio retardé de l'anticipation + la fenêtre la plus longue : le gain d'un
     // échantillon s est réglé sur la fenêtre [s, s + W] (vers l'avant). Au début
     // d'un coup, elle est déjà entièrement dans la note (une fenêtre centrée y
@@ -118,7 +118,9 @@ void MultibandStage::prepare(const ProcessSpec& spec) {
     };
     int longest = 0;
     for (int b = 0; b < params::kMbBands; ++b) longest = std::max(longest, windowOf(b));
-    audioDelay_ = lookahead_ + longest;
+    // Mode travail : la fenêtre n'est plus mise devant (mesure classique, vers l'arrière) — la
+    // latence se réduit à l'anticipation ; un coup très court peut passer un peu plus haut.
+    audioDelay_ = spec.zeroDelay ? std::max(1, lookahead_) : lookahead_ + longest;
     latency_ = splitLatency_ + audioDelay_;
     for (auto& d : inputDelay_) d.assign(static_cast<std::size_t>(splitLatency_), 0.0);
     for (int b = 0; b < params::kMbBands; ++b) {

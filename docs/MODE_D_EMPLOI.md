@@ -485,8 +485,10 @@ Colonne MASTER, chaque mesure avec un verdict en mots (BON, FORT, DENSE, PUNCHY�
 - **Qualité max** (défaut) : environ **710 ms** à 48 et 96 kHz (767 ms à 44,1 kHz). C'est le prix
   de la phase linéaire très précise dans le grave. Le DAW la compense automatiquement : le son
   reste calé.
-- **Mode TRAVAIL** : clique sur **LAT** en haut. La latence tombe vers **90 ms** (67 ms à
-  96 kHz) pour jouer en direct, mais la qualité est réduite (grave moins précis). La case
+- **Mode TRAVAIL** : clique sur **LAT** en haut. La latence tombe à **4 ms** environ (3,4 ms à
+  96 kHz) : tu peux jouer et enregistrer en direct avec OMNIS sur le master. La qualité est
+  réduite (filtres à phase minimale plus courts, limiteur et multibande plus durs sur les
+  attaques). La case
   **clignote en rouge** tant qu'il est actif. **Remets la qualité max avant d'exporter.**
 
 En pratique : compose et enregistre sans OMNIS ou en mode Travail, masterise en Qualité max.
@@ -627,7 +629,7 @@ actifs.
 |---|---|
 | Format | VST3, Windows 64 bits et macOS 10.15+ (Intel, Apple Silicon) |
 | Audio | stéréo, 32 et 64 bits, toutes les fréquences courantes (testé de 22,05 à 384 kHz) |
-| Latence | Qualité max ≈ 710 ms · Travail ≈ 90 ms |
+| Latence | Qualité max ≈ 710 ms · Travail ≈ 4 ms |
 | Chaîne | 8 modules réordonnables (dont un compresseur de bus à 4 caractères), EQ dynamique à 4 bandes intégré au Match EQ |
 | Mesures | sonie BS.1770 (LUFS M / S / I), LRA, true peak, PLR, corrélation |
 | Écoutes simulées | 18, plus Off |

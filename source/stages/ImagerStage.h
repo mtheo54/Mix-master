@@ -45,7 +45,7 @@ struct ImagerKernelRequest {
 /// Canal A = Mid (inchangé), canal B = Side.
 class ImagerKernelDesigner {
 public:
-    void prepare(double sampleRate, int kernelLength, int blockSize) { designer_.prepare(sampleRate, kernelLength, blockSize); }
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay = false) { designer_.prepare(sampleRate, kernelLength, blockSize, zeroDelay); }
     void design(const ImagerKernelRequest& r, dsp::StereoConvolver::Kernel& out) noexcept {
         designer_.design([](double) { return 1.0; }, [&](double f) { return r.sideMagnitude(f); }, out);
     }

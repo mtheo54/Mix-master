@@ -38,7 +38,7 @@ struct SubKernelRequest {
 /// Canal A = Mid, canal B = Side.
 class SubKernelDesigner {
 public:
-    void prepare(double sampleRate, int kernelLength, int blockSize) { designer_.prepare(sampleRate, kernelLength, blockSize); }
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay = false) { designer_.prepare(sampleRate, kernelLength, blockSize, zeroDelay); }
     void design(const SubKernelRequest& r, dsp::StereoConvolver::Kernel& out) noexcept {
         designer_.design([&](double f) { return r.midMagnitude(f); }, [&](double f) { return r.sideMagnitude(f); }, out);
     }

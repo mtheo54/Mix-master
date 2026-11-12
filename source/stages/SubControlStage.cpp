@@ -72,15 +72,18 @@ void SubControlStage::prepare(const ProcessSpec& spec) {
 
     // Chemin linéaire.
     const int n = lowLatencyLength(kernelLengthFor(sampleRate_), spec.lowLatency);
-    const int b = n / 32;
+    const int b = convolverBlock(n, sampleRate_, spec.zeroDelay);
     convolver_.prepare(b, n);
-    bank_.prepare(sampleRate_, n, b, realtime_, currentRequest());
+    bank_.prepare(sampleRate_, n, b, realtime_, currentRequest(), spec.zeroDelay);
     activeSlot_ = bank_.initialSlot();
     fadingSlot_ = nullptr;
     fadeRamp_.resize(static_cast<std::size_t>(b));
     for (int i = 0; i < b; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / b);
-    latency_ = n / 2 + b;
+    latency_ = (spec.zeroDelay ? 0 : n / 2) + b;
+    // Mode travail : le chemin analogique (IIR, sans latence) seulement. Un noyau court ne sait pas
+    // faire un coupe-bas à 16 Hz (le grave s'effondrait) ; les filtres analogiques, si.
+    forceAnalog_ = spec.zeroDelay;
 
     // Chemin analogique, retardé de la même latence.
     analogDelayMid_.assign(static_cast<std::size_t>(latency_), 0.0);
@@ -226,7 +229,8 @@ void SubControlStage::process(double* const* channels, int numSamples) noexcept 
         const double amount = monoAmount_.next();
         const double slope = slopeMix_.next();
         const double synth = synthAmount_.next();
-        const double analog = analogMix_.next();
+        const double analogSetting = analogMix_.next();
+        const double analog = forceAnalog_ ? 1.0 : analogSetting;
         if ((clock_++ % kControlInterval) == 0 && (analogDirty_ || anySmoothing())) updateAnalogCoefficients();
 
         const double l = left[i], r = right[i];

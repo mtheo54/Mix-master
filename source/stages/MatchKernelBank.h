@@ -49,7 +49,7 @@ struct MatchKernelRequest {
 /// Canal A = Mid, canal B = Side.
 class MatchKernelDesigner {
 public:
-    void prepare(double sampleRate, int kernelLength, int blockSize) { designer_.prepare(sampleRate, kernelLength, blockSize); }
+    void prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay = false) { designer_.prepare(sampleRate, kernelLength, blockSize, zeroDelay); }
     void design(const MatchKernelRequest& r, dsp::StereoConvolver::Kernel& out) noexcept {
         if (r.analog)
             designer_.designMinimumPhase([&](double f) { return r.midMagnitude(f); }, [&](double f) { return r.sideMagnitude(f); }, out);

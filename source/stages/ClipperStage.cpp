@@ -68,15 +68,15 @@ void ClipperStage::prepare(const ProcessSpec& spec) {
 
     // Séparation de bandes à phase linéaire.
     const int n = lowLatencyLength(splitKernelLengthFor(sampleRate_), spec.lowLatency);
-    const int b = n / 32;
+    const int b = convolverBlock(n, sampleRate_, spec.zeroDelay);
     splitter_.prepare(b, n);
-    bank_.prepare(sampleRate_, n, b, realtime_, SplitKernelRequest{std::exp(splitLog_.current())});
+    bank_.prepare(sampleRate_, n, b, realtime_, SplitKernelRequest{std::exp(splitLog_.current())}, spec.zeroDelay);
     activeSlot_ = bank_.initialSlot();
     fadingSlot_ = nullptr;
     fadeRamp_.resize(static_cast<std::size_t>(b));
     for (int i = 0; i < b; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / b);
-    splitLatency_ = n / 2 + b;
+    splitLatency_ = (spec.zeroDelay ? 0 : n / 2) + b;
     for (auto& d : inputDelay_) d.assign(static_cast<std::size_t>(splitLatency_), 0.0);
 
     // Suréchantillonnage des deux bandes ; latence = pire cas 16x.
@@ -92,7 +92,7 @@ void ClipperStage::prepare(const ProcessSpec& spec) {
             std::max(0, osLatency - static_cast<int>(std::lround(dsp::Oversampler::phaseDelaySamples(s, sampleRate_))));
     padding_.prepare(2, osLatency);
     padding_.setDelay(paddingForStages_[static_cast<std::size_t>(requestedStages_)]);
-    roomLatency_ = std::max(1, static_cast<int>(std::lround(kRoomLookaheadMs * 1e-3 * sampleRate_)));
+    roomLatency_ = std::max(1, static_cast<int>(std::lround((spec.zeroDelay ? kLowLatencyRoomMs : kRoomLookaheadMs) * 1e-3 * sampleRate_)));
     room_.prepare(roomLatency_);
     guard_.prepare(roomLatency_);
     roomRelease_ = 1.0 - std::exp(-1.0 / (kRoomReleaseMs * 1e-3 * sampleRate_));

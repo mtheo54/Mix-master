@@ -106,6 +106,7 @@ private:
     dsp::SvfState subShelfState_{};
     std::vector<double> analogDelayMid_, analogDelaySide_; ///< alignement sur la latence FIR
     int analogDelayPos_ = 0;
+    bool forceAnalog_ = false; ///< mode travail : filtres analogiques seulement (sans latence)
 
     // ---- Synthé sous-harmonique ---------------------------------------------
     dsp::SvfCoefficients synthInHp_{}, synthInLp_{}, synthOutLp1_{}, synthOutLp2_{}, synthOutHp_{};

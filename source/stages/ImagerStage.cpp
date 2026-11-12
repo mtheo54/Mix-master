@@ -75,15 +75,15 @@ void ImagerStage::prepare(const ProcessSpec& spec) {
     bank_.stop();
     sampleRate_ = spec.sampleRate;
     const int n = lowLatencyLength(kernelLengthFor(sampleRate_), spec.lowLatency);
-    const int b = n / 32;
+    const int b = convolverBlock(n, sampleRate_, spec.zeroDelay);
     convolver_.prepare(b, n);
-    bank_.prepare(sampleRate_, n, b, realtime_, orderedRequest());
+    bank_.prepare(sampleRate_, n, b, realtime_, orderedRequest(), spec.zeroDelay);
     activeSlot_ = bank_.initialSlot();
     fadingSlot_ = nullptr;
     fadeRamp_.resize(static_cast<std::size_t>(b));
     for (int i = 0; i < b; ++i)
         fadeRamp_[static_cast<std::size_t>(i)] = 0.5 - 0.5 * std::cos(std::numbers::pi * (i + 0.5) / b);
-    latency_ = n / 2 + b;
+    latency_ = (spec.zeroDelay ? 0 : n / 2) + b;
     reset();
 }
 

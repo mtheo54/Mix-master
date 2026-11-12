@@ -214,7 +214,7 @@ OMNIS_TEST("engine: NaN et infinis de l'hôte interceptés, la chaîne complète
     OMNIS_CHECK(Engine::sanitizeInput(0.25) == 0.25);
 }
 
-OMNIS_TEST("moteur: mode latence basse (travail) — latence ~8x plus basse, même son à peu près") {
+OMNIS_TEST("moteur: mode latence basse (travail) — moins de 5 ms de latence, même sonie à peu près") {
     const auto in = tools::signals::drumLoop(48000.0, 2);
     double lufs[2] = {0, 0};
     int latency[2] = {0, 0};
@@ -243,6 +243,6 @@ OMNIS_TEST("moteur: mode latence basse (travail) — latence ~8x plus basse, mê
     }
     std::printf("    latence : %d -> %d éch ; sonie %.2f -> %.2f LUFS\n", latency[0], latency[1], lufs[0], lufs[1]);
     OMNIS_CHECK(latency[1] * 6 < latency[0]);
-    OMNIS_CHECK(latency[1] < static_cast<int>(0.12 * 48000.0));
+    OMNIS_CHECK(latency[1] < static_cast<int>(0.005 * 48000.0)); // sous les 5 ms (jeu en direct)
     OMNIS_CHECK(std::fabs(lufs[1] - lufs[0]) < 0.7);
 }

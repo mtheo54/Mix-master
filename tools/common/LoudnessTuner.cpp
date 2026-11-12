@@ -69,7 +69,7 @@ AudioFile loudestExcerpt(const AudioFile& input, double seconds) {
 AudioFile renderWithSettings(const AudioFile& input, const std::vector<std::pair<std::string, double>>& settings, bool lowLatency) {
     Engine engine;
     buildMasteringChain(engine);
-    engine.setLowLatency(lowLatency);
+    engine.setLowLatency(lowLatency, false); // essais : noyaux courts, grandes trames (rapide)
     constexpr int kBlock = 512;
     engine.prepare(input.sampleRate, kBlock);
     for (const auto& [key, value] : settings)

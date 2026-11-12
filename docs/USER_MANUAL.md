@@ -469,8 +469,9 @@ MASTER column, each meter with a verdict in words (GOOD, LOUD, DENSE, PUNCHY…)
 - **Max quality** (default): about **710 ms** at 48 and 96 kHz (767 ms at 44.1 kHz). That is the
   price of very precise linear phase in the low end. The DAW compensates it automatically: the
   sound stays in time.
-- **WORK mode**: click **LAT** at the top. Latency drops to about **90 ms** (67 ms at 96 kHz) to
-  play live, but quality is reduced (less precise low end). The box **blinks red** while it is on.
+- **WORK mode**: click **LAT** at the top. Latency drops to about **4 ms** (3.4 ms at 96 kHz): you
+  can play and record live with OMNIS on the master. Quality is reduced (shorter minimum-phase
+  filters, harder limiter and multiband on transients). The box **blinks red** while it is on.
   **Switch back to max quality before exporting.**
 
 In practice: write and record without OMNIS or in Work mode, master in Max quality.
@@ -607,7 +608,7 @@ listening is **Off**. A neutral module (default settings) lets the sound through
 |---|---|
 | Format | VST3, Windows 64-bit and macOS 10.15+ (Intel, Apple Silicon) |
 | Audio | stereo, 32- and 64-bit, all common sample rates (tested from 22.05 to 384 kHz) |
-| Latency | Max quality ≈ 710 ms · Work ≈ 90 ms |
+| Latency | Max quality ≈ 710 ms · Work ≈ 4 ms |
 | Chain | 8 reorderable modules (including a bus compressor with 4 characters), 4-band dynamic EQ built into the Match EQ |
 | Meters | BS.1770 loudness (LUFS M / S / I), LRA, true peak, PLR, correlation |
 | Simulated listening | 18, plus Off |

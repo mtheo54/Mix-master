@@ -34,11 +34,22 @@ struct ProcessSpec {
     double sampleRate = 48000.0;
     int maxBlockSize = 512;
     int numChannels = 2;
-    bool lowLatency = false; ///< mode travail : noyaux FIR courts (voir lowLatencyLength)
+    bool lowLatency = false; ///< noyaux FIR courts (voir lowLatencyLength)
+    /// Avec lowLatency : le mode travail du plug-in (< 5 ms) — noyaux à phase minimale sans retard,
+    /// trames de ~0,17 ms, anticipations courtes. Sans : les essais rapides d'AUTO (noyaux courts à
+    /// phase linéaire, grandes trames, ~90 ms), plus économes en calcul.
+    bool zeroDelay = false;
 };
 
 /// Longueur d'un noyau FIR en mode travail : 16 fois plus court, 1024 au minimum
 /// (latence de ~11 ms par étage au lieu de 45 à 180 ms ; grave moins précis).
+/// Trame du convolueur : N/32 en qualité max ; en mode travail, ~0,17 ms (8 échantillons à
+/// 48 kHz) — avec des noyaux sans retard, c'est toute la latence d'un étage FIR.
+inline int convolverBlock(int taps, double sampleRate, bool lowLatency) noexcept {
+    if (!lowLatency) return taps / 32;
+    return sampleRate <= 50000.0 ? 8 : (sampleRate <= 100000.0 ? 16 : 32);
+}
+
 inline int lowLatencyLength(int taps, bool lowLatency) noexcept {
     if (!lowLatency) return taps;
     const int shorter = taps / 16;

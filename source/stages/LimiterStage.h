@@ -68,6 +68,7 @@ public:
     [[nodiscard]] bool limitsPeaks() const noexcept override { return true; }
 
     static constexpr double kLookaheadMs = 10.0;
+    static constexpr double kLowLatencyLookaheadMs = 1.0; ///< mode travail : plus dur sur les attaques, latence < 5 ms au total
     static constexpr double kTruePeakMarginDb = 0.05;
 
     /// Réduction de gain courante (dB, <= 0), pour les mesures.

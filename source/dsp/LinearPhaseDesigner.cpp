@@ -25,7 +25,8 @@ double besselI0(double x) {
 
 } // namespace
 
-void LinearPhaseDesigner::prepare(double sampleRate, int kernelLength, int blockSize) {
+void LinearPhaseDesigner::prepare(double sampleRate, int kernelLength, int blockSize, bool zeroDelay) {
+    zeroDelay_ = zeroDelay;
     sampleRate_ = sampleRate;
     length_ = kernelLength;
     fft_.prepare(2 * kernelLength);
@@ -67,14 +68,15 @@ void LinearPhaseDesigner::minimumPhaseInto(std::vector<double>& time) noexcept {
     fft_.forward(spectrum_.data());
     for (auto& z : spectrum_) z = std::exp(z);
     fft_.inverse(spectrum_.data());
-    // Placée à N/2 (retard identique à la phase linéaire), fin adoucie.
-    const int half = length_ / 2;
-    const int fadeStart = half - half / 8;
+    // Placée à N/2 (retard identique à la phase linéaire), ou au tap 0 (sans retard), fin adoucie.
+    const int half = zeroDelay_ ? 0 : length_ / 2;
+    const int room = length_ - half;
+    const int fadeStart = room - room / 8;
     for (int n = 0; n < length_; ++n) {
         double v = 0.0;
         if (n >= half) {
             const int j = n - half;
-            const double t = j < fadeStart ? 1.0 : 0.5 + 0.5 * std::cos(3.141592653589793 * (j - fadeStart) / (half - fadeStart));
+            const double t = j < fadeStart ? 1.0 : 0.5 + 0.5 * std::cos(3.141592653589793 * (j - fadeStart) / (room - fadeStart));
             v = spectrum_[static_cast<std::size_t>(j)].real() * t;
         }
         time[static_cast<std::size_t>(n)] = v;
