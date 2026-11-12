@@ -46,9 +46,13 @@ struct UiMeters {
 
 class UiFeed {
 public:
-    UiFeed() { scope.allocate(std::size_t{1} << 15); }
+    UiFeed() {
+        scope.allocate(std::size_t{1} << 15);
+        scopeIn.allocate(std::size_t{1} << 15);
+    }
     TripleBuffer<UiMeters> meters;
-    SpscRingBuffer<float> scope; ///< sortie entrelacée L, R
+    SpscRingBuffer<float> scope;   ///< sortie entrelacée L, R
+    SpscRingBuffer<float> scopeIn; ///< entrée (avant OMNIS) entrelacée L, R : l'analyseur avant / après
     std::atomic<bool> wanted{false};
     std::atomic<double> sampleRate{48000.0};
     /// Ce que le master a entendu de la prod (barre IA, AUTO) ; tourne même interface fermée.

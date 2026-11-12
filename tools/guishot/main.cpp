@@ -217,9 +217,12 @@ int main(int argc, char** argv) {
         // Une référence choisie au menu : la face du menu la montre.
         // (OMNIS_SHOT_REF : un autre titre ; par défaut le plus long de la base, coupé « … »).
         const char* shotRef = std::getenv("OMNIS_SHOT_REF");
-        if (mode == "master")
+        if (mode == "master") {
             rig.ctrl->chooseReference(omnis::vst3::OmnisController::RefKind::Title,
                                       shotRef ? shotRef : "BloodyWraith Pee - DRILL 229 (feat. Konor Marley & DAÏCO CHUP)");
+            // La base livrée n'a que des profils de genre : sans ce titre, un style (courbe orange du Match EQ).
+            if (rig.ctrl->referenceCard().name.empty()) rig.ctrl->chooseReference(omnis::vst3::OmnisController::RefKind::Style, "trap");
+        }
         const std::map<int, std::string> pages{{0, "1-sub"}, {1, "2-match"}, {2, "3-inflator"}, {3, "4-imager"}, {4, "5-multiband"},
                                                {5, "6-clipper"}, {6, "7-limiter"}, {7, "8-comp"}, {8, "9-composition"}, {9, "10-diagnostic"}};
         // La page COMPOSITION : un projet avec ses bus (région à part, effacée à la fin).

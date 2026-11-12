@@ -96,13 +96,23 @@ OmnisProcessor::~OmnisProcessor() {
 template <typename Sample>
 void OmnisProcessor::feedBlock(Sample** inputs, Sample** outputs, int32 numSamples, bool beforeProcessing) noexcept {
     if (!feed_->wanted.load(std::memory_order_relaxed)) return;
+    std::array<float, 512> chunk;
     if (beforeProcessing) {
         for (int c = 0; c < kNumChannels; ++c)
             for (int32 i = 0; i < numSamples; ++i)
                 inPeak_[static_cast<std::size_t>(c)] = std::max(inPeak_[static_cast<std::size_t>(c)], static_cast<float>(std::fabs(inputs[c][i])));
+        // L'entrée pour l'analyseur avant / après (perdue si l'interface ne lit pas).
+        for (int32 i = 0; i < numSamples;) {
+            const int32 n = std::min<int32>(numSamples - i, static_cast<int32>(chunk.size() / 2));
+            for (int32 k = 0; k < n; ++k) {
+                chunk[static_cast<std::size_t>(2 * k)] = static_cast<float>(inputs[0][i + k]);
+                chunk[static_cast<std::size_t>(2 * k + 1)] = static_cast<float>(inputs[1][i + k]);
+            }
+            if (feed_->scopeIn.freeSpace() >= static_cast<std::size_t>(2 * n)) feed_->scopeIn.push(chunk.data(), static_cast<std::size_t>(2 * n));
+            i += n;
+        }
         return;
     }
-    std::array<float, 512> chunk;
     for (int32 i = 0; i < numSamples;) {
         const int32 n = std::min<int32>(numSamples - i, static_cast<int32>(chunk.size() / 2));
         for (int32 k = 0; k < n; ++k) {

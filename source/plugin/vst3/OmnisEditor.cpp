@@ -625,12 +625,22 @@ void OmnisEditor::startTutorial(int step) {
 // -----------------------------------------------------------------------------
 struct OmnisEditor::Analysis {
     static constexpr int kFft = 2048, kKeep = 4096, kBands = 64, kHistory = 240;
-    std::vector<float> ring = std::vector<float>(2 * kKeep, 0.0f);
-    int ringPos = 0;
+    /// Un signal stéréo analysé : son anneau, son spectre (crêtes, rapide) et sa moyenne (lente).
+    struct Probe {
+        std::vector<float> ring = std::vector<float>(2 * kKeep, 0.0f);
+        int ringPos = 0;
+        std::array<float, kBands> fast{}, slow{};
+        Probe() {
+            fast.fill(-120.0f);
+            slow.fill(-120.0f);
+        }
+    };
+    Probe out, in; ///< sortie d'OMNIS, entrée (avant OMNIS)
+
     std::vector<float> pop = std::vector<float>(1 << 15);
     dsp::Fft fft{kFft};
     std::vector<std::complex<double>> work = std::vector<std::complex<double>>(kFft);
-    std::array<float, kBands> spectrum{};
+    std::array<float, kBands>& spectrum = out.fast; ///< la sortie (écrans des modules)
     std::array<float, kHistory> limHistory{}, clipHistory{}, compHistory{};
     int historyPos = 0;
     UiMeters meters{};
@@ -649,23 +659,30 @@ struct OmnisEditor::Analysis {
     };
     std::vector<IconRef> iconRefs; ///< pour redessiner les icônes quand le mode promo change
     int promoShown = -1;
-    Analysis() { spectrum.fill(-120.0f); }
-    void push(const float* x, std::size_t frames) {
+    Analysis() = default;
+    static void push(Probe& pr, const float* x, std::size_t frames) {
         for (std::size_t i = 0; i < frames; ++i) {
-            ring[static_cast<std::size_t>(2 * ringPos)] = x[2 * i];
-            ring[static_cast<std::size_t>(2 * ringPos + 1)] = x[2 * i + 1];
-            ringPos = (ringPos + 1) % kKeep;
+            pr.ring[static_cast<std::size_t>(2 * pr.ringPos)] = x[2 * i];
+            pr.ring[static_cast<std::size_t>(2 * pr.ringPos + 1)] = x[2 * i + 1];
+            pr.ringPos = (pr.ringPos + 1) % kKeep;
         }
     }
-    [[nodiscard]] float sample(int ago, int ch) const {
-        const int i = ((ringPos - 1 - ago) % kKeep + kKeep) % kKeep;
-        return ring[static_cast<std::size_t>(2 * i + ch)];
+    void push(const float* x, std::size_t frames) { push(out, x, frames); }
+    void pushIn(const float* x, std::size_t frames) { push(in, x, frames); }
+    [[nodiscard]] static float sample(const Probe& pr, int ago, int ch) {
+        const int i = ((pr.ringPos - 1 - ago) % kKeep + kKeep) % kKeep;
+        return pr.ring[static_cast<std::size_t>(2 * i + ch)];
     }
+    [[nodiscard]] float sample(int ago, int ch) const { return sample(out, ago, ch); }
     void analyse() {
+        analyse(out);
+        analyse(in);
+    }
+    void analyse(Probe& pr) {
         for (int i = 0; i < kFft; ++i) {
             const double w = 0.5 - 0.5 * std::cos(2.0 * std::numbers::pi * i / (kFft - 1));
             const int ago = kFft - 1 - i;
-            work[static_cast<std::size_t>(i)] = {w * 0.5 * (sample(ago, 0) + sample(ago, 1)), 0.0};
+            work[static_cast<std::size_t>(i)] = {w * 0.5 * (sample(pr, ago, 0) + sample(pr, ago, 1)), 0.0};
         }
         fft.forward(work.data());
         // Bandes de 1/6 d'octave (20 Hz … 20 kHz), pente +4,5 dB/oct (un bruit rose est plat).
@@ -675,12 +692,20 @@ struct OmnisEditor::Analysis {
             const double f1 = 20.0 * std::pow(1000.0, static_cast<double>(b + 1) / kBands);
             int k0 = static_cast<int>(f0 / binHz), k1 = std::max(k0 + 1, static_cast<int>(f1 / binHz));
             k1 = std::min(k1, kFft / 2);
-            double p = 0.0;
-            for (int k = k0; k < k1; ++k) p = std::max(p, std::norm(work[static_cast<std::size_t>(k)]));
+            double p = 0.0, sum = 0.0;
+            for (int k = k0; k < k1; ++k) {
+                p = std::max(p, std::norm(work[static_cast<std::size_t>(k)]));
+                sum += std::norm(work[static_cast<std::size_t>(k)]);
+            }
             const double fc = std::sqrt(f0 * f1);
-            const double db = 10.0 * std::log10(std::max(p, 1e-20) * 4.0 / (kFft * kFft / 4.0)) + 4.5 * std::log2(fc / 1000.0);
-            float& s = spectrum[static_cast<std::size_t>(b)];
+            const double tilt = 4.5 * std::log2(fc / 1000.0);
+            const double db = 10.0 * std::log10(std::max(p, 1e-20) * 4.0 / (kFft * kFft / 4.0)) + tilt;
+            float& s = pr.fast[static_cast<std::size_t>(b)];
             s = static_cast<float>(db > s ? db : std::max(db, static_cast<double>(s) - 1.5));
+            // Moyenne lente (~3 s) de la puissance de la bande : l'équilibre tonal, pas les coups.
+            const double avg = 10.0 * std::log10(std::max(sum / (k1 - k0), 1e-20) * 4.0 / (kFft * kFft / 4.0)) + tilt;
+            float& m = pr.slow[static_cast<std::size_t>(b)];
+            m = m < -119.0f ? static_cast<float>(avg) : static_cast<float>(m + 0.012 * (avg - m));
         }
     }
 };
@@ -2641,22 +2666,23 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                     (plain(id(ParamId::MatchCharacter)) >= 0.5 ? " · ANALOGIQUE" : ""));
             const double lo = 20.0, hi = 20480.0;
             gridLines(c, plot, lo, hi, true);
-            // Le spectre de sortie en fond.
+            // Analyseur avant / après en fond : l'entrée (pointillé gris), la sortie (blanc rempli)
+            // et la référence choisie (orange), calée sur la sortie : on lit l'équilibre, pas le volume.
             {
-                auto path = VSTGUI::owned(c->createGraphicsPath());
-                for (int b = 0; b < Analysis::kBands; ++b) {
-                    const double f = 20.0 * std::pow(1000.0, (b + 0.5) / Analysis::kBands);
-                    const double y = std::clamp(plot.top + (-12.0 - an_->spectrum[static_cast<std::size_t>(b)]) / 60.0 * plot.getHeight(), plot.top, plot.bottom);
-                    const CPoint pt(xOfHz(f, lo, hi, plot), y);
-                    if (b == 0) path->beginSubpath(pt);
-                    else path->addLine(pt);
-                }
-                // Rempli jusqu'en bas, puis le trait : le spectre se lit sans gêner la courbe d'EQ.
+                const auto ySpec = [&](double db) { return std::clamp(plot.top + (-12.0 - db) / 60.0 * plot.getHeight(), plot.top, plot.bottom); };
+                const auto fOf = [](int b) { return 20.0 * std::pow(1000.0, (b + 0.5) / Analysis::kBands); };
+                const auto line = [&](const std::array<float, Analysis::kBands>& v) {
+                    auto path = VSTGUI::owned(c->createGraphicsPath());
+                    for (int b = 0; b < Analysis::kBands; ++b) {
+                        const CPoint pt(xOfHz(fOf(b), lo, hi, plot), ySpec(v[static_cast<std::size_t>(b)]));
+                        if (b == 0) path->beginSubpath(pt);
+                        else path->addLine(pt);
+                    }
+                    return path;
+                };
                 auto area = VSTGUI::owned(c->createGraphicsPath());
                 for (int b = 0; b < Analysis::kBands; ++b) {
-                    const double f = 20.0 * std::pow(1000.0, (b + 0.5) / Analysis::kBands);
-                    const double y = std::clamp(plot.top + (-12.0 - an_->spectrum[static_cast<std::size_t>(b)]) / 60.0 * plot.getHeight(), plot.top, plot.bottom);
-                    const CPoint pt(xOfHz(f, lo, hi, plot), y);
+                    const CPoint pt(xOfHz(fOf(b), lo, hi, plot), ySpec(an_->out.fast[static_cast<std::size_t>(b)]));
                     if (b == 0) area->beginSubpath(CPoint(pt.x, plot.bottom));
                     area->addLine(pt);
                     if (b == Analysis::kBands - 1) area->addLine(CPoint(pt.x, plot.bottom));
@@ -2666,7 +2692,49 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                 c->drawGraphicsPath(area, CDrawContext::kPathFilled);
                 c->setLineWidth(1.0);
                 c->setFrameColor(CColor(255, 255, 255, 110));
-                c->drawGraphicsPath(path, CDrawContext::kPathStroked);
+                c->drawGraphicsPath(line(an_->out.fast), CDrawContext::kPathStroked);
+                const bool heardIn = *std::max_element(an_->in.fast.begin(), an_->in.fast.end()) > -110.0f;
+                if (heardIn) {
+                    c->setLineStyle(CLineStyle(CLineStyle::kLineCapButt, CLineStyle::kLineJoinMiter, 0, {3.0, 3.0}));
+                    c->setFrameColor(CColor(160, 164, 176, 150));
+                    c->drawGraphicsPath(line(an_->in.fast), CDrawContext::kPathStroked);
+                    c->setLineStyle(kLineSolid);
+                }
+                // La référence : ses 21 nœuds (puissance par octave), à la pente de l'analyseur
+                // (+4,5 dB/oct, soit +1,5 de plus qu'un bruit rose plat par octave), calée sur la
+                // moyenne lente de la sortie entre 60 Hz et 8 kHz.
+                if (card_ && !card_->data.name.empty()) {
+                    const auto& sig = card_->data.signature;
+                    const auto refAt = [&](double f) {
+                        const double pos = std::clamp(2.0 * std::log2(f / 20.0), 0.0, params::kMatchBands - 1.0);
+                        const int k = std::min(static_cast<int>(pos), params::kMatchBands - 2);
+                        const double t = pos - k;
+                        return sig.midDb[static_cast<std::size_t>(k)] * (1.0 - t) + sig.midDb[static_cast<std::size_t>(k + 1)] * t + 1.5 * std::log2(f / 1000.0);
+                    };
+                    double so = 0.0, sr = 0.0;
+                    int cnt = 0;
+                    for (int b = 0; b < Analysis::kBands; ++b) {
+                        const double f = fOf(b);
+                        if (f < 60.0 || f > 8000.0) continue;
+                        so += an_->out.slow[static_cast<std::size_t>(b)];
+                        sr += refAt(f);
+                        ++cnt;
+                    }
+                    const bool heardOut = cnt > 0 && so / cnt > -100.0;
+                    const double offset = heardOut ? (so - sr) / cnt : -40.0 - sr / std::max(1, cnt); // sans son : au milieu
+                    auto ref = VSTGUI::owned(c->createGraphicsPath());
+                    const int limit = std::clamp(sig.trustedBands, 2, params::kMatchBands);
+                    for (int k = 0; k < limit; ++k) {
+                        const double f = params::matchBandHz(k);
+                        const CPoint pt(xOfHz(f, lo, hi, plot), ySpec(refAt(f) + offset));
+                        if (k == 0) ref->beginSubpath(pt);
+                        else ref->addLine(pt);
+                    }
+                    c->setLineWidth(1.6);
+                    c->setFrameColor(withAlpha(color::kAccentHot, 0.85));
+                    c->drawGraphicsPath(ref, CDrawContext::kPathStroked);
+                    c->setLineWidth(1.0);
+                }
             }
             zeroLine();
             for (int db : {-6, 6}) {
@@ -2704,7 +2772,8 @@ void OmnisEditor::paintModuleScreen(int module, CDrawContext* c, const CRect& r)
                 }
             }
             hint(matchNode_ >= 0 ? hzText(params::matchBandHz(matchNode_)) + " Hz : " + valueText(id(matchSide_ == 0 ? params::matchMidId(matchNode_) : params::matchSideId(matchNode_)))
-                                 : "GRIS : SORTIE · AMBRE : ÉDITÉ · BLEU : AUTRE CANAL");
+                                 : (card_ && !card_->data.name.empty() ? "BLANC : SORTIE · POINTILLÉ : ENTRÉE · ORANGE : RÉFÉRENCE"
+                                                                       : "BLANC : SORTIE · POINTILLÉ : ENTRÉE · AMBRE : TON EQ"));
             break;
         }
         case 2: { // Inflator : courbe de transfert
@@ -3108,6 +3177,8 @@ void OmnisEditor::pumpFeed() {
     an_->sampleRate = feed_->sampleRate.load();
     const std::size_t got = feed_->scope.pop(an_->pop.data(), an_->pop.size());
     if (got >= 2) an_->push(an_->pop.data(), got / 2);
+    const std::size_t gotIn = feed_->scopeIn.pop(an_->pop.data(), an_->pop.size());
+    if (gotIn >= 2) an_->pushIn(an_->pop.data(), gotIn / 2);
     if (feed_->meters.update()) an_->meters = feed_->meters.readBuffer();
     an_->analyse();
     for (int ch = 0; ch < 2; ++ch) {

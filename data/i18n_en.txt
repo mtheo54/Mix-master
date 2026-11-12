@@ -689,7 +689,6 @@ Comp → VCA	Comp → VCA
 Comp → Vari-mu	Comp → Vari-mu
 Match EQ → Propre	Match EQ → Clean
 Match EQ → Analogique	Match EQ → Analog
-
 RÉFÉRENCES	REFERENCES
 Choisis un genre : OMNIS règle ta prod vers son profil mesuré. Sans profil, il vise sa famille.	Pick a genre: OMNIS sets your beat toward its measured profile. Without a profile, it aims at its family.
 MUSICBRAINZ : OUI	MUSICBRAINZ: ON
@@ -860,7 +859,6 @@ STÉRÉO LIBRE	STEREO UNLINK
 DÉTECTEUR	DETECTOR
 SIMULER SUR	SIMULATE ON
 Rien	Nothing
-GRIS : SORTIE · AMBRE : ÉDITÉ · BLEU : AUTRE CANAL	GREY: OUTPUT · AMBER: EDITED · BLUE: OTHER CHANNEL
 Écris ta demande… ex. « plus de colle », « 808 plus chaude »	Type your request… e.g. "more glue", "warmer 808"
 AVANT / APRÈS au même volume : MATCH s'allume (APRÈS ramené au volume d'origine). Tu juges le son, pas le volume. Éteins MATCH pour réentendre le vrai niveau.	BEFORE / AFTER at the same volume: MATCH turns on (AFTER brought down to the original volume). You judge the sound, not the loudness. Turn MATCH off to hear the real level again.
 LUFS court : la sonie des 3 dernières secondes, ce que ton oreille entend maintenant.	Short-term LUFS: loudness of the last 3 seconds, what your ear hears right now.
@@ -870,3 +868,5 @@ Relief (LRA) : l'écart entre les passages calmes et les forts, en LU. Petit = t
 PLR : l'écart entre la crête et la sonie. Sous 6 dB, le son est écrasé, les attaques n'ont plus d'impact.	PLR: the gap between peak and loudness. Below 6 dB the sound is squashed and transients lose their impact.
 Corrélation : 1 = mono, 0 = très large, sous 0 = des parties s'annulent en mono (téléphone, boîte de nuit).	Correlation: 1 = mono, 0 = very wide, below 0 = parts cancel out in mono (phone, club).
 Crête max : l'échantillon le plus fort depuis la lecture. À 0, ça écrête.	Max peak: the loudest sample since playback started. At 0, it clips.
+BLANC : SORTIE · POINTILLÉ : ENTRÉE · ORANGE : RÉFÉRENCE	WHITE: OUTPUT · DOTTED: INPUT · ORANGE: REFERENCE
+BLANC : SORTIE · POINTILLÉ : ENTRÉE · AMBRE : TON EQ	WHITE: OUTPUT · DOTTED: INPUT · AMBER: YOUR EQ

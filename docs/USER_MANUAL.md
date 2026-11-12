@@ -304,6 +304,11 @@ The **EQ | DYN** switch at the top of the page chooses the view.
 **EQ view**: a linear-phase curve, separately in Mid and Side (21 nodes per channel, half an
 octave each, ±12 dB). The AI bar and references write it; you touch it up by dragging the nodes on
 the screen.
+
+Behind the curve sits the **before / after analyser**: the **input** spectrum (dotted grey, your
+track before OMNIS), the **output** (filled white) and, when a reference is chosen, its **balance**
+(orange), aligned on your output level: where the orange goes above the white, the reference has
+more energy than you. The **AMOUNT** knob sets the curve's intensity.
 - **Amount** (0–100 %) scales the whole curve; **Tilt** (±6 dB) tilts it.
 - **Character**: **Clean** (linear phase, precise: the default) or **Analog** (wider, softer bells,
   minimum phase like an analog EQ: no pre-echo in front of the kick and the 808 when you boost the

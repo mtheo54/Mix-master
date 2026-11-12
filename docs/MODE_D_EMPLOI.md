@@ -320,6 +320,11 @@ Le sélecteur **EQ | DYN**, en haut de la page, choisit la vue.
 **Vue EQ** : une courbe à phase linéaire, en Mid et en Side séparément (21 nœuds par canal, une
 demi-octave chacun, ±12 dB). La barre IA et les références l'écrivent ; tu la retouches en
 glissant les nœuds sur l'écran.
+
+Derrière la courbe, l'**analyseur avant / après** : le spectre de l'**entrée** (pointillé gris,
+ta prod avant OMNIS), celui de la **sortie** (blanc rempli) et, si une référence est choisie, son
+**équilibre** (orange), calé sur le niveau de ta sortie : là où l'orange passe au-dessus du
+blanc, la référence a plus d'énergie que toi. Le bouton **DOSE** règle l'intensité de la courbe.
 - **Amount** (0–100 %) dose toute la courbe ; **Tilt** (±6 dB) penche l'ensemble.
 - **Caractère** : **Propre** (phase linéaire, précis : le défaut) ou **Analogique** (cloches plus
   larges et plus douces, phase minimale comme un EQ analogique : aucun pré-écho devant le kick et
